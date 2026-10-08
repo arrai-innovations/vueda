@@ -5,6 +5,7 @@ __all__ = (
     "PK_ALIAS",
     "RANDOM_ORDERING",
     "expand_ordering_pk",
+    "ordering_field_key",
     "ordering_fields_entry_name",
     "ordering_fields_from_path",
     "ordering_pk_field_names",
@@ -14,7 +15,9 @@ __all__ = (
     "rewrite_ordering_term_field_names",
 )
 
+from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_fields_from_path
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
 
@@ -266,6 +269,32 @@ def ordering_pk_field_names(model, field_name):
     # against, and it's what `model_ordering.fields` already advertises for a relation ("order" rather
     # than "order_id").
     return [f"{prefix}{pk_field.name}" for pk_field in pk_fields]
+
+
+def ordering_field_key(model, field_name):
+    """
+    A key that two ordering paths share when they sort by the same field.
+
+    A ``"pk"`` alias and the field behind it are two spellings of one field: ``"customer__pk"`` and
+    ``"customer__id"`` share a key, and so do ``"pk"`` and every column of a ``CompositePrimaryKey``
+    taken together. Any other path is its own key. ``VuedaOrderingFilter`` matches a ``nulls_ordering``
+    key to a request term by this key, and the ``vueda_info.E007`` system check compares names the
+    same way, so the two cannot disagree about which spellings match.
+
+    A path that resolves to nothing is its own key too, rather than raising. Comparing names is not
+    where a broken path gets reported.
+
+    :param model: The model the path starts from.
+    :type model: Type[django.db.models.Model]
+    :param field_name: The ordering path, without a direction prefix.
+    :type field_name: str
+    :return: The concrete field path(s) behind the path, as a tuple so that the key is hashable.
+    :rtype: Tuple[str, ...]
+    """
+    try:
+        return tuple(ordering_pk_field_names(model, field_name))
+    except (FieldDoesNotExist, NotRelationField):
+        return (field_name,)
 
 
 def expand_ordering_pk(model, term):

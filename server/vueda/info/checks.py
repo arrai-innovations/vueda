@@ -22,11 +22,14 @@ from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import PK_ALIAS
 from vueda.core.ordering import expand_ordering_pk
+from vueda.core.ordering import ordering_field_key
 from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
 from vueda.core.ordering import queryset_explicit_ordering
+from vueda.core.paths import PUBLIC_PATH_SEP
+from vueda.core.paths import public_ordering_path_to_orm
 
 
 # The column types `Sum` means something for. Numeric columns, plus `DurationField` -- an interval,
@@ -372,6 +375,55 @@ def _queryset_annotation_names(viewset):
         return None
 
 
+def _ordering_path_resolves(model, path):
+    """
+    Whether an ordering path names a field, a path through the model's relations, or a lookup.
+
+    Resolving follows the same rules the metadata does, so a path the metadata resolves (a "pk" alias,
+    or a formatted_name reached through a lookup expression) is never reported as if it were broken.
+    An annotation on the viewset's queryset resolves to nothing here, so a caller checks those first.
+    """
+    try:
+        for expanded in expand_ordering_pk(model, path):
+            ordering_fields_from_path(model, expanded)
+    except (FieldDoesNotExist, NotRelationField):
+        return False
+
+    return True
+
+
+def _requestable_ordering_names(viewset):
+    """
+    The ``__``-joined names that a list request can sort a viewset by.
+
+    These are the names ``VuedaOrderingFilter.get_valid_fields`` accepts: the ``ordering_fields``
+    entries, every field that the default ordering names, and the field behind each ``"pk"`` alias.
+    The filter translates a ``?o=`` term to one of these names before it applies a nulls placement,
+    and a default ordering term written as a string already is one. A placement keyed on any other
+    name is never applied.
+
+    The view is built without a request, the same way ``_queryset_annotation_names`` builds it, and is
+    given the ``list`` action that ``?o=`` is sent to. When ``ordering_fields`` isn't declared, DRF
+    builds the viewset's serializer to read its fields. The context carries the view because a
+    serializer mixin may read ``context["view"].action`` to decide what those fields are.
+
+    ``None`` when the names can't be read at check time. A serializer or ``get_queryset`` that needs
+    the request raises here, and without the names nothing can be judged.
+    """
+    from vueda.core.filters import VuedaOrderingFilter
+
+    try:
+        view = viewset()
+        queryset = view.get_queryset()
+        view.action = "list"
+        valid_fields = VuedaOrderingFilter().get_valid_fields(queryset, view, {"view": view})
+    except Exception:
+        # Any failure here means the names are simply unknown, which is not the check's business.
+        return None
+
+    return {item[0] for item in valid_fields if isinstance(item[0], str)}
+
+
 def _validate_ordering_declarations(model, viewset):
     """
     Report a viewset's ``ordering``/``ordering_fields`` terms that name no orderable path.
@@ -428,13 +480,7 @@ def _validate_ordering_declarations(model, viewset):
                 if _names_formatted_name((path,)) and _formatted_name_is_python_only(model):
                     continue
 
-                # Resolving a term follows the same rules the metadata does, so that a path the
-                # metadata resolves (a "pk" alias, or a formatted_name reached through a lookup
-                # expression) is never reported here as if it were broken.
-                try:
-                    for expanded in expand_ordering_pk(model, path):
-                        ordering_fields_from_path(model, expanded)
-                except (FieldDoesNotExist, NotRelationField):
+                if not _ordering_path_resolves(model, path):
                     # What a stale term costs depends on which attribute holds it, so the hint says
                     # which of the two this is rather than describing both.
                     if attr_name == "ordering":
@@ -503,7 +549,71 @@ def check_formatted_name_configuration(app_configs, **kwargs):
     return errors
 
 
-def _validate_nulls_ordering(viewset):
+def _unrequestable_nulls_ordering_error(model, viewset, attr_name, label, field_name, requestable_keys):
+    """
+    An error for a ``nulls_ordering`` or ``nulls_ordering_flip`` entry that names no field a list
+    request can sort by. ``None`` when the entry names one.
+
+    The filter looks a placement up by the exact ``__``-joined term it is about to order by, so an
+    entry naming anything else applies nothing, and nothing fails. The hint says which of three
+    mistakes this is, because each has a different fix:
+
+    - A dotted entry whose ``__``-joined form works. ``?o=`` is dotted, so this is the likeliest
+      spelling mistake, and the hint names the spelling the declaration needs.
+    - An entry that resolves to a field that ``ordering_fields`` and the default ordering leave out.
+      No request reaches that field, so its placement has nothing to apply to.
+    - An entry that resolves to nothing at all.
+
+    ``requestable_keys`` holds the ``ordering_field_key`` of each name a request can sort by, so a
+    ``"pk"`` alias and the field behind it match each other here the same way the filter matches them.
+    """
+
+    def requestable(path):
+        return ordering_field_key(model, path) in requestable_keys
+
+    if requestable(field_name):
+        return None
+
+    annotation_names = _queryset_annotation_names(viewset) or set()
+
+    def resolves(path):
+        return requestable(path) or path in annotation_names or _ordering_path_resolves(model, path)
+
+    spelling = field_name
+    hint_parts = []
+    if PUBLIC_PATH_SEP in field_name:
+        candidate = public_ordering_path_to_orm(field_name)
+        if resolves(candidate):
+            spelling = candidate
+            hint_parts.append(
+                f"Write it as '{candidate}'. `{attr_name}` uses `__`-joined paths, the same as `ordering`; "
+                "only the `?o=` query parameter is dotted."
+            )
+
+    if not requestable(spelling):
+        if resolves(spelling):
+            hint_parts.append(
+                f"Add '{spelling}' to `ordering_fields`, or remove it from `{attr_name}`. A list request can "
+                "only sort by a field that `ordering_fields` or the default ordering names."
+            )
+        else:
+            hint_parts.append(
+                f"{model.__name__} has no field, related field, or lookup at that path for the database to sort by."
+            )
+
+    hint_parts.append(
+        "As declared, the placement is never applied, so nulls arrive wherever the database puts them by default."
+    )
+
+    return Error(
+        f"{label} names no field that a list request can sort {viewset.__name__} by.",
+        hint=" ".join(hint_parts),
+        obj=viewset,
+        id="vueda_info.E007",
+    )
+
+
+def _validate_nulls_ordering(model, viewset):
     """
     Report a viewset's ``nulls_ordering`` entries that name no usable nulls placement.
 
@@ -523,6 +633,11 @@ def _validate_nulls_ordering(viewset):
     unusable ``nulls_ordering`` is read as giving no field a placement, which is what it does, so each
     ``nulls_ordering_flip`` entry is then reported as having nothing to flip — accurate, and it goes
     away with the one fix that caused it.
+
+    An entry in either declaration must also name a field that a list request can sort by. The filter
+    looks a placement up by the ``__``-joined term it orders by, so an entry naming anything else is
+    never applied (see ``_unrequestable_nulls_ordering_error``). The flip entry is checked on its own
+    even when ``nulls_ordering`` names the same field, because each declaration needs its own fix.
     """
     if viewset is None:
         return []
@@ -589,8 +704,30 @@ def _validate_nulls_ordering(viewset):
         # No field names to read, so there is nothing left for the flip pass to report.
         nulls_ordering_flip = ()
 
+    # Each entry is also checked against the names a list request can sort by. That needs the viewset
+    # built, so the entries are collected first and the viewset is built once, only when there is
+    # something to check. Only a string can match a term the filter orders by.
+    entries = [
+        ("nulls_ordering", f"{viewset.__name__}.nulls_ordering['{field_name}']", field_name)
+        for field_name in nulls_ordering
+        if isinstance(field_name, str)
+    ]
+
+    placement_keys = {
+        ordering_field_key(model, field_name) for field_name in nulls_ordering if isinstance(field_name, str)
+    }
+
     for field_name in nulls_ordering_flip:
-        if field_name in nulls_ordering:
+        if isinstance(field_name, str):
+            entries.append(
+                ("nulls_ordering_flip", f"'{field_name}' in {viewset.__name__}.nulls_ordering_flip", field_name)
+            )
+
+        # The filter pairs a flip entry with a placement the same way it pairs a request term with
+        # one, so a "pk" alias and the field behind it pair with each other here too.
+        if field_name in nulls_ordering or (
+            isinstance(field_name, str) and ordering_field_key(model, field_name) in placement_keys
+        ):
             continue
 
         errors.append(
@@ -605,6 +742,53 @@ def _validate_nulls_ordering(viewset):
                 id="vueda_info.E007",
             )
         )
+
+    # A "pk" that stands for several columns reaches only a list sorted by `pk` itself.
+    # `model_ordering` advertises each column of a composite key separately, so a metadata-driven
+    # client sorts by one column at a time, and only a placement keyed on that column matches the
+    # term. A composite "pk" entry is reported when its own declaration leaves out any of the columns,
+    # and is not checked again below. Once every column is declared too, it is checked like any other
+    # entry.
+    flip_keys = {
+        ordering_field_key(model, field_name) for field_name in nulls_ordering_flip if isinstance(field_name, str)
+    }
+    declared_keys = {"nulls_ordering": placement_keys, "nulls_ordering_flip": flip_keys}
+    checked_entries = []
+    for attr_name, label, field_name in entries:
+        columns = ordering_field_key(model, field_name)
+        missing_columns = [column for column in columns if (column,) not in declared_keys[attr_name]]
+        if len(columns) == 1 or not missing_columns:
+            checked_entries.append((attr_name, label, field_name))
+            continue
+
+        missing = ", ".join(repr(column) for column in missing_columns)
+        errors.append(
+            Error(
+                f"{label} names a primary key made of {len(columns)} columns, but `{attr_name}` leaves out {missing}.",
+                hint=(
+                    f"Add {missing} to `{attr_name}` as well. `model_ordering` advertises each column of the "
+                    "key separately, so a client sorts by one column at a time, and only a placement on that "
+                    f"column reaches the request. The placement on '{field_name}' still applies when the list "
+                    "is sorted by the whole key."
+                ),
+                obj=viewset,
+                id="vueda_info.E007",
+            )
+        )
+    entries = checked_entries
+
+    if entries:
+        requestable_names = _requestable_ordering_names(viewset)
+        # Unknown names leave nothing to judge an entry against, the same way `vueda_info.E006`
+        # stays quiet when the viewset's annotations are unknown.
+        if requestable_names is not None:
+            requestable_keys = {ordering_field_key(model, name) for name in requestable_names}
+            for attr_name, label, field_name in entries:
+                error = _unrequestable_nulls_ordering_error(
+                    model, viewset, attr_name, label, field_name, requestable_keys
+                )
+                if error is not None:
+                    errors.append(error)
 
     return errors
 
@@ -763,7 +947,7 @@ def check_ordering_configuration(app_configs, **kwargs):
         model = registration["serializer"].Meta.model
         errors.extend(_validate_ordering_declarations(model, registration["viewset"]))
         errors.extend(_validate_queryset_ordering(model, registration["viewset"]))
-        errors.extend(_validate_nulls_ordering(registration["viewset"]))
+        errors.extend(_validate_nulls_ordering(model, registration["viewset"]))
 
     return errors
 

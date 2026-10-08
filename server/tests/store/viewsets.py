@@ -104,6 +104,18 @@ class ProductOptionViewSet(VuedaViewSet):
     ordering_fields = ["name", "option_type", "sku", "gtin", "price"]
 
 
+class ProductOptionNullsOrderingPKViewSet(ProductOptionViewSet):
+    """Offers `option_type__pk` in `ordering_fields` and keys its nulls placement and flip on that alias.
+
+    `option_type` is nullable. `model_ordering` advertises the alias as `option_type.id`, so the term a
+    metadata-driven client sends reaches `VuedaOrderingFilter` as `option_type__id`, and the placement
+    declared under the alias has to apply to it."""
+
+    ordering_fields = [*ProductOptionViewSet.ordering_fields, "option_type__pk"]
+    nulls_ordering = {"option_type__pk": "first"}
+    nulls_ordering_flip = ["option_type__pk"]
+
+
 class CartViewSet(VuedaViewSet):
     queryset = my_models.Cart.objects.all()
     serializer_class = my_serializers.CartSerializer
