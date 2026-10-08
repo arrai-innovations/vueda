@@ -30,7 +30,7 @@ Run the system checks:
 python manage.py check
 ```
 
-`vueda_info.E010` reports an `order_by()` on the `queryset` attribute. Its message names one of three cases:
+`vueda_info.E010` reports an `order_by()` on the `queryset` attribute or in `get_queryset()`, including one inside a custom QuerySet method. Its message names one of three cases:
 
 - **The model's `Meta.ordering` disagrees.** Declare the queryset's order as the viewset's `ordering`, or remove the `order_by()` and accept the model's order.
 - **No default ordering is declared.** Declare the queryset's order as the viewset's `ordering`.

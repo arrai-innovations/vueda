@@ -104,7 +104,7 @@ Server v2 registered no system checks. Server v3 registers checks in `vueda_core
 - `vueda_core.E018`: an unsupported `PERMISSION_NAMES_MAPPING`.
 - `vueda_info.E006`: a viewset `ordering` or `ordering_fields` entry that names no field.
 - `vueda_info.E009`: a default manager that cannot annotate `formatted_name`.
-- `vueda_info.E010`: a class-level `queryset.order_by()` that disagrees with the declared ordering.
+- `vueda_info.E010`: a `queryset` or `get_queryset()` ordering that disagrees with the declared ordering.
 - `vueda_info.E013`: a column total path that crosses a reverse or many-to-many relation, or that ends on a field that cannot be summed.
 - `vueda_info.E014`: a search annotation that the search queryset lacks.
 

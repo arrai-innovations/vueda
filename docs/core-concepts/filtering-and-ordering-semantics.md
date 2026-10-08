@@ -125,14 +125,33 @@ When the viewset declares `ordering`, that ordering replaces the queryset's own 
 
 A model's `Meta.ordering` is applied by Django, and the ordering backend applies nothing when the viewset declares no `ordering`. This matters for nulls placement, described in the next section.
 
-The `vueda_info.E010` system check compares the terms on the `queryset` class attribute with the default ordering that metadata reports. It sends a different message for each case: a viewset `ordering` that disagrees, a `Meta.ordering` that disagrees, and no default at all. The check does not see these cases:
+The `vueda_info.E010` system check compares the ordering that the viewset's queryset carries with the default ordering that metadata reports. It builds the viewset without a request and calls `get_queryset()`. When `get_queryset()` raises without a request, the check reads the `queryset` attribute instead. The check reads the terms on the query, not the call that put them there. So an `order_by()` in `get_queryset()`, an `order_by()` on the `queryset` attribute, and a custom QuerySet method that calls `order_by()` are all checked the same way.
 
-- An ordering applied inside `get_queryset`, in a manager, or in a helper. The check never calls `get_queryset`.
-- An ordering that varies by request.
+E010 sends a different message for each case: a viewset `ordering` that disagrees, a `Meta.ordering` that disagrees, and no default at all. The message names where the ordering was written: the `queryset` attribute or `get_queryset()`.
+
+The comparison counts direction and nulls placement. `ordering = ["queued"]` disagrees with a queryset ordered by `-queued`. A queryset ordered by `F("due_date").asc(nulls_first=True)` disagrees with `ordering = ["due_date"]`, because PostgreSQL puts nulls last in an ascending sort. The check applies the viewset's `nulls_ordering` to its `ordering` first, the same way a list request does. So `nulls_ordering = {"due_date": "first"}` makes the two agree. A `"pk"` alias and the field behind it count as the same term. A `formatted_name` and the column that its `formatted_name_lookup_expression` names also count as the same term.
+
+### Manager Ordering
+
+A model's default manager can also order its queryset. That ordering applies to every query that names no other manager, such as the admin, related lookups, and the expanded children that a `VuedaViewSet` loads. It is a model-wide default, and `Meta.ordering` is where Django, DRF, and `model_ordering.default` read the model-wide default. The default manager is the one that `Meta.default_manager_name` names. Without that setting, it is the first manager declared on the model or its bases.
+
+The `vueda_info.E015` system check reports a registered model whose default manager orders by something that `Meta.ordering` could hold: fields, transforms such as `created__year`, or expressions over columns. Move that ordering to `Meta.ordering`. The check also reports a default manager whose query names something that it cannot resolve, such as a misspelled field, `F()` name, or transform. Django resolves those names only when a query runs, so the check builds the manager's queryset and compiles it without running it.
+
+A default manager may order by an annotation that it adds. An ordering by an aggregate, such as the number of items in an order, needs that, because `Meta.ordering = [Count("items")]` fails every query with a `GROUP BY` error. Field tie-breakers after the annotation are allowed too, because a manager's `order_by()` replaces `Meta.ordering`.
+
+A manager other than the default orders only the code that names it, such as `Order.unfulfilled.all()`. E015 does not check it. A viewset whose queryset starts from that manager carries its ordering, and E010 compares that ordering like any other.
+
+E010 does not report an ordering that matches the default manager's, because E015 covers it. The exception is a default manager that orders by an annotation on a model whose `Meta.ordering` names a different order. A viewset that starts from that manager and declares no `ordering` returns rows in the annotation's order, while `default` reports `Meta.ordering`. E010 reports that viewset. Declare the annotation ordering as the viewset's `ordering` to fix it. `Meta.ordering` is still correct, because it applies wherever code goes around the default manager.
+
+### What the Checks Cannot See
+
+E010 and E015 do not see these cases:
+
+- An ordering that varies by request. When `get_queryset()` needs the request, E010 reads only the `queryset` attribute.
 - A viewset whose `filter_backends` leaves out the ordering backend. The queryset's order then always wins.
 - A bare `order_by()`, which clears the model's default ordering. [`queryset_explicit_ordering`]{@api py:function:vueda.core.ordering.queryset_explicit_ordering} describes this gap.
 
-The check shows only that a viewset's class-level declarations agree. It does not show the order that any request returns.
+The checks show only that the ordering a viewset's queryset carries without a request agrees with the declared default. They do not show the order that any request returns.
 
 ## Nulls Placement for Client-Requested Ordering
 
@@ -370,7 +389,7 @@ A type needs entries in both tables. Without value handling, the filter form can
 
 **A field sorts under its source name.** With no `ordering_fields`, a serializer field that renames `Product.name` to `title` sorts as `name`. A request for `o=title` gets a `400`, as does `o` on a property-backed field. Both columns look sortable in the UI, and sorting one returns the `400`.
 
-**The sort indicator disagrees with the rows.** A queryset `order_by()` sorts the rows while `default` reports another order, or none. The response is a `200`. The client's sort indicator is wrong, and its reset restores an order the server never applied.
+**The sort indicator disagrees with the rows.** A queryset `order_by()` sorts the rows while `default` reports another order, or none. The response is a `200`. The client's sort indicator is wrong, and its reset restores an order the server never applied. `vueda_info.E010` reports it, whether the `order_by()` is on the `queryset` attribute or in `get_queryset()`. An ordering that depends on the request goes unreported.
 
 **A sorted list shows no sort.** A default ordering on a multi-column function or a column-less term sorts the rows without a `default` entry. No check reports it, and the client shows no sort indicator.
 

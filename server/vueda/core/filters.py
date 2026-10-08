@@ -327,6 +327,32 @@ class VuedaOrderingFilter(OrderingFilter):
         if not ordering:
             return queryset
 
+        # Nulls placement is declared against the client-facing name, so it has to be applied before
+        # any term is rewritten to the path behind that name.
+        ordering = self.apply_nulls_ordering(ordering, view, queryset.model)
+        ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
+        return queryset.order_by(*ordering)
+
+    @classmethod
+    def apply_nulls_ordering(cls, ordering, view, model):
+        """
+        The ordering terms with the view's declared nulls placements applied.
+
+        This is the step ``filter_queryset`` applies to every ordering it hands to ``order_by()``,
+        before it rewrites any ``formatted_name`` path. The ``vueda_info.E010`` system check applies
+        it to a viewset's declared ``ordering`` too, so the check compares the order a list request
+        actually gets.
+
+        :param ordering: The ordering terms, ``__``-joined.
+        :type ordering: Iterable[Union[str, django.db.models.expressions.BaseExpression]]
+        :param view: The view whose ``nulls_ordering`` and ``nulls_ordering_flip`` apply.
+        :type view: Union[rest_framework.views.APIView, Type[rest_framework.views.APIView]]
+        :param model: The model the ordering is declared against.
+        :type model: Type[django.db.models.Model]
+        :return: The terms, with each plain field name that has a placement turned into an ``F``
+            expression that carries it.
+        :rtype: List[Union[str, django.db.models.expressions.BaseExpression]]
+        """
         # A declaration that isn't a mapping has no field-to-placement pairs to read, so it is dropped
         # rather than allowed to raise `AttributeError` from `.get()` and fail the request.
         # `vueda_info.E007` reports it, which is where it can be fixed. An empty declaration of any
@@ -344,13 +370,7 @@ class VuedaOrderingFilter(OrderingFilter):
             # the membership test below would fail the request. `vueda_info.E007` reports it.
             nulls_ordering_flip = ()
 
-        # Nulls placement is declared against the client-facing name, so it has to be applied before
-        # any term is rewritten to the path behind that name.
-        ordering = [
-            self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, queryset.model) for term in ordering
-        ]
-        ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
-        return queryset.order_by(*ordering)
+        return [cls._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, model) for term in ordering]
 
     def remove_invalid_fields(self, queryset, fields, view, request):
         """
