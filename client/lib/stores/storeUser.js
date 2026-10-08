@@ -60,6 +60,19 @@ const authErrorResolver = (response, data) => {
     }
     return new UserError("Unexpected error occurred", response, data);
 };
+
+/**
+ * Sends a request for the user store. A failed response rejects with the error that `errorResolver` builds.
+ *
+ * @param {string} url - The URL to request.
+ * @param {RequestInit} init - The fetch options.
+ * @param {string} messagePrefix - The prefix for the error message.
+ * @param {(response: Response, data: *) => Error} [errorResolver=authErrorResolver] - Builds the error for a
+ *  failed response. A custom resolver handles its own statuses and passes the rest to `authErrorResolver`.
+ * @returns {Promise<*>} The decoded response data.
+ */
+const userFetch = (url, init, messagePrefix, errorResolver = authErrorResolver) =>
+    fetchHelper(url, init, messagePrefix, UserError, undefined, undefined, errorResolver);
 /**
  * @typedef {ReturnType<typeof storeUser>} UserStore
  */
@@ -244,7 +257,7 @@ export const storeUser = defineStore("user", {
             this.errored = false;
             this.authPendingFlow = null;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("userLogin")}`,
                 {
                     method: "POST",
@@ -255,16 +268,12 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
                 .catch(async (error) => {
-                    await this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     if (!this.authPendingFlow) {
                         this.error = error;
                         this.errored = true;
@@ -342,7 +351,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("reauthenticate")}`,
                 {
                     method: "POST",
@@ -353,10 +362,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
@@ -382,7 +387,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("forgotPassword")}`,
                 {
                     method: "POST",
@@ -393,9 +398,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
                 (response, data) => {
                     if (response.status === 429) {
                         return new UserError("Password reset requested too recently", response, data);
@@ -429,7 +431,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("changePassword")}`,
                 {
                     method: "POST",
@@ -440,10 +442,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .catch((error) => {
                     this.error = error;
@@ -455,13 +453,15 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Handles an `UnauthorizedError` by refetching the current user, whose who-is response sets `authPendingFlow`.
-         * The refetch keeps the existing error and ignores its own failure. Other errors are ignored.
+         * Refetches the current user when `error` is an `UnauthorizedError`, so `authPendingFlow` names the flow that
+         * the server now requires. A request guarded by an auth flow, such as a pending sign-in or recent
+         * authentication, answers 401 when that flow has changed. The refetch keeps the existing error and ignores
+         * its own failure. Other errors are ignored.
          *
          * @param {Error} error - The error from a failed request.
          * @returns {Promise<void>|undefined} The refetch promise for an `UnauthorizedError`, otherwise `undefined`.
          */
-        _handle_error(error) {
+        _refetchUserOnUnauthorized(error) {
             if (error instanceof UnauthorizedError) {
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
@@ -480,7 +480,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("setupTOTPDevice")}`,
                 {
                     method: "POST",
@@ -491,10 +491,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -502,7 +498,7 @@ export const storeUser = defineStore("user", {
                 .catch((error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -521,7 +517,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("activateTOTPDevice")}`,
                 {
                     method: "POST",
@@ -532,10 +528,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     // Refresh user totp device data
@@ -544,7 +536,7 @@ export const storeUser = defineStore("user", {
                 .catch((error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -563,7 +555,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("twoFactorAuthenticate")}`,
                 {
                     method: "POST",
@@ -574,10 +566,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
@@ -606,7 +594,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("twoFactorReauthenticate")}`,
                 {
                     method: "POST",
@@ -617,10 +605,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
@@ -649,7 +633,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("resetPassword")}`,
                 {
                     method: "POST",
@@ -660,10 +644,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -731,15 +711,7 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("getTOTPCode");
 
-            return fetchHelper(
-                `${httpOrHttpsHostname}${url}`,
-                { method: "GET" },
-                "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
-            )
+            return userFetch(`${httpOrHttpsHostname}${url}`, { method: "GET" }, "Error sending authentication request")
                 .then((responseData) => {
                     return responseData;
                 })
@@ -765,7 +737,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
             const url = getUrl("getTOTPCode");
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${url}`,
                 {
                     method: "POST",
@@ -775,12 +747,7 @@ export const storeUser = defineStore("user", {
                     },
                     body: JSON.stringify(payload),
                 },
-
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -806,7 +773,7 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("recoveryCodes");
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${url}`,
                 {
                     method: "POST",
@@ -816,10 +783,6 @@ export const storeUser = defineStore("user", {
                     },
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -827,7 +790,7 @@ export const storeUser = defineStore("user", {
                 .catch((error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -846,15 +809,7 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("recoveryCodes");
 
-            return fetchHelper(
-                `${httpOrHttpsHostname}${url}`,
-                { method: "GET" },
-                "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
-            )
+            return userFetch(`${httpOrHttpsHostname}${url}`, { method: "GET" }, "Error sending authentication request")
                 .then((responseData) => {
                     return responseData;
                 })
@@ -864,7 +819,7 @@ export const storeUser = defineStore("user", {
                     }
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {

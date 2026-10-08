@@ -334,23 +334,28 @@ describe("lib/stores/storeUser.js", () => {
             await expect(store.reauthenticate({ method: "app" })).rejects.toBeInstanceOf(FormValidationErrorClass);
         });
 
-        scopedIt("_handle_error refetches the current user for an UnauthorizedError, keeping the error", async () => {
+        scopedIt(
+            "_refetchUserOnUnauthorized refetches the current user for an UnauthorizedError, keeping the error",
+            async () => {
+                const store = storeUser();
+                store.fetchCurrentUser = vi.fn(() => Promise.resolve());
+                const flows = [{ id: "mfa_reauthenticate", is_pending: true }];
+
+                await store._refetchUserOnUnauthorized(
+                    new UnauthorizedError("Unauthorized", undefined, { data: { flows } }),
+                );
+
+                expect(store.fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+                // The refetch, not the 401 body, sets the pending flow.
+                expect(store.authPendingFlow).toBeNull();
+            },
+        );
+
+        scopedIt("_refetchUserOnUnauthorized ignores errors other than UnauthorizedError", async () => {
             const store = storeUser();
             store.fetchCurrentUser = vi.fn(() => Promise.resolve());
-            const flows = [{ id: "mfa_reauthenticate", is_pending: true }];
 
-            await store._handle_error(new UnauthorizedError("Unauthorized", undefined, { data: { flows } }));
-
-            expect(store.fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
-            // The refetch, not the 401 body, sets the pending flow.
-            expect(store.authPendingFlow).toBeNull();
-        });
-
-        scopedIt("_handle_error ignores errors other than UnauthorizedError", async () => {
-            const store = storeUser();
-            store.fetchCurrentUser = vi.fn(() => Promise.resolve());
-
-            expect(store._handle_error(new Error("boom"))).toBeUndefined();
+            expect(store._refetchUserOnUnauthorized(new Error("boom"))).toBeUndefined();
             expect(store.fetchCurrentUser).not.toHaveBeenCalled();
         });
     });
