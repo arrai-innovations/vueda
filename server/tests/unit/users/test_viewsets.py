@@ -365,6 +365,44 @@ def test_mfa_user_can_delete_a_device_after_a_two_factor_reauthentication(api_cl
     assert not Authenticator.objects.filter(user=mfa_device.user).exists()
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize("padding", ["duplicate", "unknown"])
+def test_bulk_delete_of_some_devices_keeps_the_remaining_device_and_authenticator(api_client, mfa_device, padding):
+    other_device = TOTPDevice.objects.create(
+        authenticator=mfa_device.authenticator, method="email", user=mfa_device.user, email="user@domain.invalid"
+    )
+    extra_pk = mfa_device.pk if padding == "duplicate" else other_device.pk + 1000
+    api_client.force_login(mfa_device.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.delete(
+        reverse("vueda_user.totpdevice-list"), {"pks": [mfa_device.pk, extra_pk]}, format="json"
+    )
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert list(TOTPDevice.objects.filter(user=mfa_device.user)) == [other_device]
+    assert Authenticator.objects.filter(pk=mfa_device.authenticator_id).exists()
+
+
+@pytest.mark.django_db
+def test_bulk_delete_of_every_device_with_unknown_keys_deactivates_the_authenticator(api_client, mfa_device):
+    other_device = TOTPDevice.objects.create(
+        authenticator=mfa_device.authenticator, method="email", user=mfa_device.user, email="user@domain.invalid"
+    )
+    api_client.force_login(mfa_device.user)
+    record_authentication_methods(api_client, "mfa")
+
+    response = api_client.delete(
+        reverse("vueda_user.totpdevice-list"),
+        {"pks": [mfa_device.pk, other_device.pk, other_device.pk + 1000]},
+        format="json",
+    )
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert not TOTPDevice.objects.filter(user=mfa_device.user).exists()
+    assert not Authenticator.objects.filter(user=mfa_device.user, type=Authenticator.Type.TOTP).exists()
+
+
 @pytest.mark.django_db(databases=("default", "db_logging"))
 def test_password_only_user_sets_up_and_activates_a_first_device_after_a_password_check(api_client, user, monkeypatch):
     monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "JBSWY3DPEHPK3PXP")
