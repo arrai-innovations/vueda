@@ -756,6 +756,61 @@ describe("lib/stores/storeUser.js", () => {
         });
     });
 
+    describe("Refetch after an UnauthorizedError", () => {
+        const flowActions = {
+            login: (store) => store.login({ email: "user@domain.invalid", password: "p" }),
+            reauthenticate: (store) => store.reauthenticate({ password: "p" }),
+            twoFactorAuthenticate: (store) => store.twoFactorAuthenticate({ code: "123456" }),
+            twoFactorReauthenticate: (store) => store.twoFactorReauthenticate({ code: "123456" }),
+            getTwoFactorAuthMethod: (store) => store.getTwoFactorAuthMethod(),
+            sendTwoFactorAuthenticationCode: (store) => store.sendTwoFactorAuthenticationCode({ method: "email" }),
+            setupTOTPDevice: (store) => store.setupTOTPDevice({ method: "totp" }),
+            activateTOTPDevice: (store) => store.activateTOTPDevice({ code: "123456" }),
+            generateRecoveryCode: (store) => store.generateRecoveryCode(),
+            getRecoveryCodes: (store) => store.getRecoveryCodes(),
+        };
+        for (const [name, run] of Object.entries(flowActions)) {
+            scopedIt(`${name} finishes refetching the current user before it rejects`, async () => {
+                getUrl.mockReturnValue("/flow/");
+                const error = new UnauthorizedError("Unauthorized");
+                fetchHelper.mockRejectedValueOnce(error);
+
+                const store = storeUser();
+                let refetched = false;
+                const fetchCurrentUser = vi.spyOn(store, "fetchCurrentUser").mockImplementation(async () => {
+                    await new Promise((resolve) => setTimeout(resolve));
+                    refetched = true;
+                });
+                await expect(run(store)).rejects.toBe(error);
+
+                expect(fetchCurrentUser).toHaveBeenCalledWith({ preserveError: true });
+                expect(refetched).toBe(true);
+                expect(store.error).toBe(error);
+                expect(store.errored).toBe(true);
+            });
+        }
+
+        const unguardedActions = {
+            changePassword: (store) =>
+                store.changePassword({ old_password: "o", new_password1: "n", new_password2: "n" }),
+            forgotPassword: (store) => store.forgotPassword({ email: "user@domain.invalid" }),
+            resetPassword: (store) => store.resetPassword({ password: "p", password_confirm: "p" }),
+        };
+        for (const [name, run] of Object.entries(unguardedActions)) {
+            scopedIt(`${name} rejects without refetching the current user`, async () => {
+                getUrl.mockReturnValue("/password/");
+                const error = new UnauthorizedError("Unauthorized");
+                fetchHelper.mockRejectedValueOnce(error);
+
+                const store = storeUser();
+                const fetchCurrentUser = vi.spyOn(store, "fetchCurrentUser").mockResolvedValue();
+                await expect(run(store)).rejects.toBe(error);
+
+                expect(fetchCurrentUser).not.toHaveBeenCalled();
+            });
+        }
+    });
+
     describe("clearError", () => {
         scopedIt("resets error state", () => {
             const error = new Error("boom");

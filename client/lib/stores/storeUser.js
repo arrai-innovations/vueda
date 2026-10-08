@@ -338,6 +338,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's password again, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * Completes the `reauthenticate` flow. The server does not count a password confirmation for a user with a
          * two-factor device; their flow is `mfa_reauthenticate`, which `twoFactorReauthenticate` completes.
@@ -366,9 +368,10 @@ export const storeUser = defineStore("user", {
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -469,6 +472,8 @@ export const storeUser = defineStore("user", {
         /**
          * Starts setting up a two-factor device for the signed-in user.
          * For `email` and `sms`, the server sends a code to the destination; for `totp`, it returns the secret and a QR code.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The device method: `totp`, `email`, or `sms`.
@@ -495,10 +500,10 @@ export const storeUser = defineStore("user", {
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._refetchUserOnUnauthorized(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -507,6 +512,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Activates the device that `setupTOTPDevice` started, then refetches the current user to pick up its devices.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the device.
@@ -533,10 +540,10 @@ export const storeUser = defineStore("user", {
                     // Refresh user totp device data
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._refetchUserOnUnauthorized(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -545,6 +552,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Completes a two-factor sign-in with a code, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the user's device.
@@ -570,9 +579,10 @@ export const storeUser = defineStore("user", {
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -581,6 +591,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's second factor with a code, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * Completes the `mfa_reauthenticate` flow, which the server requires from a user with a two-factor device
          * before a reauthentication-guarded action.
@@ -609,9 +621,10 @@ export const storeUser = defineStore("user", {
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -701,6 +714,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Fetches the two-factor methods of the user who is signing in or reauthenticating.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
          */
@@ -715,9 +730,10 @@ export const storeUser = defineStore("user", {
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -727,6 +743,8 @@ export const storeUser = defineStore("user", {
         /**
          * Asks the server to send a two-factor code to the device of the user who is signing in or
          * reauthenticating, for the given method.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The delivery method: `email` or `sms`.
@@ -752,9 +770,10 @@ export const storeUser = defineStore("user", {
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -763,6 +782,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Generates a new set of recovery codes for the signed-in user, replacing any existing set.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the new codes.
          */
@@ -787,10 +808,10 @@ export const storeUser = defineStore("user", {
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._refetchUserOnUnauthorized(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -799,6 +820,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Fetches the signed-in user's recovery codes, and generates them when the user has none.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the unused codes.
          */
@@ -813,13 +836,13 @@ export const storeUser = defineStore("user", {
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     if (error.response?.status === 404) {
                         return this.generateRecoveryCode();
                     }
                     this.error = error;
                     this.errored = true;
-                    this._refetchUserOnUnauthorized(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
