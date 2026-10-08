@@ -424,8 +424,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # we need to get a canonical serializer for the model to determine what fields are available
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
 
-        # self.context carries this request's view, so a canonical serializer built on
-        # ExcludeFieldsSerializerMixin (which requires a view in context) doesn't get instantiated bare.
+        # self.context carries this request's view, for a canonical serializer that reads the view
+        # while building its fields.
         fields = self.get_model_fields_data(serializer, context=self.context)
 
         # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
@@ -962,18 +962,16 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         sources DRF allows ordering on when a viewset doesn't declare ``ordering_fields``.
 
         The serializer is built with this serializer's own ``context``, which carries the ``view``.
-        Reading ``fields`` runs ``get_fields()``, and a serializer mixin may need the view to decide
-        what those fields are — ``ExcludeFieldsSerializerMixin.get_extra_kwargs`` reads
-        ``context["view"].action`` — so a context-less instance would raise ``KeyError`` for any
-        serializer using one. DRF passes a context here for the same reason.
+        Reading ``fields`` runs ``get_fields()``, and a serializer may need the view to decide what
+        those fields are. DRF passes a context here for the same reason.
 
         The ``view`` in that context is the model-info viewset, not the viewset being described, so a
         serializer that varies its field set by ``view.action`` is resolved against ``retrieve`` on
         ``/info/`` rather than against ``list`` on the endpoint the client will call. Such a
         serializer can advertise a different set of ordering fields than that endpoint accepts. There
         is no better context to pass: DRF's own ``get_default_valid_fields`` passes
-        ``{"request": request}`` with no ``view`` at all, so the same serializer raises ``KeyError``
-        on the real list request too, and matching DRF here would only move the failure. Declare
+        ``{"request": request}`` with no ``view`` at all. On the real list request, the same serializer
+        sees no action either, so matching DRF here would not make the two agree. Declare
         ``ordering_fields`` on a viewset whose serializer does this, which takes both this method and
         DRF's out of the picture.
         """

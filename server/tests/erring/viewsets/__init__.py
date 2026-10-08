@@ -1,5 +1,6 @@
 from tests.erring.viewsets.exclude_fields import ExcludeFieldsAsExpandableFieldViewSet  # noqa: F401
 from tests.erring.viewsets.exclude_fields import ExcludeFieldsAsNestedFieldViewSet  # noqa: F401
+from tests.erring.viewsets.exclude_fields import ExcludeFieldsReadingOwnFieldsViewSet  # noqa: F401
 from tests.erring.viewsets.exclude_fields import ExcludeFieldsViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import AgreeingQuerysetOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import AnnotatedOrderingViewSet  # noqa: F401

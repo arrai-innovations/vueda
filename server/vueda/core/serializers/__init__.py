@@ -487,11 +487,14 @@ class ExcludeFieldsSerializerMixin:
     ``Meta.exclude_update_fields`` lists fields an ``update`` or ``partial_update`` request cannot set.
     The fields stay in responses. Fields made read-only this way still show as writable in OPTIONS
     responses: https://github.com/encode/django-rest-framework/discussions/8606#discussioncomment-3899252
+
+    The action comes from the view in the serializer's context. When the context has no view, or the
+    view has no ``action``, no fields are excluded and every field keeps its declared writability.
     """
 
     def get_extra_kwargs(self):
         kwargs = super().get_extra_kwargs()
-        action = self.context["view"].action
+        action = getattr(self.context.get("view"), "action", None)
         for exclude_actions in [["create"], ["update", "partial_update"]]:
             # Membership in the action list, not containment in one action's name: an extra action named
             # "partial" is not a partial_update, and must not inherit its exclusions.

@@ -256,14 +256,16 @@ def check_expandable_fields_configuration(app_configs, **kwargs):
 
 def check_exclude_fields_serializer_usage(app_configs, **kwargs):
     """
-    ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` reads ``self.context["view"].action``. A view is only
-    ever present in context when the serializer is a routed ViewSet's ``serializer_class`` directly -- never
-    when it is reached as a nested field, an ``expandable_fields`` entry, or a ``register_serializer()``
-    (viewset-less) registration. Those uses raise a bare ``KeyError: 'view'`` from ``manage.py spectacular``
-    (and from the ``/info/`` meta-API), since the serializer is instantiated without a view in its context.
+    Report ``ExcludeFieldsSerializerMixin`` serializers used as a nested field or an ``expandable_fields``
+    entry (``vueda_core.E007``, ``E008``).
+
+    ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` picks its exclusions from the action of the view in
+    the serializer's context. A nested serializer shares its root serializer's context, so a nested copy of
+    the mixin would apply its exclusions for the parent view's action. That behavior is not supported, so
+    these uses are rejected. A serializer registered with ``register_serializer()`` is not reported. Without
+    a view in context, the mixin excludes no fields.
     """
     from vueda.core.serializers import ExcludeFieldsSerializerMixin
-    from vueda.info.registration import get_all_registrations
 
     errors = []
 
@@ -275,9 +277,9 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                         f"{child_serializer_class.__name__} is used as {serializer_class.__name__}'s "
                         f"{field_name!r} field, but inherits ExcludeFieldsSerializerMixin.",
                         hint=(
-                            "ExcludeFieldsSerializerMixin requires a view in its context, which is only present "
-                            "when it is a routed ViewSet's serializer_class directly -- not when nested as a "
-                            "field on another serializer."
+                            "A nested serializer shares its parent's context, so ExcludeFieldsSerializerMixin "
+                            "would apply its exclusions for the parent view's action. That is not supported. "
+                            "Remove the mixin from the nested serializer."
                         ),
                         obj=child_serializer_class,
                         id="vueda_core.E007",
@@ -296,33 +298,14 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                         f"({serializer_class.__name__}.Meta.expandable_fields[{field_name!r}]), but inherits "
                         "ExcludeFieldsSerializerMixin.",
                         hint=(
-                            "ExcludeFieldsSerializerMixin requires a view in its context, which is only present "
-                            "when it is a routed ViewSet's serializer_class directly -- not when reachable "
-                            "through another serializer's expandable_fields."
+                            "An expanded serializer shares its parent's context, so ExcludeFieldsSerializerMixin "
+                            "would apply its exclusions for the parent view's action. That is not supported. "
+                            "Remove the mixin from the expanded serializer."
                         ),
                         obj=child_serializer_class,
                         id="vueda_core.E008",
                     )
                 )
-
-    for _key, registration in get_all_registrations().items():
-        if registration["viewset"] is not None:
-            continue
-
-        serializer_class = registration["serializer"]
-        if issubclass(serializer_class, ExcludeFieldsSerializerMixin):
-            errors.append(
-                Error(
-                    f"{serializer_class.__name__} is registered with register_serializer() (no viewset), but "
-                    "inherits ExcludeFieldsSerializerMixin.",
-                    hint=(
-                        "ExcludeFieldsSerializerMixin requires a view in its context, which is never present "
-                        "for a serializer registered without a viewset."
-                    ),
-                    obj=serializer_class,
-                    id="vueda_core.E009",
-                )
-            )
 
     return errors
 
