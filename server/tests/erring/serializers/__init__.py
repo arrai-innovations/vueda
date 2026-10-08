@@ -1,5 +1,6 @@
 from tests.erring.serializers.exclude_fields import ExcludeFieldsAsExpandableFieldSerializer  # noqa: F401
 from tests.erring.serializers.exclude_fields import ExcludeFieldsAsNestedFieldSerializer  # noqa: F401
+from tests.erring.serializers.exclude_fields import ExcludeFieldsReadingOwnFieldsSerializer  # noqa: F401
 from tests.erring.serializers.exclude_fields import ExcludeFieldsSerializer  # noqa: F401
 from tests.erring.serializers.serializers import BothFormattedNameConfiguredSerializer  # noqa: F401
 from tests.erring.serializers.serializers import BothFormattedNameSelectRelatedConfiguredSerializer  # noqa: F401

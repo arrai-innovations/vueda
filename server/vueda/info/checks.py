@@ -1263,12 +1263,11 @@ def check_column_totals_configuration(app_configs, **kwargs):
 
 class _CheckContextView:
     """Minimal stand-in for a DRF view, so a canonical serializer that reads
-    ``self.context["view"]`` while building its fields (for example ``ExcludeFieldsSerializerMixin``,
-    which reads ``.action`` from it) can still be introspected outside of any request. This check
-    runs through ``manage.py check``, not a request, so there is no real view to supply here;
-    ``action = None`` matches none of the actions such a mixin special-cases, which is the least
-    surprising default -- no field gets excluded that a plain "list"/"retrieve" response wouldn't
-    also include.
+    ``self.context["view"]`` while building its fields can still be introspected outside of any
+    request. This check runs through ``manage.py check``, not a request, so there is no real view to
+    supply here. ``action = None`` matches no action that a serializer might special-case, which is
+    the least surprising default -- no field gets excluded that a plain "list"/"retrieve" response
+    wouldn't also include.
     """
 
     action = None

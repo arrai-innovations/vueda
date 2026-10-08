@@ -413,20 +413,26 @@ class VuedaExcludeFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
 
 @pytest.mark.django_db
 class TestModelInfoExcludeFieldsSerializerMixin:
-    """ExcludeFieldsSerializer is registered with a ViewSet directly -- the only valid use of
-    ExcludeFieldsSerializerMixin. Regression coverage for ModelInfoSerializer.get_model_fields()
-    threading its context through get_model_fields_data(), instead of instantiating the canonical
-    serializer bare (which raised KeyError: 'view')."""
+    """ExcludeFieldsSerializer is registered with a ViewSet directly. Regression coverage for
+    ModelInfoSerializer.get_model_fields() threading its context through get_model_fields_data(),
+    instead of instantiating the canonical serializer bare (which raised KeyError: 'view')."""
 
     @pytest.fixture
     def test_data(self):
         return VuedaExcludeFieldsTestData()
 
+    @pytest.fixture(autouse=True)
+    def isolated_registry(self):
+        """The registry is a module global, and a registration left behind here changes what other test
+        modules see when they read the registry without resetting it."""
+        info.registration.get_empty_registry()
+        yield
+        info.registration.get_empty_registry()
+
     def test_model_fields_does_not_crash(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        info.registration.get_empty_registry()
         info.register(err_serializers.ExcludeFieldsSerializer, err_viewsets.ExcludeFieldsViewSet)
 
         response = api_client.get(
@@ -442,13 +448,30 @@ class TestModelInfoExcludeFieldsSerializerMixin:
             "object_revision",
         ]
 
+    def test_get_field_model_info_reading_own_fields_does_not_crash(self, test_data, api_client):
+        """get_model_fields() calls get_field_model_info on a canonical serializer instance that has no
+        context. This override builds that instance's fields, which runs the mixin's get_extra_kwargs()
+        without a view."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        info.register(
+            err_serializers.ExcludeFieldsReadingOwnFieldsSerializer, err_viewsets.ExcludeFieldsReadingOwnFieldsViewSet
+        )
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("erring", "noexpandablefieldsdata")),
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_fields"},
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["model_fields"]["id"]["label"] == "Identifier"
+
 
 @pytest.mark.django_db
 class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
-    """ExcludeFieldsSerializer is registered with register_serializer() and no ViewSet. vueda_core.E009
-    reports this as unsupported on the grounds that ExcludeFieldsSerializerMixin never receives a view in
-    its context. This exercises every /info/ metadata section against such a registration to record whether
-    that claim still holds."""
+    """ExcludeFieldsSerializer is registered with register_serializer() and no ViewSet. Every /info/
+    metadata section resolves for this registration."""
 
     @pytest.fixture
     def test_data(self):
@@ -456,9 +479,8 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
 
     @pytest.fixture(autouse=True)
     def isolated_registry(self):
-        """The registry is a module global, and a viewset-less ExcludeFieldsSerializer registration left
-        behind here makes check_exclude_fields_serializer_usage() report vueda_core.E009 in other test
-        modules that read the registry without resetting it."""
+        """The registry is a module global, and a registration left behind here changes what other test
+        modules see when they read the registry without resetting it."""
         info.registration.get_empty_registry()
         yield
         info.registration.get_empty_registry()

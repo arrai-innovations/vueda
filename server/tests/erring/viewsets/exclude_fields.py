@@ -10,11 +10,16 @@ class ExcludeFieldsViewSet(VuedaViewSet):
     serializer_class = my_serializers.ExcludeFieldsSerializer
 
 
+class ExcludeFieldsReadingOwnFieldsViewSet(VuedaViewSet):
+    queryset = my_models.NoExpandableFieldsData.objects.all()
+    serializer_class = my_serializers.ExcludeFieldsReadingOwnFieldsSerializer
+
+
 class ExcludeFieldsAsNestedFieldViewSet(VuedaViewSet):
-    queryset = my_models.RelatedObjectsAreMissingData.objects.all()
+    queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExcludeFieldsAsNestedFieldSerializer
 
 
 class ExcludeFieldsAsExpandableFieldViewSet(VuedaViewSet):
-    queryset = my_models.RelatedObjectsAreMissingData.objects.all()
+    queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExcludeFieldsAsExpandableFieldSerializer

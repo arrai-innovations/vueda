@@ -748,6 +748,29 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert "read_only" not in extra_kwargs.get("employee", {}), extra_kwargs
         assert "read_only" not in extra_kwargs.get("supervisor", {}), extra_kwargs
 
+    def test_no_view_in_context_excludes_nothing(self):
+        """A serializer built with no context, such as one registered with register_serializer(), has no
+        view to read an action from. Building its fields must not raise, and every excluded field stays
+        writable."""
+        serializer = TimesheetSerializerExclude()
+
+        fields = serializer.fields
+
+        assert fields["employee"].read_only is False
+        assert fields["supervisor"].read_only is False
+
+    def test_view_without_an_action_excludes_nothing(self):
+        """A plain APIView has no action attribute, unlike a ViewSet. Building the fields must not raise,
+        and every excluded field stays writable."""
+        from rest_framework.views import APIView
+
+        serializer = TimesheetSerializerExclude(context={"view": APIView()})
+
+        fields = serializer.fields
+
+        assert fields["employee"].read_only is False
+        assert fields["supervisor"].read_only is False
+
 
 @pytest.mark.django_db
 class TestFlexFieldsWriteableNestedSerializerInitialData(BaseTestUserMixin, BaseTestGroupMixin):
