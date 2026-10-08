@@ -290,7 +290,7 @@
         },
         "MAILERS": {
             "configKey": "EMAIL_BACKEND",
-            "description": "With use_mailers=True, the factory creates the default mailer and its timeout option. This requires Django 6.1 or later; earlier versions raise ImproperlyConfigured."
+            "description": "With use_mailers=True, the factory creates the default mailer and its timeout option."
         },
         "MAX_PAGE_SIZE": {
             "description": "Maximum requested page size. VUEDA also uses it when computing pagination metadata and documenting page-size defaults."
