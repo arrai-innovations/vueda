@@ -15,7 +15,12 @@ from tests.product.models import Product
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.store.models import Cart
 from tests.store.models import Customer
+from tests.store.models import Distributor
+from tests.store.models import OptionType
 from tests.store.models import PackingBox
+from tests.store.models import Product as StoreProduct
+from tests.store.models import ProductOption
+from tests.store.models import TangibleType
 
 
 class ProductOrderingTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -866,6 +871,95 @@ class TestCartOrderingFieldsNullsFlip:
         # `expected_delivery_time` is listed in `nulls_ordering_flip`, so requesting it descending
         # flips its nulls placement from first to last.
         assert durations == [timedelta(days=2), timedelta(days=1), None]
+
+
+class ProductOptionOrderingTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Admin": [
+            ("store", "ProductOption", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Admin"],
+        },
+    }
+
+
+@pytest.fixture
+def product_option_nulls_ordering_data():
+    data = ProductOptionOrderingTestData()
+    distributor = Distributor.objects.create(name="Nulls Distributor", description="For nulls ordering.")
+    product = StoreProduct.objects.create(
+        distributor=distributor,
+        name="Nulls Product",
+        tangible_type=TangibleType.objects.get(code="physical"),
+        order_between=(1, 10),
+    )
+
+    # The seeded option types are created size, colour, flavour, so `size` has the lower pk. The
+    # options are created out of both nulls-first and pk order, so a passing assertion can't be
+    # explained away by insertion order matching the expected result.
+    for name, option_type_code in (("Colour Option", "colour"), ("No Type Option", None), ("Size Option", "size")):
+        ProductOption.objects.create(
+            product=product,
+            option_type=OptionType.objects.get(code=option_type_code) if option_type_code else None,
+            name=name,
+            sku=f"NULLS-{name}",
+            gtin=f"NULLS-{name}",
+        )
+    return data
+
+
+@pytest.mark.django_db
+class TestNullsOrderingKeyedOnPKAlias:
+    """ProductOptionNullsOrderingPKViewSet keys its nulls placement and flip on `option_type__pk`.
+
+    `model_ordering` advertises that entry as `option_type.id`, so a metadata-driven client sends the
+    field behind the alias rather than the alias itself. The placement belongs to the field, so it
+    applies under either spelling.
+    """
+
+    def test_ascending_request_on_the_field_behind_the_alias_puts_nulls_first(
+        self, product_option_nulls_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_option_nulls_ordering_pk"
+
+        user = product_option_nulls_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.productoption-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "option_type.id"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        names = [ProductOption.objects.get(pk=x["id"]).name for x in response.data["results"]]
+        # PostgreSQL's default ascending order puts nulls last.
+        assert names == ["No Type Option", "Size Option", "Colour Option"]
+
+    def test_descending_request_on_the_field_behind_the_alias_flips_nulls_to_last(
+        self, product_option_nulls_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_option_nulls_ordering_pk"
+
+        user = product_option_nulls_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("store.productoption-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-option_type.id"},
+            format="json",
+        )
+
+        assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
+        names = [ProductOption.objects.get(pk=x["id"]).name for x in response.data["results"]]
+        # PostgreSQL's default descending order puts nulls first, so nulls last proves the flip ran.
+        assert names == ["Colour Option", "Size Option", "No Type Option"]
 
 
 @pytest.mark.django_db

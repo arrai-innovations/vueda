@@ -837,6 +837,200 @@ class TestNullsOrderingChecks:
         # The placement itself is usable, so nothing is reported about `nulls_ordering`.
         assert "nulls_ordering[" not in errors[0].msg
 
+    def test_relation_path_keys_pass_system_check(self):
+        """RelationNullsOrderingViewSet keys placements on a relation path, on a path ending in "pk",
+        and on a related formatted_name. Each is a `__`-joined name that `ordering_fields` offers, so
+        each is a term the filter orders by."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.RelationNullsOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_pk_alias_and_the_field_behind_it_match_each_other(self):
+        """CrossSpelledPKNullsOrderingViewSet keys its placement on `the_name_source__pk` while
+        `ordering_fields` and the flip entry name `the_name_source__id`. The filter treats the two
+        spellings as one field, so the key is requestable and the flip entry has a placement to flip."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.CrossSpelledPKNullsOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_composite_primary_key_without_its_columns_system_check_error(self):
+        """CompositePKNullsOrderingViewSet keys its placement and flip on the "pk" of a two-column
+        primary key and on neither column. A metadata-driven client sorts by one column at a time, so
+        both entries are reported with the columns to add, and neither is reported a second time as
+        unrequestable."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.OrderItemCompositePKSerializer, err_viewsets.CompositePKNullsOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "CompositePKNullsOrderingViewSet.nulls_ordering['pk'] names a primary key made of 2 columns, but "
+                "`nulls_ordering` leaves out 'order', 'product'.",
+                hint=(
+                    "Add 'order', 'product' to `nulls_ordering` as well. `model_ordering` advertises each "
+                    "column of the key separately, so a client sorts by one column at a time, and only a "
+                    "placement on that column reaches the request. The placement on 'pk' still applies when "
+                    "the list is sorted by the whole key."
+                ),
+                obj=err_viewsets.CompositePKNullsOrderingViewSet,
+                id="vueda_info.E007",
+            ),
+            Error(
+                "'pk' in CompositePKNullsOrderingViewSet.nulls_ordering_flip names a primary key made of 2 "
+                "columns, but `nulls_ordering_flip` leaves out 'order', 'product'.",
+                hint=(
+                    "Add 'order', 'product' to `nulls_ordering_flip` as well. `model_ordering` advertises each "
+                    "column of the key separately, so a client sorts by one column at a time, and only a "
+                    "placement on that column reaches the request. The placement on 'pk' still applies when "
+                    "the list is sorted by the whole key."
+                ),
+                obj=err_viewsets.CompositePKNullsOrderingViewSet,
+                id="vueda_info.E007",
+            ),
+        ]
+
+    def test_composite_primary_key_with_its_columns_passes_system_check(self):
+        """CompositePKColumnNullsOrderingViewSet keys a placement on the "pk" of a two-column primary key
+        and on each column, so a list sorted by the whole key and a request for either column both
+        reach a placement."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            store_serializers.OrderItemCompositePKSerializer, err_viewsets.CompositePKColumnNullsOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_dotted_key_system_check_error(self):
+        """DottedNullsOrderingKeyViewSet writes its key in the dotted `?o=` spelling. The filter looks the
+        placement up by the `__`-joined term, so the key matches nothing and the placement is dropped."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.DottedNullsOrderingKeyViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "DottedNullsOrderingKeyViewSet.nulls_ordering['the_name_source.the_name_field'] names no field "
+                "that a list request can sort DottedNullsOrderingKeyViewSet by.",
+                hint=(
+                    "Write it as 'the_name_source__the_name_field'. `nulls_ordering` uses `__`-joined paths, "
+                    "the same as `ordering`; only the `?o=` query parameter is dotted. As declared, the "
+                    "placement is never applied, so nulls arrive wherever the database puts them by default."
+                ),
+                obj=err_viewsets.DottedNullsOrderingKeyViewSet,
+                id="vueda_info.E007",
+            )
+        ]
+
+    def test_dotted_flip_entry_system_check_error(self):
+        """DottedNullsOrderingFlipViewSet spells its `nulls_ordering` key correctly and its
+        `nulls_ordering_flip` entry dotted. The entry gives no placement to flip, and it names no term
+        the filter orders by. Both are reported, and the second names the spelling the entry needs."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.DottedNullsOrderingFlipViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E007", "vueda_info.E007"]
+        assert errors[0].msg == (
+            "'the_name_source.the_name_field' is listed in DottedNullsOrderingFlipViewSet.nulls_ordering_flip, "
+            "but DottedNullsOrderingFlipViewSet.nulls_ordering gives it no placement to flip."
+        )
+        assert errors[1].msg == (
+            "'the_name_source.the_name_field' in DottedNullsOrderingFlipViewSet.nulls_ordering_flip names no "
+            "field that a list request can sort DottedNullsOrderingFlipViewSet by."
+        )
+        assert errors[1].hint.startswith(
+            "Write it as 'the_name_source__the_name_field'. `nulls_ordering_flip` uses `__`-joined paths"
+        )
+
+    def test_key_outside_ordering_fields_system_check_error(self):
+        """UnrequestableNullsOrderingViewSet keys a placement on a real path that neither
+        `ordering_fields` nor the default ordering names. No request sorts by it, so the hint says to
+        offer the field rather than claiming it doesn't exist."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.UnrequestableNullsOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E007", "vueda_info.E007"]
+        assert errors[0].msg == (
+            "UnrequestableNullsOrderingViewSet.nulls_ordering['the_name_source__the_name_field'] names no field "
+            "that a list request can sort UnrequestableNullsOrderingViewSet by."
+        )
+        assert errors[0].hint == (
+            "Add 'the_name_source__the_name_field' to `ordering_fields`, or remove it from `nulls_ordering`. "
+            "A list request can only sort by a field that `ordering_fields` or the default ordering names. "
+            "As declared, the placement is never applied, so nulls arrive wherever the database puts them by "
+            "default."
+        )
+
+    def test_key_naming_no_field_system_check_error(self):
+        """UnrequestableNullsOrderingViewSet also keys a placement on `no_such_field`, which names
+        nothing on the model, so the hint says that instead of suggesting `ordering_fields`."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.UnrequestableNullsOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors[1].msg == (
+            "UnrequestableNullsOrderingViewSet.nulls_ordering['no_such_field'] names no field that a list "
+            "request can sort UnrequestableNullsOrderingViewSet by."
+        )
+        assert errors[1].hint == (
+            "SingleValuedLookupExpression has no field, related field, or lookup at that path for the database "
+            "to sort by. As declared, the placement is never applied, so nulls arrive wherever the database "
+            "puts them by default."
+        )
+
+    def test_keys_are_not_judged_when_the_queryset_needs_a_request(self):
+        """RequestOnlyQuerysetNullsOrderingViewSet has a dotted key, but its `get_queryset` reads
+        `self.request`, which a view built at check time doesn't have. With the requestable names
+        unknown there is nothing to judge the key against, so the check stays quiet instead of failing
+        the check run."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer,
+            err_viewsets.RequestOnlyQuerysetNullsOrderingViewSet,
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
     def test_a_viewset_without_nulls_ordering_passes_system_check(self):
         """Neither attribute is required, so a viewset that declares neither has nothing to report."""
         from vueda.info.checks import check_ordering_configuration
