@@ -71,7 +71,7 @@ Filter choice responses omit empty-valued options. For filters, "no selection" o
 
 Filter choice permissions follow the same pattern as field choices: model `read` permission is required, and related-model filters additionally require `list` permission on the related model.
 
-Dynamic filter choices come only from rows the user may list, on the filtered model and on the related model, with the same row-level and workflow state rules as the `list` view. The [filtering concept page](../core-concepts/filtering-and-ordering-semantics#filter-choices-and-permission-surfaces) has the full rule.
+Dynamic filter choices come only from the rows that the registered viewset's `list` view returns. The endpoint starts from the viewset's `get_queryset()`, then applies the same row-level and workflow state rules as the `list` view, on the filtered model and on the related model. The [filtering concept page](../core-concepts/filtering-and-ordering-semantics#filter-choices-and-permission-surfaces) has the full rule.
 
 ### Invalid filter handling
 
