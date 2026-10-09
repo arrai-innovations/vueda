@@ -12,7 +12,7 @@ const toastMock = {
 };
 vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
-const routerPush = vi.fn();
+const routerPush = vi.fn(async () => undefined);
 let routeQuery = {};
 vi.mock("vue-router", () => ({
     useRouter: () => ({ push: routerPush }),
@@ -20,7 +20,7 @@ vi.mock("vue-router", () => ({
 }));
 
 const UnauthorizedError = class extends Error {};
-const storeState = reactive({ authPendingFlow: null });
+const storeState = reactive({ authPendingFlow: null, loggedIn: true });
 vi.mock("@vueda/stores/storeUser.js", () => ({
     UnauthorizedError,
     storeUser: () => storeState,
@@ -41,6 +41,7 @@ describe("lib/use/useAuthFlow.js", () => {
         routerPush.mockClear();
         defaultOnSubmissionError.mockClear();
         storeState.authPendingFlow = null;
+        storeState.loggedIn = true;
         routeQuery = {};
     });
 
@@ -87,16 +88,104 @@ describe("lib/use/useAuthFlow.js", () => {
     });
 
     describe("onSubmissionErrorHandler", () => {
-        scopedIt("handles UnauthorizedError by redirecting to reauthenticate", async () => {
+        // The store refetches the current user before it rejects with an UnauthorizedError, so the handler runs
+        // with the refetched state.
+        scopedIt("reuses the redirect that the watch already completed", async () => {
             const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            storeState.authPendingFlow = "reauthenticate";
+            await flushPromises();
             const result = await onSubmissionErrorHandler({
                 error: new UnauthorizedError("nope"),
                 formContext: {},
                 toast: toastMock,
             });
             expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledTimes(1);
             expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
-            expect(toastMock.warning).toHaveBeenCalledWith(expect.stringContaining("verify"), expect.any(Object));
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("redirects once when the handler runs before the watch", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            storeState.authPendingFlow = "reauthenticate";
+            const result = await onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            await flushPromises();
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("retries the redirect when an earlier redirect for the same flow failed", async () => {
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
+            storeState.authPendingFlow = "reauthenticate";
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            const result = await onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledTimes(2);
+            expect(routerPush).toHaveBeenLastCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("retries the redirect when an earlier push for the same flow rejected", async () => {
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
+            storeState.authPendingFlow = "reauthenticate";
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            await flushPromises();
+            routerPush.mockRejectedValueOnce(new Error("Failed to load the route component"));
+            await expect(
+                onSubmissionErrorHandler({ error: new UnauthorizedError("nope"), formContext: {}, toast: toastMock }),
+            ).rejects.toThrow("Failed to load the route component");
+            const result = await onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledTimes(3);
+        });
+
+        scopedIt("passes the error to defaultOnSubmissionError when the redirect fails", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
+            storeState.authPendingFlow = "reauthenticate";
+            const error = new UnauthorizedError("nope");
+            const result = await onSubmissionErrorHandler({ error, formContext: {}, toast: toastMock });
+            expect(result).toBe(false);
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
+        });
+
+        scopedIt("sends a signed-out user to sign-in", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            storeState.loggedIn = false;
+            const result = await onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/current" } });
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("passes an UnauthorizedError that leaves no pending flow to defaultOnSubmissionError", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            const error = new UnauthorizedError("nope");
+            await onSubmissionErrorHandler({ error, formContext: {}, toast: toastMock });
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
         });
 
         scopedIt("falls back to defaultOnSubmissionError for other errors", async () => {
@@ -122,11 +211,76 @@ describe("lib/use/useAuthFlow.js", () => {
             expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
         });
 
+        scopedIt("redirects to reauthenticate when the flow is already pending at setup", async () => {
+            storeState.authPendingFlow = "reauthenticate";
+            useAuthFlow({ formProps: {} });
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
+        });
+
+        scopedIt("redirects again when a new reauthentication flow follows a cleared one", async () => {
+            useAuthFlow({ formProps: {} });
+            storeState.authPendingFlow = "reauthenticate";
+            await flushPromises();
+            storeState.authPendingFlow = null;
+            await flushPromises();
+            storeState.authPendingFlow = "mfa_reauthenticate";
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(2);
+            expect(toastMock.warning).toHaveBeenCalledTimes(2);
+        });
+
         scopedIt("ignores unrelated pending flow ids", async () => {
             useAuthFlow({ formProps: {} });
             storeState.authPendingFlow = "some_other_flow";
             await flushPromises();
             expect(routerPush).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("requireRecentAuth: false", () => {
+        scopedIt("does not redirect when a reauthentication flow becomes pending", async () => {
+            useAuthFlow({ formProps: {}, requireRecentAuth: false });
+            storeState.authPendingFlow = "reauthenticate";
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+        });
+
+        scopedIt("passes an UnauthorizedError to defaultOnSubmissionError", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {}, requireRecentAuth: false });
+            storeState.authPendingFlow = "reauthenticate";
+            await flushPromises();
+            const error = new UnauthorizedError("nope");
+            await onSubmissionErrorHandler({ error, formContext: {}, toast: toastMock });
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
+        });
+
+        scopedIt("sends a signed-out user to sign-in", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {}, requireRecentAuth: false });
+            storeState.loggedIn = false;
+            const result = await onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/current" } });
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("redirects to reauthenticate when requireRecentAuth turns true with a flow pending", async () => {
+            const options = reactive({ formProps: {}, requireRecentAuth: false });
+            useAuthFlow(options);
+            storeState.authPendingFlow = "reauthenticate";
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            options.requireRecentAuth = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
         });
     });
 });
