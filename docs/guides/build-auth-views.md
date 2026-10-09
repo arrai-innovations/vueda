@@ -335,6 +335,8 @@ After building auth views, verify the following:
 
 **Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `authPendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
 
+**A sign-in, code, or password request returns 429.** The endpoint's rate limit is used up for this user, address, or IP address. [Rate-Limited Auth Endpoints](configure-cache-and-sessions#rate-limited-auth-endpoints) lists each limit, its default, and the setting that changes it.
+
 ## Relevant Implementation Surface
 
 - Vue.js Components:

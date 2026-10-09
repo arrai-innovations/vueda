@@ -307,10 +307,10 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
         "MFA_TOTP_TOLERANCE": 5,
         "REST_FRAMEWORK": {
             "DEFAULT_THROTTLE_RATES": {
+                "change_password": "5/min",
                 "forgot_password": "20/hour",
-                "anon": "1000/day",
-                "user": "10000/day",
-                "dj_rest_auth": "10000/day",
+                "totp_send_destination": "5/hour",
+                "totp_send_user": "5/hour",
             },
             "NON_FIELD_ERRORS_KEY": "non_field_errors",
             "DEFAULT_RENDERER_CLASSES": [
