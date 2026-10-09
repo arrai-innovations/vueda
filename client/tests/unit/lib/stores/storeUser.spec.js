@@ -394,7 +394,7 @@ describe("lib/stores/storeUser.js", () => {
             );
         });
 
-        scopedIt("forgotPassword identifies the reset cooldown and preserves the server detail", async () => {
+        scopedIt("forgotPassword rejects a 429 with RateLimitedError and preserves the server detail", async () => {
             const response = { status: 429, statusText: "Too Many Requests" };
             const data = { detail: "You must wait before requesting another password reset." };
             getUrl.mockReturnValue("/forgot/");
@@ -405,8 +405,9 @@ describe("lib/stores/storeUser.js", () => {
 
             const store = storeUser();
             await expect(store.forgotPassword({ email: "reset@domain.invalid" })).rejects.toMatchObject({
-                name: "UserError",
-                message: "Password reset requested too recently: 429 Too Many Requests",
+                name: "RateLimitedError",
+                message: "Too many requests. Try again later.",
+                retryAfterSeconds: null,
                 response,
                 responseData: data,
             });
