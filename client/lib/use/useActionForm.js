@@ -12,7 +12,7 @@ import {
     defaultOnSubmissionWarningsRequireConfirmation,
     defaultOnSubmitNotAnyModified,
 } from "@vueda/use/useObjectForm.js";
-import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, RateLimitedError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from "vue";
@@ -92,6 +92,10 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
  * the `FormConfirmDialog` bound to the controller; standalone callers must render one (or register
  * a custom consumer), otherwise warned submissions fail closed as cancelled.
  *
+ * When the server refuses the action with a rate limit (HTTP 429, surfaced as a `RateLimitedError`), the
+ * failure toast shows the error's message, and the form shows no error. The submit control stays enabled,
+ * because the same action succeeds once the limit resets.
+ *
  * @param {import('@vueda/use/useForm.js').FormContext} formContext - The form context providing validation state.
  * @param {import('vue').UnwrapNestedRefs<ActionFormProps>} props - Reactive action form configuration.
  * @returns {ActionFormContext}
@@ -150,6 +154,15 @@ export function useActionForm(formContext, props) {
             if (handled || generation !== actionGeneration) {
                 return;
             }
+        }
+        // A rate-limited request fails only until the limit resets, so the toast is the whole response and the
+        // form shows no error.
+        if (error instanceof RateLimitedError) {
+            toast.error(props.actionErrorSummary || "Action Failed", {
+                description: error.message,
+                duration: 15000,
+            });
+            return;
         }
         localActionState.errored = true;
         localActionState.error = error;
