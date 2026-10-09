@@ -36,10 +36,6 @@ flowchart TD
     end
 
     ERR --> RENDER_E["FormMessage / FieldMessage<br/>severity=error (red)"]
-
-    style Server fill:#f8f4e8,stroke:#c9a227
-    style Client fill:#e8f0f8,stroke:#2768c9
-    style FormState fill:#e8f8ec,stroke:#27c94a
 ```
 
 <!-- diagram caption="Validation flow from server exception to form feedback rendering" -->

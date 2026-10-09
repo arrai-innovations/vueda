@@ -10,6 +10,7 @@ import ModelDemo from "./components/ModelDemo.vue";
 import StateLabel from "./components/StateLabel.vue";
 import VersionFooter from "./components/VersionFooter.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
+import "./diagrams.css";
 import { seedShowcaseModels } from "./fixtures/showcaseCustomer.js";
 import { seedShowcaseFieldTypes } from "./fixtures/showcaseFieldTypes.js";
 import "./showcase-portals.css";

@@ -1,8 +1,10 @@
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
 import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
 import { glossaryTermPlugin } from "../../docs-tooling/js/utils/glossary-term-plugin.js";
+import { mermaidSchemePlugin } from "../../docs-tooling/js/utils/mermaid-scheme-plugin.js";
 import { apiMemberTitle, memberAnchorFromId } from "../../docs-tooling/js/utils/reference-index.js";
 import { normalizeTerm, parseFrontmatter, stripInlineMarkdown } from "../../docs-tooling/js/utils/reference-parser.js";
+import { mermaidSchemes } from "./mermaid-schemes.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
@@ -10,7 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sirv from "sirv";
 import { defineConfig } from "vitepress";
-import { configureDiagramsPlugin } from "vitepress-plugin-diagrams";
+import { configureDiagramsPlugin, diagramToSvg } from "vitepress-plugin-diagrams";
 
 const base = process.env.VITEPRESS_BASE || "/vueda/";
 // Published origin for absolute card URLs. CI publishes each major under
@@ -813,9 +815,15 @@ export default defineConfig({
     },
     markdown: {
         config: (md) => {
-            configureDiagramsPlugin(md, {
+            const diagramsOptions = {
                 diagramsDir: path.join(generatedRoot, "diagrams"),
                 publicPath: `${base}diagrams`,
+            };
+            configureDiagramsPlugin(md, diagramsOptions);
+            md.use(mermaidSchemePlugin, {
+                schemes: mermaidSchemes,
+                render: (source, { caption, id, name }) =>
+                    diagramToSvg(source, "mermaid", caption, id, diagramsOptions, name),
             });
             md.use(apiLinkPlugin, {
                 resolve: (id) => apiIndex.get(id),

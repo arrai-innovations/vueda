@@ -1,0 +1,8 @@
+/*
+ * mermaidSchemePlugin renders each mermaid diagram once per color scheme.
+ * Show the figure that matches the active scheme.
+ */
+html.dark .vueda-diagram-light,
+html:not(.dark) .vueda-diagram-dark {
+    display: none;
+}
