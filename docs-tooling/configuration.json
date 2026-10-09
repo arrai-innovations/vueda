@@ -246,7 +246,7 @@
             "description": "HTTP methods allowed by the CORS middleware."
         },
         "CORS_EXPOSE_HEADERS": {
-            "description": "Response headers readable by cross-origin browser clients. The factory exposes content-disposition."
+            "description": "Response headers readable by cross-origin browser clients. The factory exposes content-disposition and retry-after."
         },
         "CORS_PREFLIGHT_MAX_AGE": {
             "description": "Lifetime in seconds of cached CORS preflight results. DEBUG reduces the factory value from 86400 to 600."

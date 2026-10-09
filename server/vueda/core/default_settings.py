@@ -398,6 +398,7 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             ],
             "CORS_EXPOSE_HEADERS": [
                 "content-disposition",
+                "retry-after",
             ],
             "CORS_PREFLIGHT_MAX_AGE": 86400,  # 24 hours
             "CORS_ALLOW_CREDENTIALS": True,
