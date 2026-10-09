@@ -335,7 +335,7 @@ After building auth views, verify the following:
 
 **Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `authPendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
 
-**A sign-in, code, or password request returns 429.** The endpoint's rate limit is used up for this user, address, or IP address. [Rate-Limited Auth Endpoints](configure-cache-and-sessions#rate-limited-auth-endpoints) lists each limit, its default, and the setting that changes it.
+**A sign-in, code, or password request returns 429.** The endpoint's rate limit is used up for this user, address, or IP address. The `storeUser` action rejects with a `RateLimitedError`, whose message says how long to wait when the server sends a `Retry-After` header. The default views show that message in a failure toast, and the form itself shows no error. [Rate-Limited Auth Endpoints](configure-cache-and-sessions#rate-limited-auth-endpoints) lists each limit, its default, and the setting that changes it.
 
 ## Relevant Implementation Surface
 
