@@ -193,10 +193,8 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         pks = serializer.validated_data["pks"]
         if not dry_run:
             authenticator = self._get_authenticator_with_lock()
-            queryset = self.get_queryset().filter(pk__in=pks)
-            count = self.get_queryset().count()
-            queryset.delete()
-            if count == len(pks) and authenticator:
+            self.get_queryset().filter(pk__in=pks).delete()
+            if authenticator and not self.get_queryset().exists():
                 totp_flows.deactivate_totp(request, authenticator)
 
         return Response(status=drf_status.HTTP_204_NO_CONTENT)
