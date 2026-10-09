@@ -485,6 +485,212 @@ class Migration(migrations.Migration):
                 "abstract": False,
             },
         ),
+        migrations.CreateModel(
+            name="AggregateManagerMetaOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Aggregate manager meta ordering",
+                "verbose_name_plural": "Aggregate manager meta ordering",
+                "ordering": ("the_name_field",),
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="AggregateManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Aggregate manager ordering",
+                "verbose_name_plural": "Aggregate manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="DefaultManagerNameOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Default manager name ordering",
+                "verbose_name_plural": "Default manager name ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+                "default_manager_name": "ordered",
+            },
+            managers=[
+                ("ordered", django.db.models.manager.Manager()),
+            ],
+        ),
+        migrations.CreateModel(
+            name="MisspelledFManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Misspelled F manager ordering",
+                "verbose_name_plural": "Misspelled F manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MisspelledNameManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Misspelled name manager ordering",
+                "verbose_name_plural": "Misspelled name manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MisspelledTransformManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Misspelled transform manager ordering",
+                "verbose_name_plural": "Misspelled transform manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="OtherNameManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Other name manager ordering",
+                "verbose_name_plural": "Other name manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+            managers=[
+                ("ordered", django.db.models.manager.Manager()),
+            ],
+        ),
+        migrations.CreateModel(
+            name="SecondaryManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Secondary manager ordering",
+                "verbose_name_plural": "Secondary manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="SimpleAnnotationManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Simple annotation manager ordering",
+                "verbose_name_plural": "Simple annotation manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
         migrations.AddField(
             model_name="enabledwithoutworkflowevent",
             name="pgh_context",
