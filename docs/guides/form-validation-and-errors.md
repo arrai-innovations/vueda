@@ -47,6 +47,8 @@ return responseData;
 
 The distinction matters because only `ServerFeedbackError` instances are eligible for the form-context ingestion path. If code wraps a validation-shaped response in `FetchError` instead, it will surface through generic error handling. The form feedback will remain empty. `ConfirmationRequiredError` also extends `ServerFeedbackError`, but callers route that class through the confirmation controller instead of the generic blocking-feedback branch.
 
+A 429 response from a rate limit has its own class, {@api js:class:@arrai-innovations/vueda/utils/errors#RateLimitedError}. `ActionForm` reports it only in the failure toast, with the error's message as the description. The form shows no error and the submit button stays enabled, because the same submit succeeds once the limit resets. A `run-action` that makes its own requests can reject with `RateLimitedError` on a 429 to get the same behavior.
+
 ## Form-Context Error and Message Mapping
 
 The form context ingests `ServerFeedbackError` via `handleServerFormValidationError(error)`. This method reads two maps off the error and writes each entry under the `server` code:

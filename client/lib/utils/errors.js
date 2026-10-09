@@ -1,9 +1,10 @@
 /**
  * @module utils/errors
- * @description Custom error classes and helpers for classifying fetch, server feedback, form validation, and list filter failures.
+ * @description Custom error classes and helpers for classifying fetch, rate-limit, server feedback, form validation, and list filter failures.
  */
 import { flattenPaths } from "@arrai-innovations/reactive-helpers";
 import get from "lodash-es/get.js";
+import { Duration } from "luxon";
 
 /**
  * Combine errors into a single array of errors.
@@ -70,6 +71,64 @@ export class FetchError extends Error {
          */
         this.responseData = responseData;
     }
+}
+
+/**
+ * An error for a request that a server rate limit refused, with status 429.
+ *
+ * The message ends with how long to wait when the response has a `Retry-After` header.
+ * Without the header, the message says to try again later.
+ * The message leaves out the status code and text, because the first sentence already says why the request failed.
+ * @extends {FetchError}
+ */
+export class RateLimitedError extends FetchError {
+    /**
+     * Creates an instance of RateLimitedError.
+     * @param {string} messagePrefix - The first sentence of the error message, without a period.
+     * @param {Response} [response] - The response object associated with the error.
+     * @param {object|string} [responseData] - The data returned in the response.
+     */
+    constructor(messagePrefix, response, responseData) {
+        const retryAfterSeconds = parseRetryAfter(response);
+        const retryHint =
+            retryAfterSeconds === null ? "Try again later" : `Try again in ${formatWait(retryAfterSeconds)}`;
+        super(messagePrefix, response, responseData);
+        this.name = "RateLimitedError";
+        this.message = `${messagePrefix}. ${retryHint}.`;
+        /**
+         * The seconds the server asked the client to wait, from the `Retry-After` header.
+         * It is `null` when the response has no header in whole seconds.
+         *
+         * @type {number|null}
+         */
+        this.retryAfterSeconds = retryAfterSeconds;
+    }
+}
+
+/**
+ * @param {Response} [response]
+ * @returns {number|null}
+ */
+function parseRetryAfter(response) {
+    const header = response?.headers?.get("Retry-After");
+    if (!header || !/^\d+$/.test(header.trim())) {
+        return null;
+    }
+    return Number(header);
+}
+
+/**
+ * @param {number} seconds
+ * @returns {string}
+ */
+function formatWait(seconds) {
+    if (seconds < 60) {
+        return Duration.fromObject({ seconds: Math.max(seconds, 1) }).toHuman();
+    }
+    if (seconds < 3600) {
+        return Duration.fromObject({ minutes: Math.ceil(seconds / 60) }).toHuman();
+    }
+    return Duration.fromObject({ hours: Math.ceil(seconds / 3600) }).toHuman();
 }
 
 /**

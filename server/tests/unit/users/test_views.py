@@ -233,6 +233,17 @@ class TestVuedaForgotPasswordView:
         assert "Retry-After" in response
         assert_matches_documented_response(response, "/vueda.user/forgot-password/", "post")
 
+    def test_lets_a_cross_origin_client_read_retry_after(self, api_client, sent):
+        response = api_client.post(
+            reverse("forgot_password"),
+            {"email": "reset+cors@domain.invalid"},
+            format="json",
+            HTTP_ORIGIN="https://demo.vueda.dev",
+        )
+
+        assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+        assert "retry-after" in response["Access-Control-Expose-Headers"].split(", ")
+
 
 @pytest.mark.django_db
 class TestPasswordResetRoutes:

@@ -5,7 +5,7 @@
 import { clearAuthScopedStores } from "@vueda/stores/authScope.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError, RateLimitedError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore, getActivePinia } from "pinia";
@@ -57,6 +57,9 @@ const authErrorResolver = (response, data) => {
     }
     if (response.status === 401 || response.status === 403) {
         return new UnauthorizedError("Unauthorized", response, data);
+    }
+    if (response.status === 429) {
+        return new RateLimitedError("Too many requests", response, data);
     }
     return new UserError("Unexpected error occurred", response, data);
 };
@@ -396,12 +399,7 @@ export const storeUser = defineStore("user", {
                 UserError,
                 undefined,
                 undefined,
-                (response, data) => {
-                    if (response.status === 429) {
-                        return new UserError("Password reset requested too recently", response, data);
-                    }
-                    return authErrorResolver(response, data);
-                },
+                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
