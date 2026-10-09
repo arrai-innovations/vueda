@@ -287,6 +287,115 @@ def test_setup_rejects_invalid_phone_destination(settings, api_client, user, mon
     assert response.data["destination"][0] == "Enter a valid phone number."
 
 
+# The default ``totp_send_user`` and ``totp_send_destination`` rates allow this many codes an hour.
+CODE_SEND_LIMIT = 5
+
+
+@pytest.fixture
+def sent_setup_codes(settings, monkeypatch):
+    """Record each code ``setup`` asks the VUEDA adapter to send, as ``(destination, method)``, with SMS available."""
+    settings.TWILIO_ACCOUNT_SID = "TESTSID"
+    settings.TWILIO_AUTH_TOKEN = "TESTAUTH"
+    settings.TWILIO_CALLER_ID = "TESTCALLER"
+    monkeypatch.setattr("vueda.user.viewsets.totp_auth.get_totp_secret", lambda regenerate=False: "JBSWY3DPEHPK3PXP")
+    monkeypatch.setattr("vueda.core.decorators.did_recently_authenticate", lambda request: True)
+    sent = []
+    monkeypatch.setattr(
+        "vueda.user.viewsets.vueda_get_adapter",
+        lambda: SimpleNamespace(
+            send_mail=lambda to, *args: sent.append((to, "email")),
+            send_sms=lambda to, *args: sent.append((to, "sms")),
+        ),
+    )
+    return sent
+
+
+def post_setup(api_client, method, destination):
+    return api_client.post(
+        reverse("vueda_user.totpdevice-setup"), {"method": method, "destination": destination}, format="json"
+    )
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+@pytest.mark.parametrize(
+    ("method", "destinations"),
+    [
+        ("email", [f"setup+{index}@domain.invalid" for index in range(CODE_SEND_LIMIT + 1)]),
+        ("sms", [f"+1800555010{index}" for index in range(CODE_SEND_LIMIT + 1)]),
+    ],
+)
+def test_setup_refuses_a_sixth_code_in_an_hour_for_one_user(
+    api_client, user, sent_setup_codes, assert_matches_documented_response, method, destinations
+):
+    api_client.force_authenticate(user=user)
+    for destination in destinations[:CODE_SEND_LIMIT]:
+        response = post_setup(api_client, method, destination)
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+
+    response = post_setup(api_client, method, destinations[CODE_SEND_LIMIT])
+
+    assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS, response_body(response)
+    assert "Retry-After" in response
+    assert_matches_documented_response(response, "/vueda.user/totpdevice/setup/", "post")
+    assert sent_setup_codes == [(destination, method) for destination in destinations[:CODE_SEND_LIMIT]]
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+@pytest.mark.parametrize(
+    ("method", "spelling", "other_spelling", "fresh_destination"),
+    [
+        ("email", "shared@domain.invalid", "Shared@Domain.invalid", "fresh@domain.invalid"),
+        ("sms", "+18005550100", "+1 800-555-0100", "+18005550199"),
+    ],
+)
+def test_setup_counts_one_destination_across_accounts_whatever_its_spelling(
+    api_client, user, sent_setup_codes, method, spelling, other_spelling, fresh_destination
+):
+    other = get_user_model().objects.create_user(email="other@domain.invalid", password="test-pass", name="Other")
+    api_client.force_authenticate(user=user)
+    for _ in range(CODE_SEND_LIMIT):
+        post_setup(api_client, method, spelling)
+    api_client.force_authenticate(user=other)
+
+    refused = [post_setup(api_client, method, other_spelling).status_code for _ in range(CODE_SEND_LIMIT)]
+    # The refusals counted toward neither rate, so the other user can still send to a fresh destination.
+    fresh = post_setup(api_client, method, fresh_destination)
+
+    assert refused == [HTTPStatus.TOO_MANY_REQUESTS] * CODE_SEND_LIMIT
+    assert fresh.status_code == HTTPStatus.OK, response_body(fresh)
+    assert len(sent_setup_codes) == CODE_SEND_LIMIT + 1
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_setup_codes_to_an_address_leave_its_owner_sign_in_codes_alone(api_client, user, sent_setup_codes, monkeypatch):
+    owner = get_user_model().objects.create_user(email="owner@domain.invalid", password="test-pass", name="Owner")
+    authenticator = Authenticator.objects.create(
+        user=owner, type=Authenticator.Type.TOTP, data={"secret": "JBSWY3DPEHPK3PXP"}
+    )
+    TOTPDevice.objects.create(authenticator=authenticator, method="email", user=owner, email=owner.email)
+    monkeypatch.setattr("vueda.user.views.get_adapter", lambda: SimpleNamespace(send_mail=lambda *args: None))
+    api_client.force_authenticate(user=user)
+    for _ in range(CODE_SEND_LIMIT):
+        post_setup(api_client, "email", owner.email)
+    api_client.force_authenticate(user=owner)
+
+    response = api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_setup_does_not_count_a_rejected_destination(api_client, user, sent_setup_codes):
+    api_client.force_authenticate(user=user)
+    for _ in range(CODE_SEND_LIMIT):
+        response = post_setup(api_client, "email", "not-an-email")
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+    response = post_setup(api_client, "email", "setup@domain.invalid")
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+
+
 # The acceptance tests below exercise the reauthentication policy through the real endpoints: the session
 # holds allauth's authentication records, and nothing about the check is patched.
 
