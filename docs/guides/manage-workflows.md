@@ -89,8 +89,29 @@ The generated file is a standard Django migration with these additions:
 - `changed_data`, the list of recorded changes.
 - `history_change_reason`, which marks the history that the migration writes.
 - `migration_app_label`, the app whose permissions the migration creates before it applies the changes.
-- Copies of [`forwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow}, [`backwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.backwards_migrate_workflow}, and the functions they call. After applying the changes, they give each object without an object state the workflow's initial state. When the initial state changes, they move object states that nothing has moved since creation.
+- Copies of [`forwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow}, [`backwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.backwards_migrate_workflow}, and the functions they call. After applying the changes, they give each object without an object state the workflow's initial state. When the initial state changes, they move object states that nothing has moved since creation. [Reversing a Workflow Migration](#reversing-a-workflow-migration) describes what the backwards function does to object states.
 - A comment marker that `makeworkflowmigrations` and `updateworkflowmigrations` use to find workflow migrations.
+
+### How `changed_data` Is Formatted
+
+`makeworkflowmigrations` and `updateworkflowmigrations` format `changed_data` with the Python formatter that your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. Projects usually install these as development dependencies. `makegroupmigrations` formats its `changed_data` the same way, as [How `changed_data` Is Formatted](manage-groups.md#how-changed-data-is-formatted) in the group guide describes.
+
+The commands use the first formatter in this list that applies:
+
+1. black, when the `pyproject.toml` at your project root has a `[tool.black]` section, even an empty one. A project can install ruff only to lint, so black configuration comes first. A black configuration in your home directory, such as `~/.config/black`, does not count. One developer's file therefore cannot choose the formatter for the whole project.
+2. ruff, when it is installed.
+3. black with its default settings, when it is installed but not configured.
+4. Python's `pprint` with a narrow width, when neither is installed. Its output uses single quotes and ignores your settings.
+
+If the chosen formatter fails, the commands do not switch to another formatter that would ignore your settings. A formatter fails, for example, when your `pyproject.toml` cannot be read or a setting has the wrong type. The commands print the formatter's error and write `changed_data` with `pprint`. They then ask you to fix the problem and format that migration yourself. `updateworkflowmigrations --dry-run` still runs the formatter and reports the same error. It writes nothing, and it says that a run without `--dry-run` would fall back to `pprint`.
+
+With black or ruff, the output has these properties:
+
+- Your project's settings apply. black reads `[tool.black]` from the `pyproject.toml` at your project root. ruff reads the configuration that covers the migration file, such as your `pyproject.toml` or `ruff.toml`, even when that configuration excludes migrations. The list follows your line length and quote style.
+- Every change and every key gets its own line. Each dictionary and list ends in a trailing comma, which keeps the formatter from joining the items onto one line. The commands turn the magic trailing comma on even when your configuration turns it off. The `(old, new)` pair of a changed field stays on one line.
+- Keys are sorted, as earlier versions of the commands wrote them.
+
+The commands format only `changed_data` this way. They write the rest of the migration, including the embedded functions, in their own layout.
 
 ### Command Options
 
@@ -108,6 +129,23 @@ python manage.py migrate myapp 0005_workflow_migrations_2026_09_28 --fake
 Other environments run the migration normally.
 
 `makeworkflowmigrations` treats a faked migration differently from a migration that ran. A faked migration wrote nothing, so the command matches its changes against your hand edits. A migration that ran also recorded its own writes. The command matches its changes only against edits made before it first ran in that environment. So you can roll a faked migration back and apply it again, and an edit made after a migration ran is never mistaken for one of its changes.
+
+### Reversing a Workflow Migration
+
+Reversing a workflow migration changes object states only for the workflows that its `changed_data` names:
+
+- An object in a state that the reversal removes moves back to the most recent state in its history that the workflow still has. An object with no such state gets the workflow's initial state as it stands after the reversal. In both cases the object keeps its object state row, so its history continues. When the workflow has no initial state after the reversal, the object loses its object state.
+- A workflow that the reversal removes loses its object states, because it has no state left to give them.
+- A workflow that the reversal creates again gives its objects its initial state.
+- Every other object state stays as it is.
+
+`migrate` prints one line for each outcome in each workflow whose object states the reversal changed, with a count.
+
+A reversal moves only object states. Anything else that a transition changed, such as a field that it set or a message that it sent, stays as it is.
+
+When reversed, workflow migrations generated before VUEDA added this behavior delete the object states of every workflow in the project. Run `updateworkflowmigrations` to give them the current reverse code, as [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations) describes.
+
+Older reverse code can also fail with `ValueError: Cannot query "Workflow object (2)": Must be "Workflow" instance.` This happens when a later migration that changes model options or triggers stays applied, such as one that adds pghistory triggers. Django hands the reverse code models whose relations point at outdated classes ([Django ticket #33586](https://code.djangoproject.com/ticket/33586)). The current reverse code rebuilds those models first, so running `updateworkflowmigrations` fixes this failure too.
 
 ### Coordinate Changes Between Developers
 
@@ -146,17 +184,38 @@ The previous release does not know that the model has workflow. Objects that it 
 
 ## Updating Existing Workflow Migrations
 
-[`updateworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.updateworkflowmigrations.Command} replaces the functions embedded in your workflow migrations with the current versions from `makeworkflowmigrations`. Name each of your own apps:
+[`updateworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.updateworkflowmigrations.Command} replaces the functions embedded in your workflow migrations with the current versions from `makeworkflowmigrations`. With no app label, it updates every app in your project's source tree:
+
+```console
+python manage.py updateworkflowmigrations
+```
+
+Name apps to update only those apps:
 
 ```console
 python manage.py updateworkflowmigrations myapp otherapp
 ```
 
-::: warning
-Always name the apps to update. With no app label, the command scans every installed app, including VUEDA's own workflow migrations inside the installed package, such as `vueda_vdq`'s. It cannot rewrite the `vueda_vdq` migrations, so it reports them as failures and exits with status 1. It would also rewrite any compatible workflow migration inside an installed package, which is a file that you cannot commit. See [Migrations the Command Must Not Rewrite](#migrations-the-command-must-not-rewrite).
-:::
-
 `--dry-run` lists the migration files that the command would update, without writing them. It runs the same checks as an update, reports each file that it would skip, and exits with status 1 if any file fails.
+
+### Which Apps a Run Covers
+
+The command never updates an app installed as a package. An app counts as installed when its migrations folder is inside a directory that Python installs packages into (`site-packages`). These directories include the following:
+
+- The environment's own package directories.
+- The base interpreter's package directories, which a virtual environment created with `--system-site-packages` also uses.
+- The user directory that `pip install --user` installs into.
+
+VUEDA's own `vueda_vdq` app is one such app. Your project cannot commit a change to those files, and the next reinstall or upgrade of the package puts the original files back.
+
+An app installed in editable mode, such as a uv workspace member, keeps its files in its source tree. The command counts it as part of your project and updates it.
+
+The command still reads migrations from installed packages and from apps that you did not name. It does not rewrite them. It reads them for two reasons:
+
+- Workflow history. A package's migration can be the only record of which app and model a workflow code belonged to, and your project's migrations can refer to that workflow by code. [What the Command Changes](#what-the-command-changes) describes how the command uses that record.
+- Dependency checks. Checking a migration's dependencies loads Django's whole migration graph, which imports every installed app's migrations. If one of those migrations raises an error on import, the command reports it and leaves your migration unchanged.
+
+Naming an installed app is an error. The command names the app, reports that it will not update installed packages, and exits with status 2 before it reads any migration. It does the same for an app label that does not exist. A run that finds nothing in your project to update reports that and stops, without reading any package migration.
 
 ### When to Run It
 
@@ -178,11 +237,18 @@ For each workflow migration in the named apps that passes the dependency check, 
 
 It keeps `history_change_reason`, `migration_app_label`, and the rest of the `class Migration` block as written. It also keeps any imports and helper functions that you added under other names.
 
-When it adds to `changed_data`, it writes the whole list back in its own layout, so comments and formatting inside the list are lost. The values stay the same. Put notes about a change outside the list.
+To add the app and model to a reference, the command works out which workflow the code meant when the change was recorded. It reads the workflow's own changes from every app's generated migrations, including installed packages and apps that you did not name. It leaves a reference unchanged in two cases:
+
+- No migration that the command reads records the workflow's own change.
+- The reference was recorded before every workflow that has held its code, and more than one workflow has held that code. The command cannot tell which of them the reference means.
+
+When it adds to `changed_data`, it writes the whole list back, as [How `changed_data` Is Formatted](#how-changed-data-is-formatted) describes. Comments and formatting inside the list are lost. The values stay the same. Put notes about a change outside the list. A list with nothing to add stays exactly as it was.
 
 The next run overwrites any edit inside the embedded functions. To add behavior, write your own function and reference it from the `operations` list.
 
 If the command cannot read a file's `changed_data`, it reports the file and skips it, updates the others, and exits with status 1. Fix the file by hand and run the command again. A file that stops Django from loading the migration graph also fails the dependency check of every other file.
+
+When the command cannot read the `changed_data` of a migration that it does not rewrite, such as one in an installed package, it reports a warning. It leaves out the workflows that the migration records, and it does not count the migration as a failure. The command then resolves references from the history that remains, so fix the reported fault where you can before you rely on the result.
 
 ### Migrations the Command Must Not Rewrite
 
@@ -201,11 +267,11 @@ For each skipped migration:
 
 If an earlier VUEDA version of the command already rewrote such a migration, restore the file from version control first. The dependency check does not repair an earlier rewrite.
 
-VUEDA's own `vueda_vdq` workflow migrations already name each workflow by app and model, and they keep their original functions and dependencies. Their dependencies come before `0008`, so the command cannot rewrite them. `vueda_vdq` migration `0005` must also run before `vueda_workflow` migration `0006`, so it cannot depend on `0008`.
+VUEDA's own `vueda_vdq` workflow migrations already name each workflow by app and model. The command never rewrites them in an installed package, and they would fail the dependency check in any case. Their dependencies come before `0008`, and `vueda_vdq` migration `0005` must run before `vueda_workflow` migration `0006`, so it cannot depend on `0008`. Their reverse code differs from the code that the current command generates. Reversing `0002` or `0005` deletes the object states of the workflows that the migration added, and it leaves every other object state as it is.
 
 ### Before Committing the Rewritten Files
 
-1. Run your formatter and linter on the rewritten files. The command's layout fails checks such as `ruff format --check` or `ruff check` until then.
+1. Run your formatter and linter on the rewritten files. The command writes the embedded functions in its own layout, and `changed_data` follows your settings only when black or ruff is installed. A rewritten file can fail checks such as `ruff format --check` or `ruff check` until then.
 2. Apply your migrations to an empty database, for example by running your test suite.
 3. Commit the rewritten files.
 
