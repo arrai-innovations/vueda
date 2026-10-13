@@ -4,6 +4,8 @@ from rest_framework.viewsets import ModelViewSet
 import tests.erring.filtersets as my_filtersets
 import tests.erring.models as my_models
 import tests.erring.serializers as my_serializers
+import tests.store.models as store_models
+import tests.store.serializers as store_serializers
 from vueda.core.viewsets import VuedaViewSet
 
 
@@ -167,6 +169,7 @@ class ValidNullsOrderingViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = {"the_name_field": "first"}
     nulls_ordering_flip = ["the_name_field"]
 
@@ -178,6 +181,7 @@ class BadNullsOrderingPlacementViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = {"the_name_field": "First"}
 
 
@@ -197,6 +201,7 @@ class NullsOrderingFlipWithoutPlacementViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering_flip = ["the_name_field"]
 
 
@@ -209,6 +214,7 @@ class NullsOrderingBothAttributesWrongViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field", "id"]
     nulls_ordering = {"the_name_field": "First"}
     nulls_ordering_flip = ["id"]
 
@@ -222,6 +228,7 @@ class NullsOrderingNotADictWithFlipViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = ["the_name_field"]
     nulls_ordering_flip = ["the_name_field"]
 
@@ -235,8 +242,123 @@ class NullsOrderingFlipNotIterableViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = {"the_name_field": "first"}
     nulls_ordering_flip = 1
+
+
+class RelationNullsOrderingViewSet(VuedaViewSet):
+    """Declares placements on three relation paths that `ordering_fields` offers: a plain path, a path
+    ending in the "pk" alias, and a related formatted_name reached through a lookup expression.
+
+    Each key is the `__`-joined term the filter orders by, so every placement applies and
+    `vueda_info.E007` must stay quiet."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field", "the_name_source__pk", "the_name_source__formatted_name"]
+    nulls_ordering = {
+        "the_name_source__the_name_field": "first",
+        "the_name_source__pk": "last",
+        "the_name_source__formatted_name": "first",
+    }
+    nulls_ordering_flip = ["the_name_source__the_name_field"]
+
+
+class CrossSpelledPKNullsOrderingViewSet(VuedaViewSet):
+    """Spells one field two ways: `ordering_fields` and the flip entry name `the_name_source__id`, and
+    the `nulls_ordering` key names the "pk" alias in front of it.
+
+    `VuedaOrderingFilter` matches the alias and the field behind it as one field, so the placement
+    applies to `?o=the_name_source.id` and flips when that request is descending. `vueda_info.E007`
+    has to match them the same way and stay quiet."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__id"]
+    nulls_ordering = {"the_name_source__pk": "first"}
+    nulls_ordering_flip = ["the_name_source__id"]
+
+
+class CompositePKNullsOrderingViewSet(VuedaViewSet):
+    """Keys a nulls placement and its flip on the "pk" alias of a model whose primary key is made of
+    two columns.
+
+    `model_ordering` advertises `order` and `product` rather than `pk`, so a metadata-driven client
+    sends one column at a time, and a placement on the whole key matches none of those terms. It
+    applies only when the list is sorted by `pk` itself."""
+
+    queryset = store_models.OrderItemCompositePK.objects.all()
+    serializer_class = store_serializers.OrderItemCompositePKSerializer
+    ordering_fields = ["pk"]
+    nulls_ordering = {"pk": "first"}
+    nulls_ordering_flip = ["pk"]
+
+
+class CompositePKColumnNullsOrderingViewSet(VuedaViewSet):
+    """Keys a nulls placement and its flip on the "pk" of a two-column primary key and on each of its
+    columns.
+
+    The `pk` entry reaches a list sorted by the whole key, and the column entries reach a request for
+    either column, which is the spelling `model_ordering` advertises. Every route is covered, so
+    `vueda_info.E007` must stay quiet."""
+
+    queryset = store_models.OrderItemCompositePK.objects.all()
+    serializer_class = store_serializers.OrderItemCompositePKSerializer
+    ordering_fields = ["pk"]
+    nulls_ordering = {"pk": "first", "order": "first", "product": "first"}
+    nulls_ordering_flip = ["pk", "order", "product"]
+
+
+class DottedNullsOrderingKeyViewSet(VuedaViewSet):
+    """Writes a `nulls_ordering` key in the dotted `?o=` spelling.
+
+    The filter translates `?o=the_name_source.the_name_field` to `the_name_source__the_name_field`
+    before it looks up a placement, so the dotted key matches nothing and the placement is silently
+    dropped."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field"]
+    nulls_ordering = {"the_name_source.the_name_field": "first"}
+
+
+class DottedNullsOrderingFlipViewSet(VuedaViewSet):
+    """Spells the `nulls_ordering` key correctly but writes the matching `nulls_ordering_flip` entry
+    in the dotted `?o=` spelling, so the placement never flips."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field"]
+    nulls_ordering = {"the_name_source__the_name_field": "first"}
+    nulls_ordering_flip = ["the_name_source.the_name_field"]
+
+
+class UnrequestableNullsOrderingViewSet(VuedaViewSet):
+    """Declares placements on two keys that no list request can sort by.
+
+    `the_name_source__the_name_field` is a real path, but neither `ordering_fields` nor the default
+    ordering names it, so no request reaches it. `no_such_field` names nothing on the model at all."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["id"]
+    nulls_ordering = {"the_name_source__the_name_field": "first", "no_such_field": "first"}
+
+
+class RequestOnlyQuerysetNullsOrderingViewSet(VuedaViewSet):
+    """Writes a dotted `nulls_ordering` key on a viewset whose `get_queryset` needs the request.
+
+    The check builds the view without a request, so it can't read the names a request may sort by
+    and has nothing to judge the key against. It stays quiet rather than failing the check run."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field"]
+    nulls_ordering = {"the_name_source.the_name_field": "first"}
+
+    def get_queryset(self):
+        return super().get_queryset().filter(the_name_source__the_name_field=self.request.user.username)
 
 
 class ConflictingQuerysetOrderingViewSet(VuedaViewSet):
