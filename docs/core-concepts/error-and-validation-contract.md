@@ -64,7 +64,7 @@ A `400` that is not a validation error carries a `detail` string: `{"detail": ".
 
 A write action also rejects an `e` value that it does not permit, in the same shape and before it validates the body. [Field and Expand Semantics](./field-and-expand-semantics.md) describes which expands each action permits.
 
-On `list` and `retrieve`, the server rejects unknown query parameters, as [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes ({@term Query Parameter Validation}). An invalid `f` or `e` name on a read returns the same shape, keyed by `f` and `e`, with `serverStack`. One response reports the invalid names in both parameters.
+On `list` and `retrieve`, the server rejects unknown query parameters, as [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes ({@term Query Parameter Validation}). An invalid `f` or `e` name on a read returns the same shape with `serverStack`. Each invalid name is its own key, such as `"amount": ["Invalid field.  Valid fields are ..."]`. One response reports the invalid names from both parameters.
 
 ### Other error statuses
 
