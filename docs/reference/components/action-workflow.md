@@ -17,6 +17,10 @@ const activateScenario = customerScenario({
     app: "showcaseactivate",
     actions: [{ name: "activate", method: "PATCH" }],
 });
+const deactivateScenario = customerScenario({
+    app: "showcasedeactivate",
+    actions: [{ name: "deactivate", method: "PATCH" }],
+});
 const historyScenario = customerScenario({ app: "showcasehistory" });
 const emptyHistoryScenario = customerScenario({ app: "showcasehistoryempty", history: [] });
 // Rejects the pre-flight the way a server does when some records cannot take the action:
@@ -40,7 +44,7 @@ const billScenario = customerScenario({
 
 # Action & Workflow Views
 
-This page shows the action confirmation views and the history view in the default theme: {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewExecuteTransition}, and {@api vue:component:ViewHistoryList}. [CRUD Views](./views-crud.md#viewdestroy) shows `ViewDestroy`, which uses the same action card. [Components](./index.md) describes the rules every component page shares.
+This page shows the action confirmation views and the history view in the default theme: {@api vue:component:ViewAction}, {@api vue:component:ViewActivate}, {@api vue:component:ViewDeactivate}, {@api vue:component:ViewExecuteTransition}, and {@api vue:component:ViewHistoryList}. [CRUD Views](./views-crud.md#viewdestroy) shows `ViewDestroy`, which uses the same action card. [Components](./index.md) describes the rules every component page shares.
 
 [Action Contract and Availability](../../core-concepts/action-contract-and-availability.md) describes which actions a view offers and which actions honor a {@term Dry Run}. [Design Transition UX and Redirects](../../guides/transition-ux-and-redirects.md) describes what an action form does on pre-flight, submit, and cancel, and where it goes afterward.
 
@@ -60,7 +64,7 @@ The [`tone`]{@api vue:component:ModelActionForm:prop:tone} prop sets that risk l
 | ---------------- | ------------------------------------------- | ------------------------------------- | ---------------- |
 | `info` (default) | A neutral confirmation                      | `ViewAction`, `ViewExecuteTransition` | Information      |
 | `success`        | Activate or restore                         | `ViewActivate`                        | Check mark       |
-| `warning`        | An irreversible change that deletes nothing | {@api vue:component:ViewDeactivate}   | Warning triangle |
+| `warning`        | An irreversible change that deletes nothing | `ViewDeactivate`                      | Warning triangle |
 | `danger`         | A permanent deletion                        | {@api vue:component:ViewDestroy}      | Warning triangle |
 
 At `danger`, the selected-records panel and its chips also take the destructive tint, and the default confirm button takes the destructive button tone. At every other tone, the confirm button keeps the primary tone.
@@ -161,7 +165,9 @@ The pre-flight is a real request, so it can fail. Here the endpoint rejects the 
 
 {@api vue:component:ViewActivate} confirms the `activate` action in the `success` tone. It fetches the selected records, so each chip shows the record's formatted name as a link beside its primary key. It sends the action as `PATCH`. The title reads "Activate" plus the model name unless you set the [`title`]{@api vue:component:ViewActivate:prop:title} prop.
 
-`ViewDeactivate` shares this body ({@api vue:component:ViewSelectedObjectsAction}) in the `warning` tone. [System Views](./system-views.md#viewdeactivate) describes `ViewDeactivate`.
+The server offers the `activate` action only for a model that inherits {@api py:class:vueda.core.models.ActivatableBaseModel}, on a viewset that mixes in {@api py:class:vueda.core.viewsets.DeactivateActionViewSetMixin}. `VuedaViewSet` does not include that mixin. The action sets `is_active` to `true` and rejects a record that is already active.
+
+[ViewDeactivate](#viewdeactivate) shares this body ({@api vue:component:ViewSelectedObjectsAction}) in the `warning` tone.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -188,6 +194,69 @@ The pre-flight is a real request, so it can fail. Here the endpoint rejects the 
   </footer>
 </VuedaDemo>
 </ClientOnly>
+
+## ViewDeactivate
+
+{@api vue:component:ViewDeactivate} is the default view for every model's `deactivate` route. It confirms the `deactivate` action in the `warning` tone. Like `ViewActivate`, it fetches the selected records and sends the action as `PATCH`. The title reads "Deactivate" plus the model name unless you set the [`title`]{@api vue:component:ViewDeactivate:prop:title} prop.
+
+The server offers the `deactivate` action under the same conditions as `activate`: a model that inherits `ActivatableBaseModel`, on a viewset that mixes in `DeactivateActionViewSetMixin`. The action sets `is_active` to `false` and rejects a record that is already inactive. It changes nothing else, so sessions, tokens, and owned records stay as they are unless your server code changes them.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="deactivate" · 1 record · live ViewDeactivate</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewDeactivate.vue')"
+    :app="deactivateScenario.app"
+    :model="deactivateScenario.model"
+    pk="1"
+    action="deactivate"
+    :seed="deactivateScenario.seed"
+    :api="deactivateScenario.api"
+    page-title
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>tone: <code>data-tone="warning"</code> switches the card edge, banner fill, and icon tile, and the banner shows the warning triangle</span>
+    <span>text: the title, banner, and prompt come from the action and model names, so the same view fits any activatable model</span>
+    <span>requests: the same <code>PATCH</code> goes out twice, as a dry run when the view opens and as the action on confirm</span>
+    <span>theme keys: {@api theme-key:ViewDeactivate}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewDeactivate.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+### Self-service account page
+
+A page that lets a signed-in user deactivate their own account can wrap `ViewDeactivate`. This example targets the signed-in user and asks them to type their email address. It also replaces the default prompt with account copy:
+
+```vue
+<script setup>
+import { storeUser } from "@vueda/stores/storeUser.js";
+import ViewDeactivate from "@vueda/views/ViewDeactivate.vue";
+
+const userStore = storeUser();
+</script>
+
+<template>
+    <ViewDeactivate
+        app="accounts"
+        model="user"
+        :pk="String(userStore.loggedInUser.id)"
+        :confirm-text="userStore.loggedInUser.email"
+        banner-title="Deactivate your account"
+        action-success-summary="Account deactivated"
+    >
+        <template #confirm-message>
+            <p>Deactivate your account? Type your email address below to confirm.</p>
+        </template>
+    </ViewDeactivate>
+</template>
+```
+
+- Replace `accounts` and `user` with your user model's app label and model name. The viewset that serves your user model must mix in `DeactivateActionViewSetMixin`.
+- [`confirmText`]{@api vue:component:ModelActionForm:prop:confirmText} adds a {@api vue:component:TypedConfirmField}, and the confirm button stays disabled until the typed value matches. The VUEDA user model signs users in by email and requires one, so every account has a value to type.
+- [`bannerTitle`]{@api vue:component:ModelActionForm:prop:bannerTitle} and [`actionSuccessSummary`]{@api vue:component:ModelActionForm:prop:actionSuccessSummary} replace the banner title and the success toast. By default both combine the action and model names.
+- The [`confirm-message`]{@api vue:component:ModelActionForm:slot:confirm-message} slot replaces the default prompt.
+
+The prompt describes only the action. Describe other effects, such as ending sessions, only when your server performs them.
 
 ## ViewExecuteTransition
 
