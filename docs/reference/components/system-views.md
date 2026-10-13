@@ -76,7 +76,7 @@ const batchErrors = [
 
 # System Views
 
-This page shows the views that VUEDA renders while a route loads, when a route or model action does not exist, and when a user deactivates records. It also shows the display parts that those views and the other action views build on. [Components](./index.md) describes the rules that every component page shares.
+This page shows the views that VUEDA renders while a route loads and when a route or model action does not exist. It also shows the display parts that those views and the action views build on. [Action & Workflow Views](./action-workflow.md) shows the action views, including {@api vue:component:ViewDeactivate}. [Components](./index.md) describes the rules that every component page shares.
 
 ## ViewLoading
 
@@ -197,51 +197,6 @@ Theme keys: {@api theme-key:ViewActionNotFound}.
     <span>browse: opens <code>/crm/customer/list</code>, the closest model's list route</span>
   </footer>
 </VuedaDemo>
-
-## ViewDeactivate
-
-{@api vue:component:ViewDeactivate} is the default view for every model's `deactivate` route. It renders the same confirmation as {@api vue:component:ViewActivate}, which [Action & Workflow Views](./action-workflow.md#viewactivate) shows live. The title reads "Deactivate {Model}" unless you set the [`title`]{@api vue:component:ViewDeactivate:prop:title} prop. The card uses the `warning` [tone]{@api vue:component:ModelActionForm:prop:tone}.
-
-The confirmation is a {@api vue:component:ModelActionForm}. It lists the selected objects and sends a {@term Dry Run} of the `deactivate` action when it opens. On confirm, it sends the action as a `PATCH` request. If the server answers with warnings, the form asks the user to confirm them ({@term Warning Confirmation}) before it resends. After success or cancel, the form opens the {@term Action Redirect}. The view puts its title in the page title and a Go Back button in the page actions.
-
-Attributes and slots pass through to `ModelActionForm`, so a page that wraps `ViewDeactivate` can change the form's copy and add a typed confirmation.
-
-Theme keys: {@api theme-key:ViewDeactivate} for the outer wrapper, and {@api theme-key:ModelActionForm} for the card.
-
-### Self-service account page
-
-A page that lets a signed-in user deactivate their own account can wrap `ViewDeactivate`. This example targets the signed-in user and asks them to type their email address. It also replaces the default prompt with account copy:
-
-```vue
-<script setup>
-import { storeUser } from "@vueda/stores/storeUser.js";
-import ViewDeactivate from "@vueda/views/ViewDeactivate.vue";
-
-const userStore = storeUser();
-</script>
-
-<template>
-    <ViewDeactivate
-        app="accounts"
-        model="user"
-        :pk="String(userStore.loggedInUser.id)"
-        :confirm-text="userStore.loggedInUser.email"
-        banner-title="Deactivate your account"
-        action-success-summary="Account deactivated"
-    >
-        <template #confirm-message>
-            <p>Deactivate your account? Type your email address below to confirm.</p>
-        </template>
-    </ViewDeactivate>
-</template>
-```
-
-- Replace `accounts` and `user` with your user model's app label and model name.
-- [`confirmText`]{@api vue:component:ModelActionForm:prop:confirmText} adds a [TypedConfirmField](#typedconfirmfield), and the confirm button stays disabled until the typed value matches.
-- [`bannerTitle`]{@api vue:component:ModelActionForm:prop:bannerTitle} and [`actionSuccessSummary`]{@api vue:component:ModelActionForm:prop:actionSuccessSummary} replace the banner title and the success toast. By default both combine the action and model names.
-- The [`confirm-message`]{@api vue:component:ModelActionForm:slot:confirm-message} slot replaces the default prompt.
-
-The prompt only describes the action. The server's `deactivate` action decides what deactivating the account changes.
 
 ## SystemMessageCard
 
