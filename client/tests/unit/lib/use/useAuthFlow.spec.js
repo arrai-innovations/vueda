@@ -180,6 +180,17 @@ describe("lib/use/useAuthFlow.js", () => {
             expect(defaultOnSubmissionError).not.toHaveBeenCalled();
         });
 
+        scopedIt("passes the error to defaultOnSubmissionError when the sign-in navigation fails", async () => {
+            const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
+            storeState.loggedIn = false;
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
+            const error = new UnauthorizedError("nope");
+            await onSubmissionErrorHandler({ error, formContext: {}, toast: toastMock });
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/current" } });
+            expect(defaultOnSubmissionError).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
+        });
+
         scopedIt("passes an UnauthorizedError that leaves no pending flow to defaultOnSubmissionError", async () => {
             const { onSubmissionErrorHandler } = useAuthFlow({ formProps: {} });
             const error = new UnauthorizedError("nope");

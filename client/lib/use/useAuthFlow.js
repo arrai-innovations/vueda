@@ -27,7 +27,7 @@ import { useRoute, useRouter } from "vue-router";
  * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} onSubmissionErrorHandler -
  *  Handles an `UnauthorizedError` from the refetched `storeUser` state. A signed-out user is sent to the sign-in
  *  route. A pending reauthentication flow sends the user to the reauthenticate route. When the router reports a
- *  navigation failure, the error goes to `defaultOnSubmissionError`. Every other error goes there too.
+ *  failure for either navigation, the error goes to `defaultOnSubmissionError`. Every other error goes there too.
  * @property {() => Promise<boolean>} redirectTo - Pushes to `route.query.returnPath` if
  *  present, otherwise to the `redirect` option. Resolves `false` when neither is set or the router reports a
  *  navigation failure, so `useActionForm` keeps the form usable.
@@ -50,8 +50,9 @@ import { useRoute, useRouter } from "vue-router";
  * `UnauthorizedError` goes to `defaultOnSubmissionError`.
  *
  * The watch and the handler share one redirect for each pending flow, so the user sees one toast and one
- * navigation even when both react to the same refused request. When the router reports a navigation failure, the
- * handler passes the error to `defaultOnSubmissionError`, and the next refused submission tries the redirect again.
+ * navigation even when both react to the same refused request. When the router reports a failure for either
+ * navigation, the handler passes the error to `defaultOnSubmissionError`. The next refused submission tries the
+ * redirect again.
  *
  * With `requireRecentAuth: false`, a pending reauthentication flow does not redirect. A signed-out user still goes
  * to the sign-in route.
@@ -122,17 +123,27 @@ export function useAuthFlow(options) {
         { immediate: true },
     );
 
+    /**
+     * Starts the navigation that an `UnauthorizedError` calls for. A signed-out user goes to the sign-in route. A
+     * pending reauthentication flow goes to the reauthenticate route. The result is `null` when neither applies.
+     *
+     * @returns {Promise<import('vue-router').NavigationFailure|void|undefined>|null}
+     */
+    const unauthorizedRedirect = () => {
+        if (!userStore.loggedIn) {
+            return router.push({ name: "sign-in", query: { redirect: route.fullPath } });
+        }
+        if (requiresRecentAuth() && reauthenticationPending()) {
+            return redirectToReauthenticate();
+        }
+        return null;
+    };
+
     const onSubmissionErrorHandler = async ({ error, formContext: ctx, toast: t }) => {
         if (error instanceof UnauthorizedError) {
-            if (!userStore.loggedIn) {
-                await router.push({ name: "sign-in", query: { redirect: route.fullPath } });
+            const navigation = unauthorizedRedirect();
+            if (navigation && !(await navigation)) {
                 return true;
-            }
-            if (requiresRecentAuth() && reauthenticationPending()) {
-                const failure = await redirectToReauthenticate();
-                if (!failure) {
-                    return true;
-                }
             }
         }
         return await defaultOnSubmissionError({ error, formContext: ctx, toast: t });
