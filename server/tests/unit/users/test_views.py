@@ -9,7 +9,6 @@ from allauth.mfa.totp.internal.auth import TOTP
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
-from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.test import RequestFactory
 from django.urls import reverse
@@ -164,8 +163,7 @@ class TestPermissionGroupEditViews:
 
 @pytest.fixture
 def sent(monkeypatch):
-    """Record each email the password views ask the account adapter to send, with cooldowns cleared."""
-    cache.clear()
+    """Record each email the password views ask the account adapter to send."""
     sent = []
 
     class RecordingAdapter:
@@ -173,8 +171,7 @@ def sent(monkeypatch):
             sent.append((to_email, code))
 
     monkeypatch.setattr("vueda.user.views.get_adapter", RecordingAdapter)
-    yield sent
-    cache.clear()
+    return sent
 
 
 @pytest.mark.django_db
@@ -212,6 +209,29 @@ class TestVuedaForgotPasswordView:
             assert self.request_reset(email).status_code == HTTPStatus.TOO_MANY_REQUESTS
 
         assert sent == [("reset+active@domain.invalid", "forgot_password")]
+
+    def test_refuses_one_ip_address_past_twenty_requests_an_hour_whatever_x_forwarded_for_claims(
+        self, api_client, sent, assert_matches_documented_response
+    ):
+        for index in range(20):
+            response = api_client.post(
+                reverse("forgot_password"),
+                {"email": f"reset+{index}@domain.invalid"},
+                format="json",
+                HTTP_X_FORWARDED_FOR=f"198.51.100.{index}",
+            )
+            assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+
+        response = api_client.post(
+            reverse("forgot_password"),
+            {"email": "reset+late@domain.invalid"},
+            format="json",
+            HTTP_X_FORWARDED_FOR="198.51.100.99",
+        )
+
+        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS, response_body(response)
+        assert "Retry-After" in response
+        assert_matches_documented_response(response, "/vueda.user/forgot-password/", "post")
 
 
 @pytest.mark.django_db
@@ -262,6 +282,8 @@ class TestVuedaResetPasswordView:
 
 
 TOTP_SECRET = "JBSWY3DPEHPK3PXP"
+# The default ``totp_send_user`` and ``totp_send_destination`` rates allow this many codes an hour.
+CODE_SEND_LIMIT = 5
 
 
 @pytest.fixture
@@ -394,3 +416,90 @@ class TestTotpCodeForSignedInUser:
         response = api_client.get(reverse("totp_code"), format="json")
 
         assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+
+@pytest.fixture
+def sent_codes(monkeypatch):
+    """Record each code ``totp_code`` asks the account adapter to send, as ``(destination, method)``."""
+    sent = []
+    monkeypatch.setattr(
+        "vueda.user.views.get_adapter",
+        lambda: SimpleNamespace(
+            send_mail=lambda to, *args: sent.append((to, "email")),
+            send_sms=lambda to, *args: sent.append((to, "sms")),
+        ),
+    )
+    return sent
+
+
+@pytest.mark.django_db
+class TestTotpCodeSendLimits:
+    def test_refuses_a_sixth_code_in_an_hour_during_a_pending_login(
+        self, api_client, totp_device, sent_codes, assert_matches_documented_response
+    ):
+        login = api_client.post(
+            reverse("login2"), {"email": totp_device.user.email, "password": "test-pass"}, format="json"
+        )
+        assert login.status_code == HTTPStatus.UNAUTHORIZED, response_body(login)
+
+        for _ in range(CODE_SEND_LIMIT):
+            response = api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+            assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+        response = api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+
+        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS, response_body(response)
+        assert "Retry-After" in response
+        assert_matches_documented_response(response, "/vueda.user/totp_code/", "post")
+        assert len(sent_codes) == CODE_SEND_LIMIT
+
+    def test_still_lists_methods_after_the_send_limit(self, api_client, totp_device, sent_codes):
+        api_client.force_login(totp_device.user)
+        for _ in range(CODE_SEND_LIMIT + 1):
+            api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+
+        response = api_client.get(reverse("totp_code"), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+
+    def test_counts_each_method_on_its_own(self, api_client, totp_device, sent_codes):
+        TOTPDevice.objects.create(
+            authenticator=totp_device.authenticator, method="sms", user=totp_device.user, phone_number="+18005550100"
+        )
+        api_client.force_login(totp_device.user)
+        for _ in range(CODE_SEND_LIMIT):
+            api_client.post(reverse("totp_code"), {"method": "sms"}, format="json")
+        assert api_client.post(reverse("totp_code"), {"method": "sms"}, format="json").status_code == (
+            HTTPStatus.TOO_MANY_REQUESTS
+        )
+
+        response = api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+
+        assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+        assert sent_codes[-1] == (totp_device.email, "email")
+
+    def test_does_not_count_a_request_for_a_method_with_no_device(self, api_client, totp_device, sent_codes):
+        api_client.force_login(totp_device.user)
+        for _ in range(CODE_SEND_LIMIT):
+            response = api_client.post(reverse("totp_code"), {"method": "sms"}, format="json")
+            assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+        response = api_client.post(reverse("totp_code"), {"method": "email"}, format="json")
+
+        assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+
+
+@pytest.mark.django_db
+class TestChangePasswordLimit:
+    def test_refuses_a_sixth_attempt_in_a_minute(self, api_client, reauth_user, assert_matches_documented_response):
+        api_client.force_login(reauth_user)
+        attempt = {"old_password": "wrong-pass", "new_password1": "N3w-pass-word", "new_password2": "N3w-pass-word"}
+        for _ in range(5):
+            response = api_client.post(reverse("change_password"), attempt, format="json")
+            assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+        response = api_client.post(reverse("change_password"), {**attempt, "old_password": "test-pass"}, format="json")
+
+        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS, response_body(response)
+        assert_matches_documented_response(response, "/vueda.user/change_password/", "post")
+        reauth_user.refresh_from_db()
+        assert reauth_user.check_password("test-pass")

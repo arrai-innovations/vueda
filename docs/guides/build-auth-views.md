@@ -335,6 +335,12 @@ After building auth views, verify the following:
 
 **Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `authPendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
 
+**A sign-in or two-factor code request returns 400 with "Too many failed login attempts. Try again later."** Too many wrong passwords or wrong codes used up the `login_failed` limit for this email address, user, or IP address. allauth reports this limit as a form error in `non_field_errors`, so show that message as you show any other form error.
+
+**A sign-in, password, or code-sending request returns 429.** The endpoint's rate limit is used up for this user, address, or IP address. VUEDA's DRF throttles send a `Retry-After` header that gives the seconds to wait. allauth's `login` and `reauthenticate` limits send no `Retry-After` header.
+
+[Rate-Limited Auth Endpoints](configure-cache-and-sessions#rate-limited-auth-endpoints) lists each limit, its response, its default, and the setting that changes it.
+
 ## Relevant Implementation Surface
 
 - Vue.js Components:
