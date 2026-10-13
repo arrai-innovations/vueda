@@ -197,7 +197,9 @@ An `overrideTheme` call applies whether it runs before or after the defaults reg
 
 All three paths need the application stylesheet to import Tailwind and `@vueda/theme/vueda-tailwind/base.css`. The JavaScript registration path does not change the CSS setup.
 
-Built-in components import their defaults before their setup runs. An application can also register a loader function as a component's entry, such as `patchTheme({ Button: () => import("./buttonTheme.js") })`, where the loaded module calls `patchTheme` with the real entry. While that loader is pending, `useTheme` reports [`loading`]{@api js:type:@arrai-innovations/vueda/use/useTheme#UseThemeReturnFunction}, and themed roots apply a hide style until the loader settles. Project overrides for the component stay in their own store, so the loader neither replaces them nor removes them. They apply once the loaded module registers the real entry.
+Built-in components import their defaults before their setup runs. An application can also register a loader function as the entry for a component that has no built-in default, such as a project component: `patchTheme({ InvoiceCard: () => import("./invoiceCardTheme.js") })`. The loaded module calls `patchTheme` with the real entry. While that loader is pending, `useTheme` reports [`loading`]{@api js:type:@arrai-innovations/vueda/use/useTheme#UseThemeReturnFunction}, and themed roots apply a hide style until the loader settles. Project overrides for the component stay in their own store, so the loader neither replaces them nor removes them. They apply once the loaded module registers the real entry.
+
+`patchTheme` replaces the whole entry when the current entry or the new one is a function. A loader for a built-in key such as `Button` therefore conflicts with that component's default. A loader that registers after the default replaces the whole default entry. A default that registers after the loader replaces the loader, which then never runs. To customize a built-in component, call `overrideTheme`.
 
 ## Relationship to shadcn-vue
 
