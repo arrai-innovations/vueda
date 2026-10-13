@@ -31,6 +31,8 @@ Callers use `getCRUDForTo` to generate consistent route targets without duplicat
 
 `requireAuth` checks whether the user is logged in. If the user is unauthenticated, it redirects to the auth route, preserving the original target path in the `redirect` query parameter.
 
+`requireAuth` and `requireGroups` wait for the current-user request, the one that `storeUser.fetchCurrentUser` sends. When that request fails, the guard rejects the navigation with the request error, and the next navigation sends the request again.
+
 **{@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} is the central gating function.** It loads the model-info, model-config, and workflow transition stores for the target `{app, model}` via `waitForModelStoreLoad`, then computes an allowlist of permitted action names. If the route's action, after normalization, is present in that allowlist, navigation proceeds. If not, the guard displays an "Action Not Found" error toast and returns a redirect to `actionRedirect`. If the model-info fetch itself fails with a `ModelInfoError` (the typed error surface for missing or unregistered models), the guard emits a "Model Not Found" error toast and redirects. Any other exception type is rethrown, aborting navigation entirely.
 
 If the authenticated user changes while the guard is fetching, it returns `false`. Vue Router cancels that navigation, because the metadata that arrived describes the user it replaced.
