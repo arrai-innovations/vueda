@@ -27,7 +27,7 @@ import { useRoute, useRouter } from "vue-router";
  * user's second factor through `storeUser.twoFactorReauthenticate`. The server lists methods and sends codes
  * for the user in the pending login stage or, failing that, the signed-in user, so one fetch serves both.
  *
- * Once the who-is request has answered, an anonymous user with no second-factor flow pending has no sign-in to
+ * Once a who-is request has succeeded, an anonymous user with no second-factor flow pending has no sign-in to
  * finish here, for example because the pending sign-in expired. The view sends that user to the `sign-in` route,
  * keeping the `redirect` query, and shows a warning toast that explains why.
  */
@@ -128,11 +128,16 @@ watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => 
         }
     }
 });
-// `initialized` is `true` only after a who-is response, so the view waits for the store to learn the pending
-// flow before deciding there is none. A signed-in user without a pending flow has just finished the second
-// factor, and the sign-in or reauthentication form sends them on.
+// The view decides only from a who-is request that succeeded. `loading` is `undefined` before the first request
+// and `true` while one runs, and a failed request sets `errored`, so in each of those states `authPendingFlow`
+// does not hold the server's answer. A signed-in user without a pending flow has just finished the second factor,
+// and the sign-in or reauthentication form sends them on.
 const hasNoSignInToFinish = computed(
-    () => userStore.initialized === true && !userStore.loggedIn && !owesSecondFactor.value,
+    () =>
+        userStore.currentUserRequestStatus.loading === false &&
+        !userStore.currentUserRequestStatus.errored &&
+        !userStore.loggedIn &&
+        !owesSecondFactor.value,
 );
 watch([isActive, hasNoSignInToFinish], async ([newActive, newHasNoSignInToFinish]) => {
     if (newActive && newHasNoSignInToFinish) {
