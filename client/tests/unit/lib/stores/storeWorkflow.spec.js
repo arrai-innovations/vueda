@@ -313,6 +313,60 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(mockedFetchHelper).toHaveBeenCalledTimes(3);
         });
 
+        scopedIt("resolves but does not cache a history that was in flight when executeTransition ran", async () => {
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            let resolveEarlierFetch;
+            mockedFetchHelper.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    resolveEarlierFetch = resolve;
+                }),
+            );
+            const earlierFetch = store.fetchObjectHistory("app", "model", "1");
+
+            mockedFetchHelper.mockResolvedValueOnce({
+                new_state: { code: "approved", name: "Approved" },
+                new_transitions: [],
+            });
+            await store.executeTransition("app", "model", "1", "approve");
+
+            resolveEarlierFetch(history.slice(0, 1));
+            await expect(earlierFetch).resolves.toEqual(history.slice(0, 1));
+            expect(store.objectHistories[key]["1"]).toBeUndefined();
+            expect(store.promises.objectHistories[key]["1"]).toBeUndefined();
+        });
+
+        scopedIt(
+            "sends a new request for a call made after executeTransition while an earlier one is in flight",
+            async () => {
+                const store = storeWorkflow();
+                const key = getAppModelDotName({ app: "app", model: "model" });
+                let resolveEarlierFetch;
+                mockedFetchHelper.mockReturnValueOnce(
+                    new Promise((resolve) => {
+                        resolveEarlierFetch = resolve;
+                    }),
+                );
+                const earlierFetch = store.fetchObjectHistory("app", "model", "1");
+
+                mockedFetchHelper.mockResolvedValueOnce({
+                    new_state: { code: "approved", name: "Approved" },
+                    new_transitions: [],
+                });
+                await store.executeTransition("app", "model", "1", "approve");
+
+                mockedFetchHelper.mockResolvedValueOnce(history);
+                const laterFetch = store.fetchObjectHistory("app", "model", "1");
+                expect(mockedFetchHelper).toHaveBeenCalledTimes(3);
+                await expect(laterFetch).resolves.toEqual(history);
+
+                // the earlier request settles last, and the later request's history stays cached
+                resolveEarlierFetch(history.slice(0, 1));
+                await expect(earlierFetch).resolves.toEqual(history.slice(0, 1));
+                expect(store.objectHistories[key]["1"]).toEqual(history);
+            },
+        );
+
         scopedIt("drops the cached history of every object in a bulk executeTransition", async () => {
             const store = storeWorkflow();
             const key = getAppModelDotName({ app: "app", model: "model" });
@@ -518,6 +572,41 @@ describe("lib/stores/storeWorkflow.js", () => {
             await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
             expect(store.objectHistories).toEqual({});
         });
+
+        scopedIt(
+            "converts an object-history error that arrives after the clear to AuthScopeInvalidatedError",
+            async () => {
+                const store = storeWorkflow();
+                const key = getAppModelDotName({ app: "app", model: "model" });
+                let rejectFetch;
+                mockedFetchHelper.mockReturnValueOnce(
+                    new Promise((resolve, reject) => {
+                        rejectFetch = reject;
+                    }),
+                );
+
+                const inFlight = store.fetchObjectHistory("app", "model", "1");
+                store.clearAuthScoped();
+                rejectFetch(
+                    new storeWorkflowModule.WorkflowError(
+                        "Failed to fetch object histories",
+                        { status: 403 },
+                        { detail: "nope" },
+                    ),
+                );
+
+                // the rejection was determined for the principal `clearAuthScoped` just discarded
+                const error = await inFlight.catch((e) => e);
+                expect(error).toBeInstanceOf(AuthScopeInvalidatedError);
+                expect(error).not.toBeInstanceOf(storeWorkflowModule.WorkflowError);
+                expect(store.errors.objectHistories[key]?.["1"]).toBeUndefined();
+
+                const history = [{ id: "vueda_workflow.ObjectState:1", state: "draft" }];
+                mockedFetchHelper.mockResolvedValueOnce(history);
+                await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toEqual(history);
+                expect(mockedFetchHelper).toHaveBeenCalledTimes(2);
+            },
+        );
 
         scopedIt("converts a transitions error that arrives after the clear to AuthScopeInvalidatedError", async () => {
             const store = storeWorkflow();

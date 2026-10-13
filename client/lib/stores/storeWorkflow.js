@@ -416,7 +416,8 @@ export const storeWorkflow = defineStore("workflow", {
          *
          * A cached history resolves at once, and a cached error rejects at once. A request already in
          * flight for the same object is shared. A transition that `executeTransition` runs on the object
-         * drops its cached history, so the next call fetches it again.
+         * drops its cached history, so the next call fetches it again. A request that was already in flight
+         * when the transition ran still resolves for its callers, and its history is not cached.
          *
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
@@ -453,7 +454,10 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.reject(cachedError);
             }
             if (!this.promises.objectHistories[key][objectPk]) {
-                this.promises.objectHistories[key][objectPk] = fetchHelper(
+                // `clearAuthScoped` and `executeTransition` remove this entry, so a request whose entry is
+                // gone answered for a previous user or before a transition, and its result is not cached.
+                const isCurrentRequest = () => this.promises.objectHistories[key]?.[objectPk] === request;
+                const request = fetchHelper(
                     objectHistoriesUrl(makeResultObject(app, model, objectPk)),
                     {
                         method: "GET",
@@ -470,29 +474,42 @@ export const storeWorkflow = defineStore("workflow", {
                                 `${key}.${objectPk}`,
                             );
                         }
+                        if (!isCurrentRequest()) {
+                            // a transition ran on the object while this was in flight, so this history
+                            // may predate it.
+                            return data;
+                        }
                         this.objectHistories[key][objectPk] = data;
                         return this.objectHistories[key][objectPk];
                     })
                     .catch((e) => {
-                        if (isCurrentAuthScope()) {
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this rejection was
+                            // determined for the previous principal, so it must not reach the caller as-is.
+                            throw new AuthScopeInvalidatedError(
+                                "storeWorkflow.fetchObjectHistory",
+                                `${key}.${objectPk}`,
+                            );
+                        }
+                        if (isCurrentRequest()) {
                             this.errors.objectHistories[key][objectPk] = e;
                         }
                         throw e;
                     })
                     .finally(() => {
-                        if (isCurrentAuthScope()) {
-                            // a changed generation means `clearAuthScoped` already removed the bucket
-                            // this entry lived in.
+                        if (isCurrentRequest()) {
                             delete this.promises.objectHistories[key][objectPk];
                         }
                     });
+                this.promises.objectHistories[key][objectPk] = request;
             }
             return this.promises.objectHistories[key][objectPk];
         },
         /**
          * Runs a workflow transition on one object or on several objects in one request.
          *
-         * A run that is not a dry run drops the cached workflow state history of each object it ran on.
+         * A run that is not a dry run drops the cached workflow state history of each object it ran on,
+         * and a history request still in flight for that object does not cache its result.
          * When `router` and `stateToRoute` are given and the new state code is a key of `stateToRoute`,
          * the router then navigates to that route.
          *
@@ -573,11 +590,13 @@ export const storeWorkflow = defineStore("workflow", {
                         return data;
                     }
                     responseData = data;
-                    // The transition recorded a new state for each object, so their cached histories are stale.
+                    // The transition recorded a new state for each object, so their cached histories and any
+                    // history request still in flight are stale.
                     const key = getAppModelDotName({ app: result.app, model: result.model });
                     for (const pk of Array.isArray(result.pk) ? result.pk : [result.pk]) {
                         delete this.objectHistories[key]?.[pk];
                         delete this.errors.objectHistories[key]?.[pk];
+                        delete this.promises.objectHistories[key]?.[pk];
                     }
                     return data;
                 })
