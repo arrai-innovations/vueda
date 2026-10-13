@@ -181,7 +181,7 @@ A term is valid when it is the public name of a field in [`get_valid_fields`]{@a
 
 DRF's own prefixes, `^`, `=`, `@`, and `$`, still work. With no `#`, `~`, or `V:` field, the backend behaves as `SearchFilter`. The exception is a field that reaches through a many-valued relation, which [Search Through a Many-Valued Relation](#search-through-a-many-valued-relation) describes.
 
-Plain, `#`, and `~` fields filter rows, and each group must match. `#` and `~` fields join the search terms into one term. `V:` fields rank the rows that remain and filter nothing.
+Plain, `#`, and `~` fields filter rows, and each group must match. `#` and `~` fields join the search terms into one term. `V:` fields rank the rows that remain.
 
 A search is ranked when it has a `V:` field, or a plain field alongside `#` or `~` fields. The rank, `combined_rank`, adds full-text rank, trigram similarity, a whole-word match score, and 10 per plain match. Rows below [`search_threshold`]{@api py:property:vueda.core.filters.VuedaSearchFilterBackend.search_threshold} (0.2) are dropped. A search that uses only `#` or `~` fields is filtered and not ranked.
 
