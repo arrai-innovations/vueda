@@ -77,7 +77,7 @@ describe("lib/router/guards.js", () => {
             initialized: false,
             loggedIn: false,
             loggedInUser: {},
-            recentlyLoggedIn: false,
+            authPendingFlow: null,
             fetchCurrentUser,
         };
         modelInfoStore = { fetchModelInfo, actions: [] };
@@ -300,33 +300,32 @@ describe("lib/router/guards.js", () => {
         expect(result).toEqual({ name: "nf" });
     });
 
-    scopedIt("requireRecentAuth fetches status when unknown and allows access", async () => {
+    scopedIt("requireRecentAuth confirms a recent session with the server and allows access", async () => {
         const router = { resolve: vi.fn((r) => r) };
         const to = { fullPath: "/secure" };
-        userStore.recentlyLoggedIn = undefined;
-        fetchCurrentUser.mockImplementation(async () => {
-            userStore.recentlyLoggedIn = true;
-        });
+        userStore.loggedIn = true;
+        fetchCurrentUser.mockResolvedValue();
         const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
         expect(fetchCurrentUser).toHaveBeenCalled();
         expect(result).toBeUndefined();
     });
 
-    scopedIt("requireRecentAuth skips fetch and redirects when not recent", async () => {
+    scopedIt("requireRecentAuth skips fetch and redirects while a flow is pending", async () => {
         const router = { resolve: vi.fn((route) => ({ ...route, query: { from: "existing" } })) };
         const to = { fullPath: "/secure" };
-        userStore.recentlyLoggedIn = false;
+        userStore.loggedIn = true;
+        userStore.authPendingFlow = "reauthenticate";
         const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
         expect(fetchCurrentUser).not.toHaveBeenCalled();
         expect(result).toEqual({ name: "reauth", query: { from: "existing", redirect: "/secure" } });
     });
 
-    scopedIt("requireRecentAuth redirects after refreshing stale session", async () => {
+    scopedIt("requireRecentAuth redirects when the refetch finds the session stale", async () => {
         const router = { resolve: vi.fn((route) => ({ ...route, query: { next: "" } })) };
         const to = { fullPath: "/secure" };
-        userStore.recentlyLoggedIn = undefined;
+        userStore.loggedIn = true;
         fetchCurrentUser.mockImplementation(async () => {
-            userStore.recentlyLoggedIn = false;
+            userStore.authPendingFlow = "mfa_reauthenticate";
         });
         const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
         expect(fetchCurrentUser).toHaveBeenCalled();

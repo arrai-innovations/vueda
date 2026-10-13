@@ -6,7 +6,7 @@ from django.db import migrations
 
 
 sql_path = "tests/store/sql"
-forward_sql_filename = "view-inventory_record_data-latest.sql"
+forward_sql_filename = "view-order_item_data-latest.sql"
 
 with open(os.path.join(sql_path, forward_sql_filename)) as f:
     forwards_sql = f.read()
@@ -14,12 +14,12 @@ with open(os.path.join(sql_path, forward_sql_filename)) as f:
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("store", "0006_customer_formatted_name"),
+        ("store", "0006_inventory_record_formatted_name"),
     ]
 
     operations = [
         migrations.RunSQL(
             sql=forwards_sql,
-            reverse_sql="DROP VIEW IF EXISTS inventory_record_data;",
+            reverse_sql="DROP VIEW IF EXISTS order_item_data;",
         ),
     ]
