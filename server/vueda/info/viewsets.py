@@ -478,11 +478,11 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
     model and ``list`` on the model of the queryset that ``get_queryset(request)`` returns. Every
     other filter needs ``read`` on the model.
 
-    The endpoint builds the filterset from the request's query parameters over the rows of
-    ``objects.all()`` that the user may list. ``filter_rows_for_user`` decides those rows for the
-    ``list`` permission, with the model's row-level and workflow state rules. The endpoint does not
-    call the viewset's ``get_queryset``, so other filtering in that method does not narrow the
-    options. What the options are depends on the filter:
+    The endpoint reads the same rows that the viewset's ``list`` action reads. It calls the viewset's
+    ``get_queryset()`` as a ``list`` request with this request, an empty ``kwargs``, and
+    ``action = "list"``. ``filter_rows_for_user`` then keeps the rows that the user may list, by the
+    model's row-level and workflow state rules for the ``list`` permission. The request's query
+    parameters build the filterset over those rows. What the options are depends on the filter:
 
     - A filter with a ``queryset`` returns the rows of that queryset that the matching rows of the
       model reference and that the user may list, by the same rule on the related model. A related
@@ -549,6 +549,7 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         self.validate_queryset(filterset_instance, filter_mapping)
 
         filtr = filter_mapping[self.choices_field]
+        self.choices_viewset_class = viewset
         self.choices_filterset_class = filterset_class
         self.choices_filter = filtr
         self.choices_model_class = model_class
@@ -580,17 +581,51 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             self.choices_permissions = (f"{meta.app_label}.{permission_read_name}_{meta.model_name}",)
             self.choices_queryset_model = model_class
 
+    def get_list_queryset(self):
+        """
+        Return the queryset that the registered viewset's ``get_queryset()`` builds for a ``list`` request.
+
+        The viewset instance carries this request, ``action = "list"``, ``detail = False``, and empty
+        ``args`` and ``kwargs``, so a ``get_queryset()`` that reads ``self.request``, ``self.action``,
+        or ``self.kwargs`` builds the queryset of the registration's ``list`` route.
+        """
+        view = self.choices_viewset_class()
+        view.request = self.request
+        view.action = "list"
+        view.detail = False
+        view.args = ()
+        view.kwargs = {}
+        view.format_kwarg = None
+        return view.get_queryset()
+
+    def get_listed_rows(self):
+        """
+        Return the rows that the registered viewset's ``list`` action returns for this request's other filters.
+
+        The rows start from :meth:`get_list_queryset`. ``filter_rows_for_user`` keeps the rows that the
+        user may list. The filterset then applies every query parameter except the addressed filter's
+        own, so that filter never narrows its own choices.
+        """
+        other_params = self.request.query_params.copy()
+        other_params.pop(self.choices_field, None)
+        return self.choices_filterset_class(
+            queryset=filter_rows_for_user(self.get_list_queryset(), self.request.user, perm_type="list"),
+            data=other_params,
+            request=self.request,
+        ).qs
+
     def get_queryset(self):
         """
         Returns a queryset if the field is a relation.
         Return a list if the field is not a relation.
 
-        Dynamic choices come from the rows the requesting user may list, as ``filter_rows_for_user``
-        decides for the ``list`` permission: row-level rules and workflow state rules alike. A value
-        or related key found only on a hidden row is not offered. A queryset-backed filter's choices
-        are also rows the user may list on the related model, within the filter's own queryset, so a
-        visible main row that references a hidden related row does not make that row a choice.
-        Static declared choices never read a row and are unaffected.
+        Dynamic choices come from the rows that the registered viewset's ``list`` action reads: its
+        ``get_queryset()``, then the rows that ``filter_rows_for_user`` keeps for the ``list``
+        permission by row-level rules and workflow state rules. A value or related key found only on
+        a row outside those rows is not offered. A queryset-backed filter's choices are also rows that
+        the user may list on the related model, within the filter's own queryset, so a listed main row
+        that references a hidden related row does not make that row a choice. Static declared choices
+        read no rows.
         """
         self.resolve_choices()
 
@@ -601,22 +636,11 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
         model_class = self.choices_model_class
         user = self.request.user
 
-        # Build a queryset of the rows the user may list, narrowed by all OTHER active filters
-        # (exclude this field's param).
-        other_params = self.request.query_params.copy()
-        other_params.pop(self.choices_field, None)
-        narrowing_filterset = self.choices_filterset_class(
-            queryset=filter_rows_for_user(model_class.objects.all(), user, perm_type="list"),
-            data=other_params,
-            request=self.request,
-        )
-        narrowed_qs = narrowing_filterset.qs
-
         if hasattr(filtr, "queryset"):
             # ModelChoiceFilter / ModelMultipleChoiceFilter (queryset-based).
             related_model = self.choices_queryset_model
 
-            used_pks = narrowed_qs.values_list(filtr.field_name, flat=True).distinct()
+            used_pks = self.get_listed_rows().values_list(filtr.field_name, flat=True).distinct()
             related_qs = filter_rows_for_user(self.choices_related_queryset, user, perm_type="list").filter(
                 pk__in=used_pks
             )
@@ -638,8 +662,10 @@ class ModelInfoFilterSetChoicesViewSet(ModelInfoChoicesBaseViewSet):
             )
 
         elif isinstance(filtr, (AllValuesFilter, AllValuesMultipleFilter)):
-            # Dynamic choices: distinct field values present in the (narrowed) main queryset.
-            distinct_values = narrowed_qs.values_list(filtr.field_name, flat=True).distinct().order_by(filtr.field_name)
+            # Dynamic choices: the distinct values of the field in the listed rows.
+            distinct_values = (
+                self.get_listed_rows().values_list(filtr.field_name, flat=True).distinct().order_by(filtr.field_name)
+            )
             choices = [(str(value), str(value)) for value in distinct_values if value not in EMPTY_VALUES]
             return FilterChoicesQueryset(choices, model_class)
 

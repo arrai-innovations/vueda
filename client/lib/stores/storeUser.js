@@ -63,6 +63,19 @@ const authErrorResolver = (response, data) => {
     }
     return new UserError("Unexpected error occurred", response, data);
 };
+
+/**
+ * Sends a request for the user store. A failed response rejects with the error that `errorResolver` builds.
+ *
+ * @param {string} url - The URL to request.
+ * @param {RequestInit} init - The fetch options.
+ * @param {string} messagePrefix - The prefix for the error message.
+ * @param {(response: Response, data: *) => Error} [errorResolver=authErrorResolver] - Builds the error for a
+ *  failed response. A custom resolver handles its own statuses and passes the rest to `authErrorResolver`.
+ * @returns {Promise<*>} The decoded response data.
+ */
+const userFetch = (url, init, messagePrefix, errorResolver = authErrorResolver) =>
+    fetchHelper(url, init, messagePrefix, UserError, undefined, undefined, errorResolver);
 /**
  * @typedef {ReturnType<typeof storeUser>} UserStore
  */
@@ -247,7 +260,7 @@ export const storeUser = defineStore("user", {
             this.errored = false;
             this.authPendingFlow = null;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("userLogin")}`,
                 {
                     method: "POST",
@@ -258,16 +271,12 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
                 .catch(async (error) => {
-                    await this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     if (!this.authPendingFlow) {
                         this.error = error;
                         this.errored = true;
@@ -332,6 +341,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's password again, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * Completes the `reauthenticate` flow. The server does not count a password confirmation for a user with a
          * two-factor device; their flow is `mfa_reauthenticate`, which `twoFactorReauthenticate` completes.
@@ -345,7 +356,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("reauthenticate")}`,
                 {
                     method: "POST",
@@ -356,17 +367,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -385,7 +393,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("forgotPassword")}`,
                 {
                     method: "POST",
@@ -396,10 +404,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -427,7 +431,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("changePassword")}`,
                 {
                     method: "POST",
@@ -438,10 +442,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .catch((error) => {
                     this.error = error;
@@ -453,13 +453,15 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Handles an `UnauthorizedError` by refetching the current user, whose who-is response sets `authPendingFlow`.
-         * The refetch keeps the existing error and ignores its own failure. Other errors are ignored.
+         * Refetches the current user when `error` is an `UnauthorizedError`, so `authPendingFlow` names the flow that
+         * the server now requires. A request guarded by an auth flow, such as a pending sign-in or recent
+         * authentication, answers 401 when that flow has changed. The refetch keeps the existing error and ignores
+         * its own failure. Other errors are ignored.
          *
          * @param {Error} error - The error from a failed request.
          * @returns {Promise<void>|undefined} The refetch promise for an `UnauthorizedError`, otherwise `undefined`.
          */
-        _handle_error(error) {
+        _refetchUserOnUnauthorized(error) {
             if (error instanceof UnauthorizedError) {
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
@@ -467,6 +469,8 @@ export const storeUser = defineStore("user", {
         /**
          * Starts setting up a two-factor device for the signed-in user.
          * For `email` and `sms`, the server sends a code to the destination; for `totp`, it returns the secret and a QR code.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The device method: `totp`, `email`, or `sms`.
@@ -478,7 +482,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("setupTOTPDevice")}`,
                 {
                     method: "POST",
@@ -489,18 +493,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -509,6 +509,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Activates the device that `setupTOTPDevice` started, then refetches the current user to pick up its devices.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the device.
@@ -519,7 +521,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("activateTOTPDevice")}`,
                 {
                     method: "POST",
@@ -530,19 +532,15 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     // Refresh user totp device data
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -551,6 +549,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Completes a two-factor sign-in with a code, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the user's device.
@@ -561,7 +561,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("twoFactorAuthenticate")}`,
                 {
                     method: "POST",
@@ -572,17 +572,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -591,6 +588,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's second factor with a code, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * Completes the `mfa_reauthenticate` flow, which the server requires from a user with a two-factor device
          * before a reauthentication-guarded action.
@@ -604,7 +603,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("twoFactorReauthenticate")}`,
                 {
                     method: "POST",
@@ -615,17 +614,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -647,7 +643,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("resetPassword")}`,
                 {
                     method: "POST",
@@ -658,10 +654,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -719,6 +711,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Fetches the two-factor methods of the user who is signing in or reauthenticating.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
          */
@@ -729,21 +723,14 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("getTOTPCode");
 
-            return fetchHelper(
-                `${httpOrHttpsHostname}${url}`,
-                { method: "GET" },
-                "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
-            )
+            return userFetch(`${httpOrHttpsHostname}${url}`, { method: "GET" }, "Error sending authentication request")
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -753,6 +740,8 @@ export const storeUser = defineStore("user", {
         /**
          * Asks the server to send a two-factor code to the device of the user who is signing in or
          * reauthenticating, for the given method.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The delivery method: `email` or `sms`.
@@ -763,7 +752,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
             const url = getUrl("getTOTPCode");
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${url}`,
                 {
                     method: "POST",
@@ -773,19 +762,15 @@ export const storeUser = defineStore("user", {
                     },
                     body: JSON.stringify(payload),
                 },
-
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -794,6 +779,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Generates a new set of recovery codes for the signed-in user, replacing any existing set.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the new codes.
          */
@@ -804,7 +791,7 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("recoveryCodes");
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${url}`,
                 {
                     method: "POST",
@@ -814,18 +801,14 @@ export const storeUser = defineStore("user", {
                     },
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -834,6 +817,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Fetches the signed-in user's recovery codes, and generates them when the user has none.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the unused codes.
          */
@@ -844,25 +829,17 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("recoveryCodes");
 
-            return fetchHelper(
-                `${httpOrHttpsHostname}${url}`,
-                { method: "GET" },
-                "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
-            )
+            return userFetch(`${httpOrHttpsHostname}${url}`, { method: "GET" }, "Error sending authentication request")
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     if (error.response?.status === 404) {
                         return this.generateRecoveryCode();
                     }
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
