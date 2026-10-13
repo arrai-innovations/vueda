@@ -29,7 +29,9 @@ import { useRoute, useRouter } from "vue-router";
  *
  * Once a who-is request has succeeded, an anonymous user with no second-factor flow pending has no sign-in to
  * finish here, for example because the pending sign-in expired. The view sends that user to the `sign-in` route,
- * keeping the `redirect` query, and shows a warning toast that explains why.
+ * keeping the `redirect` query, and shows a warning toast that explains why. A signed-out user whose methods
+ * request is refused with an `UnauthorizedError` goes there too. Both paths share one redirect, so the user sees
+ * one toast and one navigation when both react to the same refused request.
  */
 defineOptions({});
 
@@ -107,27 +109,6 @@ const computedOptions = computed(() => {
 // user who must confirm a second factor. Either one means there is a user with methods to list.
 const SECOND_FACTOR_FLOWS = new Set([AUTH_FLOW.MFA_AUTHENTICATE, AUTH_FLOW.MFA_REAUTHENTICATE]);
 const owesSecondFactor = computed(() => SECOND_FACTOR_FLOWS.has(userStore.authPendingFlow));
-watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => {
-    if (newActive && newOwesSecondFactor) {
-        try {
-            const response = await userStore.getTwoFactorAuthMethod();
-            methods.value = response?.methods;
-        } catch (error) {
-            if (error instanceof UnauthorizedError) {
-                toast.warning("Please verify your account again before proceeding", {
-                    duration: 10000,
-                });
-                await router.push({ name: "sign-in" });
-                return true;
-            } else {
-                toast.error("Error fetching 2FA methods for the user", {
-                    description: error.message,
-                    duration: 10000,
-                });
-            }
-        }
-    }
-});
 // The view decides only from a who-is request that succeeded. `loading` is `undefined` before the first request
 // and `true` while one runs, and a failed request sets `errored`, so in each of those states `authPendingFlow`
 // does not hold the server's answer. A signed-in user without a pending flow has just finished the second factor,
@@ -139,14 +120,69 @@ const hasNoSignInToFinish = computed(
         !userStore.loggedIn &&
         !owesSecondFactor.value,
 );
-watch([isActive, hasNoSignInToFinish], async ([newActive, newHasNoSignInToFinish]) => {
-    if (newActive && newHasNoSignInToFinish) {
+/**
+ * The redirect to sign-in. It resolves to the router's navigation failure, which is `undefined` when the
+ * navigation succeeds. The expired sign-in watch clears it when the view has a sign-in to finish again, so a
+ * later expiry redirects again.
+ *
+ * @type {Promise<import('vue-router').NavigationFailure|void|undefined>|null}
+ */
+let signInRedirect = null;
+/**
+ * Sends the user to the `sign-in` route, keeping the `redirect` query, and shows a warning toast that explains
+ * why. A caller that arrives while the redirect is under way, or after it succeeded, receives the same promise.
+ * A navigation failure or a rejected push clears it, so the next caller tries again.
+ *
+ * @returns {Promise<import('vue-router').NavigationFailure|void|undefined>}
+ */
+const redirectToSignIn = () => {
+    if (!signInRedirect) {
         toast.warning("Your sign-in has expired", {
             description: "There is no two-factor sign-in in progress. Sign in again to continue.",
             duration: 10000,
         });
         const redirect = route.query?.redirect;
-        await router.push(redirect ? { name: "sign-in", query: { redirect } } : { name: "sign-in" });
+        signInRedirect = router.push(redirect ? { name: "sign-in", query: { redirect } } : { name: "sign-in" }).then(
+            (failure) => {
+                if (failure) {
+                    signInRedirect = null;
+                }
+                return failure;
+            },
+            (error) => {
+                signInRedirect = null;
+                throw error;
+            },
+        );
+    }
+    return signInRedirect;
+};
+watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => {
+    if (newActive && newOwesSecondFactor) {
+        try {
+            const response = await userStore.getTwoFactorAuthMethod();
+            methods.value = response?.methods;
+        } catch (error) {
+            // The store refetches who-is before it rejects with an `UnauthorizedError`. A signed-out user has no
+            // sign-in left to finish here. A signed-in user stays, and the error toast below reports the refusal.
+            if (error instanceof UnauthorizedError && !userStore.loggedIn) {
+                const failure = await redirectToSignIn().catch((pushError) => pushError);
+                if (!failure) {
+                    return;
+                }
+            }
+            toast.error("Error fetching 2FA methods for the user", {
+                description: error.message,
+                duration: 10000,
+            });
+        }
+    }
+});
+watch([isActive, hasNoSignInToFinish], async ([newActive, newHasNoSignInToFinish]) => {
+    if (!newHasNoSignInToFinish) {
+        signInRedirect = null;
+    } else if (newActive) {
+        await redirectToSignIn();
     }
 });
 const theme = useTheme("ViewTwoFactorAuth", props);

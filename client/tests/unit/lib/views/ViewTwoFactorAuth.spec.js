@@ -1,7 +1,7 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import flushPromises from "flush-promises";
-import { defineComponent, h, reactive, ref } from "vue";
+import { defineComponent, h, nextTick, reactive, ref } from "vue";
 
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 
@@ -150,7 +150,8 @@ let userStore;
 describe("lib/views/ViewTwoFactorAuth.vue", () => {
     beforeEach(async () => {
         Object.values(toastMock).forEach((fn) => fn.mockClear());
-        routerPush.mockClear();
+        routerPush.mockReset();
+        routerPush.mockResolvedValue(undefined);
         routeMock.query = {};
         useIsActiveMock.mockReset();
         storeUserMock.mockReset();
@@ -194,14 +195,93 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             expect(updateFormValue).toHaveBeenLastCalledWith("method", undefined);
         });
 
-        scopedIt("redirects when methods fetch returns unauthorized", async () => {
-            userStore.getTwoFactorAuthMethod.mockRejectedValue(new UnauthorizedErrorClass("Unauthorized"));
+        scopedIt("redirects once when the expired sign-in watch reacts before the methods catch", async () => {
+            routeMock.query = { redirect: "/home" };
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.authPendingFlow = null;
+                await nextTick();
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
             const wrapper = mount(ViewTwoFactorAuth);
             activeRef.value = true;
             await flushPromises();
-            expect(toastMock.warning).toHaveBeenCalled();
-            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(toastMock.warning).toHaveBeenCalledWith("Your sign-in has expired", expect.any(Object));
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/home" } });
             expect(wrapper.vm.methods).toEqual([]);
+        });
+
+        scopedIt("redirects once when the methods catch reacts before the expired sign-in watch", async () => {
+            routeMock.query = { redirect: "/home" };
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.authPendingFlow = null;
+                userStore.currentUserRequestStatus = whoIsLoading();
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/home" } });
+        });
+
+        scopedIt("redirects a signed-out user after an unauthorized methods fetch whose refetch failed", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.currentUserRequestStatus = whoIsFailed(new Error("Network Error"));
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+        });
+
+        scopedIt("shows an error and stays when a signed-in user's methods fetch is unauthorized", async () => {
+            userStore.loggedIn = true;
+            userStore.authPendingFlow = "mfa_reauthenticate";
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.authPendingFlow = null;
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
+            expect(toastMock.warning).not.toHaveBeenCalled();
+            expect(routerPush).not.toHaveBeenCalled();
+        });
+
+        scopedIt("shows an error when the redirect fails, and the next refusal redirects again", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockRejectedValue(new UnauthorizedErrorClass("Unauthorized"));
+            routerPush.mockResolvedValueOnce({ type: 4 });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
+
+            activeRef.value = false;
+            await flushPromises();
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(2);
+            expect(toastMock.warning).toHaveBeenCalledTimes(2);
+            expect(toastMock.error).toHaveBeenCalledTimes(1);
         });
 
         scopedIt("shows toast on generic fetch error", async () => {
