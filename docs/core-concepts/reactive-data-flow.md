@@ -87,10 +87,6 @@ The layered architecture produces several characteristic failure patterns.
 
 **Guard/composable boundary confusion.** Calling composables from guard code is a silent failure. The composable initializes, registers lifecycle hooks that never fire, creates watchers gated by `isActive` that never become `true`, and potentially leaks `effectScope` allocations. No error is thrown; the composable simply never produces data.
 
-**Workflow transition promise cleanup mismatch.** After a failed `fetchObjectTransitions`, subsequent calls can return the same cached rejected Promise because the `.finally` handler deletes from `promises.objectStates` instead of `promises.objectTransitions`. This means the de-duplication key is never cleared, and the rejected Promise persists.
-
-**Workflow object state/history cold-call failure.** `fetchObjectState` and `fetchObjectHistory` index into nested maps (`objectStates[key]`, `objectHistories[key]`) without initializing the per-`app.model` container objects. A cold call, one where no prior fetch has initialized the nested map for that key, can throw `TypeError` when trying to index into an undefined object.
-
 ## Relevant Implementation Surface
 
 - {@api js:function:@arrai-innovations/vueda/stores/storeModelInfo#storeModelInfo}

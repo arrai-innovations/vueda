@@ -69,9 +69,6 @@ describe("lib/stores/storeWorkflow.js", () => {
 
         scopedIt.each([
             ["fetchWorkflowTransition", ["app", "model"]],
-            ["fetchModelStates", ["app", "model"]],
-            ["fetchObjectState", ["app", "model", "1"]],
-            ["fetchObjectTransitions", ["app", "model", "1"]],
             ["fetchObjectHistory", ["app", "model", "1"]],
         ])("%s resolves an empty array without a request", async (action, args) => {
             const store = storeWorkflow();
@@ -195,130 +192,174 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(mockedFetchHelper).not.toHaveBeenCalled();
     });
 
-    scopedIt("fetchModelStates stores and caches states", async () => {
-        const states = [{ code: "init", name: "Init" }];
-        mockedFetchHelper.mockResolvedValue(states);
-        const store = storeWorkflow();
+    describe("fetchObjectHistory", () => {
+        const history = [
+            {
+                id: "vueda_workflow.ObjectState:1",
+                state: "draft",
+                recorded_at: "2026-01-01T00:00:00Z",
+                actor: 3,
+            },
+            {
+                id: "vueda_workflow.ObjectState:2",
+                state: "approved",
+                recorded_at: "2026-01-02T00:00:00Z",
+                actor: null,
+            },
+        ];
 
-        const result = await store.fetchModelStates("app", "model");
-        const key = getAppModelDotName({ app: "app", model: "model" });
+        scopedIt("resolves to the history on a first fetch and on a cached fetch", async () => {
+            mockedFetchHelper.mockResolvedValue(history);
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
 
-        expect(result).toEqual(states);
-        expect(store.modelStates[key]).toEqual(states);
+            await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toEqual(history);
+            expect(store.objectHistories[key]["1"]).toEqual(history);
 
-        mockedFetchHelper.mockClear();
-        await store.fetchModelStates("app", "model");
-        expect(mockedFetchHelper).not.toHaveBeenCalled();
+            mockedFetchHelper.mockClear();
+            await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toEqual(history);
+            expect(mockedFetchHelper).not.toHaveBeenCalled();
+        });
+
+        scopedIt("shares one request between concurrent calls for the same object", async () => {
+            mockedFetchHelper.mockResolvedValue(history);
+            const store = storeWorkflow();
+
+            const results = await Promise.all([
+                store.fetchObjectHistory("app", "model", "1"),
+                store.fetchObjectHistory("app", "model", "1"),
+            ]);
+
+            expect(results).toEqual([history, history]);
+            expect(mockedFetchHelper).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("requests the server's workflow-state-history route", async () => {
+            storeModelInfo().infos[getAppModelDotName({ app: "store", model: "CustomerOrder" })] = {
+                workflowEnabled: true,
+            };
+            mockedFetchHelper.mockResolvedValue(history);
+            const store = storeWorkflow();
+
+            await store.fetchObjectHistory("store", "CustomerOrder", "7");
+
+            // server/vueda/history/urls.py serves `vueda.history/workflow-state-history/<app_label>/<model>/<int:object_id>/`
+            // inside the `routes/` path.
+            const [url, options] = mockedFetchHelper.mock.calls[0];
+            expect(new URL(url).pathname).toBe("/routes/vueda.history/workflow-state-history/store/customer_order/7/");
+            expect(options).toEqual({ method: "GET" });
+        });
+
+        scopedIt("rejects with the WorkflowError for an object without a workflow state, and caches it", async () => {
+            // the server answers `{"detail": "Object does not have a workflow state history."}` with a 404
+            const error = new storeWorkflowModule.WorkflowError(
+                "Failed to fetch object histories",
+                { status: 404 },
+                { detail: "Object does not have a workflow state history." },
+            );
+            mockedFetchHelper.mockRejectedValue(error);
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+
+            await expect(store.fetchObjectHistory("app", "model", "1")).rejects.toBe(error);
+            expect(store.objectHistories[key]["1"]).toBeUndefined();
+            expect(store.errors.objectHistories[key]["1"]).toBe(error);
+            expect(store.promises.objectHistories[key]["1"]).toBeUndefined();
+
+            mockedFetchHelper.mockClear();
+            await expect(store.fetchObjectHistory("app", "model", "1")).rejects.toBe(error);
+            expect(mockedFetchHelper).not.toHaveBeenCalled();
+        });
+
+        scopedIt("rejects when app, model, or objectPk is missing", async () => {
+            const store = storeWorkflow();
+
+            await expect(store.fetchObjectHistory("app", "model", "")).rejects.toThrow(
+                "storeWorkflow.fetchObjectHistory: app, model and objectPk must all be provided",
+            );
+            expect(mockedFetchHelper).not.toHaveBeenCalled();
+        });
+
+        scopedIt("initializes per-model containers on cold call", async () => {
+            mockedFetchHelper.mockResolvedValue([]);
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+
+            expect(store.objectHistories[key]).toBeUndefined();
+            expect(store.promises.objectHistories[key]).toBeUndefined();
+            expect(store.errors.objectHistories[key]).toBeUndefined();
+
+            await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toEqual([]);
+
+            expect(store.objectHistories[key]).toBeTypeOf("object");
+            expect(store.promises.objectHistories[key]).toBeTypeOf("object");
+            expect(store.errors.objectHistories[key]).toBeTypeOf("object");
+            expect(store.promises.objectHistories[key]["1"]).toBeUndefined();
+        });
+
+        scopedIt("fetches the history again after executeTransition runs on the object", async () => {
+            mockedFetchHelper.mockResolvedValueOnce(history.slice(0, 1));
+            const store = storeWorkflow();
+            await store.fetchObjectHistory("app", "model", "1");
+
+            mockedFetchHelper.mockResolvedValueOnce({
+                new_state: { code: "approved", name: "Approved" },
+                new_transitions: [],
+            });
+            await store.executeTransition("app", "model", "1", "approve");
+
+            mockedFetchHelper.mockResolvedValueOnce(history);
+            await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toEqual(history);
+            expect(mockedFetchHelper).toHaveBeenCalledTimes(3);
+        });
+
+        scopedIt("drops the cached history of every object in a bulk executeTransition", async () => {
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            mockedFetchHelper.mockResolvedValue(history);
+            await store.fetchObjectHistory("app", "model", "1");
+            await store.fetchObjectHistory("app", "model", "2");
+            await store.fetchObjectHistory("app", "model", "3");
+
+            mockedFetchHelper.mockResolvedValue({
+                1: { new_state: { code: "approved", name: "Approved" }, new_transitions: [] },
+                2: { new_state: { code: "approved", name: "Approved" }, new_transitions: [] },
+            });
+            await store.executeTransition("app", "model", ["1", "2"], "approve");
+
+            expect(store.objectHistories[key]["1"]).toBeUndefined();
+            expect(store.objectHistories[key]["2"]).toBeUndefined();
+            expect(store.objectHistories[key]["3"]).toEqual(history);
+        });
+
+        scopedIt("keeps the cached history after a dry run", async () => {
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            mockedFetchHelper.mockResolvedValueOnce(history);
+            await store.fetchObjectHistory("app", "model", "1");
+
+            mockedFetchHelper.mockResolvedValueOnce({
+                new_state: { code: "approved", name: "Approved" },
+                new_transitions: [],
+            });
+            await store.executeTransition("app", "model", "1", "approve", undefined, undefined, true);
+
+            expect(store.objectHistories[key]["1"]).toEqual(history);
+        });
     });
 
-    scopedIt("fetchObjectState stores and caches state", async () => {
-        const stateData = { state: { code: "draft" } };
-        mockedFetchHelper.mockResolvedValue(stateData);
-        const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-
-        const result = await store.fetchObjectState("app", "model", "1");
-        expect(result).toBeUndefined();
-        expect(store.objectStates[key]["1"]).toEqual(stateData);
-
-        mockedFetchHelper.mockClear();
-        await store.fetchObjectState("app", "model", "1");
-        expect(mockedFetchHelper).not.toHaveBeenCalled();
-    });
-
-    scopedIt("fetchObjectState initializes per-model containers on cold call", async () => {
-        mockedFetchHelper.mockResolvedValue({ state: { code: "draft" } });
-        const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-
-        expect(store.objectStates[key]).toBeUndefined();
-        expect(store.promises.objectStates[key]).toBeUndefined();
-        expect(store.errors.objectStates[key]).toBeUndefined();
-
-        await expect(store.fetchObjectState("app", "model", "1")).resolves.toBeUndefined();
-
-        expect(store.objectStates[key]).toBeTypeOf("object");
-        expect(store.promises.objectStates[key]).toBeTypeOf("object");
-        expect(store.errors.objectStates[key]).toBeTypeOf("object");
-        expect(store.promises.objectStates[key]["1"]).toBeUndefined();
-    });
-
-    scopedIt("fetchObjectTransitions stores and caches transitions", async () => {
-        const transitionData = { transitions: [{ code: "t", name: "T" }] };
-        mockedFetchHelper.mockResolvedValue(transitionData);
-        const store = storeWorkflow();
-        store.initializeObjectTransitions("app", "model");
-        const key = getAppModelDotName({ app: "app", model: "model" });
-
-        const result = await store.fetchObjectTransitions("app", "model", "1");
-        expect(result).toBeUndefined();
-        expect(store.objectTransitions[key]["1"]).toEqual(transitionData);
-
-        mockedFetchHelper.mockClear();
-        await store.fetchObjectTransitions("app", "model", "1");
-        expect(mockedFetchHelper).not.toHaveBeenCalled();
-    });
-
-    scopedIt("fetchObjectTransitions clears in-flight promise entry", async () => {
-        mockedFetchHelper.mockResolvedValue({ transitions: [] });
-        const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        expect(store.promises.objectTransitions[key]).toBeUndefined();
-
-        await expect(store.fetchObjectTransitions("app", "model", "1")).resolves.toBeUndefined();
-        expect(store.promises.objectTransitions[key]).toBeTypeOf("object");
-        expect(store.promises.objectTransitions[key]["1"]).toBeUndefined();
-    });
-
-    scopedIt("fetchObjectHistory stores and caches history", async () => {
-        const historyData = { history: [{ code: "a" }] };
-        mockedFetchHelper.mockResolvedValue(historyData);
-        const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-
-        const result = await store.fetchObjectHistory("app", "model", "1");
-        expect(result).toBeUndefined();
-        expect(store.objectHistories[key]["1"]).toEqual(historyData);
-
-        mockedFetchHelper.mockClear();
-        await store.fetchObjectHistory("app", "model", "1");
-        expect(mockedFetchHelper).not.toHaveBeenCalled();
-    });
-
-    scopedIt("fetchObjectHistory initializes per-model containers on cold call", async () => {
-        mockedFetchHelper.mockResolvedValue({ history: [] });
-        const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-
-        expect(store.objectHistories[key]).toBeUndefined();
-        expect(store.promises.objectHistories[key]).toBeUndefined();
-        expect(store.errors.objectHistories[key]).toBeUndefined();
-
-        await expect(store.fetchObjectHistory("app", "model", "1")).resolves.toBeUndefined();
-
-        expect(store.objectHistories[key]).toBeTypeOf("object");
-        expect(store.promises.objectHistories[key]).toBeTypeOf("object");
-        expect(store.errors.objectHistories[key]).toBeTypeOf("object");
-        expect(store.promises.objectHistories[key]["1"]).toBeUndefined();
-    });
-
-    scopedIt("executeTransition updates state and pushes route", async () => {
+    scopedIt("executeTransition resolves to the response and pushes the route for the new state", async () => {
         const response = {
             new_state: { code: "closed", name: "Closed" },
             new_transitions: [{ code: "reopen", name: "Reopen" }],
         };
         mockedFetchHelper.mockResolvedValue(response);
         const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = { 1: {} };
-        store.objectTransitions[key] = { 1: {} };
         const router = { push: vi.fn() };
         const mapping = { closed: "/closed" };
 
-        await store.executeTransition("app", "model", "1", "close", router, mapping);
+        await expect(store.executeTransition("app", "model", "1", "close", router, mapping)).resolves.toEqual(response);
 
-        expect(store.objectStates[key]["1"].code).toBe("closed");
-        expect(store.objectTransitions[key]["1"].transitions).toEqual(response.new_transitions);
         expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
@@ -328,9 +369,6 @@ describe("lib/stores/storeWorkflow.js", () => {
             new_transitions: [],
         });
         const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = { 1: {} };
-        store.objectTransitions[key] = { 1: {} };
 
         await store.executeTransition("app", "model", "1", "close", undefined, undefined, true);
 
@@ -338,21 +376,16 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(options.headers["Dry-Run"]).toBe("true");
     });
 
-    scopedIt("executeTransition leaves cached state and route alone after a dry run", async () => {
+    scopedIt("executeTransition leaves the route alone after a dry run", async () => {
         mockedFetchHelper.mockResolvedValue({
             new_state: { code: "closed", name: "Closed" },
             new_transitions: [{ code: "reopen", name: "Reopen" }],
         });
         const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = { 1: { code: "open", name: "Open" } };
-        store.objectTransitions[key] = { 1: { transitions: [{ code: "close", name: "Close" }] } };
         const router = { push: vi.fn() };
 
         await store.executeTransition("app", "model", "1", "close", router, { closed: "/closed" }, true);
 
-        expect(store.objectStates[key]["1"]).toEqual({ code: "open", name: "Open" });
-        expect(store.objectTransitions[key]["1"]).toEqual({ transitions: [{ code: "close", name: "Close" }] });
         expect(router.push).not.toHaveBeenCalled();
     });
 
@@ -362,9 +395,6 @@ describe("lib/stores/storeWorkflow.js", () => {
             new_transitions: [],
         });
         const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = { 1: {} };
-        store.objectTransitions[key] = { 1: {} };
 
         await store.executeTransition("app", "model", "1", "close", undefined, undefined, false, "digest123");
 
@@ -378,9 +408,6 @@ describe("lib/stores/storeWorkflow.js", () => {
             new_transitions: [],
         });
         const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = { 1: {} };
-        store.objectTransitions[key] = { 1: {} };
 
         await store.executeTransition("app", "model", "1", "close");
 
@@ -437,9 +464,6 @@ describe("lib/stores/storeWorkflow.js", () => {
             new_transitions: [],
         });
         const store = storeWorkflow();
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        store.objectStates[key] = { 1: {} };
-        store.objectTransitions[key] = { 1: {} };
         const router = { push: vi.fn() };
 
         await store.executeTransition("app", "model", "1", "close", router, { closed: "/closed" });
@@ -447,25 +471,11 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(router.push).toHaveBeenCalledWith("/closed");
     });
 
-    scopedIt("initializeObjectTransitions creates structures", () => {
-        const store = storeWorkflow();
-        store.initializeObjectTransitions("app", "model");
-        const key = getAppModelDotName({ app: "app", model: "model" });
-        expect(store.objectTransitions[key]).toEqual({});
-        expect(store.promises.objectTransitions[key]).toEqual({});
-        expect(store.errors.objectTransitions[key]).toEqual({});
-    });
     describe("clearAuthScoped", () => {
         const seedEverything = async (store) => {
             mockedFetchHelper.mockResolvedValue([{ code: "one", name: "One" }]);
             await store.fetchWorkflowTransition("app", "model");
-            mockedFetchHelper.mockResolvedValue([{ code: "draft", name: "Draft" }]);
-            await store.fetchModelStates("app", "model");
-            mockedFetchHelper.mockResolvedValue({ state: { code: "draft" } });
-            await store.fetchObjectState("app", "model", "1");
-            mockedFetchHelper.mockResolvedValue({ transitions: [] });
-            await store.fetchObjectTransitions("app", "model", "1");
-            mockedFetchHelper.mockResolvedValue({ history: [] });
+            mockedFetchHelper.mockResolvedValue([{ id: "vueda_workflow.ObjectState:1", state: "draft" }]);
             await store.fetchObjectHistory("app", "model", "1");
         };
 
@@ -474,26 +484,17 @@ describe("lib/stores/storeWorkflow.js", () => {
             const key = getAppModelDotName({ app: "app", model: "model" });
             await seedEverything(store);
             store.errors.workflowTransitions["other.model"] = new Error("cached");
-            store.errors.objectStates[key]["2"] = new Error("cached");
-            store.promises.modelStates["other.model"] = Promise.resolve([]);
+            store.errors.objectHistories[key]["2"] = new Error("cached");
+            store.promises.workflowTransitions["other.model"] = Promise.resolve([]);
 
             expect(store.workflowTransitions[key]).toBeDefined();
-            expect(store.objectStates[key]["1"]).toBeDefined();
+            expect(store.objectHistories[key]["1"]).toBeDefined();
 
             store.clearAuthScoped();
 
             expect(store.workflowTransitions).toEqual({});
-            expect(store.modelStates).toEqual({});
-            expect(store.objectStates).toEqual({});
-            expect(store.objectTransitions).toEqual({});
             expect(store.objectHistories).toEqual({});
-            for (const bucket of [
-                "workflowTransitions",
-                "modelStates",
-                "objectStates",
-                "objectTransitions",
-                "objectHistories",
-            ]) {
+            for (const bucket of ["workflowTransitions", "objectHistories"]) {
                 expect(store.errors[bucket]).toEqual({});
                 expect(store.promises[bucket]).toEqual({});
             }
@@ -501,7 +502,7 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(storeWorkflowModule.getUsingVuedaWorkflow()).toBe(true);
         });
 
-        scopedIt("writes nothing when an object-transitions response arrives after the clear", async () => {
+        scopedIt("writes nothing when an object-history response arrives after the clear", async () => {
             const store = storeWorkflow();
             let resolveFetch;
             mockedFetchHelper.mockReturnValue(
@@ -510,12 +511,12 @@ describe("lib/stores/storeWorkflow.js", () => {
                 }),
             );
 
-            const inFlight = store.fetchObjectTransitions("app", "model", "1");
+            const inFlight = store.fetchObjectHistory("app", "model", "1");
             store.clearAuthScoped();
-            resolveFetch({ transitions: [{ code: "one", name: "One" }] });
+            resolveFetch([{ id: "vueda_workflow.ObjectState:1", state: "draft" }]);
 
             await expect(inFlight).rejects.toThrow(AuthScopeInvalidatedError);
-            expect(store.objectTransitions).toEqual({});
+            expect(store.objectHistories).toEqual({});
         });
 
         scopedIt("converts a transitions error that arrives after the clear to AuthScopeInvalidatedError", async () => {

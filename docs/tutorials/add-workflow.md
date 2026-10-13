@@ -21,11 +21,12 @@ Without a workflow, a model's CRUDL views work normally but lack state-driven be
 
 `vueda.workflow` is in `INSTALLED_APPS` by default, and its migrations run during the initial `migrate`. Add URL routing to finish the setup.
 
-The copier templates wire up `vueda.info` and `vueda.user` URLs but do not include `vueda.workflow`. Add it to your project's `config/urls.py`:
+The copier templates wire up `vueda.info` and `vueda.user` URLs but do not include `vueda.workflow` or `vueda.history`. Add both to your project's `config/urls.py`:
 
 ```python
 from django.urls import include, path
 
+from vueda.history.urls import urlpatterns as vueda_history_urls  # [!code ++]
 from vueda.info.urls import urlpatterns as vueda_info_urls
 from vueda.user.urls import urlpatterns as vueda_user_urls
 from vueda.workflow.urls import urlpatterns as vueda_workflow_urls  # [!code ++]
@@ -38,6 +39,7 @@ urlpatterns = [
                 path("", include(vueda_info_urls)),
                 path("", include(vueda_user_urls)),
                 path("", include(vueda_workflow_urls)),  # [!code ++]
+                path("", include(vueda_history_urls)),  # [!code ++]
                 path("", include("your_project.urls")),
             ]
         ),
@@ -45,9 +47,10 @@ urlpatterns = [
 ]
 ```
 
-This registers two sets of endpoints under the `routes/` prefix:
+This registers three sets of endpoints under the `routes/` prefix:
 
 - **API endpoints** at `routes/vueda.workflow/workflows/{app_label}/{model}/...` for querying state, listing transitions, and executing transitions.
+- **Workflow state history** at `routes/vueda.history/workflow-state-history/{app_label}/{model}/{object_id}/`, which lists the states an object has been in. The client's `storeWorkflow.fetchObjectHistory` requests this path.
 - **Debug admin views** (only when `DEBUG=True`) at `routes/vueda.workflow/overview/`, `routes/vueda.workflow/add/`, and `routes/vueda.workflow/edit/{pk}/` for managing workflow definitions through a browser UI.
 
 After registering the URLs, restart your server to apply the changes.
