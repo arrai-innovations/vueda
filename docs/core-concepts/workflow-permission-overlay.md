@@ -131,5 +131,5 @@ The workflow store caches both successful transition lists and fetch errors per 
 - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/}
 - {@api rest:endpoint:PATCH:/vueda.workflow/workflows/{app_label}/{model}/execute-transition/}
 - {@api py:function:vueda.history.views.WorkflowStateHistoryView.get}
-- {@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}
+- {@api rest:endpoint:GET:/vueda.history/workflow-state-history/{app_label}/{model}/{object_id}/}
 - {@api js:module:@arrai-innovations/vueda/stores/storeWorkflow}

@@ -137,5 +137,5 @@ VUEDA's own test suite exercises the default CRUDL mapping. If you use a non-def
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}
     - {@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}
-    - {@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}
+    - {@api rest:endpoint:GET:/vueda.history/workflow-state-history/{app_label}/{model}/{object_id}/}
     - {@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/}
