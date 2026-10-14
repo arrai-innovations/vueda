@@ -60,6 +60,8 @@ export async function recalculateTotals(url, formValues) {
 
 `readActionResponse` treats every `response.ok` status as success. To accept only certain codes, pass `successStatuses`, for example `new Set([204])` for a delete.
 
+A 429 response from a rate limit has its own class, {@api js:class:@arrai-innovations/vueda/utils/errors#RateLimitedError}. `ActionForm` reports it only in the failure toast, with the error's message as the description. The form shows no error and the submit button stays enabled, because the same submit succeeds once the limit resets. `readActionResponse` throws a plain `FetchError` on a 429. A `run-action` that makes its own requests can check for a 429 and reject with `RateLimitedError` to get the same behavior.
+
 ## Ingest Server Errors in a Custom Submit Handler
 
 `useObjectForm` and `ActionForm` run this step for you. A form that submits on its own, such as a sign-in form, repeats it in its submit handler:
