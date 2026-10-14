@@ -26,8 +26,9 @@ The library navigates to the route names below, so your router must define each 
 | `welcome`         | `AuthorizingForm` after sign-in, when neither a `redirect` query value nor a `redirect` prop is set                                                                                  | Your landing page                       |
 | `forgot-password` | `ViewResetPassword`'s "Request a new link" button                                                                                                                                    | {@api vue:component:ViewForgotPassword} |
 | `reset-password`  | The emailed reset link                                                                                                                                                               | {@api vue:component:ViewResetPassword}  |
+| `setup-device`    | `ViewRecoveryCodes`'s set-up button, which appears when the account has no device                                                                                                    | {@api vue:component:ViewSetupDevice}    |
 
-The integrator template's `client/src/router/index.js` defines `welcome`, `sign-in`, `forgot-password`, and `reset-password`. Add `2fa` and `reauthenticate` beside them:
+The integrator template's `client/src/router/index.js` defines every route in the table. It also defines `recovery-codes`, which shows {@api vue:component:ViewRecoveryCodes}. Its two-factor, reauthentication, and device routes are:
 
 ```js
 {
@@ -44,9 +45,28 @@ The integrator template's `client/src/router/index.js` defines `welcome`, `sign-
     meta: { title: "Confirm Your Identity" },
     beforeEnter: (to) => requireAuth({ name: "sign-in" }, to, router, pinia),
 },
+{
+    path: "/setup-device/",
+    name: "setup-device",
+    component: async () => (await import("@vueda/views/ViewSetupDevice.vue")).default,
+    props: { app: "vueda_user", model: "totpdevice" },
+    meta: { title: "Set Up Two-Factor Device" },
+    beforeEnter: (to) => requireRecentAuth({ name: "reauthenticate" }, to, router, pinia),
+},
+{
+    path: "/recovery-codes/",
+    name: "recovery-codes",
+    component: async () => (await import("@vueda/views/ViewRecoveryCodes.vue")).default,
+    meta: { title: "Recovery Codes" },
+    beforeEnter: (to) => requireRecentAuth({ name: "reauthenticate" }, to, router, pinia),
+},
 ```
 
-{@api vue:component:ViewChangePassword}, {@api vue:component:ViewSetupDevice}, and {@api vue:component:ViewRecoveryCodes} act for a signed-in user, so route them at any path behind `requireAuth`. `ViewSetupDevice` takes `app` and `model` props that name the device model.
+A user who still owes a two-factor code stays signed out until the server accepts it, so `2fa` uses `requireUnauth`.
+
+The server refuses device setup and recovery codes without a recent session, so `setup-device` and `recovery-codes` use `requireRecentAuth` and send the user to `reauthenticate`. `ViewSetupDevice` takes `app` and `model` props that name the device model. VUEDA's device model is `totpdevice` in the `vueda_user` app. Neither page is part of a flow, so link them from your account settings. When the device is active, `ViewSetupDevice` goes to the `returnPath` query value if the link sets one.
+
+{@api vue:component:ViewChangePassword} also acts for a signed-in user. The server accepts a password change without a recent session, so route it at any path behind `requireAuth`.
 
 ## Guard the Routes
 
