@@ -113,10 +113,9 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        for err in response.data["distributor"]:
-            assert str(err) == "Select a valid choice. Tasty Treats is not one of the available choices.", (
-                response_body(response)
-            )
+        assert [str(err) for err in response.data["distributor"]] == [
+            "Select a valid choice. Tasty Treats is not one of the available choices."
+        ], response_body(response)
 
         response = api_client.get(
             reverse("store.cart-list"),
@@ -146,8 +145,9 @@ class TestModelInfoChoices:
             format="json",
         )
 
-        for err in response.data["product_quantity"]:
-            assert str(err) == "Select a valid choice. 24 is not one of the available choices.", response_body(response)
+        assert [str(err) for err in response.data["product_quantity"]] == [
+            "Select a valid choice. 24 is not one of the available choices."
+        ], response_body(response)
 
 
 @pytest.mark.django_db
@@ -221,7 +221,7 @@ class TestValueDerivedFilterChoicesStayFresh:
 
 @pytest.mark.django_db
 class TestTrigramSimilarFilter:
-    similarity_threshold_default = 0.3
+    # pg_trgm's default similarity_threshold is 0.3, so the first request matches.
     # similarity('Vibrant', 'Vibrant Looks Inc.') = 0.444444
     similarity_threshold_failing_close = 0.5
 
@@ -267,8 +267,10 @@ class TestTrigramSimilarFilter:
         assert response.data["totalRecords"] == 1, response_body(response)
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
+        # SET LOCAL ends with the test's transaction, so a failing assert below can't leave the
+        # raised threshold behind for later tests on this connection.
         with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.similarity_threshold = %s", [self.similarity_threshold_failing_close])
+            cursor.execute("SET LOCAL pg_trgm.similarity_threshold = %s", [self.similarity_threshold_failing_close])
 
         response = api_client.get(
             reverse("store.distributor-list"),
@@ -276,9 +278,6 @@ class TestTrigramSimilarFilter:
             format="json",
         )
         assert response.data["totalRecords"] == 0, response_body(response)
-
-        with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.similarity_threshold = %s", [self.similarity_threshold_default])
 
     def test_trigram_similar_no_match(self, test_data, api_client, settings):
         """name_similar filter returns no results when nothing is similar."""
@@ -312,7 +311,7 @@ class TestTrigramSimilarFilter:
 
 @pytest.mark.django_db
 class TestTrigramWordSimilarFilter:
-    similarity_word_threshold_default = 0.6
+    # pg_trgm's default word_similarity_threshold is 0.6, so the first request matches.
     # word_similarity('Vibran', 'Vibrant') = 0.85714287
     similarity_word_threshold_failing_close = 0.9
 
@@ -357,8 +356,12 @@ class TestTrigramWordSimilarFilter:
         assert response.data["totalRecords"] == 1, response_body(response)
         assert response.data["results"][0]["name"] == "Vibrant Looks Inc."
 
+        # SET LOCAL ends with the test's transaction, so a failing assert below can't leave the
+        # raised threshold behind for later tests on this connection.
         with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_failing_close])
+            cursor.execute(
+                "SET LOCAL pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_failing_close]
+            )
 
         response = api_client.get(
             reverse("store.distributor-list"),
@@ -366,9 +369,6 @@ class TestTrigramWordSimilarFilter:
             format="json",
         )
         assert response.data["totalRecords"] == 0, response_body(response)
-
-        with connection.cursor() as cursor:
-            cursor.execute("SET pg_trgm.word_similarity_threshold = %s", [self.similarity_word_threshold_default])
 
     def test_trigram_word_similar_no_match(self, test_data, api_client, settings):
         """Search with no word similarity returns no results."""
@@ -508,7 +508,7 @@ class TestVuedaRankedDescriptionFilter:
         assert response.data["totalRecords"] == 0, response_body(response)
 
     def test_name_filter_no_match(self, test_data, api_client, settings):
-        """Search with no similarity in descriptions returns no results."""
+        """The `name_icontains` filter returns nothing when no distributor's name contains the value."""
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_ranked_description"
 
         user = test_data.users["test_admin@domain.invalid"]
@@ -731,7 +731,7 @@ class TestVuedaSearchFilterDistinct:
         assert response.data["columnTotals"] == {"quantity": 18, "double_quantity": 36}, response_body(response)
 
     def test_m2m_ordering_search_deduplicates_results(self, test_data, api_client, settings):
-        """A search across an M2M field returns each matching product once.
+        """A search across an M2M field returns each matching product once, in the requested order either way.
 
         Two products each have three special_care entries: perishable, temperature_controlled,
         and fragile. Searching for 'Perishable Fragile' matches two special_care entries
@@ -779,14 +779,13 @@ class TestVuedaSearchFilterDistinct:
 class TestMixedRankedAndWordSimilarSearch:
     """Tests for mixing V: (ranked) and ~ (trigram word similar) search prefixes.
 
-    Bug: filter_queryset only splits out V: (__vueda_search) and # (__trigram_similar)
-    prefixed lookups. The ~ prefix produces __trigram_word_similar, which doesn't
-    match either suffix check, so it falls into det_lookups. This causes two problems:
+    filter_queryset splits out ~ (__trigram_word_similar) lookups alongside V: (__vueda_search) and
+    # (__trigram_similar), rather than treating them as deterministic lookups. So a ~ field:
 
-    1. The ~ field is filtered with AND-across-terms instead of combining terms
-       into a single trigram_word_similar check.
-    2. It receives a flat deterministic_score boost (10 per match) instead of
-       contributing actual similarity scores to combined_rank.
+    1. combines the search terms into one trigram_word_similar check, rather than AND'ing a check
+       per term, and
+    2. acts as a filter, rather than adding a flat deterministic_score boost (10 per match) to
+       combined_rank.
     """
 
     @pytest.fixture
@@ -828,13 +827,9 @@ class TestMixedRankedAndWordSimilarSearch:
 
         search_fields = ["V:name", "~description"], search = "Treat Sugar"
 
-        Before the fix, ~ landed in det_lookups, which AND'd terms:
-        description__trigram_word_similar="Treat" AND
-        description__trigram_word_similar="Sugar". Only distributors where
-        BOTH words independently pass word_similarity would survive.
-
-        After the fix, ~ combines terms: description__trigram_word_similar="Treat Sugar".
-        The combined phrase is checked as a single trigram_word_similar filter.
+        The ~ field checks the combined phrase, description__trigram_word_similar="Treat Sugar",
+        rather than description__trigram_word_similar="Treat" AND ...="Sugar", which would keep
+        only distributors where both words pass word_similarity on their own.
         """
         settings.ROOT_URLCONF = "tests.unit.filtering.urls_mixed_ranked_word_similar"
 
@@ -842,24 +837,19 @@ class TestMixedRankedAndWordSimilarSearch:
         api_client.force_authenticate(user=user)
         self.register_viewsets()
 
-        # "Treat" matches V:name for "Treat King LLC." and "Tasty Treats Assoc."
-        # Both also have "Treat" in their descriptions, passing ~description.
-        # "Sugar" appears in Tasty Treats Assoc. description ("Glorious Sugar")
-        # and Treat King LLC. description ("Sugary").
-        # With combined terms: "Treat Sugar" as a single string is checked
-        # via word_similarity against each description.
+        # The combined "Treat Sugar" is checked with word_similarity against each description, and a
+        # row must reach pg_trgm's default word_similarity_threshold of 0.6 to survive:
+        # - Tasty Treats Assoc. ("... Glorious Sugar ...") scores 0.647, and its name ranks 0.263,
+        #   above the search threshold of 0.2.
+        # - Treat King LLC. ("... Sugary Goodness.") scores only 0.5, so it is filtered out, even
+        #   though its name ranks highest (1.4). The description check is a hard filter that a
+        #   strong name match cannot outvote.
         response = api_client.get(
             reverse("store.distributor-list"),
             data={settings.REST_FRAMEWORK["SEARCH_PARAM"]: "Treat Sugar"},
             format="json",
         )
-        # Both treat distributors match V:name for "Treat" and their descriptions
-        # should pass trigram_word_similar for the combined "Treat Sugar".
-        assert response.data["totalRecords"] >= 1, (
-            f"Expected results where V:name matches 'Treat' and description "
-            f"passes trigram_word_similar for combined 'Treat Sugar'. "
-            f"response.data: {response.data}"
-        )
+        assert [x["name"] for x in response.data["results"]] == ["Tasty Treats Assoc."], response_body(response)
 
     def test_mixed_single_term_filters_by_word_similar(self, test_data, api_client, settings):
         """Single-term search where ~description acts as a hard filter,
@@ -896,7 +886,13 @@ class TestMixedRankedAndWordSimilarSearch:
 class TestMultiValuedSearchPkTieBreaker:
     """A ranked search through a multi-valued relation breaks ties by primary key, so objects that tie
     on the ordering come back in a stable order, whether the list is sorted by rank or by a requested
-    ordering."""
+    ordering.
+
+    When the search has to deduplicate (must_call_distinct) and no ordering was requested, the
+    backend orders by ("-combined_rank", "pk") for DISTINCT ON. Replacing that afterwards with
+    ("-combined_rank",) alone would drop the pk tiebreaker, and rows with the same combined_rank
+    would come back in no defined order.
+    """
 
     @staticmethod
     def search_carts(ordering):
@@ -939,6 +935,7 @@ class TestMultiValuedSearchPkTieBreaker:
         with patch.object(backend, "must_call_distinct", return_value=True):
             result_qs = backend.filter_queryset(request, queryset, view)
 
+        # Django's query.order_by contains the ORM-level ordering fields.
         order_by = result_qs.query.order_by
         assert order_by == ("-combined_rank", "pk"), order_by
 
@@ -1400,8 +1397,8 @@ class TestSearchKeepsAnyOrdering:
             store_viewsets.ProductM2MSearchRelationOrderingViewSet,
         )
 
-        def distributor_ids(ordering):
-            response = self.list_url(
+        def search_products_ordered_by(ordering):
+            return self.list_url(
                 api_client,
                 settings,
                 "store.product-list",
@@ -1409,14 +1406,20 @@ class TestSearchKeepsAnyOrdering:
                 ordering=ordering,
             )
 
-            assert response.status_code == HTTPStatus.OK, response_body(response)
-            assert response.data["totalRecords"] == 4, response_body(response)  # noqa: PLR2004
+        def distributor_ids_of(response):
             return [
                 store_models.Product.objects.get(pk=result["id"]).distributor_id for result in response.data["results"]
             ]
 
-        ascending = distributor_ids("distributor")
-        descending = distributor_ids("-distributor")
+        ascending_response = search_products_ordered_by("distributor")
+        descending_response = search_products_ordered_by("-distributor")
+
+        for response in (ascending_response, descending_response):
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            assert response.data["totalRecords"] == 4, response_body(response)  # noqa: PLR2004
+
+        ascending = distributor_ids_of(ascending_response)
+        descending = distributor_ids_of(descending_response)
 
         assert ascending == sorted(ascending)
         assert descending == sorted(descending, reverse=True)

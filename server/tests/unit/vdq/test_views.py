@@ -1,3 +1,4 @@
+import logging
 import sys
 from http import HTTPStatus
 from types import ModuleType
@@ -241,3 +242,150 @@ def test_private_attachment_view_handles_missing_file(api_client):
     response = api_client.get(reverse("private_attachment", kwargs={"pk": 9999}))
 
     assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
+
+
+def _sending_sms_item(sms_sender, sms_receiver, message_sid=""):
+    queue_item = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")
+    SMSQueueItem.objects.create(queue_item=queue_item, body="hello", media_url=None, message_sid=message_sid)
+    queue_item.fast_transition("send")
+    return queue_item
+
+
+def _ignore_deferred_lookup(monkeypatch):
+    delay_calls = []
+    monkeypatch.setattr(
+        "vueda.vdq.views.check_previously_received_message_sid",
+        SimpleNamespace(delay=lambda *args: delay_calls.append(args)),
+    )
+    return delay_calls
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("message_status", "expected_state"),
+    [("delivered", "succeeded"), ("failed", "errored"), ("sent", "awaiting")],
+)
+def test_twilio_webhook_finds_the_queue_item_by_its_key_and_stores_the_sid(
+    monkeypatch, api_client, sms_sender, sms_receiver, message_status, expected_state
+):
+    _install_fake_twilio_validator(monkeypatch, return_value=True)
+    delay_calls = _ignore_deferred_lookup(monkeypatch)
+    queue_item = _sending_sms_item(sms_sender, sms_receiver)
+
+    response = api_client.post(
+        f"{reverse('twilio_sms_webhook')}?queue_item={queue_item.pk}",
+        {"MessageSid": "SM900", "MessageStatus": message_status},
+        format="multipart",
+        HTTP_X_TWILIO_SIGNATURE="valid",
+    )
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert delay_calls == []
+    queue_item.refresh_from_db()
+    assert queue_item.sms.message_sid == "SM900"
+    assert queue_item.workflow_state.code == expected_state
+
+
+@pytest.mark.django_db
+def test_twilio_webhook_ignores_a_key_whose_item_stores_another_sid(
+    monkeypatch, api_client, caplog, sms_sender, sms_receiver
+):
+    _install_fake_twilio_validator(monkeypatch, return_value=True)
+    delay_calls = _ignore_deferred_lookup(monkeypatch)
+    queue_item = _sending_sms_item(sms_sender, sms_receiver, message_sid="SMOLD")
+    queue_item.fast_transition("await")
+
+    with caplog.at_level(logging.WARNING):
+        response = api_client.post(
+            f"{reverse('twilio_sms_webhook')}?queue_item={queue_item.pk}",
+            {"MessageSid": "SMNEW", "MessageStatus": "delivered"},
+            format="multipart",
+            HTTP_X_TWILIO_SIGNATURE="valid",
+        )
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert "which stores MessageSid SMOLD" in caplog.text
+    assert delay_calls == []
+    queue_item.refresh_from_db()
+    assert queue_item.sms.message_sid == "SMOLD"
+    assert queue_item.workflow_state.code == "awaiting"
+
+
+@pytest.mark.django_db
+def test_twilio_webhook_queues_lookup_when_the_key_finds_no_item(monkeypatch, api_client, sms_sender, sms_receiver):
+    _install_fake_twilio_validator(monkeypatch, return_value=True)
+    delay_calls = _ignore_deferred_lookup(monkeypatch)
+    queue_item = _sending_sms_item(sms_sender, sms_receiver)
+
+    response = api_client.post(
+        f"{reverse('twilio_sms_webhook')}?queue_item={queue_item.pk + 1000}",
+        {"MessageSid": "SM901", "MessageStatus": "delivered"},
+        format="multipart",
+        HTTP_X_TWILIO_SIGNATURE="valid",
+    )
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert delay_calls == [("SM901", "delivered")]
+    queue_item.refresh_from_db()
+    assert queue_item.sms.message_sid == ""
+    assert queue_item.workflow_state.code == "sending"
+
+
+@pytest.mark.django_db
+def test_twilio_webhook_matches_by_sid_before_the_key(monkeypatch, api_client, sms_sender, sms_receiver):
+    _install_fake_twilio_validator(monkeypatch, return_value=True)
+    delay_calls = _ignore_deferred_lookup(monkeypatch)
+    by_sid = _sending_sms_item(sms_sender, sms_receiver, message_sid="SM902")
+    by_sid.fast_transition("await")
+    by_key = _sending_sms_item(sms_sender, sms_receiver)
+
+    response = api_client.post(
+        f"{reverse('twilio_sms_webhook')}?queue_item={by_key.pk}",
+        {"MessageSid": "SM902", "MessageStatus": "delivered"},
+        format="multipart",
+        HTTP_X_TWILIO_SIGNATURE="valid",
+    )
+
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+    assert delay_calls == []
+    by_sid.refresh_from_db()
+    by_key.refresh_from_db()
+    assert by_sid.workflow_state.code == "succeeded"
+    assert by_key.workflow_state.code == "sending"
+    assert by_key.sms.message_sid == ""
+
+
+@pytest.mark.django_db
+def test_twilio_webhook_rejects_an_altered_key(settings, monkeypatch, api_client, sms_sender, sms_receiver):
+    """Twilio signs the full callback URL, so a changed key fails validation while the signed URL passes."""
+    from twilio.request_validator import RequestValidator
+
+    settings.TWILIO_AUTH_TOKEN = "test-auth-token"
+    delay_calls = _ignore_deferred_lookup(monkeypatch)
+    queue_item = _sending_sms_item(sms_sender, sms_receiver)
+    other_item = _sending_sms_item(sms_sender, sms_receiver)
+    params = {"MessageSid": "SM903", "MessageStatus": "delivered"}
+    signed_path = f"{reverse('twilio_sms_webhook')}?queue_item={queue_item.pk}"
+    signature = RequestValidator(settings.TWILIO_AUTH_TOKEN).compute_signature(
+        f"http://testserver{signed_path}", params
+    )
+
+    altered = api_client.post(
+        f"{reverse('twilio_sms_webhook')}?queue_item={other_item.pk}",
+        params,
+        format="multipart",
+        HTTP_X_TWILIO_SIGNATURE=signature,
+    )
+
+    assert altered.status_code == HTTPStatus.FORBIDDEN, response_body(altered)
+    other_item.refresh_from_db()
+    assert other_item.sms.message_sid == ""
+    assert other_item.workflow_state.code == "sending"
+
+    signed = api_client.post(signed_path, params, format="multipart", HTTP_X_TWILIO_SIGNATURE=signature)
+
+    assert signed.status_code == HTTPStatus.NO_CONTENT, response_body(signed)
+    assert delay_calls == []
+    queue_item.refresh_from_db()
+    assert queue_item.sms.message_sid == "SM903"
+    assert queue_item.workflow_state.code == "succeeded"

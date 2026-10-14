@@ -4,14 +4,16 @@ import ast
 import datetime
 import importlib.util
 import os
+import site
 import sys
-from pprint import pformat
+import sysconfig
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
 from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NoRenamesError
+from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
@@ -19,6 +21,7 @@ from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_MODIFIED_COMMENT
 from vueda.workflow.management.commands.makeworkflowmigrations import NEWLINE
+from vueda.workflow.management.commands.makeworkflowmigrations import WorkflowChangeTypes
 from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_item
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_imports
 from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_sources
@@ -37,6 +40,44 @@ REQUIRED_WORKFLOW_MIGRATION = (
 # The keys naming the app and model a workflow was written for, which a change records alongside a
 # workflow's code so that a code two content types have held resolves to the right one.
 WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
+
+
+def get_installed_package_paths():
+    """Return the directories packages are installed into, normalized for comparison.
+
+    A migration under one of them belongs to a package, so the project cannot commit a rewrite of it,
+    and reinstalling the package puts the original back. An editable install leaves its files in their
+    source tree, so it is not under any of these.
+
+    Besides the environment's own package directories, these include the base interpreter's, which a
+    virtual environment created with ``--system-site-packages`` also imports from, and the user site
+    directory that ``pip install --user`` installs into.
+
+    On Windows, ``site.getsitepackages`` lists each prefix itself alongside its ``Lib\\site-packages``.
+    A prefix holds far more than packages, so counting it would treat a project kept inside a Python
+    install, such as a portable or embedded one, as installed. The prefixes are left out.
+    """
+    prefixes = (sys.base_prefix, sys.base_exec_prefix)
+    paths = (
+        sysconfig.get_path("purelib"),
+        sysconfig.get_path("platlib"),
+        *site.getsitepackages(prefixes),
+        site.getusersitepackages(),
+    )
+    # Different spellings can name one directory, such as lib64 linked to lib, so duplicates are
+    # dropped once each path is resolved.
+    resolved_prefixes = {os.path.normcase(os.path.realpath(prefix)) for prefix in prefixes}
+    resolved_paths = {os.path.normcase(os.path.realpath(path)): None for path in paths}
+    return tuple(path for path in resolved_paths if path not in resolved_prefixes)
+
+
+INSTALLED_PACKAGE_PATHS = get_installed_package_paths()
+
+
+def is_installed_package_path(path):
+    """Return whether a path is inside a directory packages are installed into."""
+    path = os.path.normcase(os.path.realpath(path))
+    return any(path == root or path.startswith(root + os.sep) for root in INSTALLED_PACKAGE_PATHS)
 
 
 def describe_unreadable_changes(changed_data):
@@ -108,6 +149,12 @@ def collect_workflow_identities(changed_data_lists):
     A code can be released by one model and taken over by another, so a code maps to a list rather
     than to one identity, and which entry a reference means depends on when that reference was
     recorded.
+
+    Each entry also records whether the workflow it names took the code at that change: one added
+    with the code, or one whose code was changed to it. Every other change to a workflow records an
+    entry too, under the code it already held, and can name a different app or model when the
+    workflow's own changed. Telling the two apart is what shows whether one workflow or several have
+    held a code.
     """
     identities = {}
 
@@ -116,7 +163,8 @@ def collect_workflow_identities(changed_data_lists):
             if changed_item["model_name"] != "workflow":
                 continue
 
-            code = get_id_values_from_item(changed_item["changes"].get("code"), reversing=True)
+            recorded_code = changed_item["changes"].get("code")
+            code = get_id_values_from_item(recorded_code, reversing=True)
             if code is None:
                 continue
 
@@ -127,7 +175,14 @@ def collect_workflow_identities(changed_data_lists):
                 for key, value in workflow_identity_of(changed_item["changes"]).items()
             }
 
-            identities.setdefault(code, []).append((recorded_at_utc(changed_item["history_date"]), identity))
+            # A changed code is recorded as an (old, new) pair, so a pair means the code was changed to this one.
+            took_code = changed_item.get("history_type") == WorkflowChangeTypes.ADDED.value or isinstance(
+                recorded_code, tuple
+            )
+
+            if code not in identities:
+                identities[code] = []
+            identities[code].append((recorded_at_utc(changed_item["history_date"]), identity, took_code))
 
     for entries in identities.values():
         entries.sort(key=lambda entry: entry[0])
@@ -136,18 +191,29 @@ def collect_workflow_identities(changed_data_lists):
 
 
 def workflow_identity_at(identities, code, recorded_at):
-    """Return what a workflow code meant when a change naming it was recorded."""
+    """Return what a workflow code meant when a change naming it was recorded, or ``None`` when that cannot be told."""
     entries = identities.get(code)
     if not entries:
         return None
 
     chosen = None
-    for recorded, identity in entries:
+    for recorded, identity, _ in entries:
         if recorded <= recorded_at:
             chosen = identity
 
-    # A reference recorded before the workflow's own change means the earliest workflow to hold it.
-    return chosen if chosen is not None else entries[0][1]
+    if chosen is not None:
+        return chosen
+
+    # A reference recorded before the workflow's own change means the only workflow to hold its code. A
+    # workflow records an entry for each of its changes, so one workflow can have several entries, even
+    # naming different apps or models when its own changed. Only a later entry that took the code, naming a
+    # different app or model, shows a different workflow has held it. Then which one the reference means
+    # cannot be told, so it is left naming the code alone.
+    first_identity = entries[0][1]
+    if any(took_code and identity != first_identity for _, identity, took_code in entries[1:]):
+        return None
+
+    return first_identity
 
 
 def add_workflow_identities(value, identities, recorded_at, *, names_a_workflow=False):
@@ -207,8 +273,10 @@ OPERATION_FUNCTION_RENAMES = {
 
 class Command(BaseCommand):
     help = (
-        "Scan all installed apps for workflow migrations created by makeworkflowmigrations and rewrite "
-        "their import and function sections with the current implementations from makeworkflowmigrations.py. "
+        "Scan the named apps, or every app when none is named, for workflow migrations created by "
+        "makeworkflowmigrations and rewrite their import and function sections with the current implementations "
+        "from makeworkflowmigrations.py. Apps installed as packages are never updated, though their migrations "
+        "are read for the workflows they record and for dependency checks. "
         "The history_change_reason and migration_app_label variables are preserved unchanged, and changed_data "
         "keeps every change it records, gaining only the app and model naming each workflow it refers to by code. "
         "The class Migration block is also preserved, with stale operation function names updated to their "
@@ -230,18 +298,26 @@ class Command(BaseCommand):
         )
 
     def _find_workflow_migration_files(self, selected_apps=()):
+        """Return every generated workflow migration, with its migration key and whether this run may rewrite it.
+
+        Every app is scanned, not only the ones this run rewrites, because a migration that must not be
+        rewritten can still be the only record of which workflow a code meant, and the references in a
+        rewritten migration are resolved from that record.
+        """
         result = {}
 
         for app_config in django_apps.get_app_configs():
             app_label = app_config.label
 
-            # If you specify apps, skip models not in your app.
-            if selected_apps and app_label not in selected_apps:
-                continue
-
             migrations_path = get_migrations_path(app_config)
             if migrations_path is None or not os.path.isdir(migrations_path):
                 continue
+
+            # Only the project's own apps are rewritten, and only the named ones when apps are named.
+            # A named package app is rejected in handle().
+            writable = not is_installed_package_path(migrations_path) and (
+                not selected_apps or app_label in selected_apps
+            )
 
             for filename in sorted(os.listdir(migrations_path)):
                 if not filename.endswith(".py") or filename == "__init__.py":
@@ -251,20 +327,24 @@ class Command(BaseCommand):
                 with open(filepath, encoding="utf-8") as f:
                     for line_no, line in enumerate(f):
                         if line.startswith(WORKFLOW_MIGRATION_COMMENT_MARKER):
-                            result[filepath] = (app_label, filename.removesuffix(".py"))
+                            result[filepath] = ((app_label, filename.removesuffix(".py")), writable)
                             break
                         if line_no > 20:  # noqa: PLR2004
                             break
 
         return result
 
-    def _load_changed_data(self, filepath):
+    def _load_changed_data(self, filepath, *, writable=True):
         """Return the changes a migration records, or ``None`` when they cannot be read.
 
         The file is read as the module it is, rather than parsed, because a change records real
         datetimes and a literal parser cannot build those. Changes that import but lack what the
         command reads from them are reported the same way, so the file is skipped rather than
         ending the run.
+
+        A migration this run does not rewrite is read only for the workflows it records, so a fault
+        in it is a warning rather than a failure: the workflows it records are left out, and
+        references are resolved from the history that remains.
         """
         try:
             spec = importlib.util.spec_from_file_location("workflow_migration_being_updated", filepath)
@@ -272,18 +352,24 @@ class Command(BaseCommand):
             spec.loader.exec_module(module)
             changed_data = module.changed_data
         except Exception as error:
-            self.stderr.write(self.style.ERROR(f"  Could not read changed_data in {filepath}: {error}"))
-            return None
+            problem = str(error)
+        else:
+            problem = describe_unreadable_changes(changed_data)
 
-        problem = describe_unreadable_changes(changed_data)
-        if problem is not None:
+        if problem is None:
+            return changed_data
+
+        if writable:
             self.stderr.write(self.style.ERROR(f"  Could not read changed_data in {filepath}: {problem}"))
-            return None
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  Could not read changed_data in {filepath}: {problem}. "
+                    "The workflows it records are not used to name references."
+                )
+            )
 
-        return changed_data
-
-    @staticmethod
-    def _replace_changed_data(lines_string, changed_data):
+    def _replace_changed_data(self, lines_string, changed_data, filepath):
         """Write the changes back in the form makeworkflowmigrations writes them."""
         tree = ast.parse(lines_string)
 
@@ -294,7 +380,9 @@ class Command(BaseCommand):
             return lines_string
 
         lines = lines_string.splitlines(keepends=True)
-        lines[node.lineno - 1 : node.end_lineno] = [f"changed_data = {pformat(changed_data, width=20)}{NEWLINE}"]
+        lines[node.lineno - 1 : node.end_lineno] = [
+            format_changed_data(changed_data, filepath, stderr=self.stderr, dry_run=self.dry_run)
+        ]
 
         return "".join(lines)
 
@@ -381,7 +469,7 @@ class Command(BaseCommand):
         updated_changed_data = add_workflow_identities_to_changed_data(changed_data, identities)
         try:
             if updated_changed_data != changed_data:
-                lines_string = self._replace_changed_data(lines_string, updated_changed_data)
+                lines_string = self._replace_changed_data(lines_string, updated_changed_data, filepath)
         except SyntaxError as e:
             self.stderr.write(
                 self.style.ERROR(f"  Unable to parse migration at {filepath} due to syntax error {e}, skipping.")
@@ -436,26 +524,37 @@ class Command(BaseCommand):
         has_bad_labels = False
         for app_label in app_labels:
             try:
-                django_apps.get_app_config(app_label)
+                app_config = django_apps.get_app_config(app_label)
             except LookupError as err:
                 self.stderr.write(str(err))
+                has_bad_labels = True
+                continue
+
+            migrations_path = get_migrations_path(app_config)
+            if migrations_path is not None and is_installed_package_path(migrations_path):
+                self.stderr.write(
+                    f"App '{app_label}' is part of an installed package at {migrations_path}. "
+                    "updateworkflowmigrations will not update installed packages."
+                )
                 has_bad_labels = True
         if has_bad_labels:
             sys.exit(2)
 
         migration_files = self._find_workflow_migration_files(app_labels)
+        writable_files = [filepath for filepath, (_, writable) in migration_files.items() if writable]
 
-        if not migration_files:
+        if not writable_files:
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No workflow migrations found to update."))
             return
 
-        # Every generated migration is read before any is written, because what a workflow code
-        # meant at one moment can be recorded in a different migration than the change naming it.
+        # Every generated migration is read before any is written, including those this run does
+        # not rewrite, because what a workflow code meant at one moment can be recorded in a
+        # different migration than the change naming it, even one in an installed package.
         changed_data_by_file = {}
-        for filepath in migration_files:
-            changed_data = self._load_changed_data(filepath)
+        for filepath, (_, writable) in migration_files.items():
+            changed_data = self._load_changed_data(filepath, writable=writable)
             if changed_data is not None:
-                if has_naive_history_dates(changed_data):
+                if writable and has_naive_history_dates(changed_data):
                     self.stdout.write(
                         self.style.WARNING(f"  Naive dates found in changed_data in {filepath}. Treating as UTC.")
                     )
@@ -466,12 +565,13 @@ class Command(BaseCommand):
 
         failure_count = 0
         updated_count = 0
-        for filepath in migration_files:
+        for filepath in writable_files:
             verb = "Would update" if self.dry_run else "Updating"
             self.stdout.write(f"{verb}: {filepath}")
-            if self._update_migration_file(
-                filepath, changed_data_by_file.get(filepath), identities, migration_files[filepath]
-            ):
+            # Each file is rewritten from its own changes, but the workflows its references name are
+            # looked up in identities, which every generated migration read above contributed to.
+            migration_key, _ = migration_files[filepath]
+            if self._update_migration_file(filepath, changed_data_by_file.get(filepath), identities, migration_key):
                 updated_count += 1
             else:
                 # Something went wrong, stderr will have printed what.

@@ -3,14 +3,14 @@
 A field DRF accepts but the metadata leaves out is orderable and invisible: no metadata-driven client
 is ever offered it. The reverse is just as bad, and is the same contract read the other way: a field
 the metadata advertises but DRF rejects is a name every client is offered and none can use. These
-cover four ways that used to happen — a `"pk"` default whose expanded field name wasn't advertised
-as valid, a `"pk"` in `ordering_fields` whose expanded field name was advertised but not accepted,
-an annotation named outright in `ordering_fields`, and an `ordering_fields` entry written as DRF's
-`(field_name, label)` pair — plus `ordering_fields = None`, which used to raise instead of reporting
-anything at all, and an entry DRF itself can read no field name from, which has to be dropped rather
-than described or raised over.
+cover four ways the two can disagree — a `"pk"` default, whose expanded field name has to be
+advertised as valid; a `"pk"` in `ordering_fields`, whose expanded field name has to be accepted as
+well as advertised; an annotation named outright in `ordering_fields`; and an `ordering_fields`
+entry written as DRF's `(field_name, label)` pair. They also cover `ordering_fields = None`, which
+has to report rather than raise, and an entry DRF itself can read no field name from, which has to
+be dropped rather than described or raised over.
 
-The third way, a default term naming more than one field, is covered by
+A default term naming more than one field is another way, covered by
 `test_model_ordering_multi_field_default.py`, which owns that viewset's metadata.
 """
 
