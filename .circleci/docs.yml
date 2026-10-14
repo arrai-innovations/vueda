@@ -132,11 +132,21 @@ jobs:
             - run:
                   name: Copy Configuration
                   command: cp server/config.circleci.toml server/config.local.toml
+            # External docs downloads. CircleCI never overwrites an existing key, so the key changes when
+            # the pinned versions or the package list do, and the prefix restores the last copy otherwise.
+            - restore_cache:
+                  keys:
+                      - external-docs-v1-{{ checksum "uv.lock" }}-{{ checksum "docs-tooling/external-docs.json" }}
+                      - external-docs-v1-
             - run:
                   name: Extract and Normalize API Documentation
                   command: |
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js extract
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js normalize
+            - save_cache:
+                  paths:
+                      - docs-tooling/.cache/external
+                  key: external-docs-v1-{{ checksum "uv.lock" }}-{{ checksum "docs-tooling/external-docs.json" }}
             - run:
                   name: Render API Documentation
                   command: |

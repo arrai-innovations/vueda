@@ -9,7 +9,8 @@
  * `useTheme` composable (`@vueda/use/useTheme.js`); they do not mock this
  * registry, so a themed SFC's eager `patchTheme(...)` side effect resolves to
  * the real function even when `useTheme` is mocked. `useTheme.js` re-exports
- * `setTheme` / `patchTheme` / `getTheme` / `mergeTheme` so the public
+ * `setTheme` / `patchTheme` / `overrideTheme` / `clearThemeOverrides` /
+ * `setClassMerger` / `getTheme` / `mergeTheme` so the public
  * `@vueda/use/useTheme.js` import path is unchanged for existing callers.
  */
 import { combineClasses } from "@arrai-innovations/reactive-helpers";
