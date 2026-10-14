@@ -44,6 +44,8 @@ A check approves by returning `true` or nothing. The first check that returns an
 
 `requireGroups` passes for a user who belongs to at least one of the listed groups, and for a superuser. Anyone else sees a "Permission Denied" toast and is redirected to `groupsRedirect`.
 
+`requireAuth` and `requireGroups` wait for the current-user request, the one that `storeUser.fetchCurrentUser` sends. When that request fails, the check rejects the navigation with the request error, and the next navigation sends the request again.
+
 These checks decide which views the client opens. The server authorizes every request on its own, so a route that the client admits still returns only what that user may see. [Authorization vs UI Semantics](./authorization-vs-ui-semantics.md) describes the boundary between the two.
 
 ## Rechecking After the Authenticated User Changes

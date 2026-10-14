@@ -13,6 +13,7 @@ __all__ = (
     "ResendWelcomeEmailView",
     "VuedaAllAuthViewAdapter",
     "VuedaForgotPasswordView",
+    "VuedaPasswordChangeView",
     "VuedaResetPasswordView",
     "WhoIsView",
     "totp_code",
@@ -30,6 +31,7 @@ from allauth.headless.mfa.views import AuthenticateView
 from allauth.headless.mfa.views import ManageRecoveryCodesView
 from allauth.headless.mfa.views import ReauthenticateView as MFAReauthenticateView
 from allauth.mfa.internal.constants import LoginStageKey
+from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -89,8 +91,11 @@ from vueda.user.globals import CUD_CODENAMES
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
 from vueda.user.permissions import Authenticating
+from vueda.user.schema import RateLimitedSerializer
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
+from vueda.user.throttles import ClientIPScopedRateThrottle
+from vueda.user.throttles import throttle_code_send
 from vueda.user.utils import get_current_totp_code
 
 
@@ -135,10 +140,7 @@ class WhoIsView(RetrieveAPIView):
             "ForgotPasswordValidationError",
             fields={"email": serializers.ListField(child=serializers.CharField())},
         ),
-        429: conditional_inline_serializer(
-            "ForgotPasswordRateLimitError",
-            fields={"detail": serializers.CharField()},
-        ),
+        429: RateLimitedSerializer,
     },
 )
 class VuedaForgotPasswordView(GenericAPIView):
@@ -147,11 +149,13 @@ class VuedaForgotPasswordView(GenericAPIView):
 
     The response is the same whether or not an account matches, so the endpoint does not reveal
     which addresses have accounts. The one-minute cooldown applies to every address for the same
-    reason.
+    reason. The ``forgot_password`` throttle rate limits how many requests one IP address can make.
     """
 
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
+    throttle_classes = (ClientIPScopedRateThrottle,)
+    throttle_scope = "forgot_password"
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -290,6 +294,26 @@ class VuedaResetPasswordView(GenericAPIView):
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@conditional_extend_schema_decorator(
+    summary="Change password",
+    responses={
+        200: conditional_inline_serializer("PasswordChanged", fields={"detail": serializers.CharField()}),
+        400: conditional_open_api_types().OBJECT,
+        429: RateLimitedSerializer,
+    },
+)
+class VuedaPasswordChangeView(PasswordChangeView):
+    """
+    Change the signed-in user's password after confirming their current one.
+
+    The ``change_password`` throttle rate limits how many requests one user can make, so a caller who
+    holds a signed-in session cannot guess the current password through this endpoint.
+    """
+
+    throttle_classes = (ClientIPScopedRateThrottle,)
+    throttle_scope = "change_password"
 
 
 @conditional_extend_schema_decorator(
@@ -759,7 +783,9 @@ class AllAuthRecoveryCodesView(AllAuthAdapterDispatchMixin, ManageRecoveryCodesV
         )
     },
 )
-@conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code", responses={204: None})
+@conditional_extend_schema_decorator(
+    methods=["POST"], summary="Send a TOTP code", responses={204: None, 429: RateLimitedSerializer}
+)
 @api_view(["GET", "POST"])
 @permission_classes([Authenticating | IsAuthenticated])
 def totp_code(request):
@@ -794,5 +820,6 @@ def totp_code(request):
     }.get(method)
     if not send_action:
         return Response({"detail": "Unsupported method"}, status=status.HTTP_400_BAD_REQUEST)
+    throttle_code_send(request, user, method)
     send_action()
     return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,4 +1,4 @@
-import { requireAuth, requireInitialized, requireUnauth } from "@vueda/router/guards.js";
+import { requireAuth, requireCurrentUser, requireUnauth } from "@vueda/router/guards.js";
 import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
 import { setCrudComponents } from "@vueda/router/routerComponent.js";
 import { createRouter, createWebHistory } from "vue-router";
@@ -73,7 +73,7 @@ export function getRouter(app, pinia) {
                     view: "Not Found",
                 },
             },
-            beforeEnter: () => requireInitialized(router, pinia),
+            beforeEnter: () => requireCurrentUser(router, pinia),
             props: (route) => {
                 return {
                     ...(route.params || {}),

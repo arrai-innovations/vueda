@@ -1,4 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
+import flushPromises from "flush-promises";
 import { createPinia, setActivePinia } from "pinia";
 
 const getUrl = vi.fn();
@@ -53,7 +54,7 @@ describe("lib/stores/storeUser.js", () => {
             expectFetchHelperCall(0, "http://host/current/", { method: "GET" }, "Error requesting current user");
             expect(store.loggedIn).toBe(true);
             expect(store.loggedInUser).toEqual(user);
-            expect(store.initialized).toBe(true);
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error: null, errored: false });
             expect(store.loading).toBe(false);
             expect(store.error).toBeNull();
             expect(store.errored).toBe(false);
@@ -71,7 +72,7 @@ describe("lib/stores/storeUser.js", () => {
             expect(store.loading).toBe(false);
             expect(store.loggedIn).toBe(false);
             expect(store.loggedInUser).toEqual({});
-            expect(store.initialized).toBe(true);
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error, errored: true });
         });
 
         scopedIt("stores error on invalid data", async () => {
@@ -155,20 +156,174 @@ describe("lib/stores/storeUser.js", () => {
         });
     });
 
-    describe("init", () => {
-        scopedIt("calls fetchCurrentUser when not initialized", async () => {
-            const user = { id: 3 };
+    describe("Current-user request status", () => {
+        function deferred() {
+            let resolve;
+            let reject;
+            const promise = new Promise((_resolve, _reject) => {
+                resolve = _resolve;
+                reject = _reject;
+            });
+            return { promise, resolve, reject };
+        }
+
+        scopedIt("reports a never-requested current user before the first request", () => {
+            const store = storeUser();
+
+            expect(store.currentUserRequestStatus).toEqual({ loading: undefined, error: null, errored: false });
+            expect(store.currentUserRequest).toBeNull();
+        });
+
+        scopedIt("reports a request in flight and exposes a promise that settles with it", async () => {
             getUrl.mockReturnValue("/current/");
-            fetchHelper.mockResolvedValue(user);
+            const response = deferred();
+            fetchHelper.mockReturnValue(response.promise);
 
             const store = storeUser();
-            await store.init();
+            store.fetchCurrentUser();
+            const settled = vi.fn();
+            store.currentUserRequest.then(settled);
+            await flushPromises();
 
-            expectFetchHelperCall(0, "http://host/current/", { method: "GET" }, "Error requesting current user");
+            expect(store.currentUserRequestStatus).toEqual({ loading: true, error: null, errored: false });
+            expect(settled).not.toHaveBeenCalled();
+
+            response.resolve({ id: 1 });
+            await flushPromises();
+            expect(settled).toHaveBeenCalled();
             expect(store.loggedIn).toBe(true);
-            expect(store.loggedInUser).toEqual(user);
-            expect(store.initialized).toBe(true);
-            expect(store.initializingPromise).toBeInstanceOf(Promise);
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error: null, errored: false });
+        });
+
+        scopedIt("clears the previous failure while a new request runs", async () => {
+            getUrl.mockReturnValue("/current/");
+            const error = new Error("boom");
+            fetchHelper.mockRejectedValueOnce(error);
+
+            const store = storeUser();
+            await expect(store.fetchCurrentUser()).rejects.toBe(error);
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error, errored: true });
+
+            const response = deferred();
+            fetchHelper.mockReturnValueOnce(response.promise);
+            const retry = store.fetchCurrentUser();
+            expect(store.currentUserRequestStatus).toEqual({ loading: true, error: null, errored: false });
+
+            response.resolve({ id: 1 });
+            await retry;
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error: null, errored: false });
+            expect(store.loggedIn).toBe(true);
+        });
+
+        scopedIt("records a failed refetch after a successful one, keeping the earlier answer", async () => {
+            getUrl.mockReturnValue("/current/");
+            const error = new Error("boom");
+            fetchHelper.mockResolvedValueOnce({ id: 1 }).mockRejectedValueOnce(error);
+
+            const store = storeUser();
+            await store.fetchCurrentUser();
+            await expect(store.fetchCurrentUser()).rejects.toBe(error);
+
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error, errored: true });
+            expect(store.loggedIn).toBe(true);
+        });
+
+        scopedIt("records a failure with preserveError and leaves the store-wide error unchanged", async () => {
+            getUrl.mockReturnValue("/current/");
+            const error = new Error("boom");
+            fetchHelper.mockRejectedValue(error);
+
+            const store = storeUser();
+            await expect(store.fetchCurrentUser({ preserveError: true })).rejects.toBe(error);
+
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error, errored: true });
+            expect(store.error).toBeNull();
+            expect(store.errored).toBe(false);
+        });
+
+        scopedIt("keeps its state when another action fails", async () => {
+            const { FormValidationError } = await vi.importActual("@vueda/utils/errors.js");
+            getUrl.mockReturnValue("/url/");
+            const error = new FormValidationError({ email: ["required"] });
+            fetchHelper.mockResolvedValueOnce({ id: 1 }).mockRejectedValueOnce(error);
+
+            const store = storeUser();
+            await store.fetchCurrentUser();
+            await expect(store.forgotPassword({ email: "" })).rejects.toBe(error);
+
+            expect(store.errored).toBe(true);
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error: null, errored: false });
+        });
+
+        scopedIt("applies only the newest answer when an older request finishes last", async () => {
+            getUrl.mockReturnValue("/current/");
+            const older = deferred();
+            const newer = deferred();
+            fetchHelper.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+
+            const store = storeUser();
+            const olderRequest = store.fetchCurrentUser();
+            const newerRequest = store.fetchCurrentUser();
+
+            newer.resolve({ id: 2 });
+            await newerRequest;
+            older.resolve({ id: 1 });
+            await olderRequest;
+
+            expect(store.loggedInUser).toEqual({ id: 2 });
+            expect(store.principalId).toBe(2);
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error: null, errored: false });
+        });
+
+        scopedIt("settles an older request with the newest outcome", async () => {
+            getUrl.mockReturnValue("/current/");
+            const older = deferred();
+            const newer = deferred();
+            fetchHelper.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+
+            const store = storeUser();
+            const olderRequest = store.fetchCurrentUser();
+            const newerRequest = store.fetchCurrentUser();
+            const olderSettled = vi.fn();
+            olderRequest.then(olderSettled, olderSettled);
+
+            older.resolve({ id: 1 });
+            await flushPromises();
+            expect(olderSettled).not.toHaveBeenCalled();
+            expect(store.loggedInUser).toEqual({});
+            expect(store.currentUserRequestStatus.loading).toBe(true);
+
+            const error = new Error("boom");
+            newer.reject(error);
+            await expect(newerRequest).rejects.toBe(error);
+            await expect(olderRequest).rejects.toBe(error);
+            expect(store.loggedInUser).toEqual({});
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error, errored: true });
+        });
+
+        scopedIt("ignores an older request's failure and settles it with the newest success", async () => {
+            getUrl.mockReturnValue("/current/");
+            const older = deferred();
+            const newer = deferred();
+            fetchHelper.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+
+            const store = storeUser();
+            const olderRequest = store.fetchCurrentUser();
+            const newerRequest = store.fetchCurrentUser();
+            const olderSettled = vi.fn();
+            olderRequest.then(olderSettled, olderSettled);
+
+            older.reject(new Error("boom"));
+            await flushPromises();
+            expect(olderSettled).not.toHaveBeenCalled();
+            expect(store.currentUserRequestStatus).toEqual({ loading: true, error: null, errored: false });
+            expect(store.errored).toBe(false);
+
+            newer.resolve({ id: 2 });
+            await newerRequest;
+            await expect(olderRequest).resolves.toBeUndefined();
+            expect(store.loggedInUser).toEqual({ id: 2 });
+            expect(store.currentUserRequestStatus).toEqual({ loading: false, error: null, errored: false });
         });
     });
 
