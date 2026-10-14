@@ -79,7 +79,7 @@ For an extra action, the decorator sets `request.dry_run` to `True` and runs the
 
 A dry-run `destroy` runs `destroy_validation` and the warning gate, then answers `200` with an empty body and deletes nothing. A committed `destroy` answers `204`. A validation failure answers `400` in either mode.
 
-{@api vue:component:ModelActionForm} sends a dry run as a pre-flight once it has target objects, unless its [`enableDryRun`]{@api vue:component:ModelActionForm:prop:enableDryRun} prop is `false`. A `400` from the pre-flight shows as field errors on the form. The form drops any other failure, including a `409`, without a prompt. A successful pre-flight shows no toast, fires no redirect, and leaves the workflow store's cached object state unchanged.
+{@api vue:component:ModelActionForm} sends a dry run as a pre-flight once it has target objects, unless its [`enableDryRun`]{@api vue:component:ModelActionForm:prop:enableDryRun} prop is `false`. A `400` from the pre-flight shows as field errors on the form. The form drops any other failure, including a `409`, without a prompt. A successful pre-flight shows no toast, fires no redirect, and keeps the workflow store's cached state history.
 
 ## Warning Confirmation Gating
 

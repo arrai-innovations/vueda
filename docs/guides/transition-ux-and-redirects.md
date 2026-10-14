@@ -29,7 +29,7 @@ After a success redirect navigates away, the form disables its buttons and ignor
 
 `ModelActionForm` passes `ActionForm` a [`dryRunTarget`]{@api vue:component:ActionForm:prop:dryRunTarget} that changes with the target. If you build a view on `ActionForm` directly and its target can change after mount, pass `dryRunTarget` along with [`readyToDryRun`]{@api vue:component:ActionForm:prop:readyToDryRun}. Without it, the pre-flight runs once for the life of the form.
 
-For a transition, `ViewExecuteTransition` forwards the dry-run flag and the acknowledged warnings digest to `executeTransition`. The store rejects a `400` with {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} and a `409` with {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}, so both reach the form the same way as for other actions. A dry-run result stays out of the store's cached object state and transitions.
+For a transition, `ViewExecuteTransition` forwards the dry-run flag and the acknowledged warnings digest to `executeTransition`. The store rejects a `400` with {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError} and a `409` with {@api js:class:@arrai-innovations/vueda/utils/errors#ConfirmationRequiredError}, so both reach the form the same way as for other actions. A dry run keeps the store's cached state history. A completed transition drops the cached history of each object that it ran on, so the next history request goes to the server.
 
 ## Redirect Precedence and Route Targets
 
