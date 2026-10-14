@@ -1,4 +1,4 @@
-import { requireAuth, requireCurrentUser, requireUnauth } from "@vueda/router/guards.js";
+import { requireAuth, requireCurrentUser, requireRecentAuth, requireUnauth } from "@vueda/router/guards.js";
 import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
 import { setCrudComponents } from "@vueda/router/routerComponent.js";
 import { createRouter, createWebHistory } from "vue-router";
@@ -14,6 +14,8 @@ export function getRouter(app, pinia) {
 
     // Where a signed-in user belongs, for the sign-in and password pages to send them to.
     const signedInHome = { name: "welcome" };
+    // Where the account pages send a user whose session is no longer recent.
+    const reauthenticate = { name: "reauthenticate" };
     const routes = [
         {
             path: "/",
@@ -52,6 +54,42 @@ export function getRouter(app, pinia) {
             props: (route) => ({ pk: route.params.pk, token: String(route.query.token ?? "") }),
             meta: { title: "Reset Password" },
             beforeEnter: () => requireUnauth(signedInHome, router, pinia),
+        },
+        {
+            // useSignInFlow sends a user with a two-factor device here to finish signing in. That user stays
+            // signed out until the code is accepted, so the route takes signed-out users.
+            path: "/2fa/",
+            name: "2fa",
+            component: async () => (await import("@vueda/views/ViewTwoFactorAuth.vue")).default,
+            meta: { title: "Two-Factor Authentication" },
+            beforeEnter: () => requireUnauth(signedInHome, router, pinia),
+        },
+        {
+            // A form or route that needs a recent session sends the user here, with the refused path in
+            // `?redirect` to return to once the user confirms their identity.
+            path: "/reauthenticate/",
+            name: "reauthenticate",
+            component: async () => (await import("@vueda/views/ViewReauthenticate.vue")).default,
+            meta: { title: "Confirm Your Identity" },
+            beforeEnter: (to) => requireAuth({ name: "sign-in" }, to, router, pinia),
+        },
+        {
+            // Link to this route from your account settings. ViewSetupDevice reads the device methods from
+            // the TOTP device model's metadata, and returns to `?returnPath` once the device is active.
+            path: "/setup-device/",
+            name: "setup-device",
+            component: async () => (await import("@vueda/views/ViewSetupDevice.vue")).default,
+            props: { app: "vueda_user", model: "totpdevice" },
+            meta: { title: "Set Up Two-Factor Device" },
+            beforeEnter: (to) => requireRecentAuth(reauthenticate, to, router, pinia),
+        },
+        {
+            // Link to this route from your account settings. A user without a device is offered setup-device.
+            path: "/recovery-codes/",
+            name: "recovery-codes",
+            component: async () => (await import("@vueda/views/ViewRecoveryCodes.vue")).default,
+            meta: { title: "Recovery Codes" },
+            beforeEnter: (to) => requireRecentAuth(reauthenticate, to, router, pinia),
         },
         ...makeCRUDRoutes({
             component: async () => (await import("@vueda/views/ViewActionRouter.vue")).default,
