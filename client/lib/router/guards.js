@@ -115,7 +115,8 @@ export async function requireAuth(redirectTo, to, router, pinia) {
 }
 
 /**
- * Require the user to be recently authenticated.
+ * Require the user to be recently authenticated: signed in with no `storeUser.authPendingFlow`. When the store
+ * holds a recent session, the guard refetches the current user first, so an expired session is caught here.
  *
  * @example
  * ```js
@@ -145,10 +146,11 @@ export async function requireAuth(redirectTo, to, router, pinia) {
 export async function requireRecentAuth(redirectTo, to, router, pinia) {
     const resolvedRedirectTo = resolveRedirect(redirectTo, router);
     const userStore = storeUser(pinia);
-    if (userStore.recentlyLoggedIn !== false) {
+    const isRecent = () => userStore.loggedIn && !userStore.authPendingFlow;
+    if (isRecent()) {
         await userStore.fetchCurrentUser();
     }
-    if (!userStore.recentlyLoggedIn) {
+    if (!isRecent()) {
         return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
     }
 }

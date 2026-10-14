@@ -117,9 +117,30 @@ Each group migration carries its own copy of the code that applies these changes
 
 A group migration is a standard Django migration. `makegroupmigrations` adds:
 
-- `changed_data`, the list of changes that the migration applies.
+- `changed_data`, the list of changes that the migration applies. [How `changed_data` Is Formatted](#how-changed-data-is-formatted) describes its layout.
 - Copies of [`migrate_step`]{@api py:function:vueda.user.management.commands.makegroupmigrations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.management.commands.makegroupmigrations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
 - A comment near the top that marks the file as a group migration. VUEDA's group migration commands find group migrations by this comment, so keep it.
+
+### How `changed_data` Is Formatted
+
+`makegroupmigrations` formats `changed_data` with the Python formatter that your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. Projects usually install these as development dependencies. `makeworkflowmigrations` and `updateworkflowmigrations` format their `changed_data` the same way, as [How `changed_data` Is Formatted](manage-workflows.md#how-changed-data-is-formatted) in the workflow guide describes.
+
+The command uses the first formatter in this list that applies:
+
+1. black, when the `pyproject.toml` at your project root has a `[tool.black]` section, even an empty one. A project can install ruff only to lint, so black configuration comes first. A black configuration in your home directory, such as `~/.config/black`, does not count. One developer's file therefore cannot choose the formatter for the whole project.
+2. ruff, when it is installed.
+3. black with its default settings, when it is installed but not configured.
+4. Python's `pprint` with a narrow width, when neither is installed. Its output uses single quotes and ignores your settings.
+
+If the chosen formatter fails, the command does not switch to another formatter that would ignore your settings. A formatter fails, for example, when your `pyproject.toml` cannot be read or a setting has the wrong type. The command prints the formatter's error and writes `changed_data` with `pprint`. It then asks you to fix the problem and format that migration yourself.
+
+With black or ruff, the output has these properties:
+
+- Your project's settings apply. black reads `[tool.black]` from the `pyproject.toml` at your project root. ruff reads the configuration that covers the migration file, such as your `pyproject.toml` or `ruff.toml`, even when that configuration excludes migrations. The list follows your line length and quote style.
+- Every change and every key gets its own line. Each dictionary and list ends in a trailing comma, which keeps the formatter from joining the items onto one line. The command turns the magic trailing comma on even when your configuration turns it off.
+- Keys are sorted, as earlier versions of the command wrote them.
+
+The command formats only `changed_data` this way. It writes the rest of the migration, including the copied functions, in its own layout.
 
 ### Fill In Missing Change Records
 
