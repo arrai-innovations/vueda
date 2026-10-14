@@ -5,8 +5,10 @@ import pytest
 from allauth.mfa.models import Authenticator
 from allauth.mfa.recovery_codes.internal.auth import RecoveryCodes
 from allauth.mfa.totp.internal.auth import SECRET_SESSION_KEY
+from allauth.mfa.utils import decrypt
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from tests.conftest import record_authentication_methods
 from tests.conftest import response_body
@@ -14,6 +16,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.user.models import TWO_FACTOR_AUTHENTICATION_OPTIONS
 from vueda.user.models import TOTPDevice
 from vueda.user.serializers import TOTPDeviceSerializer
+from vueda.user.utils import get_current_totp_code
 from vueda.user.views import AllAuthAdapterDispatchMixin
 from vueda.user.viewsets import TOTPDeviceViewSet
 
@@ -582,6 +585,179 @@ def test_mfa_user_can_regenerate_recovery_codes_after_a_two_factor_reauthenticat
     regenerated = RecoveryCodes.activate(recovery_codes.instance.user).get_unused_codes()
     assert regenerated != unused_codes
     assert response.json()["data"]["unused_codes"] == regenerated
+
+
+# The device lifecycle tests below drive the real setup, activate, destroy, and sign-in endpoints, with MFA
+# secrets stored encrypted. Every device shares the user's one TOTP authenticator, so the tests check the secret
+# that the authenticator stores, or sign in to show which codes it accepts.
+
+
+@pytest.fixture
+def emailed_codes(monkeypatch):
+    """Record each code that ``setup`` and ``totp_code`` send by email, in the order they are sent."""
+    codes = []
+    adapter = SimpleNamespace(send_mail=lambda to, name, template, context: codes.append(context["code"]))
+    monkeypatch.setattr("vueda.user.viewsets.vueda_get_adapter", lambda: adapter)
+    monkeypatch.setattr("vueda.user.views.get_adapter", lambda: adapter)
+    return codes
+
+
+@pytest.fixture
+def device_owner(api_client, user, encrypted_mfa_secrets):
+    """``user``, signed in through ``api_client`` with a recent password check and no device yet."""
+    api_client.force_login(user)
+    record_authentication_methods(api_client, "password")
+    return user
+
+
+def add_authenticator_app(api_client):
+    """Set up and activate an authenticator app, and return the secret that ``setup`` showed for it."""
+    setup = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
+    assert setup.status_code == HTTPStatus.OK, response_body(setup)
+    secret = setup.data["meta"]["totp_secret"]
+    activate = api_client.post(
+        reverse("vueda_user.totpdevice-activate"), {"code": get_current_totp_code(secret)}, format="json"
+    )
+    assert activate.status_code == HTTPStatus.CREATED, response_body(activate)
+    return secret
+
+
+def set_up_email_device(api_client):
+    setup = post_setup(api_client, "email", "user@domain.invalid")
+    assert setup.status_code == HTTPStatus.OK, response_body(setup)
+
+
+def add_email_device(api_client, emailed_codes):
+    """Set up an email device and activate it with the code that ``setup`` emailed."""
+    set_up_email_device(api_client)
+    activate = api_client.post(reverse("vueda_user.totpdevice-activate"), {"code": emailed_codes[-1]}, format="json")
+    assert activate.status_code == HTTPStatus.CREATED, response_body(activate)
+
+
+def delete_device(api_client, user, method, **extra):
+    device = TOTPDevice.objects.get(user=user, method=method)
+    response = api_client.delete(
+        reverse("vueda_user.totpdevice-detail", kwargs={"pk": device.pk}), format="json", **extra
+    )
+    assert response.status_code == HTTPStatus.NO_CONTENT, response_body(response)
+
+
+def stored_secret(user):
+    return decrypt(Authenticator.objects.get(user=user, type=Authenticator.Type.TOTP).data["secret"])
+
+
+def sign_in_to_second_factor(user):
+    """Return a new client whose sign-in for ``user`` waits for a second-factor code."""
+    client = APIClient()
+    login = client.post(reverse("login2"), {"email": user.email, "password": "test-pass"}, format="json")
+    assert login.status_code == HTTPStatus.UNAUTHORIZED, response_body(login)
+    return client
+
+
+def confirm_second_factor(client, code):
+    return client.post(reverse("authenticate"), {"code": code}, format="json")
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_authenticator_app_added_as_the_first_device_confirms_sign_in(api_client, device_owner):
+    app_secret = add_authenticator_app(api_client)
+
+    response = confirm_second_factor(sign_in_to_second_factor(device_owner), get_current_totp_code(app_secret))
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_authenticator_app_added_after_an_email_device_confirms_sign_in(api_client, device_owner, emailed_codes):
+    add_email_device(api_client, emailed_codes)
+    authenticator = Authenticator.objects.get(user=device_owner, type=Authenticator.Type.TOTP)
+
+    app_secret = add_authenticator_app(api_client)
+
+    # The app joins the existing authenticator, which now holds the secret the app was shown.
+    assert Authenticator.objects.get(user=device_owner, type=Authenticator.Type.TOTP) == authenticator
+    assert stored_secret(device_owner) == app_secret
+    response = confirm_second_factor(sign_in_to_second_factor(device_owner), get_current_totp_code(app_secret))
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_email_device_added_after_an_authenticator_app_keeps_the_app_working(api_client, device_owner, emailed_codes):
+    app_secret = add_authenticator_app(api_client)
+
+    add_email_device(api_client, emailed_codes)
+
+    assert stored_secret(device_owner) == app_secret
+    response = confirm_second_factor(sign_in_to_second_factor(device_owner), get_current_totp_code(app_secret))
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_email_setup_code_for_an_existing_authenticator_does_not_confirm_sign_in(
+    api_client, device_owner, emailed_codes
+):
+    add_authenticator_app(api_client)
+
+    set_up_email_device(api_client)
+
+    response = confirm_second_factor(sign_in_to_second_factor(device_owner), emailed_codes[-1])
+    assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_abandoned_authenticator_app_setup_keeps_the_stored_secret(api_client, device_owner, emailed_codes):
+    add_email_device(api_client, emailed_codes)
+    secret_before = stored_secret(device_owner)
+
+    setup = api_client.post(reverse("vueda_user.totpdevice-setup"), {"method": "totp"}, format="json")
+    assert setup.status_code == HTTPStatus.OK, response_body(setup)
+
+    assert stored_secret(device_owner) == secret_before
+    client = sign_in_to_second_factor(device_owner)
+    rejected = confirm_second_factor(client, get_current_totp_code(setup.data["meta"]["totp_secret"]))
+    assert rejected.status_code == HTTPStatus.BAD_REQUEST, response_body(rejected)
+    sent = client.post(reverse("totp_code"), {"method": "email"}, format="json")
+    assert sent.status_code == HTTPStatus.NO_CONTENT, response_body(sent)
+    accepted = confirm_second_factor(client, emailed_codes[-1])
+    assert accepted.status_code == HTTPStatus.OK, response_body(accepted)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_removing_the_authenticator_app_stops_its_codes_and_keeps_email_codes(api_client, device_owner, emailed_codes):
+    app_secret = add_authenticator_app(api_client)
+    add_email_device(api_client, emailed_codes)
+
+    delete_device(api_client, device_owner, "totp")
+
+    client = sign_in_to_second_factor(device_owner)
+    rejected = confirm_second_factor(client, get_current_totp_code(app_secret))
+    assert rejected.status_code == HTTPStatus.BAD_REQUEST, response_body(rejected)
+    sent = client.post(reverse("totp_code"), {"method": "email"}, format="json")
+    assert sent.status_code == HTTPStatus.NO_CONTENT, response_body(sent)
+    accepted = confirm_second_factor(client, emailed_codes[-1])
+    assert accepted.status_code == HTTPStatus.OK, response_body(accepted)
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_dry_run_removal_of_the_authenticator_app_keeps_the_stored_secret(api_client, device_owner, emailed_codes):
+    app_secret = add_authenticator_app(api_client)
+    add_email_device(api_client, emailed_codes)
+
+    delete_device(api_client, device_owner, "totp", HTTP_DRY_RUN="true")
+
+    assert TOTPDevice.objects.filter(user=device_owner, method="totp").exists()
+    assert stored_secret(device_owner) == app_secret
+
+
+@pytest.mark.django_db(databases=("default", "db_logging"))
+def test_removing_an_email_device_keeps_the_authenticator_app_working(api_client, device_owner, emailed_codes):
+    app_secret = add_authenticator_app(api_client)
+    add_email_device(api_client, emailed_codes)
+
+    delete_device(api_client, device_owner, "email")
+
+    response = confirm_second_factor(sign_in_to_second_factor(device_owner), get_current_totp_code(app_secret))
+    assert response.status_code == HTTPStatus.OK, response_body(response)
 
 
 class DummyAllAuthBase:
