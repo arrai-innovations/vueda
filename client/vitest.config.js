@@ -1,4 +1,5 @@
 import viteConfig from "./vite.config.js";
+import { fileURLToPath } from "node:url";
 import { defineConfig, mergeConfig } from "vitest/config";
 
 export default defineConfig((configEnv) => {
@@ -10,6 +11,15 @@ export default defineConfig((configEnv) => {
     return mergeConfig(
         testViteConfig,
         defineConfig({
+            resolve: {
+                // The template routers live outside this package and import an application-owned welcome view.
+                dedupe: ["vue-router"],
+                alias: {
+                    "@/views/ViewWelcome.vue": fileURLToPath(
+                        new URL("../templates/integrator-monorepo/client/src/views/ViewWelcome.vue", import.meta.url),
+                    ),
+                },
+            },
             test: {
                 watch: false,
                 globals: true,

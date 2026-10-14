@@ -37,6 +37,22 @@ export function getRouter(app, pinia) {
             beforeEnter: () => requireUnauth(signedInHome, router, pinia),
         },
         {
+            path: "/2fa/",
+            name: "2fa",
+            component: async () => (await import("@vueda/views/ViewTwoFactorAuth.vue")).default,
+            props: { redirect: signedInHome },
+            meta: { title: "Two-Factor Authentication" },
+            beforeEnter: () => requireUnauth(signedInHome, router, pinia),
+        },
+        {
+            path: "/reauthenticate/",
+            name: "reauthenticate",
+            component: async () => (await import("@vueda/views/ViewReauthenticate.vue")).default,
+            props: { redirect: signedInHome },
+            meta: { title: "Confirm Your Identity" },
+            beforeEnter: (to) => requireAuth({ name: "sign-in" }, to, router, pinia),
+        },
+        {
             path: "/forgot-password/",
             name: "forgot-password",
             component: async () => (await import("@vueda/views/ViewForgotPassword.vue")).default,
