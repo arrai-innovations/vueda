@@ -7,126 +7,96 @@ status: draft
 
 # Action Contract and Availability
 
-VUEDA manages action visibility and authorization through a contract that spans three boundaries: server-side action declaration and metadata emission, object-level availability computation, and client-side {@term Route Admission} and UI affordance filtering. Each boundary enforces a different aspect of action availability, and the observable behaviour depends on how the three layers interact. When they align, actions appear and function as expected. When they diverge, because metadata, permissions, or config constraints are out of sync, the failure surfaces as missing buttons, unexpected redirects, or permission denials that appear to contradict the advertised action set.
+The server reports which [actions]{@term Action} the current user may take in two lists: {@term Model Actions} in {@term Model Info}, computed with no object, and each object's {@term Available Actions}. The client reads these lists, plus the workflow's transition lists, to decide which routes open and which buttons render. The server checks every request again when it runs, as [Authorization vs UI Semantics](./authorization-vs-ui-semantics.md) describes.
 
-This page explains the contract boundary, the metadata each layer produces and consumes, and the failure patterns that emerge when the layers drift apart. For the practical steps to wire action availability in a project, see [Control Action Availability in the UI](../guides/control-action-availability). For the underlying permission model that drives action filtering, see [Permission Model](./permission-model). For the boundary between server authorization and client UI semantics, see [Authorization vs UI Semantics](./authorization-vs-ui-semantics).
-
-## Contract Boundary
-
-The action contract divides authority between three scopes.
-
-The server declares actions and emits metadata. Action declaration happens at the viewset level, where DRF's `@action` decorator (extended by VUEDA's {@api py:function:vueda.core.decorators.action} wrapper) registers extra actions alongside the built-in {@term CRUDL} operations. The server's model-info endpoint aggregates these declarations into a `model_actions` payload that describes what actions exist, which HTTP methods they support, and whether they operate at detail or list scope. This metadata is permission-sensitive: actions that the requesting user cannot perform are omitted.
-
-The server also computes per-object availability. When an object is serialized for a `detail` response, the `available_actions` field evaluates each action against the specific object's permission state. This is a stricter filter than model-scope metadata, because it accounts for row-level constraints, workflow state, and object-specific permission overrides that cannot be evaluated without a concrete instance.
-
-The client consumes both metadata layers to control routing and rendering. Route guards use `model_actions` (along with optional config and workflow overlays) to determine whether a route is admissible. Rendered UI controls use the intersection of config-filtered actions and object-level `available_actions` to decide which buttons and links to display. The client does not make authorization decisions; instead, it gates UI affordances based on server-advertised metadata.
+[Control Action Availability in the UI](../guides/control-action-availability.md) gives the steps for narrowing what a user sees.
 
 ## Server Action Declaration and Route Partitioning
 
-Action declaration extends DRF's action registration with VUEDA-specific `bulk` and `confirm` markers. The `confirm` marker gates execution, not routing; see [Warning Confirmation Gating](#warning-confirmation-gating) below. Every action carries three routing-relevant properties: `detail` (whether the action targets a single object via URL parameters), `bulk` (whether the action operates on a set of objects at list scope), and the HTTP methods it responds to.
+A viewset offers the built-in actions it implements (`list`, `retrieve`, `create`, `update`, `partial_update`, and `destroy`) and any {@term Extra Action} it declares. VUEDA's {@api py:function:vueda.core.decorators.action} decorator declares an extra action. It accepts the arguments of [DRF's `action`]{@api ext:drf:rest_framework.decorators.action} and adds [`bulk`]{@api py:param:vueda.core.decorators.action.bulk} and [`confirm`]{@api py:param:vueda.core.decorators.action.confirm}. An extra action's name is its `url_name`.
 
-VUEDA's router uses these properties to partition actions into route families. `detail` actions are mounted as `detail` routes under the object URL prefix. Non-`detail` actions and bulk-flagged actions are mounted as `list` routes. This partitioning determines the URL shape and the scope at which the action is dispatched. The `bulk` flag is a declaration and routing signal only; it does not impose any automatic payload semantics. An action flagged as bulk is routed at list scope, but the request body format is entirely determined by the action's implementation.
+{@api py:class:vueda.core.routers.VuedaRouter} mounts each extra action by its [`detail`]{@api py:param:vueda.core.decorators.action.detail} and `bulk` flags:
 
-The router extends DRF's default route generation to support the bulk partition. Detail extra actions produce detail-scoped routes; non-detail and bulk extra actions produce list-scoped routes. This routing logic is the single source of truth for URL structure; action metadata in `model_actions` reflects the routing outcome but does not independently determine it.
+- `detail=True` mounts the action at the object URL.
+- `detail=False` mounts it at the list URL.
+- `bulk=True` also mounts it at the list URL, so a {@term Bulk Action} declared with `detail=True` answers at both URLs.
+
+The `bulk` flag sets routing and metadata only. The action body decides what the request body contains and which objects it acts on.
+
+Model info reads the same `detail` and `bulk` attributes from each action, so its metadata matches the router's URLs. It also flags `destroy` as bulk; the list URL accepts `DELETE` with a list of keys.
 
 ## Model-Scope Action Metadata
 
-The model-info endpoint ({@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}) emits `model_actions` as a list of action descriptors, each containing the action's `name`, short `description`, `detail` and `bulk` flags, supported HTTP methods (`method_names`), and optional `parameters` and `detail_args` (required `parameters`). The short `description` is derived from the action name, app label, and model name.
+{@term Model Actions} answer whether the user might perform an action on some object of the model. The {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} endpoint builds the list in {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_actions}. The list differs between users.
 
-Built-in action candidates are `list`, `retrieve`, `create`, `update`, `partial_update`, and `destroy`. Among the built-ins, `destroy` is flagged `bulk: true`. Non-list, non-create built-ins are flagged `detail: true` and include `detail_args` (defaulting to `["pk"]`). Each built-in action's `method_names` is derived from a fixed mapping: `list` and `retrieve` map to `get`, `create` to `post`, `update` to `put`, `partial_update` to `patch`, and `destroy` to `delete`.
+Each built-in action that the viewset implements appears when a {@term Model-Scope Check} passes. {@api py:function:vueda.core.permissions.check_action_permission} runs that check through the viewset's own permission classes, with no object and the HTTP method of the action under test.
 
-Extra actions declared on the viewset are included as well. An extra action's name is its `url_name`, and its `method_names` are derived from the DRF action mapping keys (`extra_action.mapping.keys()`), which means a single extra action can advertise multiple HTTP methods when declared with `methods=["get", "post"]`. For detail extra actions, `parameters` is derived from the action method's function signature, excluding `self` and `request`. Actions with variadic signatures (`*args`, `**kwargs`) will leak those parameter names into the metadata, an artifact of signature introspection, not intentional semantics.
+Extra actions appear as {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} returns them. On `VuedaViewSet`, the default returns every extra action and offers `history-list` only to users who may read. {@api py:function:vueda.core.viewsets.VuedaReadOnlyViewSet.get_allowed_extra_actions} returns every extra action. Extra actions get no other check in this list.
 
-Built-in action inclusion is permission-sensitive. Model-info generation evaluates each candidate against the requesting user's permissions using a synthetic request context (`AvailableActionsRequest`) with `obj=None`. Actions for which the user lacks permission are omitted from `model_actions`. This means `model_actions` is user-specific: two users with different permission sets may see different action lists for the same model.
+`get_allowed_extra_actions` shapes metadata only. Leaving an action out hides its routes and buttons in the client, and the endpoint still answers requests. To refuse a request, enforce the permission in the viewset's permission classes or in the action body.
 
-Extra action visibility is further filtered by `get_allowed_extra_actions(request)` when the viewset implements this method. This hook enables viewset-level logic to exclude extra actions from model-scope metadata based on request context, independent of the standard permission check.
+A {@term Serializer-Only Registration} has no viewset, so its model actions are empty.
 
-When the canonical registration for a model has no viewset, only a serializer, `model_actions` is empty. No actions are advertised, and the client treats the model as having no actionable routes.
-
-## HTTP Method Mapping Metadata
-
-The `method_names` field on each action descriptor is a list of lowercase HTTP verb strings (`get`, `post`, `put`, `patch`, `delete`).
-
-For built-in actions, the method mapping is fixed and is defined by `METHOD_MAPPING` in the serializer. For extra actions, the methods are derived from the DRF action's `mapping` attribute, which reflects the `methods` argument passed to the `@action` decorator.
-
-In the current client implementation, `method_names`/`methodNames` is descriptive metadata. Route admission checks are performed by action name membership, not by HTTP method intersection. The guard checks whether the action's `name` appears in the merged action set (model-info actions, optional `routeActions` filter, workflow transition codes). Method metadata is available to consumers who need transport-level information, for example, to choose between `GET` and `POST` when dispatching an action request. However, it does not participate in the route admission decision.
+Each entry carries the action's name, HTTP methods, `detail` and `bulk` flags, and URL parameters. The {@api rest:schema:ModelInfoAction} schema and the client's {@api js:interface:@arrai-innovations/vueda/stores/storeModelInfo#ActionInfo} list the fields.
 
 ## Object-Scope Availability Metadata
 
-While `model_actions` describes what actions exist for a model, `available_actions` describes what actions the requesting user can perform on a specific object. This field is computed per serialized instance and appears in `detail` and `list` responses.
+{@term Available Actions} answer whether the user can perform an action on one object in its current state. The {@api py:class:vueda.core.serializers.fields.AvailableActionsField} computes the [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions} field for each serialized object.
 
-The computation runs each standard action (retrieve, update, partial_update, destroy) through object-level permission checks. `create` is excluded for concrete instances; it applies at model scope, not object scope. The result is a list of action names for which the user has permission on that specific object.
+Each built-in action that the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes for that object. The check includes `list`. It runs the viewset's object permission check, so {@term Row-Level Permissions}, {@term State Permission} rules, and any override of that check apply. Extra actions appear as `get_allowed_extra_actions(request, instance=instance)` returns them, so an override can decide per object.
 
-Extra actions are appended through `get_allowed_extra_actions(request, instance=instance)`. This is the same hook as the model-scope version, but with the instance argument, enabling object-specific filtering of extra action availability.
+The server includes the field only when the request names it through {@term Sparse Fields} (`f`). An expanded object never carries it, and the server rejects a request that names it on an expanded object with `400`. The client asks for it on detail fetches, and on list fetches when the model config sets [`detailLinkField`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.detailLinkField}.
 
-The {@term Model-Scope vs Object-Scope Availability} distinction is fundamental to the contract. Model-scope metadata answers "Does this action exist and might this user be able to perform it?" Object-scope availability answers the question, "Can this user perform this action on this specific object right now?" The two can diverge legitimately: a user may have the model-level permission for `update` (so it appears in `model_actions`), but a specific object may be in a workflow state that denies `update` (so it is absent from that object's `available_actions`).
-
-## Client {@term Action Namespace} and {@term Route Admission}
-
-The client normalizes action names before performing {@term Route Admission} checks. The normalization maps aliases to canonical names; most notably, `read` is normalized to `retrieve`. This normalization ensures that route definitions using either name resolve consistently against the server-advertised action set. Action name values (e.g., partial_update) are string values, not object keys, and are not camelCased by the store normalization. Client code compares action names in their original snake_case form.
-
-Route admission is evaluated in the {@api js:function:@arrai-innovations/vueda/router/guards#requireModelInfo} navigation guard. The guard fetches model-info for the target route's model, then checks whether the route's action name (after normalization) appears in the computed action set. The action set is assembled from three sources: the `model_actions` names from model-info, an optional `routeActions` filter from the model's config (which restricts the set to only named actions), and workflow transition codes (which extend the set with transition-specific routes).
-
-When the action is not found in the computed set, the guard denies the route. The denial surfaces as a toast notification ("Action Not Found") and a redirect, typically to the model's `list` view. When model-info itself cannot be fetched (network error, server error), the error is cached in the model-info store and reused for subsequent navigation attempts to the same model key. This means a transient fetch failure will block all routes for that model until the store is reset or the page is reloaded.
-
-For resolved routes, {@api vue:component:ViewActionRouter} maps action names to view components. Standard CRUDL actions resolve to their built-in view components. Transition codes resolve to the workflow transition view. Unknown actions, those that pass the guard but have no corresponding view component, render using `ViewActionNotFound`.
+The two scopes can differ for the same user. A user may hold the model-level permission for `update`, so `update` is in the model actions. One object may sit in a workflow state that denies `update`, so that object's `available_actions` leaves it out.
 
 ## UI Affordance Filtering Layers
 
-Route admission and rendered UI controls are separate filtering layers. A route may be permitted (the action exists in `model_actions` and passes the guard), but the corresponding UI control may be hidden because of additional client-side filtering.
+{@term Route Admission} opens a route when its action is in the model actions after [`routeActions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.routeActions} narrows them. It also opens a route whose action is one of the user's {@term Permitted Transitions}. [Routing and View Resolution Model](./routing-and-view-resolution-model.md#failure-modes) describes the guard, what a refused route shows, and which view component renders.
 
-The first filtering layer is group-based config filtering. `useFilteredActions` reads the model config's `config.actions` setting and filters the available actions to only those listed. This enables product-specific UX constraints, for example, hiding the `destroy` action from certain user groups, without modifying server-side authorization. If `config.actions` is not defined, no filtering is applied, and all server-advertised actions pass through.
+Buttons pass through the model config's [`actions`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.actions} first. It defaults to the model actions' names. When `actions` is an array, {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions} keeps every name in it. When `actions` is an object, it keeps the names whose value is `true` or lists one of the user's groups. A button also needs the action's entry in model info. This filter runs in the client and changes only what the client shows.
 
-The second filtering layer is object-level intersection. In detail-style views, the rendered action buttons are the intersection of the config-filtered action set and the object's `available_actions`. An action must pass both filters to appear as a rendered control. This means a `detail` view can show different action buttons for different objects of the same model, reflecting per-object permission outcomes.
+Each view then picks its buttons from these sources:
 
-Workflow transition controls are sourced separately from the workflow transition store rather than inferred from CRUDL action metadata. Transitions have their own data flow and rendering logic.
+- **List view.** Action buttons come from the filtered actions alone. Transition buttons come from the model's {@term Permitted Transitions}, computed with no object.
+- **Detail view.** Buttons for detail actions come from the filtered actions that the object's `available_actions` also lists. Buttons for other actions, such as `create`, come from the filtered actions alone, because `available_actions` never lists `create`. Transition buttons come from the object's {@term Valid Transitions}.
+
+`valid_transitions` is empty when the user lacks the workflow's configured permissions for the object, including when the workflow configures none. List and detail responses still succeed. The detail view requests the field only when model info lists it.
+
+An update view whose object's `available_actions` leaves out `update` shows an "Editing unavailable" notice in place of the form. {@api vue:component:ViewUpdate} renders it through its [`update-unavailable`]{@api vue:component:ViewUpdate:slot:update-unavailable} slot.
+
+When the permitted transitions request answers `403`, the list view shows no transition buttons, and transition routes for that model redirect with a "Permission Denied" toast. The client keeps that failure until its caches clear. [Reactive Data Flow](./reactive-data-flow.md#when-caches-clear) describes when that happens.
 
 ## Dry-Run and Mutation Semantics
 
-Mutation actions support a dry-run mode triggered by the `Dry-Run: true` request header. When a dry-run request is received, the VUEDA action decorator sets `request.dry_run = True` and wraps the action execution in rollback semantics. The action runs normally, validation fires, side effects may be computed, but no database changes are committed.
+A request asks for a {@term Dry Run} with the `Dry-Run: true` header. Two kinds of request honor the header:
 
-Rollback is enforced at the outermost dry-run wrapper. If a dry-run action internally calls another action that is also decorated, the nested call does not stack an additional rollback. This prevents double-rollback errors and ensures the outermost transaction boundary controls persistence.
+- Extra actions declared with VUEDA's `action` decorator, for methods other than `GET`, `HEAD`, and `OPTIONS`.
+- `destroy`, on the object URL and on the list URL.
 
-For destroy operations, dry-run behaviour has specific response semantics. A dry-run delete returns `200` with the object's serialized data intact; the object is not deleted. A non-dry-run delete returns `204` when the deletion is committed. Validation failures in either mode surface as `400` without performing the deletion.
+The built-in `create`, `update`, and `partial_update` ignore the header and commit their changes.
 
-Dry-run mode is intended for validation and simulation. It enables the client to preflight a mutation, checking whether the action would succeed and what validation errors would surface, without committing the change. The client should not redirect or emit success toasts after a dry-run response.
+For an extra action, the decorator sets `request.dry_run` to `True` and runs the body. After the body returns, it marks the request's database transaction for rollback with {@api ext:django:django.db.transaction.set_rollback}. The rollback depends on the request transaction that [Request Transactions](./configuration-surface-and-defaults.md#request-transactions) describes. When a dry-run action calls another decorated action, the outer call marks the rollback. Work outside the database, such as an email or a call to another service, still runs unless the body checks `request.dry_run`.
 
-For actions that directly or indirectly use a third party API or modify a third party database, make sure to use or pass `request.dry_run` through, so you can prevent changes when a dry-run is triggered.
+A dry-run `destroy` runs `destroy_validation` and the warning gate, then answers `200` with an empty body and deletes nothing. A committed `destroy` answers `204`. A validation failure answers `400` in either mode.
+
+{@api vue:component:ModelActionForm} sends a dry run as a pre-flight once it has target objects, unless its [`enableDryRun`]{@api vue:component:ModelActionForm:prop:enableDryRun} prop is `false`. A `400` from the pre-flight shows as field errors on the form. The form drops any other failure, including a `409`, without a prompt. A successful pre-flight shows no toast, fires no redirect, and leaves the workflow store's cached object state unchanged.
 
 ## Warning Confirmation Gating
 
-Mutation actions can be gated behind VUEDA's warning confirmation contract (a `409 Conflict` carrying warnings and a digest, retried with the `Acknowledge-Warnings` header after the user confirms). Declaring `@action(confirm=True)` makes the first unacknowledged mutating request return 409 without executing the body; the confirmation message comes from a `confirm_message` attribute on the action function, with a framework default when unset. Because this gate runs before the body, it suits input-less consequence actions. Actions that take input call `gate_warnings(request, warnings)` from {@api py:module:vueda.core.exceptions} inside the body, after `serializer.is_valid(raise_exception=True)` and before the write, so blocking 400s surface before the 409. The client's `ActionForm` handles the 409 and renders the confirmation dialog without extra markup. See [Form State and Validation Lifecycle](./form-state-and-validation-lifecycle) for the full contract and [Handle Form Validation and Server Errors](../guides/form-validation-and-errors) for authoring steps.
+Actions take part in {@term Warning Confirmation}. [Error and Validation Contract](./error-and-validation-contract.md#warning-confirmation-semantics) describes the `409` body and the client error classes.
+
+`@action(confirm=True)` gates every request whose method is not `GET`, `HEAD`, or `OPTIONS`. The gate runs before the body, so an unacknowledged request returns `409` and the body does not run. The message comes from a `confirm_message` attribute that is set on the action function. When that attribute is unset, the message is {@api py:property:vueda.core.decorators.DEFAULT_CONFIRM_MESSAGE}.
+
+The gate also runs before the dry-run check, so a dry run of a `confirm=True` action returns `409` too. The pre-flight that `ModelActionForm` sends for such an action therefore never reaches the body and reports no validation errors. This suits actions without input, which have nothing to validate.
+
+An action that takes input calls {@api py:function:vueda.core.exceptions.gate_warnings} inside the body. The action calls it after `serializer.is_valid(raise_exception=True)` and before the write, so a `400` comes before the `409`. `destroy` follows the same order: `destroy_validation`, then the gate, then the dry-run return. [Require Confirmation Before a Write](../guides/require-write-confirmation.md) gives the steps for each kind of write.
 
 ## Failure Surface and Drift Patterns
 
-The layered contract exhibits several characteristic failure patterns when the layers are misaligned.
+**Model scope is broader than object scope.** A user with the model-level permission passes route admission for any object. When one object denies the action, its detail view shows no button for it. A user who opens the update route by URL sees the "Editing unavailable" notice. The server refuses a request sent anyway, and [Permission Model](./permission-model.md#why-refused-requests-fail-differently) describes which status it returns.
 
-**Model-scope visibility exceeds object-scope availability.** This is the most common drift pattern. An action appears in `model_actions` because the user has the model-level permission, so the route guard permits the navigation. But the specific object denies the action due to row-level constraints or workflow state, so the action button is absent from the `detail` view. In more severe cases, the user navigates to the action route directly (via URL or bookmark), passes the guard, but the subsequent API request fails with a `404` (row-filtered object) or `403` (object-level permission denial). The design intentionally allows model-scope metadata to be broader than object-scope availability, but it can confuse users who see a route that "works" but an action that does not.
+**`routeActions` is narrower than the server's list.** The guard refuses a route for an action the server offers, with an "Action Not Found" toast. The toast does not say that the model config removed the action.
 
-**Config over-restriction hides valid actions.** When `config.routeActions` is set too narrowly, server-advertised actions are excluded from the route admission set. The action exists on the server, model-info reports it, but the client-side filter removes it before the guard evaluates. The symptom is an "Action Not Found" toast and redirect, with no indication that the action was filtered by config rather than missing from the server.
+**`get_allowed_extra_actions` leaves out an action the endpoint accepts.** The client hides the action's routes and buttons, and a direct request to the endpoint still runs.
 
-**Cached model-info errors persist across navigations.** When the model-info store encounters a fetch error, the error is cached and reused for all subsequent navigations to the same `app.model` key. Retrying the navigation does not trigger a refetch. The only recovery is a store reset or page reload. This can cause a transient server error to appear permanent to the user.
-
-## Relevant Implementation Surface
-
-- {@api py:module:vueda.core.decorators}
-- {@api py:module:vueda.core.routers}
-- {@api py:class:vueda.core.routers.VuedaRouter}
-- {@api py:function:vueda.core.routers.VuedaRouter.get_routes}
-- {@api py:module:vueda.info.serializers}
-- {@api py:class:vueda.info.serializers.ModelInfoSerializer}
-- {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_actions}
-- {@api py:module:vueda.core.viewsets}
-- {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}
-- {@api py:module:vueda.core.serializers.fields}
-- {@api py:class:vueda.core.serializers.fields.AvailableActionsField}
-- {@api py:function:vueda.core.serializers.fields.AvailableActionsField.get_value}
-- {@api py:class:vueda.core.utils.AvailableActionsRequest}
-- {@api rest:endpoint:GET:/vueda.info/model_info/}
-- {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
-- {@api js:module:@arrai-innovations/vueda/stores/storeModelConfig}
-- {@api js:module:@arrai-innovations/vueda/utils/actionMap}
-- {@api js:function:@arrai-innovations/vueda/utils/actionMap#getActionName}
-- {@api js:module:@arrai-innovations/vueda/router/guards}
-- {@api js:module:@arrai-innovations/vueda/use/useFilteredActions}
-- {@api js:function:@arrai-innovations/vueda/use/useFilteredActions#useFilteredActions}
+**A workflow `403` is cached.** Transition routes and list transition buttons stay unavailable after the server-side cause is fixed, until the client's caches clear.

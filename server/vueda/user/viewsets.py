@@ -30,8 +30,10 @@ from vueda.core.viewsets import VuedaViewSet
 from vueda.user.adapters import get_adapter as vueda_get_adapter
 from vueda.user.filtersets import TOTPDeviceFilterSet
 from vueda.user.models import TOTPDevice
+from vueda.user.schema import RateLimitedSerializer
 from vueda.user.serializers import TOTPDeviceSerializer
 from vueda.user.serializers import TOTPSetupSerializer
+from vueda.user.throttles import throttle_code_send
 from vueda.user.utils import get_current_totp_code
 
 
@@ -60,6 +62,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         responses={
             200: conditional_open_api_types().OBJECT,
             400: conditional_open_api_types().OBJECT,
+            429: RateLimitedSerializer,
         },
     )
     @atomic
@@ -102,6 +105,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             )
         elif method == "sms":
             phone = request.data.get("destination")
+            throttle_code_send(request, request.user, method, destination=phone)
 
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "sms": phone}
             context = {
@@ -111,6 +115,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
 
         elif method == "email":
             email = request.data.get("destination")
+            throttle_code_send(request, request.user, method, destination=email)
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "email": email}
             context = {
                 "code": get_current_totp_code(secret),

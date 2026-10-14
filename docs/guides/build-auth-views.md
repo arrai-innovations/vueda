@@ -216,7 +216,7 @@ import ButtonIcon from "@/components/ButtonIcon.vue";
 
 ## Build a Change-Password View
 
-Change-password is another hand-authored form variant. It uses `AuthForm` (a simpler wrapper than `AuthorizingForm` that does not watch login state or redirect):
+Change-password is another hand-authored form variant. It uses `AuthForm`, a simpler wrapper than `AuthorizingForm` that does not redirect after a successful sign-in. The server checks the current password and does not require a recent session for change-password, so the form sets `require-recent-auth` to `false`:
 
 ```vue
 <script setup>
@@ -245,7 +245,7 @@ const handleSubmit = ({ formValues }) => {
 </script>
 
 <template>
-    <AuthForm header="Change Password" :run-action="handleSubmit" :form-props="formProps">
+    <AuthForm header="Change Password" :run-action="handleSubmit" :form-props="formProps" :require-recent-auth="false">
         <template #action-form-inner>
             <FormField label="Current Password" name="old_password" required>
                 <WidgetTextInput :required="true" type="password" />
@@ -261,7 +261,18 @@ const handleSubmit = ({ formValues }) => {
 </template>
 ```
 
-`AuthForm` and `AuthorizingForm` share the same layout and slot structure. The difference is that `AuthForm` does not watch login state and does not redirect. Use `AuthForm` for authenticated operations that stay on the current page after success.
+`AuthForm` and `AuthorizingForm` share the same layout and slot structure. `AuthorizingForm` watches `loggedIn` and redirects the user once they sign in. `AuthForm` keeps a signed-in user on the form, and sends them away only when their session needs attention, as described below. Use `AuthForm` for operations by a signed-in user.
+
+By default, `AuthForm` treats its action as one that needs a recent session. When `authPendingFlow` names a reauthentication flow, it sends the user to the route named `reauthenticate`. That includes a flow that is already pending when the form opens. `authPendingFlow` belongs to the whole session: every who-is response sets it, including one triggered by another view or a route guard.
+
+The store actions that need a recent session, such as `setupTOTPDevice` and `getRecoveryCodes`, refetch the current user before they reject with an `UnauthorizedError`. `AuthForm` then handles the failed submission from the refetched state:
+
+- A signed-out user goes to the route named `sign-in`.
+- A user with a pending reauthentication flow goes to the route named `reauthenticate`. The flow change and the failed submission both lead there, and the user sees one toast and one navigation.
+- When the router cannot complete the `reauthenticate` navigation, the error goes to the form's usual error handling.
+- Every other error goes to the form's usual error handling.
+
+Set `require-recent-auth` to `false` for a form whose action the server accepts without a recent session, such as change-password. The user then stays on the form while a reauthentication flow is pending. `changePassword` does not refetch the current user, so an `UnauthorizedError` on change-password goes to the form's usual error handling.
 
 ## Hand-Authored Form Patterns
 
@@ -334,6 +345,12 @@ After building auth views, verify the following:
 **Re-authentication redirect fires immediately.** If the user already has a recent login, `authPendingFlow` is already empty and the watcher fires on mount. This is expected; the user does not need to re-authenticate if the server considers their session recent.
 
 **Password re-authentication succeeds but the guarded action still returns 401.** The user has a two-factor device, so their `authPendingFlow` is `mfa_reauthenticate` and only a code refreshes their session. The password endpoint accepts the password but the server does not count it. Render the code form for that flow, as the re-authentication view above does.
+
+**A sign-in or two-factor code request returns 400 with "Too many failed login attempts. Try again later."** Too many wrong passwords or wrong codes used up the `login_failed` limit for this email address, user, or IP address. allauth reports this limit as a form error in `non_field_errors`, so show that message as you show any other form error.
+
+**A sign-in, password, or code-sending request returns 429.** The endpoint's rate limit is used up for this user, address, or IP address. VUEDA's DRF throttles send a `Retry-After` header that gives the seconds to wait. allauth's `login` and `reauthenticate` limits send no `Retry-After` header.
+
+[Rate-Limited Auth Endpoints](configure-cache-and-sessions#rate-limited-auth-endpoints) lists each limit, its response, its default, and the setting that changes it.
 
 ## Relevant Implementation Surface
 

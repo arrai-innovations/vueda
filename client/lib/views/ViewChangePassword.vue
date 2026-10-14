@@ -7,7 +7,8 @@ import { reactive } from "vue";
 
 /**
  * Form that allows an authenticated user to change their password by providing their current
- * password and confirming the new one.
+ * password and confirming the new one. The server checks the current password and does not require a recent
+ * session, so the form sets `requireRecentAuth` to `false`.
  *
  * @vueda-slot-forward AuthForm
  */
@@ -31,7 +32,7 @@ const handleSubmit = ({ formValues }) => {
 };
 </script>
 <template>
-    <auth-form :run-action="handleSubmit" :form-props="formProps">
+    <auth-form :run-action="handleSubmit" :form-props="formProps" :require-recent-auth="false">
         <template #action-form-inner>
             <!-- Replaces the entire current-password field row, including its label. -->
             <slot name="field(old_password)" label="Current Password">
