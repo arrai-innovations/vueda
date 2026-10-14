@@ -78,10 +78,10 @@ These dependencies changed:
 
 ### Run the Migrations
 
-Read these warnings before you run any migration command:
+Object states carried over from v2 keep their current states when a current v3-generated workflow migration runs, even though they have no v3 events. [How Object States Are Updated](manage-workflows.md#how-object-states-are-updated) describes the rules and how to refresh older v3-generated files.
 
-::: danger
-Do not apply a workflow migration that v3 generates to a database upgraded from v2. Each generated workflow migration checks every object's state history. It moves an object back to its workflow's initial state when its state history shows no change since the object's creation. Object states carried over from v2 have no history in v3. The migration therefore resets every object that v2 moved out of its initial state. [#512](https://github.com/arrai-innovations/vueda/issues/512) tracks the fix.
+::: warning
+Upgrade VUEDA before running `makeworkflowmigrations` on the upgraded database. Older v3 versions reset object states with no events even when the command reports no workflow changes. Before applying an older v3-generated workflow migration, refresh its embedded functions with `updateworkflowmigrations`, review the changes, and commit them. A package upgrade alone does not change those copies. Migrations generated with `--import-instead` receive the fix through the package upgrade. The fix does not restore states that were already reset.
 :::
 
 ::: warning
@@ -92,7 +92,7 @@ Test a full replay of your migrations on an empty database before you deploy. A 
 
 1. Run `python manage.py updategroupmigrations` before you apply v2-generated group migrations in another environment. The v2 replay code deleted a group, with its memberships, when the group lost its last permission. The command rewrites that code. [Updating Existing Group Migrations](manage-groups.md#updating-existing-group-migrations) describes it.
 2. Run `makemigrations` and review the result. Expect event models and triggers for each tracked model, and `DeleteModel` operations for each `Historical*` table.
-3. Review the migration plan with `python manage.py migrate --plan`. On an empty database, check that every workflow migration that v2 generated runs before `vueda_workflow` `0009`. On the database that you upgrade, check that the plan holds no workflow migration that v3 generated.
+3. Review the migration plan with `python manage.py migrate --plan`. On an empty database, check that every workflow migration that v2 generated runs before `vueda_workflow` `0009`. On the database that you upgrade, check that any v3-generated workflow migration has the current functions described above. `updateworkflowmigrations` still skips v2-generated files and reports them as failures; review its output for each file.
 4. Apply the migrations.
 5. Run `python manage.py check --database default`. If `vueda_workflow.W002` reports models with rows that have no workflow state, run `python manage.py backfillworkflowstates`. [Enabling Workflow on a Model with Existing Rows](manage-workflows.md#enabling-workflow-on-a-model-with-existing-rows) explains the check.
 6. Run `python manage.py remove_stale_contenttypes`. The deleted `Historical*` models leave content types behind, and the permission pickers keep offering their permissions until you remove those content types.
