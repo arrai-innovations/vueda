@@ -37,7 +37,7 @@ A permission class maps each request method to a codename. [`ObjectPermissions`]
 | `DELETE`       | `delete_`                                                     | `delete_`                           |
 | `OPTIONS`      | None                                                          | None                                |
 
-Endpoints that name their model in the URL use [`DynamicObjectPermissions`]{@api py:class:vueda.core.permissions.DynamicObjectPermissions} or its subclass [`WorkflowObjectPermissions`]{@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}. These are the workflow endpoints that address a model's data and [workflow state history]{@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}. Their [`crudl_perms_map`]{@api py:property:vueda.core.permissions.DynamicObjectPermissions.crudl_perms_map} names an action, which the class resolves through the mapping on each check.
+Endpoints that name their model in the URL use [`DynamicObjectPermissions`]{@api py:class:vueda.core.permissions.DynamicObjectPermissions} or its subclass [`WorkflowObjectPermissions`]{@api py:class:vueda.workflow.permissions.WorkflowObjectPermissions}. These are the workflow endpoints that address a model's data and [workflow state history]{@api rest:endpoint:GET:/vueda.history/workflow-state-history/{app_label}/{model}/{object_id}/}. Their [`crudl_perms_map`]{@api py:property:vueda.core.permissions.DynamicObjectPermissions.crudl_perms_map} names an action, which the class resolves through the mapping on each check.
 
 | Method        | `DynamicObjectPermissions` action |
 | ------------- | --------------------------------- |

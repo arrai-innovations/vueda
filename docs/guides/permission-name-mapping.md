@@ -83,7 +83,7 @@ Give a test user one permission at a time and send each request. The table uses 
 | `DELETE`                                                                                                                | `myapp.delete_widget`                                                        | `204` if held, `403` if not             |
 | [Field choices]{@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}                     | `myapp.read_widget`, plus `list_` on the related model for a relation        | `200` if all held, `403` if any missing |
 | [Filter choices]{@api rest:endpoint:GET:/vueda.info/model_info_filter_choices/{app_label}/{model}/{field}/}             | `myapp.read_widget`, plus `list_` on the related model for a queryset filter | `200` if all held, `403` if any missing |
-| [Workflow state history]{@api rest:endpoint:GET:/workflow-state-history/{app_label}/{model}/{object_id}/}               | `myapp.read_widget`                                                          | `200` if held, `403` if not             |
+| [Workflow state history]{@api rest:endpoint:GET:/vueda.history/workflow-state-history/{app_label}/{model}/{object_id}/} | `myapp.read_widget`                                                          | `200` if held, `403` if not             |
 | [Workflow object state]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/} | `myapp.read_widget`                                                          | `200` if held, `403` if not             |
 
 Under Django's names, the `GET` list and `GET` detail rows both require `myapp.view_widget`. VUEDA's own tests use the default mapping, so add these checks to your project's tests if you use Django's names.

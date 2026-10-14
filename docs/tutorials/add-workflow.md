@@ -13,11 +13,12 @@ We work as the Start Building user, `you@example.com`. Its group grants the `inv
 
 ## Wire Up Workflow URLs
 
-{@api py:module:vueda.workflow} is in {@api ext:django:setting:INSTALLED_APPS} by default, and its migrations ran with your first `migrate`. The project templates route the `vueda.info` and `vueda.user` URLs but leave out `vueda.workflow`. Add the [workflow URL patterns]{@api py:module:vueda.workflow.urls} to `server/config/urls.py`:
+{@api py:module:vueda.workflow} is in {@api ext:django:setting:INSTALLED_APPS} by default, and its migrations ran with your first `migrate`. The project templates route the `vueda.info` and `vueda.user` URLs but leave out `vueda.workflow` and `vueda.history`. Add the [workflow URL patterns]{@api py:module:vueda.workflow.urls} and the [history URL patterns]{@api py:module:vueda.history.urls} to `server/config/urls.py`:
 
 ```python
 from django.urls import include, path
 
+from vueda.history.urls import urlpatterns as vueda_history_urls  # [!code ++]
 from vueda.info.urls import urlpatterns as vueda_info_urls
 from vueda.user.urls import urlpatterns as vueda_user_urls
 from vueda.workflow.urls import urlpatterns as vueda_workflow_urls  # [!code ++]
@@ -30,6 +31,7 @@ urlpatterns = [
                 path("", include(vueda_info_urls)),
                 path("", include(vueda_user_urls)),
                 path("", include(vueda_workflow_urls)),  # [!code ++]
+                path("", include(vueda_history_urls)),  # [!code ++]
                 path("", include("your_project.urls")),
             ]
         ),
@@ -37,7 +39,7 @@ urlpatterns = [
 ]
 ```
 
-This adds the workflow API under `routes/vueda.workflow/workflows/<app_label>/<model>/`. While {@api ext:django:setting:DEBUG} is on, it also adds the workflow management views under `routes/vueda.workflow/`.
+This adds the workflow API under `routes/vueda.workflow/workflows/<app_label>/<model>/`. It also adds the workflow state history under `routes/vueda.history/workflow-state-history/<app_label>/<model>/<object_id>/`, which lists the states that an object has been in. The client's `storeWorkflow.fetchObjectHistory` requests this path. While {@api ext:django:setting:DEBUG} is on, it also adds the workflow management views under `routes/vueda.workflow/`.
 
 ## Enable Workflow on the Model
 
