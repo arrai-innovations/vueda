@@ -90,13 +90,13 @@ const userFetch = (url, init, messagePrefix, errorResolver = authErrorResolver) 
  *
  *   user.loggedIn; // reactive boolean for login state, true if logged-in
  *   user.loggedInUser; // reactive object for user details
- *   user.initialized; // reactive boolean for initialization state, true if initialized
+ *   user.currentUserRequestStatus.loading; // undefined before the first request, true while one runs, then false
+ *   user.currentUserRequestStatus.error; // error from the last current-user request, null when it succeeded
+ *   user.currentUserRequestStatus.errored; // true when the last current-user request failed
  *   user.loading; // reactive boolean for loading state, true if loading
  *   user.error; // reactive object for error details
  *   user.errored; // reactive boolean for error state, true if errored
- *   user.initializingPromise; // promise for initialization
  *
- *   user.init(); // fetch the current user, with initialization wrapping
  *   user.login({username: "username", password: "password"}); // login
  *   user.forgotPassword({email: "password"}); /
  *   user.resetPassword({password: "password", password_confirm: "password_confirm"});
@@ -122,11 +122,32 @@ export const storeUser = defineStore("user", {
          */
         loggedInUser: {},
         /**
-         * Whether the first who-is request has finished. `undefined` before any request, and `false` while a refetch runs.
+         * The status of the newest current-user request, which `fetchCurrentUser` sends to the who-is endpoint.
+         * It has the `useLoadingError` shape from reactive-helpers.
+         * Only `fetchCurrentUser` writes it, so the other actions never change it.
          *
-         * @type {boolean|undefined}
+         * - `loading` is `undefined` before the first request, `true` while a request runs, and `false` once
+         *   it finishes.
+         * - `error` holds the error from the finished request. It is `null` when the request succeeded.
+         * - `errored` is `true` when the finished request failed.
+         *
+         * The last current-user request succeeded when `loading` is `false` and `errored` is `false`.
+         *
+         * @type {{loading: boolean|undefined, error: Error|null, errored: boolean}}
          */
-        initialized: undefined,
+        currentUserRequestStatus: {
+            loading: undefined,
+            error: null,
+            errored: false,
+        },
+        /**
+         * The promise of the newest current-user request, so callers can wait for a request in flight instead of
+         * starting another. It settles with the newest request's outcome. The value is `null` before the
+         * first request.
+         *
+         * @type {Promise<void>|null}
+         */
+        currentUserRequest: null,
         /**
          * Whether a request made by this store is in flight.
          *
@@ -146,12 +167,6 @@ export const storeUser = defineStore("user", {
          * @type {boolean}
          */
         errored: false,
-        /**
-         * The who-is request that `init` started, so concurrent `init` calls wait on the same request.
-         *
-         * @type {Promise<void>|null}
-         */
-        initializingPromise: null,
         /**
          * The allauth flow the user must complete next, or `null` when none is pending.
          *
@@ -185,33 +200,41 @@ export const storeUser = defineStore("user", {
     }),
     actions: {
         /**
-         * Fetches the current user from the who-is endpoint and updates the login state.
+         * Fetches the current user from the who-is endpoint and updates the login state and `currentUserRequestStatus`.
          * When the authenticated user changes, clears the authorization-dependent stores and increments `identityGeneration`.
          *
+         * Only the newest request writes the user fields and `currentUserRequestStatus`. The promise of an older
+         * request settles with the newest request's outcome, so a caller that awaits it reads the newest answer.
+         *
          * @param {object} [options={}] - Fetch options.
-         * @param {boolean} [options.preserveError=false] - Whether to leave `error` and `errored` unchanged, on success and on failure.
+         * @param {boolean} [options.preserveError=false] - Whether to leave the store-wide `error` and `errored`
+         *  unchanged, on success and on failure. `currentUserRequestStatus` records the outcome either way.
          * @returns {Promise<void>} Resolves once the state is updated; rejects with the request error.
          */
         fetchCurrentUser({ preserveError = false } = {}) {
             // Captured synchronously, because the success handler below runs after an await and the
             // module-level active instance can belong to another Pinia by then.
             const pinia = getActivePinia();
-            if (this.initialized) {
-                this.initialized = false;
-            }
             this.loading = true;
+            this.currentUserRequestStatus.loading = true;
+            this.currentUserRequestStatus.error = null;
+            this.currentUserRequestStatus.errored = false;
             if (!preserveError) {
                 this.error = null;
                 this.errored = false;
             }
 
-            return fetchHelper(
+            const request = fetchHelper(
                 `${httpOrHttpsHostname}${getUrl("userCurrentUser")}`,
                 { method: "GET" },
                 "Error requesting current user",
                 UserError,
             )
                 .then((user) => {
+                    // A newer request has started since this one, so its answer is the current one.
+                    if (this.currentUserRequest !== request) {
+                        return this.currentUserRequest;
+                    }
                     // non-logged in users still 200, just empty user.
                     const nextPrincipalId = user?.id ?? null;
                     const previousPrincipalId = this.principalId;
@@ -220,7 +243,7 @@ export const storeUser = defineStore("user", {
                     this.loggedInUser = user;
                     this.principalId = nextPrincipalId;
                     // Every path that can change who is authenticated (login, logout, reauthenticate,
-                    // two-factor, TOTP activation, init) funnels through here, so this is the one place
+                    // two-factor, TOTP activation, route guards) funnels through here, so this is the one place
                     // that has to notice. Compare the principal only: `auth_pending_flow` changes on
                     // reauthenticate and `totp_devices` changes on device activation, neither of which
                     // changes what the user is permitted to see.
@@ -232,6 +255,11 @@ export const storeUser = defineStore("user", {
                     }
                 })
                 .catch((error) => {
+                    if (this.currentUserRequest !== request) {
+                        return this.currentUserRequest;
+                    }
+                    this.currentUserRequestStatus.error = error;
+                    this.currentUserRequestStatus.errored = true;
                     if (!preserveError) {
                         this.error = error;
                         this.errored = true;
@@ -240,10 +268,12 @@ export const storeUser = defineStore("user", {
                 })
                 .finally(() => {
                     this.loading = false;
-                    if (!this.initialized) {
-                        this.initialized = true;
+                    if (this.currentUserRequest === request) {
+                        this.currentUserRequestStatus.loading = false;
                     }
                 });
+            this.currentUserRequest = request;
+            return request;
         },
         /**
          * Signs the user in, then refetches the current user.
@@ -845,19 +875,6 @@ export const storeUser = defineStore("user", {
                 .finally(() => {
                     this.loading = false;
                 });
-        },
-        /**
-         * Fetches the current user once, and waits for that request on later calls.
-         *
-         * @returns {Promise<void>}
-         */
-        async init() {
-            if (!this.initialized) {
-                this.initializingPromise = this.fetchCurrentUser();
-            }
-            if (this.initializingPromise) {
-                await this.initializingPromise;
-            }
         },
         /**
          * Clears `error` and `errored`.
