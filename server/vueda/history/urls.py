@@ -15,7 +15,7 @@ if workflow_is_installed():
 
     urlpatterns = [
         path(
-            "workflow-state-history/<app_label>/<model>/<int:object_id>/",
+            "vueda.history/workflow-state-history/<app_label>/<model>/<int:object_id>/",
             WorkflowStateHistoryView.as_view(),
             name="workflow-state-history",
         ),

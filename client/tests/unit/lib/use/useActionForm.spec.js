@@ -1,7 +1,7 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
 import { useActionForm } from "@vueda/use/useActionForm.js";
-import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
+import { ConfirmationRequiredError, RateLimitedError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive } from "vue";
 
@@ -68,6 +68,29 @@ describe("lib/use/useActionForm.js", () => {
         expect(actionForm.combinedError.value).toBe(null);
         expect(actionForm.combinedErrored.value).toBe(false);
         expect(toastMock.error).not.toHaveBeenCalled();
+    });
+
+    scopedIt("reports a rate-limited submit in a toast and leaves the form without an error", async () => {
+        const formContext = createFormContext();
+        const response = {
+            status: 429,
+            statusText: "Too Many Requests",
+            headers: new Headers({ "Retry-After": "45" }),
+        };
+        const runAction = vi.fn(() => Promise.reject(new RateLimitedError("Too many requests", response, {})));
+        const props = reactive({ runAction, actionErrorSummary: "Sign In Failed" });
+        const actionForm = await withSetup(() => useActionForm(formContext, props));
+
+        await actionForm.handleConfirm();
+        await flushPromises();
+
+        expect(toastMock.error).toHaveBeenCalledWith("Sign In Failed", {
+            description: "Too many requests. Try again in 45 seconds.",
+            duration: 15000,
+        });
+        expect(actionForm.combinedError.value).toBe(null);
+        expect(actionForm.combinedErrored.value).toBe(false);
+        expect(actionForm.confirmDisabled.value).toBe(false);
     });
 
     describe("Warning confirmation", () => {

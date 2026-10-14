@@ -1,5 +1,6 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { RateLimitedError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { defineComponent, h, reactive, ref } from "vue";
 
@@ -222,13 +223,27 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             vi.useRealTimers();
         });
 
-        scopedIt("handleSendCode reports errors", async () => {
+        scopedIt("handleSendCode reports a refused send and leaves sending enabled", async () => {
             const wrapper = mount(ViewTwoFactorAuth);
-            wrapper.vm.form.values = { method: "email" };
-            userStore.sendTwoFactorAuthenticationCode.mockRejectedValue(new Error("fail"));
+            wrapper.vm.form.values = { method: "sms" };
+            const error = new RateLimitedError(
+                "Too many requests",
+                { status: 429, statusText: "Too Many Requests" },
+                { detail: "Request was throttled." },
+            );
+            userStore.sendTwoFactorAuthenticationCode.mockRejectedValueOnce(error);
+
             await wrapper.vm.handleSendCode();
-            expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", expect.any(Object));
+
+            expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", {
+                description: error.message,
+                duration: 15000,
+            });
             expect(wrapper.vm.timer).toBeNull();
+            wrapper.vm.form.values = { method: "email" };
+            await wrapper.vm.handleSendCode();
+            expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenLastCalledWith({ method: "email" });
+            wrapper.unmount();
         });
     });
 
