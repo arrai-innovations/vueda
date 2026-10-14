@@ -1,1 +1,0 @@
-- **`mergeColumnMappings` entry that names no adapter**: a type mapping whose `column` matches no `availableColumns` entry is now reported as an error for each column of that type, like a `columnComponents` override. It used to render `ColumnText` without a message.
