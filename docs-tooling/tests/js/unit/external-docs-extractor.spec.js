@@ -237,6 +237,36 @@ describe("ExternalDocsExtractor", () => {
             extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath }),
         ).rejects.toThrow("https://site.test/p#x: no element has this id");
     });
+    it("marks only an inventory URL that names an exact release as pinned", async () => {
+        const dir = await mkdtemp(path.join(os.tmpdir(), "external-docs-"));
+        const configPath = path.join(dir, "external-docs.json");
+        const lockPath = path.join(dir, "uv.lock");
+        await writeFile(
+            configPath,
+            JSON.stringify({
+                exact: { title: "Exact", lockPackage: "example", base: "https://exact.test/v{version}/" },
+                minor: { title: "Minor", lockPackage: "example", base: "https://minor.test/{minor}/" },
+                latest: { title: "Latest", base: "https://latest.test/stable/" },
+            }),
+        );
+        await writeFile(lockPath, '[[package]]\nname = "example"\nversion = "1.2.3"\n');
+
+        const requested = {};
+        const extractor = new ExternalDocsExtractor({
+            fetchInventory: async (url, { pinned }) => {
+                requested[url] = pinned;
+                return EXAMPLE_INVENTORY;
+            },
+            findInstalledVersions: async () => ({ example: null }),
+        });
+        await extractor.extract({ outputPath: path.join(dir, "ids.json"), configPath, lockPath });
+
+        expect(requested).toEqual({
+            "https://exact.test/v1.2.3/objects.inv": true,
+            "https://minor.test/1.2/objects.inv": false,
+            "https://latest.test/stable/objects.inv": false,
+        });
+    });
 });
 
 describe("cachedFetch", () => {
@@ -264,6 +294,47 @@ describe("cachedFetch", () => {
         await expect(cachedFetch("https://site.test/b", { cacheDir, fetchImpl: offline })).rejects.toThrow(
             "no cached copy exists",
         );
+    });
+
+    it.each([429, 503])("returns the cached copy on HTTP %i", async (status) => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        const warnings = [];
+        const warn = (message) => warnings.push(message);
+        await cachedFetch("https://site.test/d", { cacheDir, fetchImpl: ok("fresh"), warn });
+        const busy = async () => new Response("", { status });
+
+        expect((await cachedFetch("https://site.test/d", { cacheDir, fetchImpl: busy, warn })).toString()).toBe(
+            "fresh",
+        );
+        expect(warnings).toEqual([`Using the cached copy of https://site.test/d: HTTP ${status}`]);
+    });
+
+    it("explains how to fill the cache on HTTP 429 when nothing is cached", async () => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        const busy = async () => new Response("", { status: 429 });
+        await expect(cachedFetch("https://site.test/e", { cacheDir, fetchImpl: busy })).rejects.toThrow(
+            "HTTP 429, and no cached copy exists",
+        );
+    });
+
+    it("returns a cached copy without a request when the cache is preferred", async () => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        await cachedFetch("https://site.test/f", { cacheDir, fetchImpl: ok("first") });
+        let requests = 0;
+        const counted = async () => {
+            requests += 1;
+            return new Response("second", { status: 200 });
+        };
+
+        const body = await cachedFetch("https://site.test/f", { cacheDir, fetchImpl: counted, preferCache: true });
+        expect(body.toString()).toBe("first");
+        expect(requests).toBe(0);
+    });
+
+    it("fetches and keeps a copy when the cache is preferred but empty", async () => {
+        const cacheDir = await mkdtemp(path.join(os.tmpdir(), "external-cache-"));
+        await cachedFetch("https://site.test/g", { cacheDir, fetchImpl: ok("fresh"), preferCache: true });
+        expect((await cachedFetch("https://site.test/g", { cacheDir, fetchImpl: offline })).toString()).toBe("fresh");
     });
 
     it("fails on an HTTP error status even when a copy is cached", async () => {

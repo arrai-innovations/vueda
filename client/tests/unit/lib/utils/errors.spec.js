@@ -1,4 +1,10 @@
-import { ConfirmationRequiredError, FormValidationError, ServerFeedbackError } from "@vueda/utils/errors.js";
+import {
+    ConfirmationRequiredError,
+    FetchError,
+    FormValidationError,
+    RateLimitedError,
+    ServerFeedbackError,
+} from "@vueda/utils/errors.js";
 import { describe, expect, it } from "vitest";
 
 describe("lib/utils/errors.js", () => {
@@ -135,6 +141,38 @@ describe("lib/utils/errors.js", () => {
             expect(error.digest).toBe("d1");
             expect(error.errors).toEqual({});
             expect(error.messages).toEqual({ count: ["Unusual."] });
+        });
+    });
+
+    describe("RateLimitedError", () => {
+        const rateLimited = (headers) => ({
+            status: 429,
+            statusText: "Too Many Requests",
+            headers: new Headers(headers),
+        });
+
+        it.each([
+            ["1", 1, "1 second"],
+            ["45", 45, "45 seconds"],
+            ["734", 734, "13 minutes"],
+            ["5400", 5400, "2 hours"],
+        ])("says how long to wait when Retry-After is %s", (header, seconds, wait) => {
+            const error = new RateLimitedError("Too many requests", rateLimited({ "Retry-After": header }), {});
+
+            expect(error).toBeInstanceOf(FetchError);
+            expect(error.name).toBe("RateLimitedError");
+            expect(error.message).toBe(`Too many requests. Try again in ${wait}.`);
+            expect(error.retryAfterSeconds).toBe(seconds);
+        });
+
+        it.each([
+            ["no Retry-After header", {}],
+            ["a Retry-After date", { "Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT" }],
+        ])("says to try again later when the response has %s", (_, headers) => {
+            const error = new RateLimitedError("Too many requests", rateLimited(headers), {});
+
+            expect(error.message).toBe("Too many requests. Try again later.");
+            expect(error.retryAfterSeconds).toBeNull();
         });
     });
 });

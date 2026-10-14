@@ -7,158 +7,119 @@ status: draft
 
 # Field and Expand Semantics
 
-VUEDA uses two query-parameter-driven mechanisms to control the shape of API responses: sparse field selection (`f`) and {@term Expand} selection (`e`). Together, these parameters let the client request only the fields it needs and embed related-object data inline rather than following separate requests. The contract spans three layers: the server's serializer metadata that defines what is available, the viewset validation that enforces what is allowed per action, and the client's normalization and caching of that metadata for runtime use.
+{@term Sparse Fields} and {@term Expand} let a request shape its response. `f` names the fields to return, `om` names fields to drop, and `e` names relations to return inline as nested objects. The {@term Canonical Serializer} defines which fields and expands exist, {@term Model Info} publishes them, and each viewset action decides which expands a request may use.
 
-This page explains the contract itself; what the parameters mean, how sparse-field and {@term Expand} metadata is generated, how {@term Action-Scoped Expand} permissions are scoped per action, and what happens when requests violate the contract. For practical steps on configuring `f` and `e` controls for a model surface, see [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls).
+This page describes that contract: the metadata, the per-action expand rules, how the server checks and applies each parameter on reads and writes, and what an expand costs. [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls) gives the steps for declaring expands and restricting them per action.
 
-## Boundary and Ownership
+## Where the Contract Is Defined
 
-The server owns the definition of which fields exist and which fields are expandable. This definition lives in the canonical registered serializer, not in the Django model or database schema. The client owns the runtime decision of which fields and expands to request on a given fetch, within the boundaries the server advertises.
+The canonical serializer defines the fields and expands. A field on the Django model that the serializer does not declare is absent from this contract. A computed serializer field, such as a {@api ext:drf:rest_framework.fields.SerializerMethodField}, is part of it and can be selected in `f`.
 
-The boundary between them is the {@term Model Info} metadata response. Registration stores the canonical serializer and viewset class references; the server derives `model_fields` and `model_expands` from those classes on each model-info request by instantiating the serializer and inspecting its fields and expandable-field declarations. The client fetches this metadata, normalizes it, and uses it to construct default field subsets for each view, and the details of each {@term Expand} a view's config names. From that point forward, the client's requests are constrained by what the metadata advertises and what the viewset's action-level allow-lists permit.
+The server builds the field and expand sections of model info from the canonical serializer on each request. The client reads them to build each view's default field lists and the details of each declared expand. A request can then choose any subset that the viewset action permits.
 
 ## Parameter Namespace and Wire Shape
 
-Sparse field selection and {@term Expand} selection use the query parameter names `f` and `e`, respectively. These names are configured in the server's `REST_FLEX_FIELDS2` settings and mirrored as shared constants on the client (`FIELDS_PARAM`, `EXPAND_PARAM`). Both sides reference the same parameter keys, so request construction and server-side parsing are always aligned.
+The parameter names are `f`, `om`, and `e`. [Configuration Surface and Defaults](./configuration-surface-and-defaults#wire-query-parameter-namespace) lists the server settings that define them and the matching client constants, such as {@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM} and {@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}.
 
-On the wire, a request that selects specific fields and expands looks like:
+A request that selects fields and expands a relation looks like this:
 
 ```text
-GET /routes/myapp/widget/1/?f=id&f=name&f=status&e=owner
+GET /routes/myapp/widget/1/?e=owner&f=id,name,owner.id,owner.name
 ```
 
-The server reads the `f` values as the sparse field set and the `e` values as the `expand` set. Fields not listed in `f` are omitted from the response. Expands listed in `e` cause the related serializer to be embedded inline in the response rather than returning only the foreign key value.
+The response holds `id`, `name`, and `owner`. The `owner` value is an object with `id` and `name`. Without `e=owner`, `owner` holds the related object's primary key.
 
-`f` and its complement `om` (omit) shape the response only, on every request method. A `create` or `update` request body still validates against the serializer's full field set regardless of `f`/`om`: a required field a request body supplies validates fully even when `f`/`om` excludes it from the response the write returns. On a partial update, whether a required field must be present in the body at all is unaffected by `f`/`om` either way: a field the body omits stays optional under the normal partial-update rule, and `f`/`om` do not make it required. `e` is different because it changes how the body is read, not just how the response is shaped: a relation named in `e` deserializes from a nested object payload, and the same relation left out of `e` deserializes from a flat primary key. See [Nested Write Compatibility](./nested-write-compatibility) for how the serializer mixin enforces this split.
+### Multi-level Field and Expand Data
+
+A dotted name selects a field one level down: `owner.name` is the `name` field of the expanded `owner` object. The server applies these rules at each level:
+
+- **Expanded relations stay in the response.** A relation named in `e` is returned even when `f` leaves out its name or `om` names it.
+- **Sub-fields default to all.** When `f` names no sub-field of an expanded relation, the expanded object carries every field that its serializer declares.
+- **Named sub-fields are the whole set.** When `f` names sub-fields, the expanded object carries only those. The server does not add the related object's primary key, so to identify the object, a request names its pk too, as `owner.id` does above.
+- **Wildcards apply to one level.** `*` and `~all` select every field in `f`, or every permitted expand in `e`, at the level where they appear. `owner.*` selects every field of `owner`. `*.*` is not valid and returns a `400`.
+- **`available_actions` is top-level only.** An expanded object never carries {@term Available Actions}, and `f=owner.available_actions` returns a `400`.
+
+The server rejects any `e`, `f`, or `om` path deeper than {@api ext:drf-flex-fields2:rest_flex_fields2.config.MAXIMUM_EXPANSION_DEPTH}, which VUEDA sets to `4`. The response is a `400` with `Expansion depth exceeded` under `non_field_errors`.
+
+## Sparse Fields and Expand on Writes
+
+On every request method, `f` and `om` shape only the response. A `create`, `update`, or `partial_update` validates the request body against the serializer's full field set, and `f` and `om` then narrow the object that the write returns.
+
+The request method alone decides which fields the body must contain. A `create` (`POST`) or full `update` (`PUT`) that omits a required field returns a `400` naming it, even when `f` or `om` leaves that field out of the response. A partial update (`PATCH`) treats an omitted field as optional, and validates each field that the body does supply.
+
+`e` also changes how the body is read. A relation named in `e` accepts a nested object, and a relation left out of `e` accepts a primary key. [Nested Write Compatibility](./nested-write-compatibility) describes the nested body and how the serializer handles it.
+
+A write does not check `f` names. `PATCH ?f=bogus` returns `200` with the body `{}` ([#395](https://github.com/arrai-innovations/vueda/issues/395)). A write does check `e` names. Before it validates the body, a `create`, `update`, or `partial_update` checks each name against the action's permitted expands with [`validate_flex_expand_param_for_write`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param_for_write}. An unknown or unpermitted name returns a `400` keyed by that name, with the same message that a read gets.
 
 ## Field Metadata Contract
 
-The `model_fields` section of a model-info response is derived from the canonical registered serializer's field definitions. Each field entry carries structural metadata: `read_only`, `required`, `many`, type descriptors, and optional constraints like `max_length` or `min_value`. When a field has static choices defined on the serializer, those choices are included in the metadata as well.
+The `model_fields` section of the {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} response holds one entry per canonical serializer field. {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_fields} builds it. Each entry carries metadata such as `read_only`, `required`, `many`, type descriptors, constraints like `max_length`, and static choices. [Server-Client Metadata Contract](./server-client-metadata-contract#metadata-sections) describes the sections and their keys.
 
-Primary key membership is explicit in field metadata. The server marks one field with `pk: true` when the serializer field name matches `model._meta.pk.name`. The client requires this marker; `storeModelInfo` throws `"no pk field found"` if no field carries `pk: true`, and the error is cached per `app.model`, blocking all subsequent operations for that model until store state is recreated. See [Primary Key and Identifier Discipline](./pk-and-identifier-discipline) for the full identifier contract.
-
-Field metadata is serializer-derived, not model-table-derived. A field that exists on the Django model but is not declared in the canonical serializer's `Meta.fields` will not appear in `model_fields` and will be invisible to the client. Conversely, computed or method-based serializer fields that have no database column will appear in metadata and be available for sparse field selection.
+The field whose name matches the model's primary key carries the {@term Pk Marker}. [Primary Key and Identifier Discipline](./pk-and-identifier-discipline) describes how the server sets it and how the client uses it.
 
 ## Expand Descriptor Contract
 
-The `model_expands` section of a model-info response describes each expandable relationship on the canonical serializer. Unlike field metadata, which is a flat key-value map, {@term Expand} metadata is a list of descriptors. Each descriptor carries:
+The `model_expands` section is a list with one descriptor per entry in the serializer's `Meta.expandable_fields`. {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands} builds it. Every descriptor carries these keys:
 
-- **`name`**: the `expand` key used in `e` query parameters.
-- **`app_label`**: the related app_label identity of `app_label.model_name`.
-- **`model`**: the related model identity of `app_label.model_name`.
-- **`many`**: whether the relationship is a to-many relation (producing an array of embedded objects).
-- **`read_only`**: whether the expanded relationship is read-only on the serializer.
-- **`f`**: nested field metadata for the expanded serializer's fields, following the same structure as top-level `model_fields`.
+- `name`: the relation name that a request puts in `e`.
+- `many`: whether the relation returns a list of objects.
+- `read_only`: whether the expanded relation is read-only. It is always `true` for a {@api py:class:vueda.core.serializers.GenericForeignKeySerializer} expand.
 
-The nested `f` metadata is what makes expansion an explicit embedded contract rather than a boolean toggle. When the client expands a relationship, it knows the exact field schema of the embedded objects; their types, read-only status, required status, and constraints. This enables the client to build field-detail maps for expanded sub-fields (using `expand.subfield` composite keys) without fetching a separate model-info request for the related model.
+A descriptor carries three more keys when the expand's serializer has a `Meta.model`:
 
-Generating `model_expands` requires the canonical serializer to inherit `VuedaExpandableFieldsSerializerMixin`, which is where `Meta.expandable_fields` is walked into descriptors. `VuedaSerializer` already includes this mixin, so any of its subclasses get `model_expands` for free. {@term Canonical Registration} does not require the canonical serializer to inherit `VuedaSerializer` at all; a plain `rest_framework.serializers.ModelSerializer` can be registered. If you register one of those and want it to report `model_expands`, inherit `VuedaExpandableFieldsSerializerMixin` directly. Without it, `model_expands` is an empty list regardless of any `Meta.expandable_fields` declaration, since there is no generation step to read that declaration.
+- `app_label` and `model`: the related model's identity.
+- `f`: field metadata for the expanded serializer, in the same shape as `model_fields`.
 
-When sparse field selection (`f`) is applied to an expanded serializer's fields, the primary key of the nested serializer is always preserved even if not explicitly requested. This ensures that expanded objects are always identifiable regardless of which subset of their fields the client selects.
+A generic foreign key expand has none of the three, and neither does any other expand whose serializer declares no `Meta.model`.
+
+When the `expandable_fields` entry passes static `f` options, the descriptor's `f` lists only those fields, plus the related model's primary key.
+
+The canonical serializer produces descriptors only when it inherits {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}. {@api py:class:vueda.core.serializers.VuedaSerializer} includes it. A {@api ext:drf:rest_framework.serializers.ModelSerializer} registered without the mixin reports an empty `model_expands`, whatever its `Meta.expandable_fields` declares.
+
+### Expands on the client
+
+The client stores the section as {@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.expand}, a list of {@api js:interface:@arrai-innovations/vueda/stores/storeModelInfo#ExpandInfo} objects. [Server-Client Metadata Contract](./server-client-metadata-contract#client-normalization) describes how the client renames and camelCases the keys.
+
+A view's default {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.expand} is empty, so a view requests an expand only when its model config names one. The client still keeps every descriptor in `expandDetails`. The list and detail views send the configured `expand` as `e`. The create and update views send each configured expand whose form value is set. The default field lists name no sub-fields, so each expanded object arrives with all of its fields.
+
+For each name in a view's `expand`, the client copies the descriptor's `f` entries into {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fieldDetails} under dotted keys, such as `owner.name`. The server uses the same names in `f`, so a per-field override for an expanded sub-field uses that key. A view whose `expand` is empty gets no dotted keys. Building the config checks each view's `expand` and dotted field list entries, and throws one error that names each problem:
+
+- An `expand` entry must start with an expand that model info declares.
+- A field list entry under a declared expand, such as `owner.name`, needs `owner` in the same view's `expand`.
+- Any other dotted entry must start with a model field, `related`, or `calculated`.
 
 ## Generic Foreign Key Expands
 
-When a model has a Django `GenericForeignKey` field, the related model is not known at serializer definition time. `GenericForeignKeySerializer` handles this case: it declares no fields at class definition time and resolves the related model's canonical registered serializer in `to_representation()` by calling `get_serializer_for_model`. This means the expand only produces output when the concrete type of the related object is registered in the VUEDA registry.
+A {@api ext:django:django.contrib.contenttypes.fields.GenericForeignKey} can point at any model, so its expand uses `GenericForeignKeySerializer`. At representation time, the serializer looks up the related object's registered serializer with {@api py:function:vueda.info.registration.get_serializer_for_model} and renders the object with it. The output always adds `app_label`, `model`, and `formatted_name`. When the related object's model has no {@term Canonical Registration}, the expand returns `null`.
 
-Generic foreign key expands are always read-only. There is no write path through `GenericForeignKeySerializer`, so `read_only: true` is unconditionally reported for these expands in model-info metadata.
+The descriptor for this expand has `type_db: null`, `type_model: "GenericForeignKey"`, and `type_serializer: "GenericForeignKeySerializer"`. It has no `f`, because the related model is known only per object. For the same reason, the server does not check `f` names under a generic foreign key expand. The expand declaration can also target field options at one related model; [Use Expand and Sparse Field Controls](../guides/expand-and-fields-controls) describes that syntax.
 
-The model-info `model_expands` entry for a generic foreign key expand carries distinct type identifiers:
+## Action-Scoped Expands
 
-- `type_db`: `null` — no single database column type applies, because a generic foreign key is a compound relationship backed by two separate columns: a `content_type` column that stores the related model type and an `object_id` column that stores the related object's primary key.
-- `type_model`: `"GenericForeignKey"` — identifies this expand as a polymorphic relationship.
-- `type_serializer`: `"GenericForeignKeySerializer"` — the serializer class name that handles the expand.
+An {@term Action-Scoped Expand} list, set on the viewset as `permit_<action>_expands`, names the expands that a request to that action may use. {@api py:class:vueda.core.viewsets.FlexFieldsMixin} puts the list in the serializer context.
 
-Because the related type is not known until representation time, no nested `f` field metadata is available for generic foreign key expands in model-info. The client cannot pre-resolve a fixed field schema for these expands the way it can for concrete foreign key expands.
+The default differs by action:
 
-All possible related models that could appear through the generic foreign key must be registered via `register` or `register_serializer` for the expand to return non-null output. If the concrete type of the related object is not registered, `GenericForeignKeySerializer` returns `null` for that expand.
+- **`list` permits no expands** until the viewset sets `permit_list_expands`. drf-flex-fields2 defaults it to `[]`. Any `e` on such a list, including `e=*`, returns a `400` with `Invalid expands. No expands are permitted.`
+- **Every other action permits every declared expand** unless the viewset sets `permit_<action>_expands`, such as `permit_retrieve_expands`.
 
-### Model-targeted field filtering
+A permit list names each allowed path as the request writes it. `"customer"` permits `e=customer`, and `"customer.user"` permits `e=customer.user`. A path that the list does not name returns a `400`. A wildcard in `e` expands every name that the list holds.
 
-The `FIELDS_PARAM` and `OMIT_PARAM` options passed through `expandable_fields` support model-targeted specifiers that apply only when the related object is an instance of a specific model. This is useful when different related model types expose different fields and you want to omit or select fields selectively per type.
+Model info does not report which expands each action permits. A list view whose `expand` names a relation therefore needs the same name in `permit_list_expands`, or its request returns a `400`.
 
-A model-targeted specifier has the form `_<app_label>__<model_name>__<field_name>`. The leading `_` distinguishes it from plain field names. At representation time, `GenericForeignKeySerializer` resolves each specifier against the concrete type of the related object: matching specifiers are replaced with the bare field name and passed to the concrete serializer; non-matching specifiers are dropped. Plain field names and wildcards are passed through unchanged and apply to every related model.
+## Validation of `f` and `e`
 
-This resolution happens entirely server-side, before the concrete serializer is instantiated. Client-submitted `f` and `e` query parameters continue to use plain field names and wildcards; model-targeted specifiers are not valid in query parameters.
+On `list` and `retrieve`, [`validate_flex_expand_and_field_param`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param} checks each `f` and `e` name against the serializer and the action's permit list. This is part of {@term Query Parameter Validation}. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes how the server rejects unknown query parameter keys.
 
-The field selection passed to the concrete serializer is still bounded by what that serializer declares. A field that exists on the Django model but is not listed in the registered serializer's `Meta.fields` will not appear in the output even if it is requested by name via a model-targeted specifier. The registered serializer's field declarations are the authoritative source of what each model type can return.
+- An unknown `f` name returns a `400` keyed by that name. The message starts with `Invalid field.` and lists the valid fields and wildcards.
+- An unknown or unpermitted `e` name returns a `400` keyed by that name. The message starts with `Invalid expands.`, then lists the permitted expands or says `No expands are permitted.`
+- `f=pk` returns a `400`, because `pk` is not a serializer field name.
+- The server does not check `om` values.
 
-## {@term Action-Scoped Expand} Authority
-
-Expandable fields declared on a serializer are not automatically available on every viewset action. The viewset can restrict which expands are permitted per action using {@term Action-Scoped Expand} controls (`permit_{action}_expands` attributes); for example, `permit_list_expands` and `permit_retrieve_expands`. When these attributes are defined, the viewset injects the permitted set as `permitted_expands` in the serializer context, and the serializer's flex-field machinery respects it.
-
-This scoping exists because different actions have different performance and data-shape requirements. A `list` action might permit only lightweight expands (such as a user's display name) while a `retrieve` action permits heavier expands (such as a full nested object graph). Without action-level scoping, a `list` request could embed deep object trees across every row in a paginated response, producing non-linear payload growth. To enforce a maximum expansion depth, you can use the `MAXIMUM_EXPANSION_DEPTH` setting for `REST_FLEX_FIELDS2`, which we default to 4. Any requests beyond this maximum will generate an `Expansion depth exceeded` error.
-
-The expand validation path works as follows. On each request, `FlexFieldsMixin.get_serializer_context` resolves the permitted `expand` set for the current action. If a `permit_{action}_expands` attribute exists, it becomes the serializer's `permitted_expands` context. The viewset's `validate_flex_expand_and_field_param` generates a set of possible expandable fields, including wildcards, but limited to the permitted expands. This data is generated up to the maximum depth of the requested `expand` and `field` values, but not exceeding the `MAXIMUM_EXPANSION_DEPTH`. If any requested `expand` names are not found among the possibilities, an HTTP 400 response will be returned containing a list of the possible `expand` names.
-
-Trying to expand on a model that does not have any expandable fields, will generate the error "No expands are permitted.".
+A request with any invalid name fails as a whole, and one response reports every invalid `f` and `e` name. Each name maps to a list of message strings, so a name that is invalid in both parameters carries both messages. This is the standard validation shape that [Error and Validation Contract](./error-and-validation-contract) describes. On the client, these read errors raise a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError}.
 
 ## Query Cost of List and Retrieve Expansion
 
-An expanded relation's query cost does not grow with the number of rows in the response. `VuedaViewSet.get_queryset()` derives `select_related` and `prefetch_related` directly from what a request's `e` value actually expands, and applies that plan before the queryset is paginated or evaluated. Expanding `category` on a `list` of 100 objects costs one additional join, not 100 additional queries; expanding a to-many relation like `tags` costs one additional prefetch query, not one per row.
+On `list` and `retrieve`, {@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} adds `select_related` and `prefetch_related` for each relation that the request expands, after the permit list and depth limit apply. {@api py:function:vueda.core.viewsets.build_prefetch_plan} derives these from each field's `source`. An expanded to-one relation costs one join, and a to-many relation costs one prefetch query, whatever the row count.
 
-Only `e` decides what the plan covers, together with whatever narrows `e` itself: {@term Action-Scoped Expand} restrictions and `MAXIMUM_EXPANSION_DEPTH`. `f` (sparse fields) and `om` (omit) play no part in it either way, and this is not a limitation of the plan; it reflects what the response actually does. An expand named in `e` renders regardless of what `f` or `om` say, through two separate mechanisms that happen to produce the same result: the field-defaulting behavior described in [Multi-level Field and Expand Data](#multi-level-field-and-expand-data) below re-admits an expand's own name into the effective `f` set as a side effect of defaulting its sub-fields to "all" when none are requested, and a similar side effect of always hiding `available_actions` from an expanded object re-admits it into the effective `om` set. Either way, an `f` that omits an expand's name, or an `om` that names it, drops neither the field from the response nor its relation from the plan. `f` and `om` still work normally for ordinary, non-expanded fields, and for narrowing which sub-fields of an already-expanded relation come back — neither of which changes what the plan needs to prefetch, since the plan only cares about which relations get traversed, not which of their columns are returned.
-
-The plan follows a field's `source` (a `source=` in an `expandable_fields` declaration that names a different attribute than the field's own key resolves against that attribute, not the key), and it only ever covers what `e` actually resolved: a field never named in `e`, or one restricted away by {@term Action-Scoped Expand} controls, contributes nothing to the plan.
-
-This does not apply to a `GenericForeignKeySerializer` expand: the related model is not known until representation time (see [Generic Foreign Key Expands](#generic-foreign-key-expands) above), so it continues to resolve per-instance the same way it always has, outside of any queryset plan.
-
-This removes the per-row query cost of expansion, but not its other costs. Response payload size still grows with both row count and expansion depth, and each distinct expanded relation still costs one join or prefetch query per request, which is why {@term Action-Scoped Expand} restrictions above remain worth setting for `list` endpoints with many expandable relations or large row counts.
-
-## Client Normalization and Cache Semantics
-
-Model-info responses undergo normalization when the client stores them. The normalization performs three transformations:
-
-**Prefix stripping.** Server-side field names use a `model_` prefix to avoid namespace collisions in the serializer, where `fields` would collide, because of the function derived from it called `get_fields`. The client strips this prefix, so `model_fields` becomes `fields` and `model_expands` becomes `expand` (singular, matching the client convention where `expand` parallels `omit`, not `expands`).
-
-**Nested camelCasing.** Field metadata objects within `fields` and `filtering` maps are recursively camel-cased. Expand descriptors have their nested `f` field metadata camel-cased as well. Root-level keys remain unchanged.
-
-**PK key extraction.** The client scans the normalized `fields` map for the entry with `pk: true` and stores its key as `data.pk`. This derived key is used by model-config, routing, and {@term CRUDL} operations to identify objects without assuming a fixed field name. Django composite primary keys are currently not supported.
-
-The normalized result is cached by `app.model` key in `storeModelInfo`. Subsequent requests for the same model resolve from cache without a network fetch. If the initial fetch fails (including the `"no pk field found"` error), the error is cached instead, and subsequent requests for the same key short-circuit to the cached error. This prevents the client from repeatedly fetching metadata that the server returned but the client could not process.
-
-Default model-config generation uses the normalized metadata to derive field sets. `displayFields`, `fetchFields`, and `submitFields` are computed from the field metadata, excluding the PK field by default. The default `expand` is empty, so a view requests an expansion only when its model config names one. The expand descriptors still populate `expandDetails`. For each expansion that `expand` names, its field details are flattened into `expand.subfield` composite keys in the `fieldDetails` map. A field list entry under a declared expansion that `expand` omits fails the config build.
-
-## Multi-level Field and Expand Data
-
-When requesting multiple levels of field and expand data, there are a number of things you need to be aware of.
-
-The client requests the "id" and "available_actions" fields for the main model for all detail requests. Due to the way DRF Flex Fields works, this would mean that no fields would be returned for the expanded model, since none are being requested. Internally we use a wildcard to do this, as explained below. To be more helpful in regards to this situation, we automatically request all of the fields for an expanded model that did not request any fields. If you don't want all the fields for an expanded model, then you should specify which fields you want; like `[expandable field name].id,[expandable field name].name`.
-
-Wildcards ("\*" or "~all") can be used by both fields and expands, but only work at the specified level. Adding a wildcard to the expands will return all expands at the specified level. Adding a wildcard to the fields will return all the fields specified on the serializer for the model at the current level.
-
-Specifying both fields and wildcards is allowed, like `id,available_actions,*` is valid, but wildcards cannot be chained like `*.*`. You need to specify the expandable field, like ``[expandable field name].*` to get all expands or all fields from the expandable field specified.
-
-"available_actions" is omitted from an expanded objects fields. Requesting `[expandable field name].available_actions` will generate an invalid field error.
-
-## Observable Failure Modes
-
-**Invalid expand for a given action returns HTTP 400 with no partial application.** When a request includes both valid and invalid `expand` keys, the entire request fails. The valid expands are not partially applied in the response; the client receives only the error payload. The error message identifies the invalid keys and, when available, lists the permitted set.
-
-**Invalid sparse field keys produce field-keyed validation errors.** Unknown `f` values return HTTP 400 with a payload keyed by the invalid field name and a `code: invalid` error. In write flows, this validation error can be mistaken for a data validation failure because it follows the same response shape. The distinguishing signal is the error message text, which references valid field names.
-
-**A required field excluded by `f`/`om` still must be sent on a full-body write.** `f` and `om` narrow the response only; they do not narrow what a `create` (`POST`) or full `update` (`PUT`) validates. Omitting a required field from the request body because `f`/`om` excludes it from the response returns HTTP 400 naming that field, not a successful write with the field left blank or defaulted. A partial update (`PATCH`) is the exception: a field the body omits stays optional under the normal partial-update rule regardless of `f`/`om`; only a field the body does supply is validated, `f`/`om`-excluded or not.
-
-**Missing PK marker blocks the entire model on the client.** If the server's metadata response does not include a field with `pk: true`, `storeModelInfo` throws and caches the error. All subsequent operations for that `app.model`; config generation, route guards, form loading; fail immediately with the cached error. The only recovery is to recreate the store instance.
-
-**Not requested the PK field, usually `id`, for an expandable model.** This will cause errors in the client, as the PK field is required internally.
-
-**Requesting `pk` causes an invalid field error.** If you request the `pk` of an object, bypassing the vueda validation, then the `pk` field will be ignored. This does not return the `id` field, which is why it is treated as an invalid field.
-
-## Relevant Implementation Surface
-
-- {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
-- {@api rest:endpoint:GET:/vueda.info/model_info/}
-- {@api py:class:vueda.info.serializers.ModelInfoSerializer}
-- {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_fields}
-- {@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_expands}
-- {@api py:class:vueda.core.serializers.VuedaExpandableFieldsSerializerMixin}
-- {@api py:class:vueda.core.serializers.GenericForeignKeySerializer}
-- {@api py:function:vueda.info.registration.get_serializer_for_model}
-- {@api py:function:vueda.core.viewsets.FlexFieldsMixin.get_serializer_context}
-- {@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
-- {@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset}
-- {@api py:function:vueda.core.viewsets.build_prefetch_plan}
-- {@api py:function:vueda.core.viewsets.resolve_relation_path}
-- {@api js:module:@arrai-innovations/vueda/stores/storeModelInfo}
-- {@api js:property:@arrai-innovations/vueda/utils/constants#FIELDS_PARAM}
-- {@api js:property:@arrai-innovations/vueda/utils/constants#EXPAND_PARAM}
+`f` and `om` do not change the plan, because they cannot remove an expanded relation. A generic foreign key expand is not planned; each related object loads when it is rendered. The payload still grows with the row count and the expansion depth, and a short `permit_list_expands` is what limits it on a `list`.

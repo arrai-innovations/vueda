@@ -30,15 +30,30 @@ function getTransitionActionCodes(transitions) {
 }
 
 /**
- * Wait for the user to be initialized. This is useful if you're making your own
- * custom guards that need to know if the user is logged in or not.
+ * @param {import('@vueda/stores/storeUser.js').UserStore} userStore
+ * @returns {boolean}
+ */
+function currentUserRequestSucceeded(userStore) {
+    return userStore.currentUserRequestStatus.loading === false && !userStore.currentUserRequestStatus.errored;
+}
+
+/**
+ * Wait until the store holds a successful answer to the current-user request. Use it in custom guards that
+ * need to know whether the user is signed in.
+ *
+ * While a current-user request is in flight, it waits for that request instead of sending another. When no
+ * request has been made, or the last one failed, it sends a new request. When the last request succeeded,
+ * it returns at once.
  *
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
- * @returns {Promise<import('@vueda/stores/storeUser.js').UserStore>} The user store.
+ * @returns {Promise<import('@vueda/stores/storeUser.js').UserStore>} The user store. Rejects with the request
+ *  error when the current-user request fails.
  */
-export async function waitForInitialising(pinia) {
+export async function waitForCurrentUser(pinia) {
     const userStore = storeUser(pinia);
-    if (!userStore.initialized) {
+    if (userStore.currentUserRequestStatus.loading) {
+        await userStore.currentUserRequest;
+    } else if (!currentUserRequestSucceeded(userStore)) {
         await userStore.fetchCurrentUser();
     }
     return userStore;
@@ -105,17 +120,20 @@ function resolveRedirect(redirectTo, router) {
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
+ *  Rejects with the request error when the current-user request fails, which rejects the navigation.
  */
 export async function requireAuth(redirectTo, to, router, pinia) {
     const resolvedRedirectTo = resolveRedirect(redirectTo, router);
-    const userStore = await waitForInitialising(pinia);
+    const userStore = await waitForCurrentUser(pinia);
     if (!userStore.loggedIn) {
         return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
     }
 }
 
 /**
- * Require the user to be recently authenticated.
+ * Require the user to be recently authenticated: signed in with no `storeUser.authPendingFlow`. When the store
+ * has no successful answer to the current-user request yet, the guard waits for one. When the store already
+ * holds a recent session, the guard refetches the current user, so an expired session is caught here.
  *
  * @example
  * ```js
@@ -141,14 +159,18 @@ export async function requireAuth(redirectTo, to, router, pinia) {
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
+ *  Rejects with the request error when the current-user request fails, which rejects the navigation.
  */
 export async function requireRecentAuth(redirectTo, to, router, pinia) {
     const resolvedRedirectTo = resolveRedirect(redirectTo, router);
     const userStore = storeUser(pinia);
-    if (userStore.recentlyLoggedIn !== false) {
+    const isRecent = () => userStore.loggedIn && !userStore.authPendingFlow;
+    if (!currentUserRequestSucceeded(userStore)) {
+        await waitForCurrentUser(pinia);
+    } else if (isRecent()) {
         await userStore.fetchCurrentUser();
     }
-    if (!userStore.recentlyLoggedIn) {
+    if (!isRecent()) {
         return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
     }
 }
@@ -180,31 +202,32 @@ export async function requireRecentAuth(redirectTo, to, router, pinia) {
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<import('vue-router').RouteLocationNormalizedLoaded|void>} The redirect route if needed.
+ *  Rejects with the request error when the current-user request fails, which rejects the navigation.
  */
 export async function requireUnauth(redirectTo, router, pinia) {
-    const userStore = await waitForInitialising(pinia);
+    const userStore = await waitForCurrentUser(pinia);
     if (userStore.loggedIn) {
         return resolveRedirect(redirectTo, router);
     }
 }
 
 /**
- * Require the user to be initialized, in order to optionally show or use the
- * user object, but not requiring authentication.
+ * Require a successful answer to the current-user request, so the route can show or use the user object
+ * without requiring authentication.
  *
  * @example
  * ```js
- * import { requireInitialized } from "@vueda/router/guards";
+ * import { requireCurrentUser } from "@vueda/router/guards";
  * import { createRouter, createWebHistory } from "vue-router";
  *
  * const router = createRouter({
  *   history: createWebHistory(import.meta.env.BASE_URL),
  *   routes: [
  *     {
- *       path: '/initialized-required/',
- *       name: 'initialized-required',
- *       component: () => import('@/views/ViewInitializedRequired.vue'),
- *       beforeEnter: (to, from) => requireInitialized(),
+ *       path: '/current-user-required/',
+ *       name: 'current-user-required',
+ *       component: () => import('@/views/ViewCurrentUserRequired.vue'),
+ *       beforeEnter: (to, from) => requireCurrentUser(router, pinia),
  *     },
  *     // other routes
  *   ],
@@ -214,10 +237,11 @@ export async function requireUnauth(redirectTo, router, pinia) {
  * ```
  * @param {import('vue-router').Router} _router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Rejects with the request error when the current-user request fails, which rejects the
+ *  navigation.
  */
-export async function requireInitialized(_router, pinia) {
-    await waitForInitialising(pinia);
+export async function requireCurrentUser(_router, pinia) {
+    await waitForCurrentUser(pinia);
 }
 
 /**
@@ -258,9 +282,10 @@ export async function requireInitialized(_router, pinia) {
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} True if authorized, or redirect route.
+ *  Rejects with the request error when the current-user request fails, which rejects the navigation.
  */
 export async function requireGroups(instance, toastArgs, groups, redirectTo, to, router, pinia) {
-    const userStore = await waitForInitialising(pinia);
+    const userStore = await waitForCurrentUser(pinia);
     if (isEmpty(groups)) {
         return true;
     }

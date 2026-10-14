@@ -508,9 +508,9 @@ The persistent work record in VDQ that tracks one queued send operation, its wor
 
 ## Reauthentication
 
-A check that a signed-in user confirmed their identity recently, by password or second factor. The server enforces it on sensitive actions, such as two-factor device setup. In the client, `requireRecentAuth` and the auth views route the user to the `reauthenticate` page and back.
+A check that a signed-in user confirmed their identity recently. The account decides which confirmation counts: a code for a user with a two-factor device, the password otherwise. The server enforces the check on sensitive actions, such as two-factor device setup. In the client, `requireRecentAuth` and the auth views route the user to the `reauthenticate` page and back.
 
-- Names: [`recent_auth_required`]{@api py:function:vueda.core.decorators.recent_auth_required}; [`recently_logged_in`]{@api py:property:vueda.user.serializers.WhoIsSerializer.recently_logged_in}; [`recentlyLoggedIn`]{@api js:property:@arrai-innovations/vueda/stores/storeUser#storeUser.recentlyLoggedIn}; [`requireRecentAuth`]{@api js:function:@arrai-innovations/vueda/router/guards#requireRecentAuth}; [`storeUser.reauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.reauthenticate}; [reauthenticate endpoint]{@api rest:endpoint:POST:/vueda.user/reauthenticate/}; `ACCOUNT_REAUTHENTICATION_TIMEOUT`
+- Names: [`recent_auth_required`]{@api py:function:vueda.core.decorators.recent_auth_required}; [`auth_pending_flow`]{@api py:class:vueda.user.serializers.WhoIsSerializer}; `authPendingFlow`; [`requireRecentAuth`]{@api js:function:@arrai-innovations/vueda/router/guards#requireRecentAuth}; [`storeUser.reauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.reauthenticate}; [`storeUser.twoFactorReauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.twoFactorReauthenticate}; [reauthenticate endpoint]{@api rest:endpoint:POST:/vueda.user/reauthenticate/}; [two-factor reauthenticate endpoint]{@api rest:endpoint:POST:/vueda.user/2fa/reauthenticate/}; {@api vue:component:ViewReauthenticate}; [`vueda.core.reauthentication`]{@api py:module:vueda.core.reauthentication}; `ACCOUNT_REAUTHENTICATION_TIMEOUT`
 - Described in: [Build Auth Views](../guides/build-auth-views.md#build-a-re-authentication-view)
 
 ## Resource

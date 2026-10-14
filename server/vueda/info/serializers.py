@@ -658,30 +658,56 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return FIELD_TYPE_MAPPING.get(internal_type, "alpha")
 
-    def get_default_ordering_data(self, model, ordering):
+    def get_annotation_term_ordering_data(self, queryset, order_by, *, include_ascending=True):
+        """
+        Metadata for an ordering term that names one queryset annotation: the annotation's name, its
+        semantic type, and (unless ``include_ascending`` is false) the direction the term sorts in.
+
+        This is the counterpart of ``get_ordering_data`` for a term that resolves to no model field
+        path because the name it reads is an annotation on ``queryset``. The type comes from
+        ``get_annotation_ordering_type``. The term may be a plain name, optionally ``-`` prefixed, or
+        an expression over that one annotation, such as ``F("total").desc()``.
+
+        Returns ``None`` when ``queryset`` is ``None``, when the term reads no name or more than one,
+        or when the one name it reads is not an annotation on ``queryset``.
+        """
+        if queryset is None:
+            return None
+
+        field_names = ordering_term_field_names(order_by)
+        if len(field_names) != 1 or field_names[0] not in queryset.query.annotations:
+            return None
+
+        annotation_name = field_names[0]
+        ordering_data = {"name": orm_ordering_path_to_public(annotation_name)}
+
+        if include_ascending:
+            ordering_data["ascending"] = ordering_term_is_ascending(order_by)
+
+        ordering_data["type"] = self.get_annotation_ordering_type(queryset, annotation_name)
+
+        return ordering_data
+
+    def get_default_ordering_data(self, model, ordering, queryset=None):
         """
         Metadata for every term of a default ordering (a model's ``Meta.ordering``, or a viewset's
-        own ``ordering``), or nothing at all when one of those terms can't be resolved.
+        own ``ordering``). The result is empty when any one of those terms can't be resolved.
 
         A default ordering only means something as a whole: rows arrive sorted by the first term,
         then by the second, and so on. Reporting only the terms that do resolve would tell the
         client the rows are sorted in an order they aren't, so an unresolvable term drops the whole
-        default ordering rather than part of it. A term that names several fields at once, such as a
-        ``Concat`` of two columns, is unresolvable in the same sense: it has no single name that
-        stands for the sort it performs (see ``UnnameableOrderingTermError``). ``VuedaOrderingFilter``
-        still accepts an explicit ``?o=`` request on each of those fields; what is dropped is the
-        claim about how the rows currently arrive, not the fields themselves.
+        default ordering rather than part of it. A term that names a field the model does not have
+        is unresolvable, and the ``vueda_info.E006`` system check reports it. A term that names
+        several fields at once, such as a ``Concat`` of two columns, is unresolvable as well: it has
+        no single name that stands for the sort it performs (see ``UnnameableOrderingTermError``).
+        ``VuedaOrderingFilter`` still accepts an explicit ``?o=`` request on each of those fields.
+        What is dropped is the claim about how the rows currently arrive, not the fields themselves.
 
-        A term naming a queryset annotation is dropped the same way, and that one is a gap rather
-        than a judgement. An annotation resolves to no model field path, so there is no field to read
-        a type from, and nothing here can tell an annotation that the viewset's own ``get_queryset``
-        added from a name that is simply wrong. A queryset can pick up an annotation anywhere on its
-        way here, including in a manager or a helper that this method never sees. The ordering still
-        runs and ``?o=`` on that name is still accepted; only the report is missing. A default that
-        orders by a real column gives the client a name it can be told about: a model field for a stored value, a
-        ``GeneratedField`` for a value derived from the same row, or a column on an unmanaged model
-        over a database view, reached through a ``OneToOneField``, for a value that needs a join or
-        an aggregate.
+        A term that names an annotation on ``queryset`` is reported under the annotation's name,
+        typed by ``get_annotation_ordering_type`` (see ``get_annotation_term_ordering_data``). The
+        caller passes the queryset that the viewset's ``get_queryset`` returns, so this covers an
+        annotation that a model's manager adds as well as one that the viewset adds. Without a
+        queryset, a term that names an annotation resolves to no field and drops the default.
         """
         if not ordering:
             return []
@@ -697,17 +723,23 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             try:
                 terms = expand_ordering_pk(model, order_by)
                 data = [self.get_ordering_data(model, term) for term in terms]
-            except (FieldDoesNotExist, NotRelationField, UnnameableOrderingTermError):
-                # A default ordering term isn't guaranteed to resolve to a real model field path: a
-                # field can be renamed or removed without its model's `Meta.ordering` being updated,
-                # and a viewset's `ordering` can drift from the model it points at the same way. A
-                # request that falls back to this ordering fails with a `FieldError` (DRF hands a
-                # viewset's `ordering` to `order_by()` unvalidated, and a model's `Meta.ordering`
-                # raises the same at SQL compile time), so there's no ordering to report. The
-                # `vueda_info.E006` system check reports the declaration itself.
-                #
-                # An `UnnameableOrderingTermError` is a working ordering rather than a broken one, so
-                # nothing fails at request time; there is just no field name to report it under.
+            except (FieldDoesNotExist, NotRelationField):
+                # A term that resolves to no model field path may name a queryset annotation, which
+                # DRF orders by like any column and which has a name a client can send back in `?o=`.
+                annotation_data = self.get_annotation_term_ordering_data(queryset, order_by)
+                if annotation_data is None:
+                    # Otherwise the term isn't guaranteed to resolve at all: a field can be renamed or
+                    # removed without its model's `Meta.ordering` being updated, and a viewset's
+                    # `ordering` can drift from the model it points at the same way. A request that
+                    # falls back to this ordering fails with a `FieldError` (DRF hands a viewset's
+                    # `ordering` to `order_by()` unvalidated, and a model's `Meta.ordering` raises the
+                    # same at SQL compile time), so there's no ordering to report. The
+                    # `vueda_info.E006` system check reports the declaration itself.
+                    return []
+                data = [annotation_data]
+            except UnnameableOrderingTermError:
+                # A working ordering rather than a broken one, so nothing fails at request time;
+                # there is just no single name to report it under.
                 return []
 
             default.extend(data)
@@ -764,9 +796,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
           reports it.
 
         ``default`` is reported whole or not at all (see ``get_default_ordering_data``). It is empty
-        when any term resolves to no field, reads more than one column or none, or names an
-        annotation. Each column that a multi-column term reads still appears in ``fields``, without
+        when any term resolves to neither a field nor an annotation, or reads more than one column or
+        none. A term that names an annotation on the queryset that the viewset's ``get_queryset``
+        returns is reported under the annotation's name, typed the same way as an annotation in
+        ``fields``. Each column that a multi-column term reads still appears in ``fields``, without
         ``ascending``.
+
+        The queryset is built from the viewset class with no request. A ``get_queryset`` that reads
+        ``self.request`` raises here, and the ``vueda_info.E006`` system check skips that viewset for
+        the same reason.
         """
         ordering_data = {
             "default": [],
@@ -779,6 +817,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         if viewset is None:
             model = instance.model_class()
+            queryset = None
         else:
             queryset = viewset().get_queryset()
             model = queryset.model
@@ -791,7 +830,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset_ordering = getattr(viewset, "ordering", None)
         default_ordering = viewset_ordering if viewset_ordering else model._meta.ordering
 
-        default = self.get_default_ordering_data(model, default_ordering)
+        default = self.get_default_ordering_data(model, default_ordering, queryset)
         ordering_data["default"] = [data["name"] for data in default]
 
         # Every field the default ordering references, whether or not the default itself could be
@@ -800,7 +839,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # report under — a `Coalesce("name", "formatted_name")` default offers both columns
         # individually, and saying nothing about either would leave them orderable but unreachable
         # for a metadata-driven client.
-        default_field_names = self.get_default_ordering_field_names(model, default_ordering)
+        default_field_names = self.get_default_ordering_field_names(model, default_ordering, queryset)
 
         fields_by_name = {}
         if viewset is not None:
@@ -912,7 +951,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return ordering_data
 
-    def get_default_ordering_field_names(self, model, ordering):
+    def get_default_ordering_field_names(self, model, ordering, queryset=None):
         """
         Every field a default ordering references, mapped to that field's semantic type, in the order
         the terms name them.
@@ -923,14 +962,17 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``UnnameableOrderingTermError``), but each field it names is still a valid explicit ``?o=``
         target, so each is still a field to advertise.
 
-        A path that resolves to no field at all is skipped, for the same reason it is elsewhere: DRF
-        would raise on it, so there is nothing to offer. The ``vueda_info.E006`` system check reports
-        the declaration.
+        A name that is an annotation on ``queryset`` is included under that name, typed by
+        ``get_annotation_ordering_type``. A path that resolves to neither a field nor an annotation is
+        skipped, for the same reason it is elsewhere: DRF would raise on it, so there is nothing to
+        offer. The ``vueda_info.E006`` system check reports the declaration.
 
         :param model: The model the ordering is declared against.
         :type model: Type[django.db.models.Model]
         :param ordering: The default ordering declaration.
         :type ordering: Union[str, Iterable]
+        :param queryset: The queryset whose annotations a name may refer to, or ``None``.
+        :type queryset: Optional[django.db.models.QuerySet]
         :return: Field path -> semantic type, in declaration order.
         :rtype: Dict[str, str]
         """
@@ -951,7 +993,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     for expanded in expand_ordering_pk(model, field_name):
                         data = self.get_ordering_data(model, expanded, include_ascending=False)
                         field_types.setdefault(data["name"], data["type"])
-                except (FieldDoesNotExist, NotRelationField, UnnameableOrderingTermError):
+                except (FieldDoesNotExist, NotRelationField):
+                    data = self.get_annotation_term_ordering_data(queryset, field_name, include_ascending=False)
+                    if data is not None:
+                        field_types.setdefault(data["name"], data["type"])
+                except UnnameableOrderingTermError:
                     continue
 
         return field_types

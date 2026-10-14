@@ -77,7 +77,7 @@ public-facing documentation baseline.
     - A filter, search, or row-level `Q` that joined a reverse foreign key or a many-to-many multiplied every total by the number of joined matches. Each matched row now counts once.
     - A filter that matches no rows now totals `0` rather than `null`.
     - A totals request on a queryset whose `distinct(...)` names an annotation now raises `NotImplementedError`.
-      _A client that special-cased a `null` total can drop that branch. An overridden `get_column_info` does not receive these fixes. See [Filter and Permission Semantics](../../guides/list-column-totals.md#filter-and-permission-semantics)._
+      _A client that special-cased a `null` total can drop that branch. An overridden `get_column_info` does not receive these fixes. See {@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.get_column_info}._
 
 #### Workflow
 

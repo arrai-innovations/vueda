@@ -264,7 +264,7 @@ Two integration rules:
 
 ## Customization surface
 
-- {@api theme-key:StickyBar} — `root`, `inner`. Override `inner` to add a border, change the background, or adjust padding. To retint the bar from a wrapper, set the `--vueda-sticky-bar-surface` custom property instead of painting a competing background.
-- {@api theme-key:PageTitle} — the title bar that sits in the provider's `top` slot. Setting its `sticky` prop is unnecessary inside a provider, which owns the pinning; see [CRUDL Views](./views-crudl.md#pagetitle).
-- **`--vueda-sticky-stack-top`** — the provider publishes the visible top-stack height as this custom property so a sticky table header can offset against it. It is framework-internal; integrators do not set it.
-- **z-index** — the stack lives in the `30` to `39` band. The full scale and rules are in the default theme canon, § 5.1.
+- {@api theme-key:StickyBar}: `root`, `inner`. Override `inner` to add a border, change the background, or adjust padding. To retint the bar from a wrapper, set the `--vueda-sticky-bar-surface` custom property instead of painting a competing background.
+- {@api theme-key:PageTitle}: the title bar that sits in the provider's `top` slot. Setting its `sticky` prop is unnecessary inside a provider, which owns the pinning; see [CRUD Views](./views-crud.md#pagetitle).
+- **`--vueda-sticky-stack-top`**: the provider publishes the visible top-stack height as this custom property so a sticky table header can offset against it. It is framework-internal; integrators do not set it.
+- **z-index**: the stack lives in the `30` to `39` band. The full scale and rules are in the default theme canon, § 5.1.

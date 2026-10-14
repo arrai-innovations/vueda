@@ -1,6 +1,7 @@
 /**
  * @module utils/constants
- * @description Application-wide constants for cookie names, query-string parameters, and internal CRUD identifiers.
+ * @description Application-wide constants for cookie names, query-string parameters, internal CRUD identifiers, and
+ * authentication flow ids.
  */
 
 /**
@@ -121,3 +122,19 @@ export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
  * Listened for in `SidebarProvider`.
  */
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b";
+
+/**
+ * django-allauth flow ids the store and auth views act on. The who-is response names the pending one as
+ * `auth_pending_flow`, and the store holds it as `authPendingFlow`.
+ */
+export const AUTH_FLOW = Object.freeze({
+    /** Sign-in needs a second factor. */
+    MFA_AUTHENTICATE: "mfa_authenticate",
+    /** A signed-in user must confirm a second factor before a guarded action. */
+    MFA_REAUTHENTICATE: "mfa_reauthenticate",
+    /** A signed-in user must confirm their password before a guarded action. */
+    REAUTHENTICATE: "reauthenticate",
+});
+
+/** The flows that send the user to the reauthenticate route. */
+export const REAUTHENTICATION_FLOW_IDS = Object.freeze([AUTH_FLOW.MFA_REAUTHENTICATE, AUTH_FLOW.REAUTHENTICATE]);

@@ -11,6 +11,8 @@ import {
   LOGGED_OUT,
   MFA_ENROLLED,
   MFA_PENDING,
+  REAUTH_MFA,
+  REAUTH_PASSWORD,
   RECOVERY_CODES,
   TOTP_SETUP,
   TWO_FACTOR_METHODS,
@@ -46,12 +48,26 @@ const twoFactorMethods = { getTwoFactorAuthMethod: () => ({ methods: TWO_FACTOR_
 const twoFactorAccepts = {
   ...twoFactorMethods,
   sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
-  twoFactorAuthenticate: (payload, store) => { store.pendingFlow = null; store.loggedIn = true; },
+  twoFactorAuthenticate: (payload, store) => { store.authPendingFlow = null; store.loggedIn = true; },
 };
 const twoFactorRejects = {
   ...twoFactorMethods,
   sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
   twoFactorAuthenticate: () => { throw formError({ code: ["That code is not valid or has expired."] }); },
+};
+
+// Reauthentication clears the pending flow, which is what the real who-is refetch reports after the server
+// records the confirmation.
+const reauthPasswordAccepts = {
+  reauthenticate: (payload, store) => { store.authPendingFlow = null; },
+};
+const reauthPasswordRejects = {
+  reauthenticate: () => { throw formError({ password: ["Incorrect password."] }); },
+};
+const reauthTwoFactorAccepts = {
+  ...twoFactorMethods,
+  sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
+  twoFactorReauthenticate: (payload, store) => { store.authPendingFlow = null; },
 };
 
 // getRecoveryCodes returns the fetched set; generateRecoveryCode returns a rotated one so
@@ -76,7 +92,7 @@ const setupDeviceRejects = {
 
 # Auth & MFA Views
 
-This page shows the seven account views in the default theme: sign in, forgot password, reset password, {@term Two-Factor Authentication}, device setup, change password, and recovery codes. Each view renders inside one of two card layouts, {@api vue:component:AuthorizingForm} or {@api vue:component:AuthForm}. [Build Auth Views](../../guides/build-auth-views.md) describes how the views route, submit, redirect, and report errors. [Components](./index.md) describes the rules every component page shares.
+This page shows the eight account views in the default theme: sign in, forgot password, reset password, {@term Two-Factor Authentication}, {@term Reauthentication}, device setup, change password, and recovery codes. Each view renders inside one of two card layouts, {@api vue:component:AuthorizingForm} or {@api vue:component:AuthForm}. [Build Auth Views](../../guides/build-auth-views.md) describes how the views route, submit, redirect, and report errors. [Components](./index.md) describes the rules every component page shares.
 
 Each demo mounts the real view with its own user store. The demo replaces the store actions that the view calls with offline stand-ins, so submitting shows the real loading, error, and toast states. Toasts from every demo appear in one overlay in the corner of the window, as in an app.
 
@@ -99,7 +115,7 @@ The cards below are diagrams that label each region. The live demos in the secti
     </div>
     <template #footer>
       <span>the card centers against the viewport; the demos on this page cancel the viewport-height fill so the card sits inline</span>
-      <span>used by: ViewSignIn, ViewForgotPassword, ViewResetPassword, ViewTwoFactorAuth</span>
+      <span>used by: ViewSignIn, ViewForgotPassword, ViewResetPassword, ViewTwoFactorAuth, ViewReauthenticate</span>
     </template>
   </DemoCard>
   <DemoCard title="AuthForm" description="top of the column, page title above">
@@ -205,6 +221,8 @@ The buttons stack in one column under the fields:
 
 A rejected code shows its error under the code field.
 
+The server keeps a waiting sign-in in the session, so a page reload stays on this step. When no sign-in is waiting, for example because it expired, the view shows a "Your sign-in has expired" toast and goes to the `sign-in` route.
+
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
   <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Three verified methods. Pick one to reveal the code input; pick SMS or email to enable Send.</header>
@@ -224,6 +242,41 @@ A rejected code shows its error under the code field.
 </ClientOnly>
 
 Theme keys: {@api theme-key:ViewTwoFactorAuth}. {@api theme-key:ViewTwoFactorAuth.buttons} stacks the buttons, {@api theme-key:ViewTwoFactorAuth.cooldownChip} styles the countdown, {@api theme-key:ViewTwoFactorAuth.recoveryToggle} places the toggle, and {@api theme-key:ViewTwoFactorAuth.recoveryInput} styles the recovery-code input.
+
+## ViewReauthenticate
+
+{@api vue:component:ViewReauthenticate} asks a signed-in user to confirm their identity before a request that needs a recent session, such as setting up a two-factor device. The server decides which proof counts, and the store's `authPendingFlow` names it. For `reauthenticate`, the view is an `AuthorizingForm` card with one password field and a full-width "Verify" button. For `mfa_reauthenticate`, it renders `ViewTwoFactorAuth`, because a password alone does not count for an account with a device. Both forms read "Confirm your identity".
+
+Both forms wait until the session is recent, then go to the `redirect` query value with an "Identity Confirmed" toast. A user whose session is already recent goes on without a prompt. A rejected password shows its error under the password field. Any other failure shows a "Verification Failed" toast.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Password account, accepted. Submit to see the loading state, then the "Identity Confirmed" toast.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewReauthenticate.vue')" :state="REAUTH_PASSWORD" route-name="reauthenticate" :mocks="reauthPasswordAccepts" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>the same single-button strip as ViewSignIn</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Password account, rejected. Submit to see the error under the password field.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewReauthenticate.vue')" :state="REAUTH_PASSWORD" route-name="reauthenticate" :mocks="reauthPasswordRejects" />
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Two-factor account, accepted. The ViewTwoFactorAuth form, submitting through <code>twoFactorReauthenticate</code>.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewReauthenticate.vue')" :state="REAUTH_MFA" route-name="reauthenticate" :mocks="reauthTwoFactorAccepts" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>only the heading and the submitted action differ from the sign-in challenge; the method, send, countdown, and recovery controls are the same</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+Theme keys: {@api theme-key:AuthorizingForm} for the password form, and {@api theme-key:ViewTwoFactorAuth} for the code form.
 
 ## ViewSetupDevice
 
@@ -265,7 +318,7 @@ Theme keys: {@api theme-key:ViewSetupDevice}.
 
 ## ViewChangePassword
 
-{@api vue:component:ViewChangePassword} is an `AuthForm` card with three password fields: current, new, and confirmation. Each is a {@api vue:component:FormField} around a {@api vue:component:WidgetTextInput}, so it shows labels and errors the same way as any model form. The card heading and subtitle come from `AuthForm`'s [`header`]{@api vue:component:AuthForm:prop:header} and [`subTitle`]{@api vue:component:AuthForm:prop:subTitle} props, which the demo passes.
+{@api vue:component:ViewChangePassword} is an `AuthForm` card with three password fields: current, new, and confirmation. Each is a {@api vue:component:FormField} around a {@api vue:component:WidgetTextInput}, so it shows labels and errors the same way as any model form. The card heading and subtitle come from `AuthForm`'s [`header`]{@api vue:component:AuthForm:prop:header} and [`subTitle`]{@api vue:component:AuthForm:prop:subTitle} props, which the demo passes. The view sets `AuthForm`'s [`requireRecentAuth`]{@api vue:component:AuthForm:prop:requireRecentAuth} to `false`, because the server checks the current password instead of a recent session.
 
 The buttons are `ActionForm`'s default pair, "Yes, continue" and "Cancel, go back". A field error from the server shows under its field. The validation summary above the fields appears only for errors that no rendered field shows.
 
@@ -306,6 +359,8 @@ Printing the page leaves out the warning, the buttons, and the action bar, so th
 
 The recovery-codes endpoint returns the unused codes and the code counts but does not identify used codes, so the list shows only unused codes ([#428](https://github.com/arrai-innovations/vueda/issues/428)).
 
+The server shows and regenerates codes only for a session that recently confirmed a second factor. When it refuses, `AuthForm` sends the user to the `reauthenticate` route, which returns them here after they confirm a code.
+
 Without a device, a warning alert asks the user to set up two-factor first. The action bar then holds a "Set up a device" button and a "Go Back" button.
 
 <ClientOnly>
@@ -333,7 +388,7 @@ Theme keys: {@api theme-key:ViewRecoveryCodes}.
 
 ## Customization surface
 
-These tokens apply across the seven views:
+These tokens apply across the eight views:
 
 - {@api css-token:background} fills both cards, and {@api css-token:border} draws their {@term Hairline} edge.
 - {@api css-token:primary} fills the primary buttons and the current and finished steps in the setup step track.
@@ -348,4 +403,4 @@ Theme keys shared by the views:
 - Form-level errors: {@api theme-key:FormMessage}.
 - Alerts: {@api theme-key:Alert}.
 
-The single-button strip in `ViewSignIn`, `ViewForgotPassword`, and `ViewResetPassword` has no theme key. To restyle it, replace the view's `action-bar` slot ({@api vue:component:ViewSignIn:slot:action-bar}, {@api vue:component:ViewForgotPassword:slot:action-bar}, or {@api vue:component:ViewResetPassword:slot:action-bar}).
+The single-button strip in `ViewSignIn`, `ViewForgotPassword`, `ViewResetPassword`, and the `ViewReauthenticate` password form has no theme key. To restyle it, replace the view's `action-bar` slot ({@api vue:component:ViewSignIn:slot:action-bar}, {@api vue:component:ViewForgotPassword:slot:action-bar}, {@api vue:component:ViewResetPassword:slot:action-bar}, or {@api vue:component:ViewReauthenticate:slot:action-bar}).

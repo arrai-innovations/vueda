@@ -5,21 +5,15 @@ from django.db import models
 from vueda.core.models import VuedaModel
 
 
-# The following are used for these class names, so the names don't get to long:
-
-# Mo - Model enables class Vueda.Workflow
-# Mx - Model doesn't enable class Vueda.Workflow
-
-# So / Sx - Serializer once did / did not inherit a workflow serializer mixin
-# Vo / Vx - Viewset once did / did not inherit a workflow view mixin
-# Vz - No Viewset
-# Workflow no longer depends on the serializer or viewset, so So/Sx and Vo/Vx now behave the same.
-
-# Wo - Has Workflow
-# Wx - No Workflow
+# Whether a model takes part in workflow depends on two things only: whether it enables
+# class Vueda.Workflow, and whether a workflow definition (a Workflow row) exists for it. These
+# models cover each combination. Migration 0002 creates the workflows for the two "WithWorkflow"
+# models.
 
 
-class MoSoVoWo(VuedaModel):
+class EnabledWithWorkflow(VuedaModel):
+    """Enables class Vueda.Workflow and has a workflow definition: a working workflow model."""
+
     name = models.CharField()
 
     class Vueda:
@@ -27,23 +21,9 @@ class MoSoVoWo(VuedaModel):
             enabled = True
 
 
-class MxSoVoWo(VuedaModel):
-    name = models.CharField()
+class EnabledWithoutWorkflow(VuedaModel):
+    """Enables class Vueda.Workflow but has no workflow definition: misconfigured."""
 
-
-class MoSxVoWo(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSxVoWo(VuedaModel):
-    name = models.CharField()
-
-
-class MoSoVxWo(VuedaModel):
     name = models.CharField()
 
     class Vueda:
@@ -51,113 +31,13 @@ class MoSoVxWo(VuedaModel):
             enabled = True
 
 
-class MxSoVxWo(VuedaModel):
+class NotEnabledWithWorkflow(VuedaModel):
+    """Has a workflow definition but does not enable class Vueda.Workflow, so the row is ignored."""
+
     name = models.CharField()
 
 
-class MoSxVxWo(VuedaModel):
-    name = models.CharField()
+class NotEnabledWithoutWorkflow(VuedaModel):
+    """Neither enables class Vueda.Workflow nor has a workflow definition."""
 
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSxVxWo(VuedaModel):
-    name = models.CharField()
-
-
-class MoSoVzWo(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSoVzWo(VuedaModel):
-    name = models.CharField()
-
-
-class MoSxVzWo(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSxVzWo(VuedaModel):
-    name = models.CharField()
-
-
-class MoSoVoWx(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSoVoWx(VuedaModel):
-    name = models.CharField()
-
-
-class MoSxVoWx(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSxVoWx(VuedaModel):
-    name = models.CharField()
-
-
-class MoSoVxWx(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSoVxWx(VuedaModel):
-    name = models.CharField()
-
-
-class MoSxVxWx(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSxVxWx(VuedaModel):
-    name = models.CharField()
-
-
-class MoSoVzWx(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSoVzWx(VuedaModel):
-    name = models.CharField()
-
-
-class MoSxVzWx(VuedaModel):
-    name = models.CharField()
-
-    class Vueda:
-        class Workflow:
-            enabled = True
-
-
-class MxSxVzWx(VuedaModel):
     name = models.CharField()

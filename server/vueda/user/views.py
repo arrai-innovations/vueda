@@ -3,7 +3,9 @@
 __all__ = (
     "AllAuthAdapterDispatchMixin",
     "AllAuthLoginView",
+    "AllAuthMFAReauthenticateView",
     "AllAuthReauthenticateView",
+    "AllAuthRecoveryCodesView",
     "AllAuthTwoFactorAuthView",
     "PermissionDeleteView",
     "PermissionOverviewView",
@@ -11,6 +13,7 @@ __all__ = (
     "ResendWelcomeEmailView",
     "VuedaAllAuthViewAdapter",
     "VuedaForgotPasswordView",
+    "VuedaPasswordChangeView",
     "VuedaResetPasswordView",
     "WhoIsView",
     "totp_code",
@@ -19,11 +22,16 @@ __all__ = (
 import json
 import operator
 
+from allauth.account.internal.stagekit import get_pending_stage
 from allauth.account.stages import LoginStageController
+from allauth.core.exceptions import ReauthenticationRequired
 from allauth.headless.account.views import LoginView
 from allauth.headless.account.views import ReauthenticateView
 from allauth.headless.mfa.views import AuthenticateView
+from allauth.headless.mfa.views import ManageRecoveryCodesView
+from allauth.headless.mfa.views import ReauthenticateView as MFAReauthenticateView
 from allauth.mfa.internal.constants import LoginStageKey
+from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
@@ -73,6 +81,7 @@ from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
+from vueda.core.reauthentication import did_recently_authenticate
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.history.revision import annotate_object_revision
 from vueda.user.adapters import get_adapter
@@ -82,8 +91,11 @@ from vueda.user.globals import CUD_CODENAMES
 from vueda.user.mixins import LogoutMixin
 from vueda.user.models import GroupChange
 from vueda.user.permissions import Authenticating
+from vueda.user.schema import RateLimitedSerializer
 from vueda.user.serializers import ForgotPasswordSerializer
 from vueda.user.serializers import ResetPasswordSerializer
+from vueda.user.throttles import ClientIPScopedRateThrottle
+from vueda.user.throttles import throttle_code_send
 from vueda.user.utils import get_current_totp_code
 
 
@@ -95,6 +107,13 @@ User = get_user_model()
 )
 @ensure_csrf_token
 class WhoIsView(RetrieveAPIView):
+    """
+    Describe the current session: the signed-in user through ``WhoIsSerializer``, or, for an anonymous
+    session, an object holding only ``auth_pending_flow``. For an anonymous session that is the stage allauth
+    holds a sign-in at, such as ``mfa_authenticate``, or ``None`` when no sign-in is waiting. The stage lives
+    only in the server session, so the client reads it from here to resume the sign-in after a reload.
+    """
+
     serializer_class = import_string(
         settings.REST_AUTH.get("USER_DETAILS_SERIALIZER", "vueda.user.serializers.WhoIsSerializer")
     )
@@ -103,7 +122,8 @@ class WhoIsView(RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         if isinstance(instance, AnonymousUser):
-            return Response({}, status=status.HTTP_200_OK)
+            stage = get_pending_stage(request)
+            return Response({"auth_pending_flow": stage.key if stage else None}, status=status.HTTP_200_OK)
         return super().retrieve(request, *args, **kwargs)
 
     def get_object(self):
@@ -120,10 +140,7 @@ class WhoIsView(RetrieveAPIView):
             "ForgotPasswordValidationError",
             fields={"email": serializers.ListField(child=serializers.CharField())},
         ),
-        429: conditional_inline_serializer(
-            "ForgotPasswordRateLimitError",
-            fields={"detail": serializers.CharField()},
-        ),
+        429: RateLimitedSerializer,
     },
 )
 class VuedaForgotPasswordView(GenericAPIView):
@@ -132,11 +149,13 @@ class VuedaForgotPasswordView(GenericAPIView):
 
     The response is the same whether or not an account matches, so the endpoint does not reveal
     which addresses have accounts. The one-minute cooldown applies to every address for the same
-    reason.
+    reason. The ``forgot_password`` throttle rate limits how many requests one IP address can make.
     """
 
     serializer_class = ForgotPasswordSerializer
     permission_classes = (AllowAny,)
+    throttle_classes = (ClientIPScopedRateThrottle,)
+    throttle_scope = "forgot_password"
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -275,6 +294,26 @@ class VuedaResetPasswordView(GenericAPIView):
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@conditional_extend_schema_decorator(
+    summary="Change password",
+    responses={
+        200: conditional_inline_serializer("PasswordChanged", fields={"detail": serializers.CharField()}),
+        400: conditional_open_api_types().OBJECT,
+        429: RateLimitedSerializer,
+    },
+)
+class VuedaPasswordChangeView(PasswordChangeView):
+    """
+    Change the signed-in user's password after confirming their current one.
+
+    The ``change_password`` throttle rate limits how many requests one user can make, so a caller who
+    holds a signed-in session cannot guess the current password through this endpoint.
+    """
+
+    throttle_classes = (ClientIPScopedRateThrottle,)
+    throttle_scope = "change_password"
 
 
 @conditional_extend_schema_decorator(
@@ -693,9 +732,45 @@ class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, Vu
     pass
 
 
-@conditional_extend_schema_decorator(summary="Re-authenticate", responses={200: conditional_open_api_types().OBJECT})
+@conditional_extend_schema_decorator(
+    summary="Re-authenticate with the password", responses={200: conditional_open_api_types().OBJECT}
+)
 class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
-    pass
+    """
+    Confirm the signed-in user's password and record a ``password`` authentication in the session.
+
+    This satisfies ``recent_auth_required`` for a user whose required flow is ``reauthenticate``. A user with
+    an MFA authenticator must use ``AllAuthMFAReauthenticateView`` instead; this view still accepts their
+    password, but the record it writes does not count for them.
+    """
+
+
+@conditional_extend_schema_decorator(
+    summary="Re-authenticate with a second factor", responses={200: conditional_open_api_types().OBJECT}
+)
+class AllAuthMFAReauthenticateView(AllAuthAdapterDispatchMixin, MFAReauthenticateView, VuedaAllAuthViewAdapter):
+    """
+    Confirm a TOTP or recovery ``code`` for the signed-in user and record an ``mfa`` authentication in the
+    session.
+
+    This satisfies ``recent_auth_required`` for a user whose required flow is ``mfa_reauthenticate``.
+    """
+
+
+class AllAuthRecoveryCodesView(AllAuthAdapterDispatchMixin, ManageRecoveryCodesView, VuedaAllAuthViewAdapter):
+    """
+    View (GET) or regenerate (POST) the signed-in user's recovery codes, after the reauthentication VUEDA requires.
+
+    The session must hold a recent record of the user's required flow, the same check ``recent_auth_required``
+    applies, so a user with an MFA authenticator must have confirmed a second factor. Otherwise the view returns
+    allauth's 401 reauthentication response, which lists the available flows. Every other response keeps
+    allauth's format.
+    """
+
+    def handle(self, request, *args, **kwargs):
+        if not did_recently_authenticate(request):
+            raise ReauthenticationRequired()
+        return super().handle(request, *args, **kwargs)
 
 
 @conditional_extend_schema_decorator(
@@ -708,17 +783,20 @@ class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView,
         )
     },
 )
-@conditional_extend_schema_decorator(methods=["POST"], summary="Send a TOTP code", responses={204: None})
+@conditional_extend_schema_decorator(
+    methods=["POST"], summary="Send a TOTP code", responses={204: None, 429: RateLimitedSerializer}
+)
 @api_view(["GET", "POST"])
-@permission_classes([Authenticating])
+@permission_classes([Authenticating | IsAuthenticated])
 def totp_code(request):
-    """List the TOTP delivery methods for the user who is logging in, or send them a TOTP code.
+    """List the TOTP delivery methods for the user who is logging in or reauthenticating, or send them a code.
 
-    GET returns the methods of the user's TOTP devices. POST sends a current code by the requested ``method``,
-    email or sms.
+    The user is the one in the pending two-factor login stage, or the signed-in user when no login is
+    pending, which is the case while they reauthenticate with a second factor. GET returns the methods of
+    the user's TOTP devices. POST sends a current code by the requested ``method``, email or sms.
     """
     stage = LoginStageController.enter(request, LoginStageKey.MFA_AUTHENTICATE.value)
-    user = stage.login.user
+    user = stage.login.user if stage is not None else request.user
     devices = user.totp_devices
     if not devices.exists():
         return Response({"detail": "No TOTP device found"}, status=status.HTTP_404_NOT_FOUND)
@@ -742,5 +820,6 @@ def totp_code(request):
     }.get(method)
     if not send_action:
         return Response({"detail": "Unsupported method"}, status=status.HTTP_400_BAD_REQUEST)
+    throttle_code_send(request, user, method)
     send_action()
     return Response(status=status.HTTP_204_NO_CONTENT)

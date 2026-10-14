@@ -617,7 +617,7 @@ const displayName = computed(() => userStore.loggedInUser?.name || userStore.log
 The scaffolded router calls {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
 
 ```javascript
-import { requireInitialized } from "@vueda/router/guards.js";
+import { requireCurrentUser } from "@vueda/router/guards.js";
 import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
 import { setCrudComponents } from "@vueda/router/routerComponent.js";
 import { createRouter, createWebHistory } from "vue-router";
@@ -649,7 +649,7 @@ export function getRouter(app, pinia) {
             name: "welcome",
             component: () => import("@/views/ViewWelcome.vue"),
             meta: { title: "Welcome" },
-            beforeEnter: () => requireInitialized(router, pinia),
+            beforeEnter: () => requireCurrentUser(router, pinia),
         },
         ...makeCRUDRoutes({
             component: async () => (await import("@vueda/views/ViewActionRouter.vue")).default,
@@ -671,7 +671,7 @@ export function getRouter(app, pinia) {
                     view: "Not Found",
                 },
             },
-            beforeEnter: () => requireInitialized(router, pinia),
+            beforeEnter: () => requireCurrentUser(router, pinia),
             props: (route) => {
                 return {
                     ...(route.params || {}),

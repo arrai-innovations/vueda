@@ -34,10 +34,7 @@ const urls = {
     infoModelInfoChoices: "/info/choices/",
     infoModelInfoFilterChoices: "/info/filter-choices/",
     workflowUserPermittedTransitions: "/workflow/permitted/:app/:model/",
-    workflowStates: "/workflow/states/",
-    workflowObjectState: "/workflow/object-state/",
-    workflowObjectTransitions: "/workflow/object-transitions/:app/:model/:pk/",
-    historyWorkflowStateHistory: "/history/workflow-state-history/:app/:model/:pk/",
+    historyWorkflowStateHistory: "/workflow-state-history/:app/:model/:pk/",
 };
 vi.mock("@vueda/utils/urls.js", () => ({ getUrl: vi.fn((name) => urls[name] ?? `/unhandled/${name}/`) }));
 vi.mock("@vueda/utils/connectionHostname.js", () => ({ httpOrHttpsHostname: "http://host" }));
@@ -105,7 +102,9 @@ describe("lib/stores/authScope.js", () => {
             whoIs({ id: 1, groups: ["editors"] });
             respond(urls.infoModelInfo, () => Promise.resolve(modelInfoPayload(["list", "update"], "First")));
             respond(urls.workflowUserPermittedTransitions.split(":")[0], [{ code: "publish", name: "Publish" }]);
-            respond(urls.workflowObjectState, { state: { code: "draft" } });
+            respond(urls.historyWorkflowStateHistory.split(":")[0], [
+                { id: "vueda_workflow.ObjectState:1", state: "draft" },
+            ]);
             respond(urls.infoModelInfoChoices, ["draft", "published"]);
             respond(urls.infoModelInfoFilterChoices, ["editors"]);
             respond(urls.userLogin, {});
@@ -124,7 +123,7 @@ describe("lib/stores/authScope.js", () => {
             await configStore.getConfig(args);
             await configStore.getConfig({ ...args, view: "list" });
             await workflowStore.fetchWorkflowTransition(args.app, args.model);
-            await workflowStore.fetchObjectState(args.app, args.model, "1");
+            await workflowStore.fetchObjectHistory(args.app, args.model, "1");
             await choicesStore.fetchChoices(args.app, args.model, "status");
             await choicesStore.fetchFilterChoices(args.app, args.model, "author");
 
@@ -132,7 +131,7 @@ describe("lib/stores/authScope.js", () => {
             expect(configStore.builtConfigs[key]).toBeDefined();
             expect(configStore.builtConfigs[getAppModelViewDotName({ ...args, view: "list" })]).toBeDefined();
             expect(workflowStore.workflowTransitions[key]).toHaveLength(1);
-            expect(workflowStore.objectStates[key]["1"]).toBeDefined();
+            expect(workflowStore.objectHistories[key]["1"]).toBeDefined();
             expect(choicesStore.choices[key].status).toEqual(["draft", "published"]);
             expect(choicesStore.filterChoices[key].author).toEqual(["editors"]);
 
@@ -147,7 +146,7 @@ describe("lib/stores/authScope.js", () => {
             expect(configStore.builtConfigs).toEqual({});
             expect(configStore.initialized).toEqual({});
             expect(workflowStore.workflowTransitions).toEqual({});
-            expect(workflowStore.objectStates).toEqual({});
+            expect(workflowStore.objectHistories).toEqual({});
             expect(choicesStore.choices).toEqual({});
             expect(choicesStore.filterChoices).toEqual({});
 
@@ -169,7 +168,7 @@ describe("lib/stores/authScope.js", () => {
         });
 
         scopedIt("does not clear when the same user is refreshed", async () => {
-            whoIs({ id: 1, recently_logged_in: false });
+            whoIs({ id: 1, auth_pending_flow: "reauthenticate" });
             respond(urls.infoModelInfo, () => Promise.resolve(modelInfoPayload(["list"], "First")));
 
             const userStore = storeUser(pinia);
@@ -179,7 +178,7 @@ describe("lib/stores/authScope.js", () => {
             await infoStore.fetchModelInfo(args);
 
             // the reauthenticate and activateTOTPDevice shapes
-            whoIs({ id: 1, recently_logged_in: true, totp_devices: ["device"] });
+            whoIs({ id: 1, auth_pending_flow: null, totp_devices: ["device"] });
             await userStore.fetchCurrentUser();
 
             expect(infoStore.infos[key]).toBeDefined();

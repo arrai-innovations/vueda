@@ -93,6 +93,10 @@ dev = [
     "jinja2 >=3.1.6",
     "drf-spectacular >=0.28.0,<0.29",
     "psycopg[binary]>=3.3.3",
+    # The migration commands format changed_data with black or ruff, depending on which the
+    # project configures and has installed, so the tests need both.
+    "black >=26.5.1",
+    "ruff ==0.15.20",
 ]
 docs = [
     "pdoc >=16.0.0",
