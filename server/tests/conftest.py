@@ -17,6 +17,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.management import call_command
 from django.db import models
 from django.db.models import Q
@@ -148,6 +149,12 @@ def api_client():
     Reuse the Django REST Framework API client for all tests intelligently (xdist will make a new one for each worker).
     """
     return APIClient()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def clear_cache():
+    """Empty the cache before each test, so rate-limit counts and cooldowns from one test never reach another."""
+    cache.clear()
 
 
 @pytest.fixture(autouse=True, scope="function")

@@ -6,7 +6,6 @@ __all__ = (
 )
 
 from dj_rest_auth.views import LogoutView
-from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
 from django.urls import include
 from django.urls import path
@@ -39,7 +38,7 @@ user_patterns = [
     ),
     path("", include("vueda.user.routers")),
     path("totp_code/", totp_code, name="totp_code"),
-    path("change_password/", PasswordChangeView.as_view(), name="change_password"),
+    path("change_password/", views.VuedaPasswordChangeView.as_view(), name="change_password"),
     path("forgot-password/", views.VuedaForgotPasswordView.as_view(), name="forgot_password"),
     path("reset-password/", views.VuedaResetPasswordView.as_view(), name="reset_password"),
 ]
