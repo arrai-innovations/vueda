@@ -1,31 +1,19 @@
 ---
-title: Expose a Proxy Model as a Separate CRUDL Surface
+title: Expose a Proxy Model as a Separate CRUD Surface
 type: how-to
 audience: integrator
 status: draft
 ---
 
-# Expose a Proxy Model as a Separate CRUDL Surface
+# Expose a Proxy Model as a Separate CRUD Surface
 
-This guide covers creating a Django proxy model on top of a `VuedaModel` and wiring it as a fully independent CRUDL surface with its own serializer, viewset, filterset, permissions, and model-info registration.
+A Django [proxy model]{@api ext:django:django.db.models.Options.proxy} reads and writes its concrete model's database table. It has its own {@term Content Type} and permission codenames. You can give the same rows a second API surface with its own serializer, viewset, permissions, and {@term Model Info}.
 
-A proxy model shares the underlying database table with its concrete parent but has its own `ContentType`, its own permission codenames, and its own Python class. Use one when you need to expose the same data to different audiences under different access controls, or when you want a subset view of a model's rows with distinct API routing, without duplicating the database table.
-
-This guide assumes you already have a concrete model using `VuedaModel`. If you have not set up the base model yet, see [Create a CRUDL Surface for a New Model](./create-crudl-surface).
-
-## How History Tracking Works for Proxy Models
-
-Django proxy models share the concrete parent's database table, so they share history too. VUEDA records history with pghistory triggers, and a trigger fires on the shared table. Saving through a proxy of `Distributor` writes the same `DistributorEvent` row that saving through `Distributor` writes. The `history-list` endpoint on a proxy returns the events recorded against the concrete model's row.
-
-A proxy gets no event model of its own. Django sends `class_prepared` for a proxy, but VUEDA's feature-policy dispatcher returns before the contributors run. A second `pghistory.track` call against the same table would build a duplicate event table and a duplicate set of triggers.
-
-::: warning
-Declare the `History` section of `class Vueda` on the concrete model, not on the proxy. A proxy takes the concrete model's policy, so excluding a field or disabling history has to happen there.
-:::
+This guide adds a proxy on top of an existing {@term VUEDA Model}. If you have not set up the concrete model yet, start with [Create a CRUD Surface for a New Model](./create-crud-surface).
 
 ## Defining the Proxy Model
 
-Subclass the concrete model with `proxy = True`. No additional field definitions are needed because a proxy adds no columns:
+Subclass the concrete model and set `proxy = True`. A proxy adds no columns, so it declares no fields:
 
 ```python
 from .models import Distributor
@@ -38,11 +26,13 @@ class DistributorProxy(Distributor):
         verbose_name_plural = "distributor proxies"
 ```
 
-Inherit `Meta` from the parent to carry over any ordering or constraints that should apply to both models.
+Inheriting the concrete model's `Meta` carries over its options, such as `ordering` and VUEDA's `default_permissions`.
 
-## Migration
+Do not declare `class Vueda` on the proxy. A proxy takes the {@term Feature Policy} of its concrete model, and a declaration on the proxy fails the `vueda_core.E014` system check.
 
-Generate and run the migration for the proxy model. Django creates a `CreateModel` migration with an empty `fields` list and `"proxy": True` in options:
+## Generating the Migration
+
+Run `makemigrations`. Django writes a `CreateModel` operation with an empty `fields` list and `"proxy": True`:
 
 ```python
 from django.db import migrations
@@ -60,7 +50,9 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "distributor proxy",
                 "verbose_name_plural": "distributor proxies",
+                "abstract": False,
                 "proxy": True,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "indexes": [],
                 "constraints": [],
             },
@@ -69,14 +61,15 @@ class Migration(migrations.Migration):
     ]
 ```
 
-Running this migration creates the `ContentType` record for the proxy model and registers the five default Django model permissions (`add_`, `change_`, `delete_`, `view_`, `list_`). VUEDA permission codenames (for example `read_distributorproxy`, `list_distributorproxy`) are created separately when a group migration runs.
+Run `migrate`. After the migrations apply, Django creates the proxy's content type and its five permissions: `create_`, `read_`, `update_`, `delete_`, and `list_distributorproxy`. The names come from `default_permissions` through the {@term Permission Mapping}.
 
 ## Defining the Serializer
 
-Use `VuedaSerializer` and point `Meta.model` at the proxy class. The field list can be identical to the parent's serializer or a subset:
+Subclass [`VuedaSerializer`]{@api py:class:vueda.core.serializers.VuedaSerializer} and set `Meta.model` to the proxy. The field list can match the concrete model's serializer or be a subset:
 
 ```python
 from vueda.core.serializers import VuedaSerializer
+
 from .models import DistributorProxy
 
 
@@ -90,15 +83,17 @@ class DistributorProxySerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 ```
 
-`VuedaSerializer.Meta.fields` appends `formatted_name`, `available_actions`, and `object_revision`.
+[`VuedaSerializer.Meta.fields`]{@api py:class:vueda.core.serializers.VuedaSerializer.Meta} adds `formatted_name`, `available_actions`, and `object_revision`.
 
 ## Defining the FilterSet
 
-Use `VuedaFilterSet` as the base. `VuedaFilterSet` automatically adds a hidden `id` filter. Declare any field-level filters explicitly:
+Subclass [`VuedaFilterSet`]{@api py:class:vueda.core.filters.VuedaFilterSet}, which adds a hidden `id` filter. Declare the field filters that the proxy needs:
 
 ```python
 from django_filters import rest_framework
+
 from vueda.core.filters import VuedaFilterSet
+
 from .models import DistributorProxy
 
 
@@ -115,10 +110,11 @@ class DistributorProxyFilterSet(VuedaFilterSet):
 
 ## Defining the ViewSet
 
-Point the viewset at the proxy model and proxy serializer. Override `get_allowed_extra_actions` if the proxy needs different action visibility than the parent:
+Subclass [`VuedaViewSet`]{@api py:class:vueda.core.viewsets.VuedaViewSet} and point it at the proxy, its serializer, and its filterset:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet
+
 from .filtersets import DistributorProxyFilterSet
 from .models import DistributorProxy
 from .serializers import DistributorProxySerializer
@@ -130,59 +126,75 @@ class DistributorProxyViewSet(VuedaViewSet):
     filterset_class = DistributorProxyFilterSet
     ordering_fields = ["name"]
     ordering = ["name"]
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        if request is not None and request.user.groups.filter(name="Customer").exists():
+            return frozenset()
+        return super().get_allowed_extra_actions(request, instance=instance)
 ```
+
+`DistributorProxy.objects.all()` returns every row of the shared table. To expose a subset of rows, filter `queryset` (for example, `DistributorProxy.objects.filter(name__startswith="North")`) or override [`get_queryset()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} and call `super()`.
+
+The [`get_allowed_extra_actions()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} override is optional. It gives the proxy different extra actions from the concrete model's viewset. Here, members of the `Customer` group get none. VUEDA also calls it with `request=None` when it builds metadata without a request, so check for `None` before you read `request.user`.
 
 ## Routing
 
-Register the viewset with `VuedaRouter`. The basename is derived from `queryset.model._meta.label_lower`, which for a proxy named `DistributorProxy` in the `myapp` app is `myapp.distributorproxy`. URL names follow the same pattern: `myapp.distributorproxy-list` and `myapp.distributorproxy-detail`.
+Register the viewset with [`VuedaRouter`]{@api py:class:vueda.core.routers.VuedaRouter}:
 
 ```python
 from vueda.core.routers import VuedaRouter
+
 from .viewsets import DistributorProxyViewSet
 
 router = VuedaRouter()
 router.register("distributor_proxies", DistributorProxyViewSet)
 ```
 
+The router takes the basename from the queryset model's `label_lower`, here `myapp.distributorproxy`. The route names are `myapp.distributorproxy-list` and `myapp.distributorproxy-detail`.
+
 ## Registration
 
-Register the proxy separately from the concrete parent. Both registrations coexist — the proxy gets its own model-info entry, its own action metadata, and its own filter and ordering metadata:
+Call [`register()`]{@api py:function:vueda.info.registration.register} for the proxy in your app's {@api ext:django:django.apps.AppConfig.ready}:
 
 ```python
-from vueda.info.registration import register
-from .serializers import DistributorProxySerializer
-from .viewsets import DistributorProxyViewSet
+from django.apps import AppConfig
 
 
 class MyAppConfig(AppConfig):
+    name = "myapp"
+
     def ready(self):
+        from vueda.info.registration import register
+
+        from .serializers import DistributorProxySerializer
+        from .viewsets import DistributorProxyViewSet
+
         register(DistributorProxySerializer, DistributorProxyViewSet)
 ```
 
-Registering the proxy does not affect the parent model's registration. Each registration is independent.
+The registry keys each registration by `app_label.model_name`, so the proxy and the concrete model register independently. The proxy gets its own model info, including its actions, filters, and ordering.
 
 ## Permissions
 
-Proxy model permissions use the proxy model's own `ContentType`. The permission codenames are derived from the proxy's class name (for example `read_distributorproxy`, not `read_distributor`). Assign permissions to groups using the proxy's `ContentType`:
+Permission checks on the proxy's viewset use the proxy's codenames, such as `myapp.read_distributorproxy`. A grant on the concrete model, such as `myapp.read_distributor`, does not reach the proxy. Look up the permission through the proxy's content type and add it to a group:
 
 ```python
+from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.auth.models import Permission, Group
 
 content_type = ContentType.objects.get(app_label="myapp", model="distributorproxy")
 read_perm = Permission.objects.get(content_type=content_type, codename="read_distributorproxy")
+Group.objects.get(name="Staff").permissions.add(read_perm)
 ```
 
-::: info
-Events do not have their own `ContentType`. The `history-list` endpoint on a proxy reads the concrete model's event table, and each event's `model` names the concrete model (for example `myapp.Distributor`), not the proxy.
+To carry group grants to other environments, record them as a {@term Group Permission Migration}.
+
+## How History Tracking Works for Proxy Models
+
+A proxy shares its concrete model's {@term Model History}. Saving through `DistributorProxy` writes the same `DistributorEvent` rows as saving through `Distributor`. The proxy's [`history-list`]{@api py:function:vueda.core.viewsets.VuedaViewSet.history_list} endpoint returns those events, and each event's `model` names the concrete model, for example `myapp.Distributor`.
+
+::: warning
+Declare the `History` section of `class Vueda` on the concrete model. To exclude a field from history or turn history off, change the concrete model's policy, and the proxy follows it.
 :::
 
-## Relevant Implementation Surface
-
-- Python:
-    - {@api py:class:vueda.core.models.VuedaModel}
-    - {@api py:function:vueda.history.apps.track_model}
-    - {@api py:class:vueda.core.filters.VuedaFilterSet}
-    - {@api py:class:vueda.core.serializers.VuedaSerializer}
-    - {@api py:class:vueda.core.viewsets.VuedaViewSet}
-    - {@api py:function:vueda.info.registration.register}
+Workflow also resolves a proxy to its concrete model, so a proxy of a {@term Workflow-Enabled Model} shares each row's {@term Object State}. [Model Feature Policy](../core-concepts/model-feature-policy.md#proxy-models) describes the rules for proxies.
