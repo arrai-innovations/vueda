@@ -169,7 +169,7 @@ describe("lib/stores/authScope.js", () => {
         });
 
         scopedIt("does not clear when the same user is refreshed", async () => {
-            whoIs({ id: 1, recently_logged_in: false });
+            whoIs({ id: 1, auth_pending_flow: "reauthenticate" });
             respond(urls.infoModelInfo, () => Promise.resolve(modelInfoPayload(["list"], "First")));
 
             const userStore = storeUser(pinia);
@@ -179,7 +179,7 @@ describe("lib/stores/authScope.js", () => {
             await infoStore.fetchModelInfo(args);
 
             // the reauthenticate and activateTOTPDevice shapes
-            whoIs({ id: 1, recently_logged_in: true, totp_devices: ["device"] });
+            whoIs({ id: 1, auth_pending_flow: null, totp_devices: ["device"] });
             await userStore.fetchCurrentUser();
 
             expect(infoStore.infos[key]).toBeDefined();

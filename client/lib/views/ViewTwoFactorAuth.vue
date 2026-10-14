@@ -8,18 +8,24 @@ import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { AUTH_FLOW } from "@vueda/utils/constants.js";
 import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetOTPInput from "@vueda/widgets/WidgetOTPInput.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 /**
- * Two-factor authentication challenge view presented after initial login. Lets the user select an available
- * verification method (TOTP, SMS, email), request a code to be sent for applicable methods (with a 60-second
- * resend cooldown), and submit the code to complete authentication. A separate ghost CTA reveals a
- * recovery-code path that swaps the form body to a single mono text input.
+ * Two-factor authentication challenge view. Lets the user select an available verification method (TOTP, SMS,
+ * email), request a code to be sent for applicable methods (with a 60-second resend cooldown), and submit the
+ * code. A separate ghost CTA reveals a recovery-code path that swaps the form body to a single mono text input.
+ *
+ * By default the code completes sign-in through `storeUser.twoFactorAuthenticate`. The `header`, `subTitle`,
+ * and `runAction` set here are defaults: an attribute passed in with the same name falls through to the root
+ * AuthorizingForm and replaces it. `ViewReauthenticate` passes `runAction` that way to confirm a signed-in
+ * user's second factor through `storeUser.twoFactorReauthenticate`. The server lists methods and sends codes
+ * for the user in the pending login stage or, failing that, the signed-in user, so one fetch serves both.
  */
 defineOptions({});
 
@@ -92,8 +98,12 @@ const computedOptions = computed(() => {
         value: method,
     }));
 });
-watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn]) => {
-    if (newActive && !newloggedIn) {
+// The store names the flow the user owes: `mfa_authenticate` mid-sign-in, `mfa_reauthenticate` for a signed-in
+// user who must confirm a second factor. Either one means there is a user with methods to list.
+const SECOND_FACTOR_FLOWS = new Set([AUTH_FLOW.MFA_AUTHENTICATE, AUTH_FLOW.MFA_REAUTHENTICATE]);
+const owesSecondFactor = computed(() => SECOND_FACTOR_FLOWS.has(userStore.authPendingFlow));
+watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => {
+    if (newActive && newOwesSecondFactor) {
         try {
             const response = await userStore.getTwoFactorAuthMethod();
             methods.value = response?.methods;
