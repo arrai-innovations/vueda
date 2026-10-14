@@ -60,9 +60,9 @@ Write each key as a `__`-joined path, the same way as in `ordering`. Write `orde
 
 `vueda_info.E007` reports a `nulls_ordering` value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip.
 
-## Make a Function or Annotation Default Visible
+## Make a Function Default Visible
 
-A default ordering on a multi-column function, such as `Concat("first_name", "last_name")`, or on an annotation sorts the rows, but model info does not report it. To have model info report the order, sort by a real column.
+A default ordering on a multi-column function, such as `Concat("first_name", "last_name")`, sorts the rows, but model info does not report it. To have model info report the order, sort by one name: a field, an annotation, or a column.
 
 When the sort is field by field, declare separate terms:
 
@@ -70,7 +70,17 @@ When the sort is field by field, declare separate terms:
 ordering = ["first_name", "last_name"]
 ```
 
-When the value comes from other columns on the same row, store it in a {@api ext:django:django.db.models.GeneratedField} and order by that field:
+When the value is an expression over the row, annotate it in the viewset's `get_queryset` and order by the annotation's name. Model info reports the annotation under that name, with a `type` from its `output_field`:
+
+```python
+class ContactViewSet(VuedaViewSet):
+    ordering = ["full_name"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(full_name=Concat("first_name", Value(" "), "last_name"))
+```
+
+When other code also needs the value, store it in a {@api ext:django:django.db.models.GeneratedField} and order by that field:
 
 ```python
 class Contact(VuedaModel):
@@ -96,8 +106,6 @@ class CustomerData(models.Model):
 ```
 
 Create the view in a migration. The owning model can then order by `data__formatted_name`, or set `formatted_name_lookup_expression = "data__formatted_name"` and order by `formatted_name`.
-
-When the sort only needs to work, keep the annotation and also list it in `ordering_fields`. Clients can then offer it as an explicit sort, although `model_ordering.default` stays empty.
 
 ## Order and Filter by a Related `formatted_name`
 
