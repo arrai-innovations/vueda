@@ -1,2 +1,0 @@
-- **`ViewCreate` component overrides**:
-    - `ViewCreate` accepts `field-components` and `widget-components`, as `ViewUpdate` and `DetailView` do. A map passed to the view takes precedence over one set in the model config's `formProps`, which still applies when the view receives none.
