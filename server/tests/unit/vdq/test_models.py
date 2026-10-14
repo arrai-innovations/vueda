@@ -69,8 +69,8 @@ def test_allow_transition_not_gated_by_workflow_code(sender, receiver):
 
 @pytest.mark.django_db
 def test_delete_files_only_calls_email_cleanup(monkeypatch, sender, receiver, sms_sender, sms_receiver):
-    email_queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
-    sms_queue_item = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")
+    email_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    sms_item = QueueItem.objects.create(sender=sms_sender, receiver=sms_receiver, method="sms")
 
     email_calls = []
     sms_calls = []
@@ -82,18 +82,18 @@ def test_delete_files_only_calls_email_cleanup(monkeypatch, sender, receiver, sm
         sms_calls.append(True)
 
     monkeypatch.setattr(
-        email_queue_item,
+        email_item,
         "delete_email_attachments",
-        MethodType(record_email_cleanup, email_queue_item),
+        MethodType(record_email_cleanup, email_item),
     )
     monkeypatch.setattr(
-        sms_queue_item,
+        sms_item,
         "delete_email_attachments",
-        MethodType(record_sms_cleanup, sms_queue_item),
+        MethodType(record_sms_cleanup, sms_item),
     )
 
-    email_queue_item.delete_files()
-    sms_queue_item.delete_files()
+    email_item.delete_files()
+    sms_item.delete_files()
 
     assert email_calls == [True]
     assert sms_calls == []
@@ -132,7 +132,7 @@ def test_delete_email_attachments_deletes_when_all_queue_items_done(
     queue_item_two.fast_transition("send")
     queue_item_two.fast_transition("await")
     queue_item_two.fast_transition("succeed")
-    queue_item_one.delete_email_attachments()
+    queue_item_two.delete_email_attachments()
 
     attachment.refresh_from_db()
     assert not file_path.exists()
@@ -172,41 +172,41 @@ def test_queue_item_on_transition_retry_resets_task(monkeypatch, sender, receive
 
 
 @pytest.mark.django_db
-def test_queue_item_on_transition_done_triggers_file_cleanup(settings, monkeypatch, sender, receiver, email_queue_item):
+def test_queue_item_on_transition_done_triggers_file_cleanup(settings, queued_email_with_detail):
     settings.VDQ_MAX_FILES_AGE_IN_SECONDS = 0
 
-    email_queue_item.fast_transition("send")
-    email_queue_item.fast_transition("await")
-    email_queue_item.fast_transition("succeed")
+    queued_email_with_detail.fast_transition("send")
+    queued_email_with_detail.fast_transition("await")
+    queued_email_with_detail.fast_transition("succeed")
 
     delete_calls = []
 
     def record_delete():
         delete_calls.append(True)
 
-    email_queue_item.delete_files = lambda: record_delete()
+    queued_email_with_detail.delete_files = lambda: record_delete()
 
-    email_queue_item.on_transition(SimpleNamespace(code="succeed"))
+    queued_email_with_detail.on_transition(SimpleNamespace(code="succeed"))
 
     assert delete_calls == [True]
 
 
 @pytest.mark.django_db
-def test_queue_item_on_transition_dry_run_skips_file_cleanup(settings, monkeypatch, sender, receiver, email_queue_item):
+def test_queue_item_on_transition_dry_run_skips_file_cleanup(settings, queued_email_with_detail):
     settings.VDQ_MAX_FILES_AGE_IN_SECONDS = 0
 
-    email_queue_item.fast_transition("send")
-    email_queue_item.fast_transition("await")
-    email_queue_item.fast_transition("succeed")
+    queued_email_with_detail.fast_transition("send")
+    queued_email_with_detail.fast_transition("await")
+    queued_email_with_detail.fast_transition("succeed")
 
     delete_calls = []
 
     def record_delete():
         delete_calls.append(True)
 
-    email_queue_item.delete_files = record_delete
+    queued_email_with_detail.delete_files = record_delete
 
-    email_queue_item.on_transition(SimpleNamespace(code="succeed"), dry_run=True)
+    queued_email_with_detail.on_transition(SimpleNamespace(code="succeed"), dry_run=True)
 
     assert delete_calls == []
 

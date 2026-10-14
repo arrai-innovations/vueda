@@ -20,6 +20,8 @@ import {
   LOGGED_OUT,
   MFA_ENROLLED,
   MFA_PENDING,
+  REAUTH_MFA,
+  REAUTH_PASSWORD,
   RECOVERY_CODES,
   TOTP_SETUP,
   TWO_FACTOR_METHODS,
@@ -47,12 +49,26 @@ const twoFactorMethods = { getTwoFactorAuthMethod: () => ({ methods: TWO_FACTOR_
 const twoFactorAccepts = {
   ...twoFactorMethods,
   sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
-  twoFactorAuthenticate: (payload, store) => { store.pendingFlow = null; store.loggedIn = true; },
+  twoFactorAuthenticate: (payload, store) => { store.authPendingFlow = null; store.loggedIn = true; },
 };
 const twoFactorRejects = {
   ...twoFactorMethods,
   sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
   twoFactorAuthenticate: () => { throw formError({ code: ["That code is not valid or has expired."] }); },
+};
+
+// Reauthentication clears the pending flow, which is what the real who-is refetch reports after the server
+// records the confirmation.
+const reauthPasswordAccepts = {
+  reauthenticate: (payload, store) => { store.authPendingFlow = null; },
+};
+const reauthPasswordRejects = {
+  reauthenticate: () => { throw formError({ password: ["Incorrect password."] }); },
+};
+const reauthTwoFactorAccepts = {
+  ...twoFactorMethods,
+  sendTwoFactorAuthenticationCode: () => ({ detail: "Code sent." }),
+  twoFactorReauthenticate: (payload, store) => { store.authPendingFlow = null; },
 };
 
 // getRecoveryCodes returns the fetched set; generateRecoveryCode returns a rotated one so
@@ -77,7 +93,7 @@ const setupDeviceRejects = {
 
 # Auth & MFA Views
 
-Five end-user-facing flows sharing one of two card recipes. **AuthForm** (`theme key: AuthForm`) frames a card below a page-level `PageTitle`, capped at `max-w-3xl` on the outer column and `35rem` on the card itself. **AuthorizingForm** (`theme key: AuthorizingForm`) centers its card both horizontally and vertically, with no `PageTitle`: the card is the whole screen.
+Six end-user-facing flows sharing one of two card recipes. **AuthForm** (`theme key: AuthForm`) frames a card below a page-level `PageTitle`, capped at `max-w-3xl` on the outer column and `35rem` on the card itself. **AuthorizingForm** (`theme key: AuthorizingForm`) centers its card both horizontally and vertically, with no `PageTitle`: the card is the whole screen.
 
 Every flow on this page renders live through the `AuthDemo` harness, which mounts the real view in its own sub-app with an isolated user store and an in-memory router. Submitting exercises the real loading, validation, toast, and redirect paths. Neither card renders `PageTitle` itself, so the demos show the card alone; a real shell supplies the page title above it.
 
@@ -118,7 +134,7 @@ The two cards below are structural diagrams, not styled specimens: they label th
     <template #footer>
       <span><code>root</code> is <code>flex min-h-svh justify-center items-center</code>, so the card centers against the viewport rather than the content flow</span>
       <span>the docs harness cancels <code>min-h-svh</code> for the inline demos; a real page keeps it</span>
-      <span>used by: SignIn, TwoFactorAuth</span>
+      <span>used by: SignIn, TwoFactorAuth, Reauthenticate</span>
     </template>
   </DemoCard>
 </VuedaDemo>
@@ -253,6 +269,42 @@ It is blocked on one primitive-level choice: a new `WidgetSegmentedRadio`, or a 
   </footer>
 </VuedaDemo>
 
+## Reauthenticate
+
+`ViewReauthenticate` confirms a signed-in user's identity before a guarded action, such as changing two-factor devices, with the proof the server requires for the account. When who-is reports the session as no longer recent, its `auth_pending_flow` names the flow the account owes and the store copies it into `authPendingFlow`. The view renders the matching form: a single password field for `reauthenticate`, or `ViewTwoFactorAuth` for `mfa_reauthenticate`, since a password alone does not count for an account with a device. Both run in an `AuthorizingForm` card with `requireRecentLogin`, so a user whose session is already recent is redirected without a prompt.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Password account · accepted. Submit to see the loading state, then the redirect toast.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewReauthenticate.vue')" :state="REAUTH_PASSWORD" route-name="reauthenticate" :mocks="reauthPasswordAccepts" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>one password row and a full-width primary "Verify" submit, the same single-action strip as <code>ViewSignIn</code></span>
+    <span>theme key: <code>AuthorizingForm</code> · source: <code>ViewReauthenticate.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Password account · rejected. Submit to see the field error under the password row.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewReauthenticate.vue')" :state="REAUTH_PASSWORD" route-name="reauthenticate" :mocks="reauthPasswordRejects" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span><code>action-error-summary</code> is "Verification Failed"; the field error lands on the password row</span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Two-factor account · accepted. The same live TwoFactorAuth form, submitting through <code>twoFactorReauthenticate</code>.</header>
+  <AuthDemo :view="() => import('@vueda/views/ViewReauthenticate.vue')" :state="REAUTH_MFA" route-name="reauthenticate" :mocks="reauthTwoFactorAccepts" />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>only the heading and the submit differ from the sign-in challenge above; method, send, cooldown, and recovery paths are the same component</span>
+    <span>theme keys: <code>AuthorizingForm</code>, <code>ViewTwoFactorAuth</code> · source: <code>ViewReauthenticate.vue</code>, <code>ViewTwoFactorAuth.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
 ## SetupDevice
 
 `ViewSetupDevice` is a three-step enrolment flow in an `AuthForm` card: choose a method, verify the device with a one-time code, then a confirmation panel. It takes required `app` and `model` props and reads its method choices from `useModelConfig`, so the demo seeds a small device model into the mounted store rather than passing the options in.
@@ -288,6 +340,8 @@ Choosing `email` or `sms` reveals a destination field and sends a code on submit
 ## RecoveryCodes
 
 `ViewRecoveryCodes` sits in an `AuthForm` card and gates its whole body on whether the account has a TOTP device enrolled. With a device, it fetches the unused codes on mount and renders them as a numbered list with download, print, and copy-all controls, plus a regenerate submit. Without one, it renders a single warning telling the user to add a second factor first.
+
+The server shows and regenerates codes only for a session that recently confirmed a second factor. When it refuses, the store's `authPendingFlow` becomes `mfa_reauthenticate`, and `AuthForm` sends the user to the `reauthenticate` route, which returns them here once they confirm a code.
 
 Regenerating is the form's action, so it runs through `ActionForm` like any other submit: the button shows the inline spinner while in flight, and the success handler swaps the list for the new codes and raises a toast.
 

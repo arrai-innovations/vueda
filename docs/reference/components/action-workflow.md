@@ -21,6 +21,10 @@ const activateScenario = customerScenario({
     app: "showcaseactivate",
     actions: [{ name: "activate", method: "PATCH" }],
 });
+const deactivateScenario = customerScenario({
+    app: "showcasedeactivate",
+    actions: [{ name: "deactivate", method: "PATCH" }],
+});
 // Rejects the pre-flight the way a server does when some records cannot take the action:
 // a 400 keyed by primary key. The confirmed request would succeed.
 const historyScenario = customerScenario({ app: "showcasehistory" });
@@ -44,9 +48,16 @@ const billScenario = customerScenario({
 
 # Action & Workflow Views
 
-Four view-scale layouts that handle model actions, workflow transitions, and audit history. Each builds on {@api vue:component:PageTitle} from the CRUDL family. The new piece introduced here is the **tone-tracked action banner**: a full-bleed strip below the title that grounds the action's purpose and risk level before the user reaches the submit button.
+Five view-scale layouts that handle model actions, workflow transitions, and audit history. Each builds on {@api vue:component:PageTitle} from the CRUDL family. The new piece introduced here is the **tone-tracked action banner**: a full-bleed strip below the title that grounds the action's purpose and risk level before the user reaches the submit button.
 
 Banner tone follows action sentiment: `info` for neutral confirmations, `success` for activations and restorations, `warning` for irreversible non-destructive moves, and `destructive` for permanent deletions (the destroy variant lives in CRUDL Views). Skipping the banner leaves users wondering what the action will actually do.
+
+Every action view on this page runs the same flow through {@api vue:component:ModelActionForm}:
+
+1. **Pre-flight.** On mount, the view sends the action request with `Dry-Run: true`. The server runs the action and rolls it back, so validation errors appear before the operator confirms.
+2. **Confirmation.** The operator reads the prompt and clicks the confirm button. When `confirm-text` is set, the button stays disabled until the operator types that exact text.
+3. **Warning acknowledgement.** When the server reports warnings for a record, it answers 409 instead of saving. A dialog lists the warnings. Confirming the dialog resends the request with the warnings acknowledged.
+4. **Navigation after success.** The view shows a success toast and navigates away. A `returnPath` query parameter decides the destination when present. Otherwise the model config's `actionRedirects` entry for the action decides it. When that entry is missing, the `default` entry decides it. A bulk action goes to the list view. See [Configure CRUD views](/guides/configure-crud-views).
 
 ## ViewAction
 
@@ -138,12 +149,18 @@ records cannot take the action.
 
 ## ViewActivate
 
-The activate view is `ModelActionForm` with `request-method="PATCH"` and `tone="success"`,
-which is what establishes the tone-tracking pattern: **info** for neutral confirmation,
-**success** for activate and restore, **warning** for irreversible non-destructive moves.
+The activate view sets `is_active` to `true` on records of any model that inherits from
+`ActivatableBaseModel`. It loads the selected records and sends the `activate` action as a PATCH
+request through `ModelActionForm`, with `tone="success"`. Its default page title is
+"Activate {Model}".
 
-The demo below is the live component, mounted through the `ModelDemo` harness against the
-seeded showcase customer model. Confirming it sends a real PATCH to the offline endpoint.
+Props: `app`, `model`, and `pk` identify the records. `pk` takes one primary key or an array of
+them. `title` replaces the default page title. Every other attribute and every slot passes
+through to `ModelActionForm`.
+
+The server rejects a record that is already active. The demo below is the live component,
+mounted through the `ModelDemo` harness against the seeded showcase customer model. Confirming
+it sends a real PATCH to the offline endpoint.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -170,6 +187,67 @@ seeded showcase customer model. Confirming it sends a real PATCH to the offline 
   </footer>
 </VuedaDemo>
 </ClientOnly>
+
+## ViewDeactivate
+
+The deactivate view sets `is_active` to `false` on records of any model that inherits from
+`ActivatableBaseModel`. It loads the selected records and sends the `deactivate` action as a
+PATCH request through `ModelActionForm`, with `tone="warning"`. Its default page title is
+"Deactivate {Model}".
+
+Props: `app`, `model`, and `pk` identify the records. `pk` takes one primary key or an array of
+them. `title` replaces the default page title. Every other attribute and every slot passes
+through to `ModelActionForm`.
+
+The server rejects a record that is already inactive. Changing `is_active` is the only effect
+of the server action. Ending sessions, revoking tokens, or reassigning records requires
+application code on the server, so describe those effects in the view's text only when your
+server performs them.
+
+<ClientOnly>
+<VuedaDemo class="flex flex-col gap-3">
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">action="deactivate" · 1 record · live ViewDeactivate</header>
+  <ModelDemo
+    :view="() => import('@vueda/views/ViewDeactivate.vue')"
+    :app="deactivateScenario.app"
+    :model="deactivateScenario.model"
+    pk="1"
+    action="deactivate"
+    :seed="deactivateScenario.seed"
+    :api="deactivateScenario.api"
+    page-title
+  />
+  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span>tone: <code>tone="warning"</code> puts <code>data-tone="warning"</code> on the card, which switches the card edge, banner fill, and icon tile to the warning colors</span>
+    <span>text: the page title, banner, and prompt are generated from the action and model names, so the same view fits any activatable model</span>
+    <span>requests: the same PATCH goes to the detail action url twice, once on mount carrying <code>Dry-Run: true</code> and once on confirm</span>
+    <span>theme keys: {@api theme-key:ViewDeactivate}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewDeactivate.vue</code></span>
+  </footer>
+</VuedaDemo>
+</ClientOnly>
+
+### Account page
+
+A self-service account page does not need its own component. Render `ViewDeactivate` with the
+signed-in user's primary key, and pass the account wording through to `ModelActionForm`:
+
+```vue
+<ViewDeactivate
+    app="user"
+    model="user"
+    :pk="String(me.id)"
+    :confirm-text="me.username"
+    banner-title="Deactivate your account"
+    action-success-summary="Account deactivated"
+>
+    <template #confirm-message>
+        <p>Your account will be suspended.</p>
+    </template>
+</ViewDeactivate>
+```
+
+`confirm-text` can be any value that the operator knows, so the page works for an operator without
+an email address. Describe only effects that your server performs.
 
 ## ViewExecuteTransition
 
@@ -262,6 +340,7 @@ Every action view is `ModelActionForm` underneath, so the same slots and props r
 
 - `banner-title` and `banner-description` replace the generated banner lines; `tone` switches the whole card, banner, and icon tile together.
 - `confirm-message` replaces the prompt wording, and the slot of the same name replaces the panel.
+- `confirm-text` adds a {@api vue:component:TypedConfirmField} below the prompt. The confirm button stays disabled until the operator types that exact text.
 - `extra-fields` adds action-specific inputs below the prompt.
 - `actions-hint` fills the right side of the actions strip, for a shortcut or an audit note.
 - `confirm-button` replaces the submit button, including its label.
