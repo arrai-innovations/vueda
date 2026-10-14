@@ -178,7 +178,7 @@ A term is valid when it is the public name of a field in [`get_valid_fields`]{@a
 
 DRF's own prefixes, `^`, `=`, `@`, and `$`, still work. With no `#`, `~`, or `V:` field, the backend behaves as `SearchFilter`. The exception is a field that reaches through a many-valued relation, which [Search Through a Many-Valued Relation](#search-through-a-many-valued-relation) describes.
 
-Plain, `#`, and `~` fields filter rows, and each group must match. `#` and `~` fields join the search terms into one term. `V:` fields rank the rows that remain and filter nothing.
+Plain, `#`, and `~` fields filter rows, and each group must match. `#` and `~` fields join the search terms into one term. `V:` fields rank the rows that remain.
 
 A search is ranked when it has a `V:` field, or a plain field alongside `#` or `~` fields. The rank, `combined_rank`, adds full-text rank, trigram similarity, a whole-word match score, and 10 per plain match. Rows below [`search_threshold`]{@api py:property:vueda.core.filters.VuedaSearchFilterBackend.search_threshold} (0.2) are dropped. A search that uses only `#` or `~` fields is filtered and not ranked.
 
@@ -268,7 +268,7 @@ The endpoint returns:
 
 The `500` case gets no startup report for a model outside `FormattedNameBaseModel`, such as the user model. The `vueda_info.E001` system check covers only a `FormattedNameBaseModel` that sets `formatted_name = None` with neither alternative.
 
-Choices come only from rows that the user may list. [`filter_rows_for_user`]{@api py:function:vueda.core.permissions.filter_rows_for_user} narrows the model's rows by the same row-level and workflow state rules that the `list` view applies. The request's other filters then narrow those rows. A value-derived filter offers only the values that those rows hold. A queryset-backed filter offers only related rows that the user may also list, by the same rules on the related model. A related row that the user may not list is left out, even when a visible row references it. Static choices read no rows, so these rules do not change them.
+Choices come only from the rows that the registered viewset's `list` view reads. The endpoint starts from the viewset's `get_queryset()`, called as a `list` request with empty URL keyword arguments. [`filter_rows_for_user`]{@api py:function:vueda.core.permissions.filter_rows_for_user} then keeps the rows that pass the same row-level and workflow state rules that the `list` view applies. The request's other filters then narrow those rows. A value-derived filter offers only the values that those rows hold. A queryset-backed filter offers only related rows that the user may also list, by the same rules on the related model. A related row that the user may not list is left out, even when a visible row references it. Static choices read no rows, so these rules do not change them.
 
 The endpoint does not call the viewset's `get_queryset`. A dropdown can therefore offer a value that appears only on rows that `get_queryset` excludes from the list ([#459](https://github.com/arrai-innovations/vueda/issues/459)). [Row-Level Permission Filtering](./row-level-permission-filtering.md) describes the row-level rules.
 

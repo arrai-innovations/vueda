@@ -19,14 +19,18 @@ from vueda.workflow.exceptions import InvalidTransitionError
 
 @pytest.mark.django_db
 def test_send_message_missing_queue_item(monkeypatch):
+    locked_pks = []
+
     def fake_lock(pk, operation):
-        assert pk == 99999  # noqa: PLR2004
+        locked_pks.append(pk)
         return operation(None)
 
     monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
     with pytest.raises(Ignore):
         send_message(99999, "email")
+
+    assert locked_pks == [99999]
 
 
 @pytest.mark.django_db
@@ -49,9 +53,9 @@ def test_a_task_runs_inside_a_task_action(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_check_sms_status_uses_oldest_timestamp(monkeypatch, sms_queue_item, sender, receiver):
-    sms_queue_item.fast_transition("send")
-    sms_queue_item.fast_transition("await")
+def test_check_sms_status_uses_oldest_timestamp(monkeypatch, queued_sms, sender, receiver):
+    queued_sms.fast_transition("send")
+    queued_sms.fast_transition("await")
 
     newer = QueueItem.objects.create(sender=sender, receiver=receiver, method="sms")
     SMSQueueItem.objects.create(queue_item=newer, body="new", media_url=[], message_sid="NEWER")
@@ -60,9 +64,9 @@ def test_check_sms_status_uses_oldest_timestamp(monkeypatch, sms_queue_item, sen
 
     older_time = timezone.now() - timedelta(hours=1)
     newer_time = timezone.now()
-    QueueItem.objects.filter(pk=sms_queue_item.pk).update(queued=older_time)
+    QueueItem.objects.filter(pk=queued_sms.pk).update(queued=older_time)
     QueueItem.objects.filter(pk=newer.pk).update(queued=newer_time)
-    expected_oldest = QueueItem.objects.get(pk=sms_queue_item.pk).queued
+    expected_oldest = QueueItem.objects.get(pk=queued_sms.pk).queued
 
     called_with: list = []
 
@@ -77,9 +81,9 @@ def test_check_sms_status_uses_oldest_timestamp(monkeypatch, sms_queue_item, sen
 
 
 @pytest.mark.django_db
-def test_check_previously_received_message_sid_updates_queue_item(monkeypatch, sms_queue_item):
-    sms_queue_item.fast_transition("send")
-    sms_queue_item.fast_transition("await")
+def test_check_previously_received_message_sid_updates_queue_item(monkeypatch, queued_sms):
+    queued_sms.fast_transition("send")
+    queued_sms.fast_transition("await")
 
     manager = SMSQueueItem.objects
 
@@ -97,7 +101,7 @@ def test_check_previously_received_message_sid_updates_queue_item(monkeypatch, s
 
     check_previously_received_message_sid("SID", "delivered")
 
-    assert calls == [(sms_queue_item.pk, "delivered", True)]
+    assert calls == [(queued_sms.pk, "delivered", True)]
 
 
 @pytest.mark.django_db
@@ -135,9 +139,10 @@ def test_queue_processor_on_retry_updates_queue_item(monkeypatch):
             transitions.append(code)
 
     qi = DummyQueueItem()
+    locked_pks = []
 
     def fake_lock(pk, operation):
-        assert pk == 1
+        locked_pks.append(pk)
         return operation(qi)
 
     monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
@@ -150,6 +155,7 @@ def test_queue_processor_on_retry_updates_queue_item(monkeypatch):
     task = QueueProcessor()
     task.on_retry(RuntimeError("boom"), "task-1", (1,), {}, einfo)
 
+    assert locked_pks == [1]
     assert qi.task_id == "task-1"
     assert qi.retry_delay == delay
     assert saved == [["task_id", "retry_delay"]]
@@ -193,17 +199,17 @@ def test_queue_processor_on_retry_without_when(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_queue_processor_on_retry_from_queued_records_the_task_without_delaying(monkeypatch, email_queue_item):
+def test_queue_processor_on_retry_from_queued_records_the_task_without_delaying(monkeypatch, queued_email_with_detail):
     monkeypatch.setattr(
         "vueda.vdq.celery.app.control.revoke", lambda task_id, **kwargs: pytest.fail("revoke should not be called")
     )
 
     task = QueueProcessor()
-    task.on_retry(RuntimeError("locked"), "task-q", (email_queue_item.pk,), {}, SimpleNamespace(exception=None))
+    task.on_retry(RuntimeError("locked"), "task-q", (queued_email_with_detail.pk,), {}, SimpleNamespace(exception=None))
 
-    email_queue_item.refresh_from_db()
-    assert email_queue_item.task_id == "task-q"
-    assert email_queue_item.workflow_state.code == "queued"
+    queued_email_with_detail.refresh_from_db()
+    assert queued_email_with_detail.task_id == "task-q"
+    assert queued_email_with_detail.workflow_state.code == "queued"
 
 
 @pytest.mark.django_db
@@ -245,9 +251,10 @@ def test_queue_processor_on_failure_records_error(monkeypatch):
             transitions.append(code)
 
     qi = DummyQueueItem()
+    locked_pks = []
 
     def fake_lock(pk, operation):
-        assert pk == queue_item_pk
+        locked_pks.append(pk)
         return operation(qi)
 
     monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
@@ -259,6 +266,7 @@ def test_queue_processor_on_failure_records_error(monkeypatch):
     except RuntimeError as exc:
         task.on_failure(exc, "task-4", (5, "sms"), {}, SimpleNamespace())
 
+    assert locked_pks == [queue_item_pk]
     assert "RuntimeError" in qi.result
     assert qi.retry_delay == 0
     assert saved == [["result", "retry_delay"]]
@@ -342,10 +350,12 @@ def test_send_message_ignores_invalid_transition(monkeypatch):
 
 
 @pytest.mark.django_db
-def test_send_message_sms_invokes_handler(monkeypatch, sms_queue_item):
+def test_send_message_sms_invokes_handler(monkeypatch, queued_sms):
+    locked_pks = []
+
     def fake_lock(pk, operation):
-        assert pk == sms_queue_item.pk
-        return operation(sms_queue_item)
+        locked_pks.append(pk)
+        return operation(queued_sms)
 
     monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
@@ -357,16 +367,19 @@ def test_send_message_sms_invokes_handler(monkeypatch, sms_queue_item):
     monkeypatch.setattr("vueda.vdq.tasks.TwilioQueueItemHandler.send_sms", record_send_sms)
     monkeypatch.setattr("vueda.vdq.tasks.send_email", lambda qi: pytest.fail("send_email should not be called"))
 
-    send_message(sms_queue_item.pk, "sms")
+    send_message(queued_sms.pk, "sms")
 
-    assert calls == [sms_queue_item.pk]
+    assert locked_pks == [queued_sms.pk]
+    assert calls == [queued_sms.pk]
 
 
 @pytest.mark.django_db
-def test_send_message_email_invokes_send_email(monkeypatch, email_queue_item):
+def test_send_message_email_invokes_send_email(monkeypatch, queued_email_with_detail):
+    locked_pks = []
+
     def fake_lock(pk, operation):
-        assert pk == email_queue_item.pk
-        return operation(email_queue_item)
+        locked_pks.append(pk)
+        return operation(queued_email_with_detail)
 
     monkeypatch.setattr("vueda.vdq.tasks.with_locked_queue_item", fake_lock)
 
@@ -381,9 +394,10 @@ def test_send_message_email_invokes_send_email(monkeypatch, email_queue_item):
         lambda self, qi: pytest.fail("send_sms should not be called"),
     )
 
-    send_message(email_queue_item.pk, "email")
+    send_message(queued_email_with_detail.pk, "email")
 
-    assert calls == [email_queue_item.pk]
+    assert locked_pks == [queued_email_with_detail.pk]
+    assert calls == [queued_email_with_detail.pk]
 
 
 def test_setup_periodic_tasks_adds_status_check(settings, monkeypatch):

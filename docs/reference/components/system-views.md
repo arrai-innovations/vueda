@@ -172,7 +172,7 @@ Suggestions use each action's route name (`read` for `retrieve`) and leave out `
 
 ## SystemMessageCard
 
-Centered 460 px card chassis shared by all four system views (NotFound, ActionNotFound, Loading, Deactivate) and by the AuthAndMFA card. Provides a tone-tracked 36 px crest icon tile above a border separator, a meta column (eyebrow label + mono kind text), an optional trailing status code, a body slot, and an optional actions footer.
+Centered 460 px card chassis that `ViewNotFound` and `ViewActionNotFound` render. Provides a tone-tracked 36 px crest icon tile above a border separator, a meta column (eyebrow label + mono kind text), an optional trailing status code, a body slot, and an optional actions footer.
 
 The root carries `data-tone` and opens a `group/system-message-card` named scope. The `crestIcon` theme key routes soft tint colors (about 12 to 14 percent opacity) from that scope via `group-data-[tone=*]/system-message-card:` variants, so the icon resolved from `icon-name` inherits the tinted ink color automatically.
 
@@ -206,15 +206,15 @@ Set `icon-name` to a registry key to render the crest icon. Pass `icon-props` fo
 </VuedaDemo>
 
 <VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — warning tone (deactivate confirmation)</header>
+  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SystemMessageCard — warning tone (archive confirmation)</header>
   <div class="flex justify-center">
     <SystemMessageCard tone="warning" icon-name="warning">
-      <template #crest-eyebrow>deactivate account</template>
-      <template #crest-kind>mara.tani</template>
-      <p class="text-[13px] leading-[1.5] text-muted-foreground">This account will be suspended. All active sessions will end immediately.</p>
+      <template #crest-eyebrow>archive project</template>
+      <template #crest-kind>q3-launch</template>
+      <p class="text-[13px] leading-[1.5] text-muted-foreground">Archived projects leave the active list. An owner can restore them later.</p>
       <template #actions>
         <Button size="sm" emphasis="outline">Cancel</Button>
-        <Button size="sm" tone="destructive">Deactivate</Button>
+        <Button size="sm" tone="destructive">Archive</Button>
       </template>
     </SystemMessageCard>
   </div>
@@ -275,59 +275,9 @@ Icons resolve through `useIcons("ConsequencesBullets")`. Register a component un
 | `toneWarn`    | applied to icon wrapper | `text-warning` (active when `item.tone === "warn"`)       |
 | `toneDanger`  | applied to icon wrapper | `text-destructive` (active when `item.tone === "danger"`) |
 
-## ViewDeactivate
-
-Self-service account deactivation view. Wraps the deactivate action in a `SystemMessageCard(tone="warning")` chassis: an icon crest identifies the action, an optional `ConsequencesBullets` list communicates the impact, and a `TypedConfirmField` gates the destructive button on the operator typing their own email address. Sends a PATCH to the model's `deactivate` endpoint on confirmation.
-
-Props: `app` + `model` + `pk` (or array of PKs) identify the target. `consequences[]` forwards to `ConsequencesBullets`; when empty the bullet list is omitted. The `message` slot overrides the default suspension explanation paragraph.
-
-The submit button stays disabled until `TypedConfirmField` emits a match and remains disabled while the request is in-flight. On success the component emits `success`. On a non-200 response an inline error paragraph appears.
-
-<VuedaDemo class="flex flex-col gap-5">
-  <header class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">ViewDeactivate — full composition (consequences + typed confirm)</header>
-  <div class="flex justify-center">
-    <SystemMessageCard tone="warning" icon-name="warning">
-      <template #crest-eyebrow>account · deactivate</template>
-      <template #crest-kind>myapp/account/deactivate</template>
-      <p class="text-[13px] leading-[1.5] text-muted-foreground">Your account will be suspended. Active sessions will end immediately, API tokens will be disabled, and shared resources will be reassigned. After 30 days this action is permanent.</p>
-      <ConsequencesBullets
-        :items="[
-          { label: 'Sessions revoked', description: 'All active sessions across devices end immediately.' },
-          { label: 'API tokens disabled', description: 'Personal access tokens stop authenticating.' },
-          { label: 'Shared resources transfer', description: 'Owned records move to the team default owner.', tone: 'warn' },
-          { label: 'After 30 days, irrecoverable', description: 'Account and history are permanently purged.', tone: 'danger' },
-        ]"
-      />
-      <TypedConfirmField
-        v-model="deactivateConfirm"
-        expected-value="mara.tani@example.com"
-        label-lead="Type your email address"
-        label-tail="to confirm"
-      />
-      <template #actions>
-        <Button size="sm" emphasis="outline">Cancel</Button>
-        <Button size="sm" tone="destructive" :disabled="deactivateConfirm !== 'mara.tani@example.com'" class="ml-auto">Deactivate account</Button>
-      </template>
-    </SystemMessageCard>
-  </div>
-  <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>consequences: forwarded to <code>ConsequencesBullets</code>; omit the prop (or pass an empty array) and the bullet section disappears</span>
-    <span>typed confirm: expected value is <code>userStore.loggedInUser.email</code>; the field is omitted when the email is unavailable</span>
-    <span>submit stays disabled until typed value matches and re-disables while the PATCH is in-flight</span>
-  </footer>
-</VuedaDemo>
-
-### Customization surface
-
-| Key       | Element               | Default classes                                   |
-| --------- | --------------------- | ------------------------------------------------- |
-| `root`    | Outer `<div>`         | `flex min-h-full items-center justify-center p-8` |
-| `message` | Default message `<p>` | `text-[13px] leading-[1.5] text-muted-foreground` |
-| `error`   | Error `<p>`           | `text-[12px] text-destructive leading-[1.5]`      |
-
 ## TypedConfirmField
 
-Anti-mistake confirmation primitive shared by destroy, deactivate, and recovery-code regenerate flows. The operator must type the exact `expectedValue` before the consumer's destructive button enables. The chrome is the canonical "type it to mean it" recipe: a bordered, muted-tinted box with a 12 px sans label, an inline mono chip showing the expected literal, and a 32 px mono input.
+Anti-mistake confirmation primitive. `ModelActionForm` renders it when `confirm-text` is set, so `ViewDestroy` and every action view can use it. The operator must type the exact `expectedValue` before the consumer's destructive button enables. The chrome is the canonical "type it to mean it" recipe: a bordered, muted-tinted box with a 12 px sans label, an inline mono chip showing the expected literal, and a 32 px mono input.
 
 Consumers read the match state via `v-model:match` (or the `match` event) and gate their submit control on it. The raw typed value is exposed via `v-model` for callers that need to echo or inspect it.
 
