@@ -14,7 +14,7 @@ import { computed, reactive, useSlots } from "vue";
  * mapping come from the inner ActionForm.
  *
  * Integrators can use this view as-is, adjust copy and behaviour through props
- * (`header`, `subTitle`, `redirect`, `formProps`, `requireRecentLogin`, theme
+ * (`header`, `subTitle`, `redirect`, `formProps`, `requireRecentLogin`, `toasts`, theme
  * overrides, all forwarded to AuthorizingForm), show a "Forgot password?" link with
  * `forgotPasswordTo`, or replace individual pieces through the `field(email)`,
  * `widget(email)`, `field(password)`, `widget(password)`, `action-bar`, and `suffix` slots.

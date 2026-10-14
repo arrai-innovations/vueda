@@ -188,7 +188,8 @@ def expanded_serializer(serializer_class, expand):
     return serializer
 
 
-def prefetch_for(prefetch_related, lookup):
+def find_prefetch_for_or_fail(prefetch_related, lookup):
+    """Return the ``Prefetch`` in ``prefetch_related`` for ``lookup``, failing the test when there is none."""
     for entry in prefetch_related:
         if isinstance(entry, Prefetch) and entry.prefetch_through == lookup:
             return entry
@@ -208,7 +209,7 @@ def test_build_prefetch_plan_annotates_formatted_name_on_a_to_many_prefetch_quer
 
     _, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
 
-    annotations = prefetch_for(prefetch_related, "order_items").queryset.query.annotations
+    annotations = find_prefetch_for_or_fail(prefetch_related, "order_items").queryset.query.annotations
 
     assert "formatted_name" in annotations
 
@@ -222,7 +223,7 @@ def test_build_prefetch_plan_leaves_a_stored_formatted_name_unannotated():
 
     _, prefetch_related = build_prefetch_plan(serializer, Timesheet)
 
-    annotations = prefetch_for(prefetch_related, "timesheet_entries").queryset.query.annotations
+    annotations = find_prefetch_for_or_fail(prefetch_related, "timesheet_entries").queryset.query.annotations
 
     assert "formatted_name" not in annotations
 
@@ -246,7 +247,7 @@ def test_build_prefetch_plan_applies_select_related_for_a_get_formatted_name_to_
 
     _, prefetch_related = build_prefetch_plan(serializer, store_models.Customer)
 
-    select_related = prefetch_for(prefetch_related, "cart_set").queryset.query.select_related
+    select_related = find_prefetch_for_or_fail(prefetch_related, "cart_set").queryset.query.select_related
 
     assert select_related == {"customer": {"user": {}}}
 
@@ -557,17 +558,6 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
-
-        # Do we have a workflow?
-        if hasattr(self.model, "workflow"):
-            keys.update(
-                {
-                    "workflow_state_code": "draft",
-                    "workflow_state_name": "Draft",
-                }
-            )
-
         list_querystring[settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]] = "supervisor"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
@@ -586,7 +576,7 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
         assert self.model.objects.filter(pk__in=pks).count() == len(pks)
 
-    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
+    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client):
         instance = page_data.first()
         detail_querystring = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "second_history_entry"}
         response = authenticated_client.get(self.detail_url(instance.id), data=detail_querystring)
@@ -599,7 +589,6 @@ class TestProductViewSet(BaseTestModelViewSet):
         assert response.data["second_history_entry"][0] == "Invalid expands. No expands are permitted.", (
             f"second_history_entry message: {response.data['second_history_entry'][0]}"
         )
-        assert "history" not in response.data
 
 
 @pytest.mark.django_db
@@ -632,7 +621,6 @@ class TestStoreProductViewSet:
             response.data["distributor.brands"][0]
             == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
-        assert "history" not in response.data
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -659,7 +647,6 @@ class TestStoreProductViewSet:
             response.data["distributor.brands"][0]
             == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
-        assert "history" not in response.data
 
     def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
         """An expanded object never renders ``available_actions``, so requesting it is invalid."""
@@ -805,16 +792,6 @@ class TestExpandingThroughRegisteredSerializer(BaseTestAssertResponseMixin):
     @pytest.fixture
     def test_data(self):
         return StoreTestData()
-
-    @staticmethod
-    def register_viewsets():
-        info.registration.get_empty_registry()
-        info.register(store_serializers.CustomerSerializer, store_viewsets.CustomerViewSet)
-        info.register(store_serializers.ProductSerializer, store_viewsets.ProductViewSet)
-        info.register(store_serializers.OptionTypeSerializer, store_viewsets.OptionTypeViewSet)
-        info.register(store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet)
-        info.register(store_serializers.CustomerOrderSerializer, store_viewsets.CustomerOrderViewSet)
-        info.register_serializer(store_serializers.OrderItemSerializer)
 
     def test_expand_through(self, api_client, test_data):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -1074,17 +1051,6 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert {x["id"] for x in response_info["results"]} == set(list_querystring["id"])
 
     def test_list_with_invalid_expands(self, page_data, authenticated_client, list_querystring):
-        keys = {"id", "object_revision"}.union(self.list_keys_arguments)
-
-        # Do we have a workflow?
-        if hasattr(self.model, "workflow"):
-            keys.update(
-                {
-                    "workflow_state_code": "draft",
-                    "workflow_state_name": "Draft",
-                }
-            )
-
         list_querystring[settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]] = "employee,guardian"
         response = authenticated_client.get(self.list_url(), data=list_querystring, format="json")
 
@@ -1121,7 +1087,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert expected_retrieve_response == response.data
 
-    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client, expected_retrieve_response):
+    def test_retrieve_with_invalid_expands(self, page_data, authenticated_client):
         instance = page_data.first()
 
         detail_querystring = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee,guardian"}

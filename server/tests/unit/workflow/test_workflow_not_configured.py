@@ -18,9 +18,9 @@ from vueda.workflow.models import get_workflow_for_model
 
 
 # Enables class Vueda.Workflow, and no migration creates a workflow for it.
-UNCONFIGURED = erring_models.MoSoVoWx
+UNCONFIGURED = erring_models.EnabledWithoutWorkflow
 # Does not enable class Vueda.Workflow, although a migration creates a workflow for it.
-ROW_WITHOUT_POLICY = erring_models.MxSoVoWo
+ROW_WITHOUT_POLICY = erring_models.NotEnabledWithWorkflow
 
 
 @pytest.mark.django_db
@@ -31,7 +31,9 @@ class TestConfigurationError(BaseTestUserMixin):
     }
 
     def test_the_lookup_raises(self):
-        with pytest.raises(WorkflowNotConfiguredError, match=r"erring\.MoSoVoWx enables class Vueda\.Workflow"):
+        with pytest.raises(
+            WorkflowNotConfiguredError, match=r"erring\.EnabledWithoutWorkflow enables class Vueda\.Workflow"
+        ):
             get_workflow_for_model(UNCONFIGURED)
 
     def test_saving_an_object_raises(self):
@@ -52,7 +54,7 @@ class TestConfigurationError(BaseTestUserMixin):
         user = self.users["member@domain.invalid"]
 
         with pytest.raises(WorkflowNotConfiguredError):
-            user.has_perm("erring.read_mosovowx", UNCONFIGURED(name="probe"))
+            user.has_perm("erring.read_enabledwithoutworkflow", UNCONFIGURED(name="probe"))
         with pytest.raises(WorkflowNotConfiguredError):
             filter_rows_for_user(UNCONFIGURED.objects.all(), user)
         with pytest.raises(WorkflowNotConfiguredError):
@@ -134,11 +136,7 @@ class TestDefinitionCheck:
         reported = {warning.obj for warning in warnings if warning.obj._meta.app_label == "erring"}
 
         assert {warning.id for warning in warnings} == {"vueda_workflow.W001"}
-        assert reported == {
-            model
-            for model in erring_models.__dict__.values()
-            if isinstance(model, type) and model.__name__.startswith("Mo") and model.__name__.endswith("Wx")
-        }
+        assert reported == {erring_models.EnabledWithoutWorkflow}
 
     def test_does_not_run_without_a_database(self):
         assert check_workflow_definitions(databases=None) == []

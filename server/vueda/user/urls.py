@@ -5,7 +5,6 @@ __all__ = (
     "user_patterns",
 )
 
-from allauth.headless.urls import urlpatterns as allauth_urlpatterns
 from dj_rest_auth.views import LogoutView
 from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
@@ -14,7 +13,9 @@ from django.urls import path
 
 from vueda.user import views
 from vueda.user.views import AllAuthLoginView
+from vueda.user.views import AllAuthMFAReauthenticateView
 from vueda.user.views import AllAuthReauthenticateView
+from vueda.user.views import AllAuthRecoveryCodesView
 from vueda.user.views import AllAuthTwoFactorAuthView
 from vueda.user.views import WhoIsView
 from vueda.user.views import totp_code
@@ -22,11 +23,20 @@ from vueda.user.views import totp_code
 
 user_patterns = [
     path("who-is/", WhoIsView.as_view(), name="who-is"),
-    path("_allauth/", include(allauth_urlpatterns)),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("login/", AllAuthLoginView.as_api_view(client="browser"), name="login2"),
     path("2fa/authenticate/", AllAuthTwoFactorAuthView.as_api_view(client="browser"), name="authenticate"),
     path("reauthenticate/", AllAuthReauthenticateView.as_api_view(client="browser"), name="reauthenticate"),
+    path(
+        "2fa/reauthenticate/",
+        AllAuthMFAReauthenticateView.as_api_view(client="browser"),
+        name="mfa_reauthenticate",
+    ),
+    path(
+        "2fa/recovery-codes/",
+        AllAuthRecoveryCodesView.as_api_view(client="browser"),
+        name="recovery_codes",
+    ),
     path("", include("vueda.user.routers")),
     path("totp_code/", totp_code, name="totp_code"),
     path("change_password/", PasswordChangeView.as_view(), name="change_password"),

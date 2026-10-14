@@ -20,7 +20,7 @@ vi.mock("vue-router", () => ({
 }));
 
 const UnauthorizedError = class extends Error {};
-const storeState = reactive({ pendingFlow: null });
+const storeState = reactive({ authPendingFlow: null });
 vi.mock("@vueda/stores/storeUser.js", () => ({
     UnauthorizedError,
     storeUser: () => storeState,
@@ -40,7 +40,7 @@ describe("lib/use/useAuthFlow.js", () => {
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         defaultOnSubmissionError.mockClear();
-        storeState.pendingFlow = null;
+        storeState.authPendingFlow = null;
         routeQuery = {};
     });
 
@@ -107,24 +107,24 @@ describe("lib/use/useAuthFlow.js", () => {
         });
     });
 
-    describe("pendingFlow watch", () => {
+    describe("authPendingFlow watch", () => {
         scopedIt("redirects to reauthenticate on mfa_reauthenticate flow", async () => {
             useAuthFlow({ formProps: {} });
-            storeState.pendingFlow = { id: "mfa_reauthenticate" };
+            storeState.authPendingFlow = "mfa_reauthenticate";
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
         });
 
         scopedIt("redirects to reauthenticate on reauthenticate flow", async () => {
             useAuthFlow({ formProps: {} });
-            storeState.pendingFlow = { id: "reauthenticate" };
+            storeState.authPendingFlow = "reauthenticate";
             await flushPromises();
             expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
         });
 
         scopedIt("ignores unrelated pending flow ids", async () => {
             useAuthFlow({ formProps: {} });
-            storeState.pendingFlow = { id: "some_other_flow" };
+            storeState.authPendingFlow = "some_other_flow";
             await flushPromises();
             expect(routerPush).not.toHaveBeenCalled();
         });

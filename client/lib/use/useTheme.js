@@ -5,7 +5,7 @@
  * Slot entries may declare `composes: ['_MetaKey.slot', ...]` to compose classes from other entries before
  * their own classes. Underscore-prefixed entries (`_ButtonBase`, `_ButtonGhost`, etc.) are the convention
  * for shared scaffolding consumed by visually-related leaf components. Composition is resolved at lookup
- * time against the merged override theme, so `setTheme` or `useThemeOverride` on a meta key propagates to
+ * time against the merged override theme, so `setTheme`, `overrideTheme`, or `useThemeOverride` on a meta key propagates to
  * every leaf that composes from it. Override semantics for `composes` are replace (override list wins
  * entirely); own `class` values still combine default + override as in non-composing entries.
  */
@@ -63,8 +63,8 @@ export const THEME_OVERRIDE_PROPS = {
  *
  * Slot entries may include an optional `composes` array of references to other entries' slots
  * (`'_ButtonBase.root'`, `'Button.root'`, etc.). Referenced slots' classes are resolved first,
- * then the slot's own `class` is appended; `setTheme` or `useThemeOverride` on a referenced
- * key propagates through the composition chain.
+ * then the slot's own `class` is appended; `setTheme`, `overrideTheme`, or `useThemeOverride` on a
+ * referenced key propagates through the composition chain.
  *
  * @typedef {({
  *     [slotName: string]: {
@@ -100,13 +100,13 @@ const getConfigValue = (configOrOverride, key, context) => {
 };
 /**
  * Resolve the array of class values for a slot, walking `composes` references
- * through both the global default theme and the per-instance merged override.
+ * through the default theme, the project overrides, and the per-instance merged override.
  *
  * Composition is opt-in: a slot whose entry includes `composes: ['_MetaKey.slot', ...]`
  * pulls in the resolved classes of those referenced slots before its own classes.
- * Override semantics for `composes` are replace (override list wins entirely);
- * own `class` values from default and override are still concatenated as in
- * non-composing entries.
+ * Override semantics for `composes` are replace (the highest layer's list wins entirely);
+ * own `class` values from the default, project, and instance layers are still
+ * concatenated in that order, as in non-composing entries.
  *
  * @private
  * @param {string} componentName - The component or meta-key name.
@@ -114,7 +114,7 @@ const getConfigValue = (configOrOverride, key, context) => {
  * @param {ThemeObject} mergedOverride - The merged override theme tree from useThemeOverride.
  * @param {object} context - Resolved context for function-form slots and class functions.
  * @param {Set<string>} [visited] - Internal accumulator for cycle detection.
- * @returns {Array} Ordered class values to combine via `combineClasses`.
+ * @returns {Array} Ordered class values to combine via `combineThemeClasses`.
  */
 /**
  * Sentinel returned by `resolveSlotClassesSync` when the composes graph hits a
