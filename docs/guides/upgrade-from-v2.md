@@ -61,7 +61,7 @@ These dependencies changed:
 ### Update Your Code
 
 - **Base model.** `VuedaBaseModel` and `VuedaHistoryBaseModel` are now `VuedaModel`. `AbstractVUEDAUserWithHistory` is now `AbstractVUEDAUser`. No old name remains as an alias.
-- **History classes.** `VuedaHistoryViewSet`, `VuedaHistorySerializer`, `SimpleHistoryViewSetMixin`, `SimpleHistorySerializerMixin`, `HistoricalRecordField`, and `create_historical_record` are removed. Every `VuedaViewSet` for a tracked model serves `history-list`. Code that read `instance.history` must query the model's event model. [Find the Event Model for a Tracked Model](purge-model-history.md#find-the-event-model-for-a-tracked-model) shows how.
+- **History classes.** `SimpleHistoryModelMixin`, `VuedaHistoryViewSet`, `VuedaHistorySerializer`, `SimpleHistoryViewSetMixin`, `SimpleHistorySerializerMixin`, `HistoricalRecordField`, and `create_historical_record` are removed. Remove them from your models, serializers, and viewsets. A `VuedaModel` subclass records history without a mixin, and every `VuedaViewSet` for a tracked model serves `history-list`. Code that read `instance.history` must query the model's event model. [Find the Event Model for a Tracked Model](purge-model-history.md#find-the-event-model-for-a-tracked-model) shows how.
 - **History policy.** Every `VuedaModel` subclass records history unless it opts out. Composite primary key models must opt out. History never records `password`. [History and Workflow](../core-concepts/model-feature-policy.md#history-and-workflow) describes the policy and its options. Run `makemigrations`, review the generated event models and triggers, and exclude noisy fields such as `last_login`.
 - **Writes outside a request.** Wrap writes in management commands and scripts in `audited_action(..., kind="command")` so that `audited_action` groups their history into one action.
 - **Workflow opt-in.** `HasWorkflowModelMixin`, `HasWorkflowSerializerMixin`, `HasWorkflowViewMixin`, `HasWorkflowViewSetMixin`, and `HasWorkflowFilterSetMixin` are removed. Declare `class Vueda.Workflow: enabled = True` on the model instead. VUEDA then adds the workflow fields, the `workflow_state` filter, and the permission overlay. [History and Workflow](../core-concepts/model-feature-policy.md#history-and-workflow) describes the options.
@@ -78,23 +78,24 @@ These dependencies changed:
 
 ### Run the Migrations
 
-1. Run `python manage.py updategroupmigrations` before you apply v2-generated group migrations in another environment. The v2 replay code deleted a group, with its memberships, when the group lost its last permission. The command rewrites that code. [Updating Existing Group Migrations](manage-groups.md#updating-existing-group-migrations) describes it.
-2. Run `makemigrations` and review the result. Expect event models and triggers for each tracked model, and `DeleteModel` operations for each `Historical*` table.
-3. Apply the migrations.
-4. Run `python manage.py check --database default`. If `vueda_workflow.W002` reports models with rows that have no workflow state, run `python manage.py backfillworkflowstates`. [Enabling Workflow on a Model with Existing Rows](manage-workflows.md#enabling-workflow-on-a-model-with-existing-rows) explains the check.
-5. Run `python manage.py remove_stale_contenttypes`. The deleted `Historical*` models leave content types behind, and the permission pickers keep offering their permissions until you remove those content types.
+Read these warnings before you run any migration command:
 
 ::: danger
 Do not apply a workflow migration that v3 generates to a database upgraded from v2. Each generated workflow migration checks every object's state history. It moves an object back to its workflow's initial state when its state history shows no change since the object's creation. Object states carried over from v2 have no history in v3. The migration therefore resets every object that v2 moved out of its initial state. [#512](https://github.com/arrai-innovations/vueda/issues/512) tracks the fix.
 :::
-
-Workflow migrations that v2 generated need extra care:
 
 ::: warning
 Do not reverse a workflow migration that v2 generated. Its reverse code deletes the object states of every workflow, including workflows that the migration did not create. `updateworkflowmigrations` does not rewrite these files.
 
 Test a full replay of your migrations on an empty database before you deploy. A v2-generated workflow migration looks up the `Historical*` workflow models, which `vueda_workflow` `0009` deletes. When your dependency graph lets `0009` run first, the replay fails. [#510](https://github.com/arrai-innovations/vueda/issues/510) tracks a supported path for these files.
 :::
+
+1. Run `python manage.py updategroupmigrations` before you apply v2-generated group migrations in another environment. The v2 replay code deleted a group, with its memberships, when the group lost its last permission. The command rewrites that code. [Updating Existing Group Migrations](manage-groups.md#updating-existing-group-migrations) describes it.
+2. Run `makemigrations` and review the result. Expect event models and triggers for each tracked model, and `DeleteModel` operations for each `Historical*` table.
+3. Review the migration plan with `python manage.py migrate --plan`. On an empty database, check that every workflow migration that v2 generated runs before `vueda_workflow` `0009`. On the database that you upgrade, check that the plan holds no workflow migration that v3 generated.
+4. Apply the migrations.
+5. Run `python manage.py check --database default`. If `vueda_workflow.W002` reports models with rows that have no workflow state, run `python manage.py backfillworkflowstates`. [Enabling Workflow on a Model with Existing Rows](manage-workflows.md#enabling-workflow-on-a-model-with-existing-rows) explains the check.
+6. Run `python manage.py remove_stale_contenttypes`. The deleted `Historical*` models leave content types behind, and the permission pickers keep offering their permissions until you remove those content types.
 
 ### Fix What the System Checks Report
 
@@ -114,7 +115,7 @@ Server v2 registered no system checks. Server v3 registers checks in `vueda_core
 Several v2 permission paths admitted requests that v3 refuses. Before you deploy, grant the permissions below so that users keep their access:
 
 - **`HEAD` requests** need the permission that the matching `GET` needs. Server v2 required none. [Required Codename per Request](../reference/permissions.md#required-codename-per-request) lists the rules.
-- **State permission rows no longer bypass model permissions.** In v2, any `StatePermission` row on a model's workflow let a viewset skip its permission checks for list, create, and other non-object actions. Grant model permissions to the groups that relied on that bypass. A state grant now admits only rows in the granted states. [Model-Scope Deferral and Later Decisions](../core-concepts/workflow-permission-overlay.md#model-scope-deferral-and-later-decisions) explains the rules.
+- **State permission rows no longer bypass model permissions.** In v2, a viewset that used `HasWorkflowViewMixin` skipped its model permission checks whenever the model's workflow had any `StatePermission` row. That covered list, create, and other actions that do not fetch one object. In v3, a state grant admits a request only when it matches the user's group and the requested permission. It then admits only rows in the granted states, and create always needs the model permission. For each group that used such a viewset, decide which access it should keep. Grant a model permission only where the group should reach rows in every state. [Model-Scope Deferral and Later Decisions](../core-concepts/workflow-permission-overlay.md#model-scope-deferral-and-later-decisions) explains the rules.
 - **Conflicting state rules resolve to deny.** In v2, the outcome depended on row order.
 - **A workflow needs `WorkflowPermission` rows.** In v2, any `StatePermission` row on a workflow skipped the workflow permission check. A workflow that has `StatePermission` rows but no `WorkflowPermission` rows now refuses every transition, for superusers too.
 - **Transitions need object `read`.** Transition discovery and execution require the `read` permission on each target object. `read_workflow` alone no longer lets a user list or run an object's transitions. [Which Gate Each Workflow Endpoint Applies](../core-concepts/workflow-permission-overlay.md#which-gate-each-workflow-endpoint-applies) lists every endpoint.
@@ -132,6 +133,8 @@ The VUEDA client handles these changes. Update any other client or integration t
 - Object responses include `available_actions` only when `f` names it.
 - `model_ordering` is an object with `default` and `fields`. `model_filtering` reports dotted names. Filter choices have no empty option, and their values are strings.
 - Invalid `f` and `e` names come back as plain strings in the error list.
+- A nested write matches child primary keys only among the parent's own children. A v2 client that moved a child to another parent by sending its key under the new parent now creates a new row. To move a child, update its foreign key through the child's own endpoint.
+- `model_filtering` reports `AllValuesChoiceField` and `AllValuesMultipleChoiceField` as the `type_filter` of value-derived filters, where v2 reported `ChoiceField` and `MultipleChoiceField`.
 - `vueda.user/_allauth/` is no longer mounted. Recovery codes are at `vueda.user/2fa/recovery-codes/`.
 - The who-is response carries `auth_pending_flow` in place of `recently_logged_in`.
 - VUEDA routes `vueda.user/forgot-password/` and `vueda.user/reset-password/`. Remove your own routes for those views. Both answer `204` on success, and forgot-password answers `204` for every well-formed address. Errors that are not about one field carry `detail` in place of v2's `result` and `message`. Field errors stay keyed by field name.
@@ -225,7 +228,7 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 
 `setTheme`, `patchTheme`, `getTheme`, `mergeTheme`, and `useTheme` keep their v2 names, and a theme entry still maps a component's slots to classes. Use `overrideTheme` for project changes. Unlike `patchTheme`, it does not depend on module load order. [How the layers interact](../core-concepts/theming-and-customization.md#how-the-layers-interact) explains the order.
 
-- `ViewList` drops `variant` and its `*Class` props, and `ObjectsGrid` drops its `*Class` props. Move each one to a `themeOverride` prop or to an `overrideTheme` entry. `ViewCreate` and `DetailView` keep `variant` and `formModelVariant`, which select a model config variant.
+- `ViewList` drops `variant` and its `*Class` props, and `ObjectsGrid` drops its `*Class` props. `DetailView` has no `outerClass`. Style the region around its form through the `body` slot of its theme entry. Move each one to a `themeOverride` prop or to an `overrideTheme` entry. `ViewCreate` and `DetailView` keep `variant` and `formModelVariant`, which select a model config variant.
 - Theme keys and slot names changed with the components. Retarget each v2 patch at the current key.
 - `mergeTheme` throws when it receives fewer than two layers. Write a variable-length merge as `mergeTheme({}, ...layers)`.
 - `themeOverride` accepts only an object.
@@ -260,6 +263,7 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 - File and image widgets read the `url` of a `{name, url}` value.
 - `WidgetDuration` takes a duration string. With the `seconds` prop, it takes a number of seconds.
 - Read-only fields render formatted values. The `widget(<name>)default` slot receives `rawValue` for code that needs the stored value.
+- A custom `redirectTo` on `ActionForm` that stays on the form after a success must return or resolve `false`. The form treats any other result as navigation away and keeps its buttons disabled. [What an Action Form Does on Pre-Flight, Submit, and Cancel](transition-ux-and-redirects.md#what-an-action-form-does-on-pre-flight-submit-and-cancel) describes the contract.
 - Save buttons read "Create" and "Update". Update tests that find "Submit".
 - The `escapeHtml` export is removed. Send markup unencoded when it should render.
 - Saved inline rows offer a delete checkbox whenever the inline is writable. The parent update deletes omitted children and does not check a child destroy permission. To stop users with parent `update` from removing children, validate the child list on the server.
@@ -282,7 +286,8 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 - `AuthForm` sends a user with a pending reauthentication to the `reauthenticate` route as soon as the form opens. Set `requireRecentAuth` to `false` on an `AuthForm` whose action does not need a recent sign-in.
 - Users with a two-factor device reauthenticate with a code. Mount `ViewReauthenticate` at the `reauthenticate` route. [Build a Re-Authentication View](build-auth-views.md#build-a-re-authentication-view) covers it.
 - `setUsingVuedaWorkFlow` and `getUsingVuedaWorkFlow` are now `setUsingVuedaWorkflow` and `getUsingVuedaWorkflow`.
-- `storeWorkflow` drops `fetchObjectState`, `fetchObjectTransitions`, `fetchModelStates`, and `initializeObjectTransitions`.
+- `storeWorkflow` drops `fetchObjectState`, `fetchObjectTransitions`, `fetchModelStates`, and `initializeObjectTransitions`, and the `objectStates`, `objectTransitions`, and `modelStates` caches. Read an object's state from its `workflow_state_code` and `workflow_state_name` fields, and its transitions from `valid_transitions`. A transition response carries the new state. Nothing replaces the list of a model's states.
+- The custom URL key `workflowObjectHistory` is now `historyWorkflowStateHistory`, and its value is a full template with `:app`, `:model`, and `:pk`. Update each `setCustomUrl` call for that key.
 - `ViewHistoryList` field names changed from `history_*` to `recorded_at`, `actor`, `kind`, `label`, `model`, `relation`, `type`, `field`, `old`, and `new`. Its slots follow the new names. [ViewHistoryList](../reference/components/action-workflow.md#viewhistorylist) lists them.
 
 ## Assess v2 Security Exposure
@@ -292,12 +297,13 @@ v3 fixes these v2 defects. Each one may need a review of data or accounts that v
 - **Public signup.** Server v2 mounted every allauth headless route, including `vueda.user/_allauth/browser/v1/auth/signup`. Anyone could create an account and get a signed-in session. Review accounts that nobody on your side created. Server v3 does not mount the allauth routes. Do not mount allauth's signup route yourself: VUEDA's account adapter leaves signup open, so a mounted signup route accepts new accounts.
 - **Nested writes across parents.** Server v2 looked up nested child rows by primary key across the whole child table. A user who could update one parent could move another parent's child row into it and change it. Review child rows whose parent changed.
 - **Nested writes to related models** skipped the related model's permissions.
-- **State permission bypass.** A `StatePermission` row on a model's workflow let any authenticated user pass list, create, and other model-level checks on that model's viewset. Transitions also ignored object `read`.
+- **State permission bypass.** On a viewset that used `HasWorkflowViewMixin`, any `StatePermission` row on the model's workflow let every authenticated user pass the model permission checks. That covered list, create, and other actions that do not fetch one object. The workflow endpoints skipped their model check in the same case. Transitions also ignored object `read`.
 - **Password hashes in history.** `AbstractVUEDAUserWithHistory` recorded password hashes, and the v2 history endpoints and `history` expand could return them to anyone who could read the user.
 - **Forgot-password enumeration.** Server v2 answered "Email not found" for unknown addresses.
 - **`HEAD` requests** skipped read permission, so the status code revealed which primary keys exist.
 - **Choices.** Serializer-only field choices had no permission check, and filter choices came from every row.
 - **Two-factor changes** accepted a password-only reauthentication.
+- **Two-factor device deletion.** A bulk delete of a user's own devices compared the number of devices deleted with the number of keys sent. A repeated or unknown key could turn off two-factor authentication while the user still had devices. It could also leave two-factor authentication on with no device left. Only the user's own recent session could send such a request. Review accounts whose two-factor state does not match their devices.
 - **Rate limits.** Code sends and password changes had no limit. Forgot-password had only a one-minute cooldown for addresses with an account.
 - **Anymail webhooks.** On the Mailgun backend, the tracking endpoints of providers other than Mailgun accepted unauthenticated events.
 - **Group migrations** deleted a group, with its user memberships, when it lost its last permission.
