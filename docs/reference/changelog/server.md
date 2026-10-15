@@ -28,7 +28,7 @@ uv add --prerelease allow vueda
 The server requires:
 
 - Python 3.12 to 3.14.
-- Django 6.1 and Django REST framework 3.16 or later.
+- Django 6.1 and Django REST framework 3.18 or later.
 - PostgreSQL. History uses database triggers.
 - A cache that every worker process shares, named by `CACHE_URL`. Install the `redis` extra for a Redis cache. [Configure the Cache and Sessions](../../guides/configure-cache-and-sessions.md) describes the choices.
 
