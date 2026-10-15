@@ -513,10 +513,11 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             # A path that applies transforms to an annotation (`launched__year`) is annotated under a
             # generated name first, and that name is selected and summed. Summing the path itself
             # would make Django rebuild the annotation's expression in the outer query, which breaks
-            # for an aggregate or a `Subquery` annotation. A plain name that `.alias()` added goes the
-            # same way, because `values()` refuses to select an alias. The generated name extends the
-            # alias of the first total that names the path, whose prefix no annotation starts with,
-            # so neither can shadow the other. Two totals over the same path share one generated name.
+            # for an aggregate annotation such as a `Max` over related rows. A plain name that
+            # `.alias()` added goes the same way, because `values()` refuses to select an alias. The
+            # generated name extends the alias of the first total that names the path, whose prefix no
+            # annotation starts with, so neither can shadow the other. Two totals over the same path
+            # share one generated name.
             selected = queryset.query.annotation_select
             transformed = {}
             for name in annotation_names:
