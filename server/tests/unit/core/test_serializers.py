@@ -1,4 +1,5 @@
 from datetime import date
+from http import HTTPStatus
 from typing import ClassVar
 
 import pytest
@@ -13,8 +14,10 @@ from rest_framework.test import force_authenticate
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
+from tests.conftest import response_body
 from tests.employee.models import Employee
 from tests.employee.serializers import EmployeeSerializer
+from tests.erring.models import NoExpandableFieldsData
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
@@ -759,17 +762,51 @@ class TestExcludeFieldsSerializerMixinDirectly(BaseTestAssertResponseMixin, Base
         assert fields["employee"].read_only is False
         assert fields["supervisor"].read_only is False
 
-    def test_view_without_an_action_excludes_nothing(self):
-        """A plain APIView has no action attribute, unlike a ViewSet. Building the fields must not raise,
-        and every excluded field stays writable."""
+    def test_view_without_an_action_raises_improperly_configured(self):
+        """A plain APIView has no action attribute, unlike a ViewSet. A create or update request through
+        it would otherwise set every excluded field, so building the fields raises instead."""
+        from django.core.exceptions import ImproperlyConfigured
         from rest_framework.views import APIView
 
         serializer = TimesheetSerializerExclude(context={"view": APIView()})
 
-        fields = serializer.fields
+        with pytest.raises(ImproperlyConfigured, match=r"TimesheetSerializerExclude .* APIView, is not a ViewSet"):
+            serializer.get_fields()
 
-        assert fields["employee"].read_only is False
-        assert fields["supervisor"].read_only is False
+
+@pytest.mark.django_db
+class TestExcludeFieldsSerializerMixinOnGenericView(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "No Expandable Fields Data Updater": [
+            ("erring", "NoExpandableFieldsData", "read"),
+            ("erring", "NoExpandableFieldsData", "update"),
+        ]
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_exclude_fields_generic_view@domain.invalid": {
+            "name": "Test Exclude Fields Generic View User",
+            "password": "testpass",
+            "groups": ["No Expandable Fields Data Updater"],
+        },
+    }
+
+    def test_update_through_generic_view_is_refused(self, settings, api_client):
+        """ExcludeFieldsGenericUpdateView is a routed DRF UpdateAPIView, so a real PUT reaches the mixin with
+        a view that has no action. The request fails with the mixin's ImproperlyConfigured message, and the
+        row keeps its value."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_generic_view"
+        instance = NoExpandableFieldsData.objects.create(name="Before")
+        api_client.force_authenticate(user=self.users["test_exclude_fields_generic_view@domain.invalid"])
+
+        response = api_client.put(
+            f"/erring/exclude_fields_generic_view/{instance.pk}/", data={"name": "After"}, format="json"
+        )
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR, response_body(response)
+        assert "ExcludeFieldsGenericUpdateView, is not a ViewSet" in response.data["detail"][0]
+        instance.refresh_from_db()
+        assert instance.name == "Before"
 
 
 @pytest.mark.django_db

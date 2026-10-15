@@ -15,9 +15,9 @@ class ExcludeFieldsSerializer(ExcludeFieldsSerializerMixin, VuedaSerializer):
 
 
 class ExcludeFieldsReadingOwnFieldsSerializer(ExcludeFieldsSerializerMixin, VuedaSerializer):
-    """A get_field_model_info override that builds this serializer's fields. /info/ calls the override on
-    an instance created without a context. The mixin reads the context while building the fields, whether
-    or not Meta declares any exclusions, so this serializer declares none."""
+    """A get_field_model_info override that builds this serializer's fields and reads the view from its
+    context. The mixin reads the context while building the fields, whether or not Meta declares any
+    exclusions, so this serializer declares none."""
 
     class Meta(VuedaSerializer.Meta):
         model = my_models.NoExpandableFieldsData
@@ -25,7 +25,7 @@ class ExcludeFieldsReadingOwnFieldsSerializer(ExcludeFieldsSerializerMixin, Vued
 
     def get_field_model_info(self, fields):
         fields = super().get_field_model_info(fields)
-        fields["id"]["label"] = f"Overridden {self.fields['id'].field_name}"
+        fields["id"]["label"] = f"Overridden {self.fields['id'].field_name} for {self.context['view'].action}"
         return fields
 
 

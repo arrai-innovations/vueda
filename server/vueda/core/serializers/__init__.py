@@ -31,6 +31,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import ImproperlyConfigured
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
@@ -488,13 +489,28 @@ class ExcludeFieldsSerializerMixin:
     The fields stay in responses. Fields made read-only this way still show as writable in OPTIONS
     responses: https://github.com/encode/django-rest-framework/discussions/8606#discussioncomment-3899252
 
-    The action comes from the view in the serializer's context. When the context has no view, or the
-    view has no ``action``, no fields are excluded and every field keeps its declared writability.
+    The action comes from the view in the serializer's context. When the context has no view, no fields
+    are excluded and every field keeps its declared writability.
+
+    Use a serializer with this mixin only on a ViewSet. Only a ViewSet has an ``action``. A DRF generic
+    view such as ``UpdateAPIView`` handles writes without one, so the mixin cannot tell a ``create`` from
+    an ``update``, and a write through it could set every field that the exclusions lock. Building the
+    fields with any view that has no ``action`` in context raises ``ImproperlyConfigured``.
     """
 
     def get_extra_kwargs(self):
         kwargs = super().get_extra_kwargs()
-        action = getattr(self.context.get("view"), "action", None)
+        view = self.context.get("view")
+        if view is not None and not hasattr(view, "action"):
+            raise ImproperlyConfigured(
+                f"{type(self).__name__} uses ExcludeFieldsSerializerMixin, but its view, {type(view).__name__}, "
+                "is not a ViewSet. The mixin picks its exclusions by the ViewSet's action, which tells a create "
+                "from an update. Without an action, a write through this view could set every field that "
+                "exclude_create_fields or exclude_update_fields locks. Use the serializer on a ViewSet. If the "
+                "view must stay as it is, give it a serializer without the mixin, and lock fields there with "
+                "read_only=True."
+            )
+        action = getattr(view, "action", None)
         for exclude_actions in [["create"], ["update", "partial_update"]]:
             # Membership in the action list, not containment in one action's name: an extra action named
             # "partial" is not a partial_update, and must not inherit its exclusions.
@@ -597,7 +613,8 @@ class VuedaExpandableFieldsSerializerMixin:
                 # Mirror ModelInfoSerializer.get_model_fields: this expand's own nested serializer may
                 # correct its generated field metadata (e.g. for a SerializerMethodField), and that
                 # correction must be applied here too, not just when the nested serializer is used as
-                # a root canonical serializer.
+                # a root canonical serializer. Unlike the root, an expand builds both the field data
+                # above and this instance without a context.
                 get_field_model_info = getattr(field_serializer(), "get_field_model_info", None)
                 if get_field_model_info is not None:
                     fields = get_field_model_info(fields)

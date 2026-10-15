@@ -446,6 +446,61 @@ class TestExcludeFieldsSerializerUsageChecks:
             )
         ]
 
+    def test_generic_view_system_check_error(self, settings):
+        """DRF UpdateAPIView routes, none of them a ViewSet: ExcludeFieldsGenericUpdateView declares
+        ExcludeFieldsSerializer as its serializer_class attribute and is routed twice, and a plain
+        UpdateAPIView receives it through as_view(serializer_class=...). Neither view has an action for the
+        mixin to pick exclusions by, so the check must flag both as E021. The view routed twice gets one
+        error that names both routes."""
+        from django.core.checks import Error
+        from rest_framework.generics import UpdateAPIView
+
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_generic_view"
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        hint = (
+            "ExcludeFieldsSerializerMixin picks its exclusions by the ViewSet's action, which tells a create from "
+            "an update. Only a ViewSet has an action. Without one, a write through this view could set every field "
+            "that exclude_create_fields or exclude_update_fields locks, so the serializer raises "
+            "ImproperlyConfigured whenever this view builds its fields. Route the serializer through a ViewSet. If "
+            "the view must stay as it is, give it a serializer without the mixin, and lock fields there with "
+            "read_only=True."
+        )
+        assert errors == [
+            Error(
+                "ExcludeFieldsGenericUpdateView uses ExcludeFieldsSerializer, which inherits "
+                "ExcludeFieldsSerializerMixin, but ExcludeFieldsGenericUpdateView is not a ViewSet. It is routed "
+                "at 'erring/exclude_fields_generic_view/<int:pk>/', "
+                "'erring/exclude_fields_generic_view_again/<int:pk>/'.",
+                hint=hint,
+                obj=err_viewsets.ExcludeFieldsGenericUpdateView,
+                id="vueda_core.E021",
+            ),
+            Error(
+                "UpdateAPIView uses ExcludeFieldsSerializer, which inherits ExcludeFieldsSerializerMixin, but "
+                "UpdateAPIView is not a ViewSet. It is routed at "
+                "'erring/exclude_fields_generic_view_initkwargs/<int:pk>/'.",
+                hint=hint,
+                obj=UpdateAPIView,
+                id="vueda_core.E021",
+            ),
+        ]
+
+    def test_generic_view_with_overridden_serializer_passes_system_check(self, settings):
+        """ExcludeFieldsGenericUpdateView's own serializer_class uses the mixin, but this route passes
+        as_view(serializer_class=NoExpandableFieldsDataSerializer), which does not. DRF builds that route's
+        serializer from the as_view() argument, so the check must read it from there and report nothing."""
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_generic_view_overridden"
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == []
+
     def test_register_serializer_only_passes_system_check(self, settings):
         """A serializer registered with info.register_serializer() (no viewset) has no view of its own.
         Without a view, the mixin excludes no fields, so the check reports nothing."""

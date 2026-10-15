@@ -430,7 +430,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
         # so get_field_model_info may not exist.
-        get_field_model_info = getattr(serializer(), "get_field_model_info", None)
+        # The override gets the same context as the field data it corrects, so reading self.fields in it
+        # builds the same fields.
+        get_field_model_info = getattr(serializer(context=self.context), "get_field_model_info", None)
         if get_field_model_info is not None:
             fields = get_field_model_info(fields)
 

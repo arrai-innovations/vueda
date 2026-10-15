@@ -414,8 +414,9 @@ class VuedaExcludeFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
 @pytest.mark.django_db
 class TestModelInfoExcludeFieldsSerializerMixin:
     """ExcludeFieldsSerializer is registered with a ViewSet directly. Regression coverage for
-    ModelInfoSerializer.get_model_fields() threading its context through get_model_fields_data(),
-    instead of instantiating the canonical serializer bare (which raised KeyError: 'view')."""
+    ModelInfoSerializer.get_model_fields() threading its context through get_model_fields_data() and
+    get_field_model_info(), instead of instantiating the canonical serializer bare (which raised
+    KeyError: 'view' before #162)."""
 
     @pytest.fixture
     def test_data(self):
@@ -450,9 +451,11 @@ class TestModelInfoExcludeFieldsSerializerMixin:
         ]
 
     def test_get_field_model_info_reading_own_fields_does_not_crash(self, test_data, api_client):
-        """get_model_fields() calls get_field_model_info on a canonical serializer instance that has no
-        context. This override builds that instance's fields, which runs the mixin's get_extra_kwargs()
-        without a view."""
+        """get_model_fields() calls get_field_model_info on a canonical serializer instance built with the
+        request's context. This override builds that instance's fields, which runs the mixin's
+        get_extra_kwargs(), and reads the view's action from the context. Before #162, the instance had no
+        context, and the mixin raised KeyError: 'view'. Without the context, the override's own read of
+        self.context['view'] would raise."""
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
@@ -466,7 +469,8 @@ class TestModelInfoExcludeFieldsSerializerMixin:
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["model_fields"]["id"]["label"] == "Overridden id"
+        # "retrieve" is the model-info view's own action, so the override received the request's context.
+        assert response.data["model_fields"]["id"]["label"] == "Overridden id for retrieve"
 
 
 @pytest.mark.django_db
@@ -566,10 +570,9 @@ class TestFieldSourceResolutionInfoEndpoint:
 
     @pytest.fixture(autouse=True)
     def isolated_registry(self):
-        original = info.registration._registry
         info.registration.get_empty_registry()
         yield
-        info.registration._registry = original
+        info.registration.get_empty_registry()
 
     def test_unresolvable_source_does_not_crash_info_endpoint(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
