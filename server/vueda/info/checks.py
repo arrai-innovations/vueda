@@ -361,8 +361,9 @@ def _ordering_path_error(model, path, query=None):
     A path that starts with an annotation on ``query``, such as ``launched__year``, is resolved
     against the annotation. That includes an annotation that ``.alias()`` added, because
     ``VuedaOrderingFilter`` orders by such a path through ``F()``. Django can't type every plain
-    annotation, such as a ``Coalesce`` over mixed types, although ordering by one still works, so a
-    caller accepts every plain annotation name before it asks this.
+    annotation, such as a ``Coalesce`` over mixed types. A queryset that carries one fails every
+    query, sorted or not, with Django's own ``FieldError`` saying to set ``output_field``, so that is
+    no ordering mistake to report. A caller accepts every plain annotation name before it asks this.
     """
     try:
         if query is not None and path_annotation_name(query.annotations, path) is not None:

@@ -685,9 +685,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         Whether ``path`` names an annotation that ``queryset`` carries, either by its own name or with
         transforms that Django can apply to it, such as ``launched__year``.
 
-        A plain annotation name always counts, even when Django can't determine its type, because
-        ordering by it still works. A path with transforms counts only when they resolve, so a
-        misspelled ``launched__yaer`` names nothing.
+        A plain annotation name always counts, even when Django can't determine its type. Such an
+        annotation, such as a ``Coalesce`` over mixed types, makes every query on the queryset fail
+        with Django's own ``FieldError`` until it declares an ``output_field``, so it is not an ordering
+        mistake. A path with transforms counts only when they resolve, so a misspelled
+        ``launched__yaer`` names nothing.
         """
         # `annotation_path_output_field` is None for a path that doesn't start with an annotation too.
         return path in queryset.query.annotations or annotation_path_output_field(queryset.query, path) is not None
