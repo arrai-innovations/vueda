@@ -122,32 +122,6 @@ class ValidLookupExpression(VuedaModel):
         return self.the_name_field
 
 
-class PlainManagerLookupExpression(VuedaModel):
-    """Reaches formatted_name through a lookup expression, but declares a plain `models.Manager` as
-    its own `objects`.
-
-    Django takes the first manager in `Meta.managers` order as the default, so this one shadows the
-    `FormattedNameManager` that `FormattedNameBaseModel` provides and nothing annotates
-    `formatted_name` onto the model's own querysets. `vueda_info.E009` is the only signal: the model
-    imports and checks cleanly otherwise, and then `formatted_name` fails to resolve on every queryset
-    that didn't come from `VuedaViewSet.get_queryset`.
-    """
-
-    the_name_field = models.CharField(max_length=255)
-    formatted_name = None
-    formatted_name_lookup_expression = "the_name_field"
-
-    objects = models.Manager()
-
-    class Meta(VuedaModel.Meta):
-        managed = False
-        verbose_name = "Plain manager lookup expression"
-        verbose_name_plural = "Plain manager lookup expression"
-
-    def __str__(self):
-        return self.the_name_field
-
-
 class MultiValuedLookupExpression(VuedaModel):
     """Reaches its formatted name across a many-to-many, which joins a row per related object.
 

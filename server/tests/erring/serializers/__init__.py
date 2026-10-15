@@ -20,7 +20,6 @@ from tests.erring.serializers.serializers import MultiValuedLookupExpressionSeri
 from tests.erring.serializers.serializers import NoExpandableFieldsDataSerializer  # noqa: F401
 from tests.erring.serializers.serializers import NoNameFieldSerializer  # noqa: F401
 from tests.erring.serializers.serializers import NonVuedaFormattedNameSerializer  # noqa: F401
-from tests.erring.serializers.serializers import PlainManagerLookupExpressionSerializer  # noqa: F401
 from tests.erring.serializers.serializers import PropertyFormattedNameSerializer  # noqa: F401
 from tests.erring.serializers.serializers import RelatedObjectsAreMissingDataSerializer  # noqa: F401
 from tests.erring.serializers.serializers import SingleValuedLookupExpressionSerializer  # noqa: F401
