@@ -123,7 +123,9 @@ class InvoiceViewSet(PerActionSerializerMixin, VuedaViewSet):
     partial_update_serializer_class = InvoiceUpdateSerializer
 ```
 
-A `create` request can set each line's `product`. An `update` or `partial_update` request can change a line's `quantity` but not its `product`. [Split Read/Write Serializers Safely](split-read-write-serializers) covers per-action serializer classes in more detail.
+A `create` request can set each line's `product`. An `update` or `partial_update` request can change a line's `quantity` but not its `product`.
+
+The read-only `product` also applies to a line that an update request adds. That line is saved without a `product`, which fails when the foreign key is required. If an update request can add lines, keep `product` writable and reject a changed `product` on an existing line in `validate()` instead. [Split Read/Write Serializers Safely](split-read-write-serializers) covers per-action serializer classes in more detail.
 
 ## System Check Coverage
 

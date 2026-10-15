@@ -39,7 +39,7 @@ class BaseSpectacularExcludeFieldsTest(BaseTestMigrations, BaseTestCallCommand):
 @pytest.mark.django_db
 class TestSpectacularExcludeFieldsSerializerMixin(BaseSpectacularExcludeFieldsTest):
     def test_registered_with_a_view_generates_schema(self, monkeypatch, settings):
-        """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly -- the only valid use.
+        """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly, one supported placement.
 
         get_schema_fields() re-instantiates self.__class__() to describe this serializer's own fields;
         it passes self.context along (see VuedaExpandableFieldsSerializerMixin.get_schema_fields) so that

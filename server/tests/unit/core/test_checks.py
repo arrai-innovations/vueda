@@ -386,7 +386,7 @@ class TestExpandableFieldsChecks:
 @pytest.mark.django_db
 class TestExcludeFieldsSerializerUsageChecks:
     def test_registered_with_a_view_passes_system_check(self, settings):
-        """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly -- the only valid use."""
+        """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly, one supported placement."""
         from vueda.core.checks import check_exclude_fields_serializer_usage
 
         settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_valid"

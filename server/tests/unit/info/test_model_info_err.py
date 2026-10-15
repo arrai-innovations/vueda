@@ -425,9 +425,10 @@ class TestModelInfoExcludeFieldsSerializerMixin:
     def isolated_registry(self):
         """The registry is a module global, and a registration left behind here changes what other test
         modules see when they read the registry without resetting it."""
+        original = info.registration._registry
         info.registration.get_empty_registry()
         yield
-        info.registration.get_empty_registry()
+        info.registration._registry = original
 
     def test_model_fields_does_not_crash(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -465,7 +466,7 @@ class TestModelInfoExcludeFieldsSerializerMixin:
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        assert response.data["model_fields"]["id"]["label"] == "Identifier"
+        assert response.data["model_fields"]["id"]["label"] == "Overridden id"
 
 
 @pytest.mark.django_db
@@ -481,9 +482,10 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
     def isolated_registry(self):
         """The registry is a module global, and a registration left behind here changes what other test
         modules see when they read the registry without resetting it."""
+        original = info.registration._registry
         info.registration.get_empty_registry()
         yield
-        info.registration.get_empty_registry()
+        info.registration._registry = original
 
     def test_every_metadata_section_does_not_crash(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
@@ -564,9 +566,10 @@ class TestFieldSourceResolutionInfoEndpoint:
 
     @pytest.fixture(autouse=True)
     def isolated_registry(self):
+        original = info.registration._registry
         info.registration.get_empty_registry()
         yield
-        info.registration.get_empty_registry()
+        info.registration._registry = original
 
     def test_unresolvable_source_does_not_crash_info_endpoint(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]

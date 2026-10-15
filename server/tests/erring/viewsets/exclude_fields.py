@@ -4,7 +4,7 @@ from vueda.core.viewsets import VuedaViewSet
 
 
 class ExcludeFieldsViewSet(VuedaViewSet):
-    """The only valid way to use ExcludeFieldsSerializerMixin: as a routed ViewSet's serializer_class."""
+    """Uses ExcludeFieldsSerializerMixin as a routed ViewSet's serializer_class, one supported placement."""
 
     queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExcludeFieldsSerializer

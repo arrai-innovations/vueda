@@ -969,10 +969,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         serializer that varies its field set by ``view.action`` is resolved against ``retrieve`` on
         ``/info/`` rather than against ``list`` on the endpoint the client will call. Such a
         serializer can advertise a different set of ordering fields than that endpoint accepts. There
-        is no better context to pass: DRF's own ``get_default_valid_fields`` passes
-        ``{"request": request}`` with no ``view`` at all. On the real list request, the same serializer
-        sees no action either, so matching DRF here would not make the two agree. Declare
-        ``ordering_fields`` on a viewset whose serializer does this, which takes both this method and
+        is no context that fits every serializer. DRF's own ``get_default_valid_fields`` passes
+        ``{"request": request}`` with no ``view`` at all. Passing that here would make the two agree for
+        a serializer that accepts a missing view. It would also make ``/info/`` raise for a serializer
+        that requires a view, which already fails on the real list request. Declare ``ordering_fields``
+        on a viewset whose serializer varies its fields by action, which takes both this method and
         DRF's out of the picture.
         """
         serializer_class = self.canonical["serializer"]
