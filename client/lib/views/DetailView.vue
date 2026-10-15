@@ -57,10 +57,10 @@ const props = defineProps({
         type: String,
         default: "default",
     },
-    /** Theme variant forwarded to the inner FormModel component. */
+    /** Theme variant that the inner FormModel component receives as `variant`. Wins over a `variant` in the model config's `formProps` when passed. */
     formModelVariant: {
         type: String,
-        default: "default",
+        default: undefined,
     },
     /** CSS class(es) applied to the outermost root element. */
     class: {
@@ -103,19 +103,19 @@ const props = defineProps({
         default: undefined,
         description: "Any overriding widget components by field path.",
     },
-    /** Extra props merged into the FormModel component. */
+    /** Extra props for the inner FormModel component. They win over the model config's `formProps` and lose to this view's own form props. The `app`, `model`, and `view` keys are ignored, because the view sets them. */
     formProps: {
         type: Object,
         default: undefined,
         description: "Any overriding props for the form level.",
     },
-    /** Map of field paths to additional props passed to the field component. */
+    /** Map of field paths to additional props passed to the field component. Replaces a `fieldProps` map in the model config's `formProps` when passed. */
     fieldProps: {
         type: Object,
         default: undefined,
         description: "Any overriding field props by field path.",
     },
-    /** Map of field paths to additional props passed to the widget component. */
+    /** Map of field paths to additional props passed to the widget component. Replaces a `widgetProps` map in the model config's `formProps` when passed. */
     widgetProps: {
         type: Object,
         default: undefined,
@@ -146,7 +146,7 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
-    // other form-model props will get passed in via $attrs, as long as there are no conflicts
+    // Attributes that are not declared props land on the <form> element, not on FormModel.
 });
 
 const formInitialValue = defineModel({
@@ -299,21 +299,7 @@ onMounted(() => {
                 :while-text="instance.combinedWhileText"
             />
             <form v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
-                <form-model
-                    :app="app"
-                    :field-components="fieldComponents"
-                    :field-details="fieldDetails"
-                    :field-props="fieldProps"
-                    :fields="fields"
-                    :expand="expand"
-                    :expand-details="expandDetails"
-                    :model="model"
-                    :variant="formModelVariant"
-                    :view="viewName"
-                    :widget-components="widgetComponents"
-                    :widget-props="instance.computedWidgetProps"
-                    v-bind="instance.combinedFormProps"
-                >
+                <form-model v-bind="instance.combinedFormProps">
                     <template v-for="(_, slot) in slots" #[slot]="slotProps">
                         <slot :name="slot" v-bind="slotProps || {}" />
                     </template>

@@ -267,7 +267,13 @@ describe("lib/use/useDetailView.js", () => {
             mockModelConfig.config.formProps = { layout: "stacked" };
             props.formProps = { layout: "inline", dense: true };
             const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
-            expect(instance.combinedFormProps).toEqual({ layout: "inline", dense: true });
+            expect(instance.combinedFormProps).toEqual({
+                layout: "inline",
+                dense: true,
+                app: props.app,
+                model: props.model,
+                view: props.viewName,
+            });
         });
     });
 
