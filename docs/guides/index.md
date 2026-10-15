@@ -8,6 +8,10 @@ type: index
 
 Guides are task-focused how-tos for integrators. They assume you know your domain model and want concrete steps for wiring server and client behavior.
 
+## Upgrading
+
+- [Upgrade from VUEDA v2](upgrade-from-v2.md): Move a project from server v2.3.3 and client v2.0.4 to the v3 beta, and assess the v2 security defects that v3 fixes.
+
 ## Environment & Networking
 
 - [Configure the Cache and Sessions](configure-cache-and-sessions.md): Choose a cache backend through `CACHE_URL`, keep sessions readable across worker processes, and verify the result.

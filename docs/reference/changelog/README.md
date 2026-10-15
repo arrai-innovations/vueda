@@ -39,6 +39,32 @@ The author of a change is poorly placed to judge its importance to integrators.
 If you cannot name what an integrator would do differently after reading an
 entry, leave it out.
 
+## Initial Public Baseline
+
+Client v3.0.0-beta.1 and server v3.0.0b1 are the first public releases. Their
+sections describe each release as a whole instead of listing changes. Each one
+states what the package does, how to install it, its requirements, its
+capabilities, and its known limitations.
+
+Earlier releases were private releases or prereleases, so no public reader
+upgrades from them. A project on v2 follows `docs/guides/upgrade-from-v2.md`.
+That guide holds every action that a v2 project takes, and the v2 security
+defects that a v2 project must assess. A difference from v2 belongs in that
+guide, not in a fragment.
+
+A fragment merged before beta.1 publishes describes a change that no public
+release has shipped. Before beta.1 publishes, fold each such fragment that meets
+the inclusion rule into the baseline section or the upgrade guide. Then delete
+the fragments instead of building them into a release section. At the same
+time, check that every issue in each Known Limitations list is still open.
+
+## Later Releases
+
+Every release after beta.1 gets its own section, which towncrier builds from the
+fragments. It lists the changes relative to the previous published version of
+that package. Leave published sections as they shipped. Do not fold a later
+release into the baseline, and do not fold one beta into the next.
+
 ## Entry Format
 
 Each entry is a fragment file under `changelog.d/`. `CONTRIBUTING.md` covers
