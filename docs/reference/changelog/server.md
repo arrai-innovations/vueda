@@ -52,7 +52,6 @@ The server requires:
 
 - An upgrade from v2 does not convert django-simple-history records into v3 history ([#511](https://github.com/arrai-innovations/vueda/issues/511)). Archive the `Historical*` tables before you migrate.
 - `updateworkflowmigrations` cannot rewrite workflow migrations that v2 generated. The reverse code of those migrations deletes the object states of every workflow ([#510](https://github.com/arrai-innovations/vueda/issues/510)).
-- A workflow migration that v3 generates resets the state of objects carried over from v2. Do not apply one to an upgraded database ([#512](https://github.com/arrai-innovations/vueda/issues/512)).
 - Ordering and column total paths that end in a transform, such as `created__year`, fail the system checks ([#494](https://github.com/arrai-innovations/vueda/issues/494)).
 - Bulk delete, activate, and deactivate accept only integer primary keys ([#422](https://github.com/arrai-innovations/vueda/issues/422)).
 - A write can link any related row whose primary key the user knows. The link ignores row-level rules on the related model ([#466](https://github.com/arrai-innovations/vueda/issues/466)).
