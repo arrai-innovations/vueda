@@ -1,20 +1,34 @@
+from rest_framework.generics import UpdateAPIView
+
 import tests.erring.models as my_models
 import tests.erring.serializers as my_serializers
 from vueda.core.viewsets import VuedaViewSet
 
 
 class ExcludeFieldsViewSet(VuedaViewSet):
-    """The only valid way to use ExcludeFieldsSerializerMixin: as a routed ViewSet's serializer_class."""
+    """Uses ExcludeFieldsSerializerMixin as a routed ViewSet's serializer_class, one supported placement."""
 
     queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExcludeFieldsSerializer
 
 
+class ExcludeFieldsReadingOwnFieldsViewSet(VuedaViewSet):
+    queryset = my_models.NoExpandableFieldsData.objects.all()
+    serializer_class = my_serializers.ExcludeFieldsReadingOwnFieldsSerializer
+
+
 class ExcludeFieldsAsNestedFieldViewSet(VuedaViewSet):
-    queryset = my_models.RelatedObjectsAreMissingData.objects.all()
+    queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExcludeFieldsAsNestedFieldSerializer
 
 
 class ExcludeFieldsAsExpandableFieldViewSet(VuedaViewSet):
-    queryset = my_models.RelatedObjectsAreMissingData.objects.all()
+    queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExcludeFieldsAsExpandableFieldSerializer
+
+
+class ExcludeFieldsGenericUpdateView(UpdateAPIView):
+    """Misuse: a DRF generic view has no action, so the mixin cannot pick exclusions for its requests."""
+
+    queryset = my_models.NoExpandableFieldsData.objects.all()
+    serializer_class = my_serializers.ExcludeFieldsSerializer
