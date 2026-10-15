@@ -48,7 +48,7 @@ The workflow's one {@term Workflow Permission} is `vueda_vdq.list_queueitem`. To
 - `retry` also clears `result` and schedules a new send attempt.
 - A transition into a done state deletes attachment files when cleanup is on, as [Done-state Semantics and Cleanup Gating](#done-state-semantics-and-cleanup-gating) describes.
 
-`cancel` accepts only items that no send attempt is working on. A `queued` item has no task ID in `task_id`, so `cancel` does not revoke its send task, and that task still runs. The worker finds the item cancelled and drops the task.
+`cancel` accepts only items that no send attempt is working on. A `queued` item has a task ID in `task_id` only when its send task could not lock the row and scheduled a retry. `cancel` revokes that retry. Otherwise `task_id` is empty, so `cancel` does not revoke the send task, and that task still runs. Either way, a send task that runs after `cancel` finds the item cancelled and drops itself. [Worker-level row locking](#worker-level-row-locking) describes when the send task retries.
 
 ### Ignored transitions and late events
 

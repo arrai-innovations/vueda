@@ -47,7 +47,7 @@ Use polling on a development machine that Twilio cannot reach. Use the webhook i
 
 2. Set the value to the public HTTPS URL of {@api rest:endpoint:POST:/vueda.vdq/twilio-status-callback/}. Use the prefix where your project includes {@api py:module:vueda.vdq.urls}. If you include them under the scaffolded `routes/` prefix, the URL is `https://app.example.com/routes/vueda.vdq/twilio-status-callback/`.
 
-3. If a proxy terminates TLS in front of Django, set {@api ext:django:setting:SECURE_PROXY_SSL_HEADER} so Django sees the request as HTTPS. If the proxy rewrites the `Host` header, also set {@api ext:django:setting:USE_X_FORWARDED_HOST}.
+3. If a proxy terminates TLS in front of Django, configure the proxy to set the `X-Forwarded-Proto` header to `https`. The proxy must replace any value that the client sent. `get_defaults` sets {@api ext:django:setting:SECURE_PROXY_SSL_HEADER}, so Django treats a request with that header as HTTPS. If the proxy rewrites the `Host` header, also set {@api ext:django:setting:USE_X_FORWARDED_HOST}.
 
     Twilio signs the full URL it posts to. {@api py:function:vueda.vdq.views.validate_twilio_request} rebuilds that URL with {@api ext:django:django.http.HttpRequest.build_absolute_uri}. It then checks the `X-Twilio-Signature` header against the rebuilt URL. A scheme or host mismatch fails every callback with `403`. A port difference does not.
 

@@ -35,12 +35,7 @@ mkcert -cert-file server/localhost.pem -key-file server/localhost-key.pem localh
 
 If your `bind_ip` is not one of these names, add it to the end of the command.
 
-The project's `.gitignore` does not cover these files. Add them:
-
-```
-server/localhost.pem
-server/localhost-key.pem
-```
+The generated project's `.gitignore` lists `server/*.pem`, so git ignores both files.
 
 ## Configure gunicorn
 
@@ -143,6 +138,6 @@ Check the server over HTTPS:
 curl -i https://localhost:8000/routes/vueda.user/who-is/
 ```
 
-The [who-is endpoint]{@api rest:endpoint:GET:/vueda.user/who-is/} answers `200` without a certificate error. When no user is signed in, the body is an empty JSON object.
+The [who-is endpoint]{@api rest:endpoint:GET:/vueda.user/who-is/} answers `200` without a certificate error. When no user is signed in and no sign-in is in progress, the body is `{"auth_pending_flow": null}`.
 
 Then open `https://localhost:5173`. The browser loads the app without a certificate warning.
