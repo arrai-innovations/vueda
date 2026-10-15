@@ -49,13 +49,7 @@
  *     :while-text="instance.combinedWhileText"
  * />
  * <form :id="instance.formId" @submit.prevent="objectForm.submit">
- *     <form-model
- *         :app="app"
- *         :model="model"
- *         :view="viewName"
- *         :widget-props="instance.computedWidgetProps"
- *         v-bind="instance.combinedFormProps"
- *     />
+ *     <form-model v-bind="instance.combinedFormProps" />
  * </form>
  * <!-- Required: resolves submit-time warning confirmations (HTTP 409); without it warned saves are cancelled. -->
  * <form-confirm-dialog :controller="objectForm.confirmation" />
@@ -63,6 +57,7 @@
  */
 import { assignReactiveObject, loadingCombine, useObject } from "@arrai-innovations/reactive-helpers";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
+import { pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -90,8 +85,16 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
  *
  * Optional form overrides.
- * @property {object} [formProps] - Extra props merged into the FormModel component.
- * @property {object} [widgetProps] - Extra props forwarded to every widget component inside the form.
+ * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {string[]} [fields] - Field names that the form renders. Replaces the model config list.
+ * @property {object} [fieldDetails] - Map of field paths to field detail overrides.
+ * @property {string[]} [expand] - Relations that the form renders as inline fieldsets. Replaces the model config list.
+ * @property {object} [expandDetails] - Map of expand paths to detail overrides.
+ * @property {object} [fieldComponents] - Map of field paths to field component overrides.
+ * @property {object} [widgetComponents] - Map of field paths to widget component overrides.
+ * @property {object} [fieldProps] - Map of field paths to props for each field component.
+ * @property {object} [widgetProps] - Map of field paths to props for each widget component.
+ * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
@@ -109,7 +112,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {Error|null} combinedError - The first active error across prop validation, model config, instance fetch, and form submission; null when none.
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
  * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
- * @property {object} combinedFormProps - Merged FormModel props (model-config defaults overridden by explicit `formProps`).
+ * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value.
  * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current view's action. True (optimistic) until the object has loaded.
  */
 
@@ -241,10 +244,6 @@ export function useDetailView(options, formInitialValue) {
                   ? "submitting form"
                   : "",
     );
-    const combinedFormProps = computed(() => ({
-        ...(modelConfig.config.formProps || {}),
-        ...(options.formProps || {}),
-    }));
 
     const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
     const formId = computed(() => `${options.app}-${options.model}-${options.pk}-${options.viewName}`);
@@ -253,6 +252,26 @@ export function useDetailView(options, formInitialValue) {
         ...options.widgetProps,
         ...instanceObject?.state?.calculatedObject,
     }));
+
+    const combinedFormProps = useFormModelProps({
+        app: () => options.app,
+        model: () => options.model,
+        view: () => options.viewName,
+        configFormProps: () => modelConfig.config.formProps,
+        formProps: () => options.formProps,
+        viewProps: () => ({
+            ...pickViewFormModelProps(options),
+            // Calculated values join whichever widgetProps map wins, so they never displace a configured map.
+            widgetProps: Object.keys(instanceObject?.state?.calculatedObject || {}).length
+                ? {
+                      ...(options.widgetProps ??
+                          options.formProps?.widgetProps ??
+                          modelConfig.config.formProps?.widgetProps),
+                      ...instanceObject.state.calculatedObject,
+                  }
+                : options.widgetProps,
+        }),
+    });
 
     const availableActions = computed(() => {
         const objectAvailableActions = instanceObject.state.object?.available_actions;

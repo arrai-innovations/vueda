@@ -165,13 +165,7 @@ onMounted(() => {
                 :ignore-form-validation-errors="true"
                 :while-text="instance.combinedWhileText"
             />
-            <form-model
-                :app="app"
-                :model="model"
-                view="read"
-                :widget-props="instance.computedWidgetProps"
-                v-bind="instance.combinedFormProps"
-            >
+            <form-model v-bind="instance.combinedFormProps">
                 <template v-for="(_, slot) in slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>

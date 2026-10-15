@@ -46,12 +46,7 @@
  *     :while-text="instance.combinedWhileText"
  * />
  * <form :id="instance.formId" @submit.prevent="objectForm.submit">
- *     <form-model
- *         :app="app"
- *         :model="model"
- *         view="create"
- *         v-bind="instance.combinedFormProps"
- *     />
+ *     <form-model v-bind="instance.combinedFormProps" />
  * </form>
  * ```
  *
@@ -65,6 +60,7 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
@@ -88,7 +84,16 @@ const VIEW_NAME = "create";
  * @property {string[]} [submitFields] - Field paths sent in the create request body; overrides the model config default when non-empty.
  * @property {string[]} [fetchFields] - Field names the server returns in the create response; overrides the model config default when non-empty.
  * @property {'list'|'update'|'read'} [redirectAfter] - Named view to redirect to after a successful create.
- * @property {object} [formProps] - Extra props merged into the FormModel component.
+ * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {string[]} [fields] - Field names that the form renders. Replaces the model config list.
+ * @property {object} [fieldDetails] - Map of field paths to field detail overrides.
+ * @property {string[]} [expand] - Relations that the form renders as inline fieldsets. Replaces the model config list.
+ * @property {object} [expandDetails] - Map of expand paths to detail overrides.
+ * @property {object} [fieldComponents] - Map of field paths to field component overrides.
+ * @property {object} [widgetComponents] - Map of field paths to widget component overrides.
+ * @property {object} [fieldProps] - Map of field paths to props for each field component.
+ * @property {object} [widgetProps] - Map of field paths to props for each widget component.
+ * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  */
 
 /**
@@ -99,7 +104,7 @@ const VIEW_NAME = "create";
  * @property {Error|null} combinedError - The first active error across model config, instance, and form submission; null when none.
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
  * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
- * @property {object} combinedFormProps - Merged FormModel props (model-config defaults overridden by explicit `formProps`).
+ * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value.
  */
 
 /**
@@ -218,10 +223,14 @@ export function useViewCreate(options) {
                 ? "submitting form"
                 : "",
     );
-    const combinedFormProps = computed(() => ({
-        ...(modelConfig.config.formProps || {}),
-        ...(options.formProps || {}),
-    }));
+    const combinedFormProps = useFormModelProps({
+        app: () => options.app,
+        model: () => options.model,
+        view: VIEW_NAME,
+        configFormProps: () => modelConfig.config.formProps,
+        formProps: () => options.formProps,
+        viewProps: () => pickViewFormModelProps(options),
+    });
 
     const pageLoading = computed(() => modelConfig.loading);
     const formId = computed(() => `form-${options.app}-${options.model}-${VIEW_NAME}`);
