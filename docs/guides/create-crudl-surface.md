@@ -54,7 +54,7 @@ class Cart(VuedaModel):
 
 `annotate_formatted_name` — the helper `FormattedNameManager.get_queryset`, `VuedaViewSet.get_queryset`, `VuedaListSerializer.to_representation`, and the prefetch-plan builder all share — applies this `select_related` the same way it applies a `formatted_name_lookup_expression` annotation, so every bulk path that resolves `formatted_name` joins the declared relations in the same query instead of resolving them per row. A model with no `formatted_name_select_related` is unaffected; declaring it is only worthwhile when `get_formatted_name()` actually reaches through a relation.
 
-Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`; pointing `formatted_name_lookup_expression` through a relation that can match more than one row triggers `vueda_info.E008`; declaring a `formatted_name_lookup_expression` on a model whose default manager doesn't annotate `formatted_name` triggers `vueda_core.E019`; and declaring both `formatted_name_lookup_expression` and `formatted_name_select_related` triggers `vueda_info.E011`, since `formatted_name_select_related` only has an effect alongside `get_formatted_name()`.
+Setting `formatted_name = None` without providing either `formatted_name_lookup_expression` or `get_formatted_name()` is caught at startup by a Django system check (`vueda_info.E001`), which reports the misconfiguration before any requests are served. Providing both alternatives triggers `vueda_info.E002`; decorating `get_formatted_name` with `@property` instead of leaving it as a plain method triggers `vueda_info.E003`; passing a non-string value for `formatted_name_lookup_expression` triggers `vueda_info.E004`; pointing `formatted_name_lookup_expression` through a relation that can match more than one row triggers `vueda_info.E008`; declaring a `formatted_name_lookup_expression` on a model with a manager that doesn't annotate `formatted_name` triggers `vueda_core.E019`, unless that manager is not the default and [opts out](#opting-a-manager-out-of-the-check); an opted-out manager whose querysets cannot compile the model's `Meta.ordering` triggers `vueda_core.E020`; and declaring both `formatted_name_lookup_expression` and `formatted_name_select_related` triggers `vueda_info.E011`, since `formatted_name_select_related` only has an effect alongside `get_formatted_name()`.
 
 **Ordering by `formatted_name`.** The first three strategies are sortable in the database, so `formatted_name` may be named as a plain field name in a viewset's `ordering` or `ordering_fields`, or in the model's own `Meta.ordering`, and clients may request it with `?o=formatted_name`. A generated field is sorted as its own column; a lookup expression is sorted through the annotation `VuedaViewSet.get_queryset` already adds. Either way, model-info metadata reports the field as `formatted_name` — the lookup expression behind it stays a server-side detail.
 
@@ -106,7 +106,7 @@ class Delivery(VuedaModel):
     objects = DeliveryManager()
 ```
 
-Build on `super().get_queryset()` rather than a fresh queryset, so the annotation survives. For a manager built with `Manager.from_queryset()`, pass `FormattedNameManager` as the base: `FormattedNameManager.from_queryset(DeliveryQuerySet)`.
+Build on `super().get_queryset()` rather than a fresh queryset, so the annotation survives. For a manager built with `Manager.from_queryset()`, pass `FormattedNameManager` as the base: `FormattedNameManager.from_queryset(DeliveryQuerySet)`. A manager built with `QuerySet.as_manager()` has no base to pass. Replace `DeliveryQuerySet.as_manager()` with `FormattedNameManager.from_queryset(DeliveryQuerySet)()`, which builds the same manager on top of `FormattedNameManager`.
 
 This only matters for models with a `formatted_name_lookup_expression` and no `formatted_name` column — the one strategy where the name has no column of its own. A model with the generated-field column, or one using `get_formatted_name()`, is unaffected either way.
 
@@ -115,6 +115,56 @@ A manager declared on an abstract base shadows the default manager just as readi
 ::: warning
 A model that replaces its default manager without inheriting `FormattedNameManager` is back to the pre-manager behavior: filtering or ordering by `formatted_name` on a queryset from that manager raises `FieldError: Cannot resolve keyword 'formatted_name'`, and so does every query when `Meta.ordering` names it. `vueda_core.E019` reports the manager at startup, with a hint aimed at fixing it. It is a model check, so it reaches every installed model, registered or not. It reads the queryset the manager builds rather than the manager's class, so a manager of your own that annotates the path passes and a `FormattedNameManager` subclass that dropped the annotation does not. On a `Meta.ordering` that names `formatted_name` as a plain string, Django's own `models.E015` reports the term as well, because the suppression above asks about the manager before withholding anything.
 :::
+
+#### Managers other than the default
+
+Every manager of the model needs the annotation, not only the default one. A second manager builds querysets of its own:
+
+```python
+class Delivery(VuedaModel):
+    formatted_name = None
+    formatted_name_lookup_expression = "recipient__name"
+
+    objects = DeliveryManager()                 # inherits FormattedNameManager
+    unfulfilled = UnfulfilledDeliveryManager()  # inherits models.Manager
+```
+
+`Delivery.unfulfilled.order_by("formatted_name")` raises `FieldError`, and so does any filter on the name. A viewset built on `Delivery.unfulfilled` still works, because `VuedaViewSet.get_queryset` adds the annotation itself. The failure shows up later, in a report, a management command, or the shell. `vueda_core.E019` reports each manager that does not annotate, by its attribute name, so one `manage.py check` run lists all of them. The fixes are the same as for the default manager, except `Meta.default_manager_name`: pointing it at another manager does not fix a second one.
+
+#### Opting a manager out of the check
+
+Some managers never use `formatted_name`. Examples are a manager that feeds a data export, or one that sends data to or receives data from another system's API. When the lookup expression crosses a relation, the annotation also adds a join that such a manager may not want. Set `used_without_formatted_name = True` on the manager's class to leave it out of `vueda_core.E019`:
+
+```python
+from django.db import models
+
+from vueda.core.models import FormattedNameManager, VuedaModel
+
+
+class DeliveryExportManager(models.Manager):
+    used_without_formatted_name = True
+
+
+class Delivery(VuedaModel):
+    formatted_name = None
+    formatted_name_lookup_expression = "recipient__name"
+
+    objects = FormattedNameManager()
+    export = DeliveryExportManager()
+```
+
+Declare `objects` above the opted-out manager. Django makes the first manager that a model declares its default, ahead of the `objects` that `VuedaModel` provides. A model that declares only `export` would make `export` its default manager. Setting `Meta.default_manager_name = "objects"` also works, and then the order of the declarations does not matter.
+
+The opt-out follows these rules:
+
+- Only the value `True` opts out. A missing attribute leaves the manager checked, and so does any other value, such as `1` or `"yes"`.
+- Subclasses inherit the attribute. A subclass that sets `used_without_formatted_name = False` is checked again.
+- The opt-out has no effect on the default manager. Related managers, the admin, and `dumpdata` all build their querysets from the default manager, so it always needs the annotation. A default manager that sets the attribute is still reported, and the message says that the opt-out does not apply.
+- An opted-out manager still has to run with the model's `Meta.ordering`. Django applies `Meta.ordering` to the querysets of every manager. When it names `formatted_name`, every query from the opted-out manager raises `FieldError`, even `Delivery.export.all()`. `vueda_core.E020` reports that manager. Give its `get_queryset()` an `order_by()` of its own that does not need `formatted_name`, or give it the annotation.
+
+The opt-out changes only what the manager's own querysets carry. A viewset built on an opted-out manager still returns `formatted_name`, because `VuedaViewSet.get_queryset` adds the annotation itself.
+
+A model that VUEDA never displays has a simpler option: inherit only Django's `models.Model`, and no `formatted_name` check runs on it. [Data That VUEDA Does Not Display](./data-vueda-does-not-display) compares the two options.
 
 `Model._base_manager` is not this manager and never carries the annotation. Django builds the base manager itself, as a plain `models.Manager`, unless `Meta.base_manager_name` names one — deliberately, since the base manager is what fetches related objects and a default manager may filter them out.
 

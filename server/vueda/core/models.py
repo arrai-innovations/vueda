@@ -111,6 +111,47 @@ def _annotates_formatted_name(manager):
     return FORMATTED_NAME in queryset.query.annotations
 
 
+def _used_without_formatted_name(manager):
+    """
+    Whether ``manager`` opts out of the ``formatted_name`` manager check.
+
+    Only the value ``True`` opts out. A missing attribute leaves the manager checked, and so does a
+    value such as ``1`` or ``"yes"``, so a typo cannot switch the check off by accident.
+    """
+    return getattr(manager, "used_without_formatted_name", False) is True
+
+
+def _manager_class_phrase(manager):
+    """The class of ``manager`` with its article, such as ``"a Manager"`` or ``"an ExportManager"``."""
+    class_name = type(manager).__name__
+    article = "an" if class_name[:1] in "AEIOU" else "a"
+    return f"{article} {class_name}"
+
+
+def _formatted_name_manager_fix(manager):
+    """
+    The hint sentences that say how to give ``manager`` the ``formatted_name`` annotation.
+
+    Every way of building a manager has its own fix, so the hint names each one. A manager built with
+    ``QuerySet.as_manager()`` has no base class to change. Its fix names the real queryset class
+    when the manager is one of those.
+    """
+    fix = (
+        "FormattedNameManager is what annotates the lookup expression as `formatted_name` on the "
+        "model's own querysets. Subclass it instead of `models.Manager`, or pass it to "
+        "`Manager.from_queryset()` as the base."
+    )
+
+    queryset_class = "QuerySet"
+    if getattr(manager, "_built_with_as_manager", False):
+        queryset_class = manager._queryset_class.__name__
+
+    return (
+        f"{fix} A manager built with `{queryset_class}.as_manager()` has no base to pass, so replace it "
+        f"with `FormattedNameManager.from_queryset({queryset_class})()`."
+    )
+
+
 class FormattedNameManager(models.Manager):
     """
     Default manager for ``FormattedNameBaseModel``, which annotates ``formatted_name`` onto every
@@ -149,13 +190,59 @@ class FormattedNameManager(models.Manager):
 
     The same applies to a manager built with ``Manager.from_queryset()``: pass
     ``FormattedNameManager`` as the base (``FormattedNameManager.from_queryset(WidgetQuerySet)``).
+    A manager built with ``QuerySet.as_manager()`` has no base to pass. Replace
+    ``WidgetQuerySet.as_manager()`` with ``FormattedNameManager.from_queryset(WidgetQuerySet)()``,
+    which builds the same manager on top of this one.
+
     A manager declared on an abstract base shadows this one just as readily, and is the easier case
     to miss, since the model that names a lookup expression can be several classes away from the one
     that names the manager. ``VUEDAUserManager`` sits on a model with a ``formatted_name`` column,
     and ``SentItemManager`` on one that computes it with ``get_formatted_name()``, so neither has an
-    annotation to lose. The ``vueda_core.E019`` system check reports a model whose default manager
-    doesn't provide the annotation it needs, rather than leaving it to fail at query time. It checks
-    every installed model, whether or not anything registered it.
+    annotation to lose.
+
+    **Every manager needs the annotation, not only the default.** A second manager, such as
+    ``unfulfilled = UnfulfilledOrderManager()``, builds querysets of its own. Ordering or filtering
+    them by ``formatted_name`` raises ``FieldError`` unless that manager annotates it too. The
+    ``vueda_core.E019`` system check reports each manager that does not, by name, rather than leaving
+    it to fail at query time. It checks every installed model, whether or not anything registered it.
+
+    **Opting a manager out.** Some managers never use ``formatted_name``. Examples are a manager that
+    feeds a data export, or one that sends data to or receives data from another system's API. When
+    the lookup expression crosses a relation, the annotation also adds a join that such a manager does
+    not want. Set ``used_without_formatted_name = True`` on the manager's class to leave it out of
+    ``vueda_core.E019``::
+
+        class OrderExportManager(models.Manager):
+            used_without_formatted_name = True
+
+        class Order(VuedaModel):
+            formatted_name = None
+            formatted_name_lookup_expression = "customer__name"
+
+            objects = FormattedNameManager()
+            export = OrderExportManager()
+
+    Declare ``objects`` above the opted-out manager. Django makes the first manager a model declares
+    its default, ahead of the ``objects`` this base provides, so a model that declares only ``export``
+    would make it the default manager. Setting ``Meta.default_manager_name = "objects"`` also works,
+    and then the order of the declarations does not matter.
+
+    Only the value ``True`` opts out. Subclasses inherit the attribute. A subclass that sets it back
+    to ``False`` is checked again.
+
+    The opt-out has no effect on the default manager. Related managers, the admin, and ``dumpdata``
+    all build their querysets from the default manager, so it always needs the annotation.
+
+    An opted-out manager still has to run with the model's ``Meta.ordering``. Django applies
+    ``Meta.ordering`` to the querysets of every manager. When it names ``formatted_name``, every
+    query from an opted-out manager raises ``FieldError``, even a plain ``all()``. The
+    ``vueda_core.E020`` system check reports that manager. Give its ``get_queryset()`` an
+    ``order_by()`` of its own, or give it the annotation.
+
+    A viewset built on an opted-out manager still returns ``formatted_name``, because
+    ``VuedaViewSet.get_queryset`` adds the annotation itself. A model that VUEDA never displays can
+    inherit Django's ``models.Model`` instead, and no ``formatted_name`` check runs on it. The guide
+    "Data That VUEDA Does Not Display" compares the two options.
 
     **The base manager is not this manager.** Django builds ``Model._base_manager`` itself, as a
     plain ``models.Manager``, unless ``Meta.base_manager_name`` names one — so it carries no
@@ -317,15 +404,15 @@ class FormattedNameBaseModel(models.Model):
 
     @classmethod
     def check(cls, **kwargs):
-        """Django's model checks plus the default-manager check ``vueda_core.E019`` and the
-        base-manager check ``vueda_core.E017``.
+        """Django's model checks plus the manager checks ``vueda_core.E019`` and ``vueda_core.E020``,
+        and the base-manager check ``vueda_core.E017``.
 
         Hooked here rather than inside ``_check_ordering`` because they answer different questions.
         ``_check_ordering`` withholds a term Django would misjudge, so it only runs where a term
         names ``formatted_name`` outright. The base manager fails on any ordering that needs the
         annotation, including one that names it only inside a ``Case(When(...))`` condition, and
-        that ordering withholds nothing. The default manager matters whatever the ordering says,
-        because filtering or ordering by ``formatted_name`` anywhere needs its annotation.
+        that ordering withholds nothing. The model's managers matter whatever the ordering says,
+        because filtering or ordering by ``formatted_name`` anywhere needs their annotation.
 
         Django runs model checks on every installed model, once each, so ``vueda_core.E019``
         reaches a model whether or not anything registered it.
@@ -336,7 +423,11 @@ class FormattedNameBaseModel(models.Model):
         names, so fixing the term and running the checks again is what surfaces
         ``vueda_core.E017`` if the model is also in that state.
         """
-        errors = super().check(**kwargs) + cls._formatted_name_default_manager_errors()
+        errors = (
+            super().check(**kwargs)
+            + cls._formatted_name_default_manager_errors()
+            + cls._formatted_name_other_manager_errors()
+        )
 
         if any(error.id == "models.E015" for error in errors):
             return errors
@@ -365,6 +456,11 @@ class FormattedNameBaseModel(models.Model):
         easier case to miss, since the model naming the lookup expression may be several classes away
         from the one naming the manager. The same holds for ``formatted_name = None`` itself: the rule
         reads the model's fields, not its own class body.
+
+        ``used_without_formatted_name`` does not exempt the default manager. Related managers, the
+        admin, and ``dumpdata`` all build their querysets from it, so a default manager that sets the
+        attribute and does not annotate is still reported. The message says the opt-out does not apply,
+        so a developer who set it learns why it changed nothing.
         """
         # The same rule the annotation itself is built from, so a model this reports is exactly a model
         # that would have been annotated.
@@ -377,25 +473,164 @@ class FormattedNameBaseModel(models.Model):
         if _annotates_formatted_name(default_manager) is not False:
             return []
 
+        hint = (
+            f"{_formatted_name_manager_fix(default_manager)} Pointing `Meta.default_manager_name` at a "
+            "manager that does also works, and the manager it replaces is then checked as a second manager. "
+            "Without the annotation, `formatted_name` resolves only on querysets `VuedaViewSet.get_queryset` "
+            "builds. Ordering or filtering by it anywhere else raises FieldError, and a `Meta.ordering` "
+            "naming it makes every query raise."
+        )
+
         if default_manager is None:
             declared = "declares no default manager"
         else:
-            manager_class = type(default_manager).__name__
-            declared = f"its default manager ({default_manager.name}, a {manager_class}) does not annotate it"
+            manager_class = _manager_class_phrase(default_manager)
+            declared = f"its default manager ({default_manager.name}, {manager_class}) does not annotate it"
+            if _used_without_formatted_name(default_manager):
+                declared += ". used_without_formatted_name does not apply to a default manager"
+                hint += (
+                    " Related managers, the admin, and `dumpdata` all build querysets from the default "
+                    f"manager, so it cannot opt out. {cls._opted_out_default_manager_fix(default_manager)}"
+                )
 
         return [
             checks.Error(
                 f"{cls.__name__} reaches formatted_name through formatted_name_lookup_expression, but {declared}.",
-                hint=(
-                    "FormattedNameManager is what annotates the lookup expression as `formatted_name` on "
-                    "the model's own querysets. Subclass it instead of `models.Manager` (or pass it to "
-                    "`Manager.from_queryset()` as the base), or point `Meta.default_manager_name` at a "
-                    "manager that does. Without it `formatted_name` resolves only on querysets "
-                    "`VuedaViewSet.get_queryset` builds, so ordering or filtering by it anywhere else "
-                    "raises FieldError, and a `Meta.ordering` naming it makes every query raise."
-                ),
+                hint=hint,
                 obj=cls,
                 id="vueda_core.E019",
+            )
+        ]
+
+    @classmethod
+    def _opted_out_default_manager_fix(cls, default_manager):
+        """
+        The hint sentence that says how to stop an opted-out manager from being the default.
+
+        How the manager became the default decides the fix. ``Meta.default_manager_name`` overrides
+        declaration order, so moving declarations around does nothing while it names the manager. A
+        manager named ``objects`` cannot have another ``objects`` declared above it, because the second
+        assignment replaces the first. Otherwise, the manager is the default because it is the first
+        one the model declares.
+        """
+        name = default_manager.name
+
+        if cls._meta.default_manager_name == name:
+            return (
+                f"`Meta.default_manager_name` selects {name}. Point it at a manager that annotates "
+                "`formatted_name` instead, or remove it."
+            )
+
+        if name == "objects":
+            return (
+                "Rename the opted-out manager, for example to `export`, and declare "
+                "`objects = FormattedNameManager()` above it, because Django makes the first manager a model "
+                'declares its default. Setting `Meta.default_manager_name = "objects"` also works, and then '
+                "the order of the declarations does not matter."
+            )
+
+        return (
+            f"Declare `objects = FormattedNameManager()` above {name}, because Django makes the first manager "
+            'a model declares its default. Setting `Meta.default_manager_name = "objects"` also works, and '
+            "then the order of the declarations does not matter."
+        )
+
+    @classmethod
+    def _formatted_name_other_manager_errors(cls):
+        """
+        Report each manager other than the default that cannot give ``formatted_name`` to its querysets.
+
+        A model can declare more managers than its default, and each one builds querysets of its own.
+        ``Order.unfulfilled.order_by("formatted_name")`` raises ``FieldError`` when ``unfulfilled``
+        does not annotate the lookup expression, even though ``Order.objects`` does. A viewset built
+        on that manager still works, because ``VuedaViewSet.get_queryset`` adds the annotation itself,
+        so the failure would otherwise surface later in a report, a management command, or the shell.
+        Each such manager is reported as ``vueda_core.E019``, by its attribute name, so one
+        ``manage.py check`` run lists all of them.
+
+        A manager that sets ``used_without_formatted_name = True`` is left out of ``vueda_core.E019``.
+        Its querysets still carry the model's ``Meta.ordering``, because Django applies it to every
+        manager, so ``_formatted_name_opted_out_manager_errors`` asks whether that ordering compiles.
+
+        ``Model._base_manager`` is not in ``_meta.managers`` unless the model names it, and
+        ``_formatted_name_base_manager_errors`` covers it with a hint of its own.
+        """
+        if formatted_name_annotation_path(cls) is None:
+            return []
+
+        default_manager = cls._meta.default_manager
+        errors = []
+        for manager in cls._meta.managers:
+            # `_meta.default_manager` is one of the objects in `_meta.managers`, so identity tells the
+            # default apart even when `Meta.default_manager_name` picked a manager other than the first.
+            if manager is default_manager:
+                continue
+
+            if _used_without_formatted_name(manager):
+                errors.extend(cls._formatted_name_opted_out_manager_errors(manager, default_manager))
+                continue
+
+            if _annotates_formatted_name(manager) is not False:
+                continue
+
+            manager_class = _manager_class_phrase(manager)
+            errors.append(
+                checks.Error(
+                    f"{cls.__name__} reaches formatted_name through formatted_name_lookup_expression, but "
+                    f"its manager {manager.name} ({manager_class}) does not annotate it.",
+                    hint=(
+                        f"{_formatted_name_manager_fix(manager)} Without the annotation, ordering or "
+                        f"filtering `{cls.__name__}.{manager.name}` by `formatted_name` raises FieldError, "
+                        "and so does every query when `Meta.ordering` names it. If nothing orders, filters, "
+                        "or serializes this manager's querysets by `formatted_name`, such as a manager that "
+                        "feeds an export, set `used_without_formatted_name = True` on its class instead."
+                    ),
+                    obj=cls,
+                    id="vueda_core.E019",
+                )
+            )
+
+        return errors
+
+    @classmethod
+    def _formatted_name_opted_out_manager_errors(cls, manager, default_manager):
+        """
+        Report an opted-out manager whose querysets cannot compile the model's ``Meta.ordering``.
+
+        ``used_without_formatted_name = True`` says that nothing orders, filters, or serializes the
+        manager's querysets by ``formatted_name``. The model's ``Meta.ordering`` can still do it for
+        them. Django applies ``Meta.ordering`` to the querysets of every manager, so when it names
+        ``formatted_name``, every query from the manager raises ``FieldError``, even a plain ``all()``.
+
+        The manager is asked by compiling its queryset, the same way ``vueda_core.E017`` asks the base
+        manager. A manager whose ``get_queryset()`` applies an ``order_by()`` of its own replaces
+        ``Meta.ordering`` and passes. The default manager is asked second. When the ordering does not
+        compile there either, the ordering is the fault, and ``models.E015`` or ``vueda_core.E019``
+        names it with the fix it deserves.
+        """
+        if not cls._meta.ordering:
+            return []
+
+        if _ordering_resolves(manager) is not False:
+            return []
+
+        if _ordering_resolves(default_manager) is not True:
+            return []
+
+        manager_class = _manager_class_phrase(manager)
+        return [
+            checks.Error(
+                f"{cls.__name__}.Meta.ordering needs the formatted_name annotation to compile, but its manager "
+                f"{manager.name} ({manager_class}) sets used_without_formatted_name and adds none.",
+                hint=(
+                    "Django applies Meta.ordering to the querysets of every manager, including one used "
+                    f"without `formatted_name`, so every query `{cls.__name__}.{manager.name}` builds raises "
+                    "FieldError. Give the manager's `get_queryset()` an `order_by()` of its own that does not "
+                    "need `formatted_name`, or remove `used_without_formatted_name` and give the manager the "
+                    "annotation."
+                ),
+                obj=cls,
+                id="vueda_core.E020",
             )
         ]
 
