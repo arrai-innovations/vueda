@@ -6,6 +6,7 @@
  * replaces the actions the view calls with these canned, offline behaviors, so the
  * demos exercise the real view and theme against believable store state and results.
  */
+import { AUTH_FLOW } from "@vueda/utils/constants.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 
 /** Canned authenticated user, shaped like the current-user endpoint payload. */
@@ -14,23 +15,23 @@ export const DEMO_USER = {
     email: "ada@example.com",
     first_name: "Ada",
     last_name: "Lovelace",
-    recently_logged_in: true,
+    auth_pending_flow: null,
 };
 
 /** storeUser state preset: signed out, idle. */
 export const LOGGED_OUT = {
     loggedIn: false,
     loggedInUser: {},
-    initialized: true,
-    pendingFlow: null,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
+    authPendingFlow: null,
 };
 
 /** storeUser state preset: authenticated. */
 export const LOGGED_IN = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER },
-    initialized: true,
-    pendingFlow: null,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
+    authPendingFlow: null,
 };
 
 /**
@@ -41,16 +42,42 @@ export const LOGGED_IN = {
 export const MFA_ENROLLED = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER, totp_devices: [{ id: 1, name: "1Password", confirmed: true }] },
-    initialized: true,
-    pendingFlow: null,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
+    authPendingFlow: null,
 };
 
 /** storeUser state preset: credentials accepted, a second factor is now required. */
 export const MFA_PENDING = {
     loggedIn: false,
-    loggedInUser: {},
-    initialized: true,
-    pendingFlow: { id: "mfa_authenticate" },
+    loggedInUser: { auth_pending_flow: AUTH_FLOW.MFA_AUTHENTICATE },
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
+    authPendingFlow: AUTH_FLOW.MFA_AUTHENTICATE,
+};
+
+/**
+ * storeUser state preset: authenticated, but the session is no longer recent and the account has only a
+ * password, so the server asks for it again before a guarded action.
+ */
+export const REAUTH_PASSWORD = {
+    loggedIn: true,
+    loggedInUser: { ...DEMO_USER, auth_pending_flow: AUTH_FLOW.REAUTHENTICATE, totp_devices: [] },
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
+    authPendingFlow: AUTH_FLOW.REAUTHENTICATE,
+};
+
+/**
+ * storeUser state preset: authenticated with a TOTP device, but the session is no longer recent, so the
+ * server asks for a second factor before a guarded action.
+ */
+export const REAUTH_MFA = {
+    loggedIn: true,
+    loggedInUser: {
+        ...DEMO_USER,
+        auth_pending_flow: AUTH_FLOW.MFA_REAUTHENTICATE,
+        totp_devices: [{ id: 1, name: "1Password", confirmed: true }],
+    },
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
+    authPendingFlow: AUTH_FLOW.MFA_REAUTHENTICATE,
 };
 
 /** Verified 2FA methods returned by getTwoFactorAuthMethod. */

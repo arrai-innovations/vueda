@@ -59,6 +59,8 @@ const toastMock = {
 };
 vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
+const CURRENT_USER_REQUEST_SUCCEEDED = Object.freeze({ loading: false, error: null, errored: false });
+
 describe("lib/router/guards.js", () => {
     let guards;
     let warnSpy;
@@ -74,10 +76,11 @@ describe("lib/router/guards.js", () => {
         warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
         userStore = {
-            initialized: false,
+            currentUserRequestStatus: { loading: undefined, error: null, errored: false },
+            currentUserRequest: null,
             loggedIn: false,
             loggedInUser: {},
-            recentlyLoggedIn: false,
+            authPendingFlow: null,
             fetchCurrentUser,
         };
         modelInfoStore = { fetchModelInfo, actions: [] };
@@ -91,10 +94,51 @@ describe("lib/router/guards.js", () => {
         warnSpy?.mockRestore();
     });
 
-    scopedIt("waitForInitialising fetches user when needed", async () => {
-        const result = await guards.waitForInitialising({});
-        expect(fetchCurrentUser).toHaveBeenCalled();
-        expect(result).toBe(userStore);
+    describe("waitForCurrentUser", () => {
+        scopedIt("requests the current user before the first current-user request", async () => {
+            const result = await guards.waitForCurrentUser({});
+            expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
+            expect(result).toBe(userStore);
+        });
+
+        scopedIt("returns at once after a successful current-user request", async () => {
+            userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+            const result = await guards.waitForCurrentUser({});
+            expect(fetchCurrentUser).not.toHaveBeenCalled();
+            expect(result).toBe(userStore);
+        });
+
+        scopedIt("requests the current user again after a failed current-user request", async () => {
+            userStore.currentUserRequestStatus = { loading: false, error: new Error("boom"), errored: true };
+            await guards.waitForCurrentUser({});
+            expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("waits for the current-user request in flight instead of sending another", async () => {
+            let finish;
+            userStore.currentUserRequestStatus = { loading: true, error: null, errored: false };
+            userStore.currentUserRequest = new Promise((resolve) => {
+                finish = resolve;
+            });
+            const settled = vi.fn();
+
+            const waiting = guards.waitForCurrentUser({}).then(settled);
+            await Promise.resolve();
+            expect(settled).not.toHaveBeenCalled();
+
+            finish();
+            await waiting;
+            expect(settled).toHaveBeenCalledWith(userStore);
+            expect(fetchCurrentUser).not.toHaveBeenCalled();
+        });
+
+        scopedIt("rejects with the error of the current-user request in flight", async () => {
+            const error = new Error("boom");
+            userStore.currentUserRequestStatus = { loading: true, error: null, errored: false };
+            userStore.currentUserRequest = Promise.reject(error);
+            await expect(guards.waitForCurrentUser({})).rejects.toBe(error);
+            expect(fetchCurrentUser).not.toHaveBeenCalled();
+        });
     });
 
     scopedIt("waitForModelStoreLoad gets stores", async () => {
@@ -123,7 +167,7 @@ describe("lib/router/guards.js", () => {
 
     scopedIt("requireAuth passes through when logged in", async () => {
         userStore.loggedIn = true;
-        userStore.initialized = true;
+        userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
         const router = { resolve: vi.fn((r) => r) };
         const to = { fullPath: "/dest" };
         const result = await guards.requireAuth({ name: "login" }, to, router, {});
@@ -132,15 +176,67 @@ describe("lib/router/guards.js", () => {
 
     scopedIt("requireUnauth redirects when logged in", async () => {
         userStore.loggedIn = true;
-        userStore.initialized = true;
+        userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
         const router = { resolve: vi.fn((r) => r) };
         const result = await guards.requireUnauth({ name: "home" }, router, {});
         expect(result).toEqual({ name: "home" });
     });
 
-    scopedIt("requireInitialized waits for user", async () => {
-        await guards.requireInitialized(null, {});
+    scopedIt("requireCurrentUser waits for user", async () => {
+        await guards.requireCurrentUser(null, {});
         expect(fetchCurrentUser).toHaveBeenCalled();
+    });
+
+    describe("After a failed current-user request", () => {
+        const router = { resolve: (r) => r };
+        const to = { fullPath: "/dest" };
+        // Each guard, and what it returns for a signed-in member of the "admin" group.
+        const guardCases = {
+            requireAuth: {
+                callGuard: (guards) => guards.requireAuth({ name: "login" }, to, router, {}),
+                signedInResult: undefined,
+            },
+            requireUnauth: {
+                callGuard: (guards) => guards.requireUnauth({ name: "home" }, router, {}),
+                signedInResult: { name: "home" },
+            },
+            requireRecentAuth: {
+                callGuard: (guards) => guards.requireRecentAuth({ name: "reauth" }, to, router, {}),
+                signedInResult: undefined,
+            },
+            requireCurrentUser: {
+                callGuard: (guards) => guards.requireCurrentUser(router, {}),
+                signedInResult: undefined,
+            },
+            requireGroups: {
+                callGuard: (guards) => guards.requireGroups({}, {}, ["admin"], { name: "denied" }, to, router, {}),
+                signedInResult: true,
+            },
+        };
+
+        for (const [name, { callGuard, signedInResult }] of Object.entries(guardCases)) {
+            scopedIt(`${name} requests the current user again and rejects when that request fails`, async () => {
+                const error = new Error("still down");
+                userStore.currentUserRequestStatus = { loading: false, error: new Error("boom"), errored: true };
+                fetchCurrentUser.mockRejectedValue(error);
+
+                await expect(callGuard(guards)).rejects.toBe(error);
+                expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
+                expect(toastMock.error).not.toHaveBeenCalled();
+            });
+
+            scopedIt(`${name} decides from the new answer when the retry succeeds`, async () => {
+                userStore.currentUserRequestStatus = { loading: false, error: new Error("boom"), errored: true };
+                fetchCurrentUser.mockImplementation(async () => {
+                    userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+                    userStore.loggedIn = true;
+                    userStore.loggedInUser = { groups: ["admin"] };
+                });
+
+                expect(await callGuard(guards)).toEqual(signedInResult);
+                expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
+            });
+        }
     });
 
     scopedIt("requireGroups allows matching group", async () => {
@@ -300,36 +396,61 @@ describe("lib/router/guards.js", () => {
         expect(result).toEqual({ name: "nf" });
     });
 
-    scopedIt("requireRecentAuth fetches status when unknown and allows access", async () => {
+    scopedIt("requireRecentAuth confirms a recent session with the server and allows access", async () => {
         const router = { resolve: vi.fn((r) => r) };
         const to = { fullPath: "/secure" };
-        userStore.recentlyLoggedIn = undefined;
-        fetchCurrentUser.mockImplementation(async () => {
-            userStore.recentlyLoggedIn = true;
-        });
+        userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+        userStore.loggedIn = true;
+        fetchCurrentUser.mockResolvedValue();
         const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
         expect(fetchCurrentUser).toHaveBeenCalled();
         expect(result).toBeUndefined();
     });
 
-    scopedIt("requireRecentAuth skips fetch and redirects when not recent", async () => {
+    scopedIt("requireRecentAuth skips fetch and redirects while a flow is pending", async () => {
         const router = { resolve: vi.fn((route) => ({ ...route, query: { from: "existing" } })) };
         const to = { fullPath: "/secure" };
-        userStore.recentlyLoggedIn = false;
+        userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+        userStore.loggedIn = true;
+        userStore.authPendingFlow = "reauthenticate";
         const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
         expect(fetchCurrentUser).not.toHaveBeenCalled();
         expect(result).toEqual({ name: "reauth", query: { from: "existing", redirect: "/secure" } });
     });
 
-    scopedIt("requireRecentAuth redirects after refreshing stale session", async () => {
+    scopedIt("requireRecentAuth redirects when the refetch finds the session stale", async () => {
         const router = { resolve: vi.fn((route) => ({ ...route, query: { next: "" } })) };
         const to = { fullPath: "/secure" };
-        userStore.recentlyLoggedIn = undefined;
+        userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+        userStore.loggedIn = true;
         fetchCurrentUser.mockImplementation(async () => {
-            userStore.recentlyLoggedIn = false;
+            userStore.authPendingFlow = "mfa_reauthenticate";
         });
         const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
         expect(fetchCurrentUser).toHaveBeenCalled();
         expect(result).toEqual({ name: "reauth", query: { next: "", redirect: "/secure" } });
+    });
+
+    scopedIt("requireRecentAuth waits for the first current-user answer and allows a recent session", async () => {
+        const router = { resolve: vi.fn((r) => r) };
+        const to = { fullPath: "/secure" };
+        fetchCurrentUser.mockImplementation(async () => {
+            userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+            userStore.loggedIn = true;
+        });
+        const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
+        expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
+        expect(result).toBeUndefined();
+    });
+
+    scopedIt("requireRecentAuth waits for the first current-user answer and redirects a signed-out user", async () => {
+        const router = { resolve: vi.fn((r) => r) };
+        const to = { fullPath: "/secure" };
+        fetchCurrentUser.mockImplementation(async () => {
+            userStore.currentUserRequestStatus = CURRENT_USER_REQUEST_SUCCEEDED;
+        });
+        const result = await guards.requireRecentAuth({ name: "reauth" }, to, router, {});
+        expect(fetchCurrentUser).toHaveBeenCalledTimes(1);
+        expect(result).toEqual({ name: "reauth", query: { redirect: "/secure" } });
     });
 });

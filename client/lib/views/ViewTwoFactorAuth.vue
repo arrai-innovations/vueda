@@ -8,18 +8,30 @@ import "@vueda/theme/vueda-tailwind/views/ViewTwoFactorAuth.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { AUTH_FLOW } from "@vueda/utils/constants.js";
 import AuthorizingForm from "@vueda/views/AuthorizingForm.vue";
 import WidgetOTPInput from "@vueda/widgets/WidgetOTPInput.vue";
 import WidgetSelectDropdown from "@vueda/widgets/WidgetSelectDropdown.vue";
 import WidgetTextInput from "@vueda/widgets/WidgetTextInput.vue";
-import { computed, onBeforeUnmount, reactive, ref, toRef, watch } from "vue";
-import { useRouter } from "vue-router";
+import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 /**
- * Two-factor authentication challenge view presented after initial login. Lets the user select an available
- * verification method (TOTP, SMS, email), request a code to be sent for applicable methods (with a 60-second
- * resend cooldown), and submit the code to complete authentication. A separate ghost CTA reveals a
- * recovery-code path that swaps the form body to a single mono text input.
+ * Two-factor authentication challenge view. Lets the user select an available verification method (TOTP, SMS,
+ * email), request a code to be sent for applicable methods (with a 60-second resend cooldown), and submit the
+ * code. A separate ghost CTA reveals a recovery-code path that swaps the form body to a single mono text input.
+ *
+ * By default the code completes sign-in through `storeUser.twoFactorAuthenticate`. The `header`, `subTitle`,
+ * and `runAction` set here are defaults: an attribute passed in with the same name falls through to the root
+ * AuthorizingForm and replaces it. `ViewReauthenticate` passes `runAction` that way to confirm a signed-in
+ * user's second factor through `storeUser.twoFactorReauthenticate`. The server lists methods and sends codes
+ * for the user in the pending login stage or, failing that, the signed-in user, so one fetch serves both.
+ *
+ * Once a who-is request has succeeded, an anonymous user with no second-factor flow pending has no sign-in to
+ * finish here, for example because the pending sign-in expired. The view sends that user to the `sign-in` route,
+ * keeping the `redirect` query, and shows a warning toast that explains why. A signed-out user whose methods
+ * request is refused with an `UnauthorizedError` goes there too. Both paths share one redirect, so the user sees
+ * one toast and one navigation when both react to the same refused request.
  */
 defineOptions({});
 
@@ -31,6 +43,7 @@ const formProps = reactive({
     },
 });
 const router = useRouter();
+const route = useRoute();
 const userStore = storeUser();
 const cooldownSeconds = ref(60);
 const timer = ref(null);
@@ -92,25 +105,84 @@ const computedOptions = computed(() => {
         value: method,
     }));
 });
-watch([isActive, toRef(userStore, "loggedIn")], async ([newActive, newloggedIn]) => {
-    if (newActive && !newloggedIn) {
+// The store names the flow the user owes: `mfa_authenticate` mid-sign-in, `mfa_reauthenticate` for a signed-in
+// user who must confirm a second factor. Either one means there is a user with methods to list.
+const SECOND_FACTOR_FLOWS = new Set([AUTH_FLOW.MFA_AUTHENTICATE, AUTH_FLOW.MFA_REAUTHENTICATE]);
+const owesSecondFactor = computed(() => SECOND_FACTOR_FLOWS.has(userStore.authPendingFlow));
+// The view decides only from a who-is request that succeeded. `loading` is `undefined` before the first request
+// and `true` while one runs, and a failed request sets `errored`, so in each of those states `authPendingFlow`
+// does not hold the server's answer. A signed-in user without a pending flow has just finished the second factor,
+// and the sign-in or reauthentication form sends them on.
+const hasNoSignInToFinish = computed(
+    () =>
+        userStore.currentUserRequestStatus.loading === false &&
+        !userStore.currentUserRequestStatus.errored &&
+        !userStore.loggedIn &&
+        !owesSecondFactor.value,
+);
+/**
+ * The redirect to sign-in. It resolves to the router's navigation failure, which is `undefined` when the
+ * navigation succeeds. The expired sign-in watch clears it when the view has a sign-in to finish again, so a
+ * later expiry redirects again.
+ *
+ * @type {Promise<import('vue-router').NavigationFailure|void|undefined>|null}
+ */
+let signInRedirect = null;
+/**
+ * Sends the user to the `sign-in` route, keeping the `redirect` query, and shows a warning toast that explains
+ * why. A caller that arrives while the redirect is under way, or after it succeeded, receives the same promise.
+ * A navigation failure or a rejected push clears it, so the next caller tries again.
+ *
+ * @returns {Promise<import('vue-router').NavigationFailure|void|undefined>}
+ */
+const redirectToSignIn = () => {
+    if (!signInRedirect) {
+        toast.warning("Your sign-in has expired", {
+            description: "There is no two-factor sign-in in progress. Sign in again to continue.",
+            duration: 10000,
+        });
+        const redirect = route.query?.redirect;
+        signInRedirect = router.push(redirect ? { name: "sign-in", query: { redirect } } : { name: "sign-in" }).then(
+            (failure) => {
+                if (failure) {
+                    signInRedirect = null;
+                }
+                return failure;
+            },
+            (error) => {
+                signInRedirect = null;
+                throw error;
+            },
+        );
+    }
+    return signInRedirect;
+};
+watch([isActive, owesSecondFactor], async ([newActive, newOwesSecondFactor]) => {
+    if (newActive && newOwesSecondFactor) {
         try {
             const response = await userStore.getTwoFactorAuthMethod();
             methods.value = response?.methods;
         } catch (error) {
-            if (error instanceof UnauthorizedError) {
-                toast.warning("Please verify your account again before proceeding", {
-                    duration: 10000,
-                });
-                await router.push({ name: "sign-in" });
-                return true;
-            } else {
-                toast.error("Error fetching 2FA methods for the user", {
-                    description: error.message,
-                    duration: 10000,
-                });
+            // The store refetches who-is before it rejects with an `UnauthorizedError`. A signed-out user has no
+            // sign-in left to finish here. A signed-in user stays, and the error toast below reports the refusal.
+            if (error instanceof UnauthorizedError && !userStore.loggedIn) {
+                const failure = await redirectToSignIn().catch((pushError) => pushError);
+                if (!failure) {
+                    return;
+                }
             }
+            toast.error("Error fetching 2FA methods for the user", {
+                description: error.message,
+                duration: 10000,
+            });
         }
+    }
+});
+watch([isActive, hasNoSignInToFinish], async ([newActive, newHasNoSignInToFinish]) => {
+    if (!newHasNoSignInToFinish) {
+        signInRedirect = null;
+    } else if (newActive) {
+        await redirectToSignIn();
     }
 });
 const theme = useTheme("ViewTwoFactorAuth", props);

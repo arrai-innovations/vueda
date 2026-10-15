@@ -7,26 +7,24 @@ status: draft
 
 # Customize VUEDA Appearance
 
-For charts, see [Style Unovis Charts](style-unovis-charts.md) for the optional Unovis stylesheet and independent categorical palette.
-
-This guide shows the concrete recipes for each customization scope: a single instance, all instances of one component, a visual family of components, and brand-level skinning. Pick the section that matches the scope of your change. Reaching for a broader mechanism than you need is the most common way customizations leak into screens you did not mean to touch.
-
-For the conceptual model behind these mechanisms (what each scope means and how the layers interact), see [Theming and Customization](../core-concepts/theming-and-customization).
+The default theme gives every view a working look. Most views keep it. This guide covers the views and brands that need a change, from one element up to the whole app. [Theming and Customization](../core-concepts/theming-and-customization) describes the four scopes and how their layers combine. [Style Unovis Charts](style-unovis-charts.md) covers charts. Icons come from the {@term Icon Registry}, which is separate from the theme; [Register the Icons](client-plugin-prerequisites.md#register-the-icons) sets it up.
 
 ## Pick the right scope
 
-| Goal                                                                                                    | Scope     | Mechanism                       | Section                                                                 |
-| ------------------------------------------------------------------------------------------------------- | --------- | ------------------------------- | ----------------------------------------------------------------------- |
-| Make this one specific element look different.                                                          | Instance  | `themeOverride` prop            | [Override one instance](#override-one-instance)                         |
-| Make every Button (or Input, or Dialog, etc.) look different across the app.                            | Component | `overrideTheme` on a leaf entry | [Restyle one component system-wide](#restyle-one-component-system-wide) |
-| Make every button-shaped thing (Button, calendar day cells, pagination, dialog actions) look different. | Family    | `overrideTheme` on a meta key   | [Restyle a visual family](#restyle-a-visual-family)                     |
-| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.                         | Brand     | CSS token override              | [Re-skin via tokens](#re-skin-via-tokens)                               |
+Use the smallest scope that covers the change. A broader scope changes screens that you did not check.
 
-If a customization touches values (colors, dimensions, durations), it almost always belongs in tokens. If it touches composition (a different class arrangement, a different state recipe), it belongs in the JavaScript theme.
+| Goal                                                                                          | Scope     | Mechanism                                    | Section                                                                 |
+| --------------------------------------------------------------------------------------------- | --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| Make one element, or one part of a page, look different.                                      | Instance  | `themeOverride` prop                         | [Override one instance](#override-one-instance)                         |
+| Make every Button (or Input, or Dialog) look different across the app.                        | Component | `overrideTheme` on the component's theme key | [Restyle one component system-wide](#restyle-one-component-system-wide) |
+| Make every button-shaped thing (Button, calendar day cells, pagination items) look different. | Family    | `overrideTheme` on a composition primitive   | [Restyle a visual family](#restyle-a-visual-family)                     |
+| Re-skin the whole app: brand color, control sizes, radius, focus ring, shadows.               | Brand     | CSS token override                           | [Re-skin via tokens](#re-skin-via-tokens)                               |
+
+A change to a value, such as a color, a size, or a duration, belongs in a token. A change to which classes a component receives belongs in the JavaScript theme.
 
 ## Override one instance
 
-Use the `themeOverride` prop on the component you want to customize. The override merges with that component's default theme and is scoped to the receiving subtree.
+Pass a {@term Theme Override} to the component's [`themeOverride`]{@api js:property:@arrai-innovations/vueda/use/useTheme#THEME_OVERRIDE_PROPS} prop. The override is an object keyed by component name. It merges over the default and any project override for this component and for every component rendered inside it.
 
 ```vue
 <template>
@@ -34,30 +32,40 @@ Use the `themeOverride` prop on the component you want to customize. The overrid
 </template>
 
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
+
 const amberOverride = {
     Button: {
-        root: { class: "bg-amber-500 hover:bg-amber-600 text-white" },
+        root: {
+            class: "bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700",
+        },
     },
 };
 </script>
 ```
 
-With `vueda-tailwind`, `theme-override` replaces conflicting theme utilities while a plain `class` prop only adds classes; see [How the layers interact](../core-concepts/theming-and-customization#how-the-layers-interact). The override stays scoped to this Button. Other Buttons elsewhere in the app render with their default theme.
+Other Buttons in the app keep their default theme.
 
-The `themeOverride` mechanism propagates through provide/inject. Setting an override on a parent component affects every descendant `useTheme` call within its subtree, without intermediate components needing to thread props:
+The default theme's class merger keeps the later of two utilities that set the same CSS property under the same variant. Each class in this override therefore replaces the matching default class, such as the default background and hover background. Default classes that set other properties, or that apply under other variants such as `disabled:`, stay. To remove one of those, add its name as a key set to `false`. A bare `Button` composes {@api theme-key:\_ButtonBase} and {@api theme-key:\_ButtonSecondary}, whose theme key pages list their classes. To use a built-in look instead, set the [`tone`]{@api vue:component:Button:prop:tone} and [`emphasis`]{@api vue:component:Button:prop:emphasis} props.
+
+The component's `class` prop adds classes after the theme resolves, so a class there does not replace a theme class. [How the layers interact](../core-concepts/theming-and-customization#how-the-layers-interact) describes the order.
+
+A component passes its merged override to every descendant component. An override on a container therefore restyles components inside it, and the components in between need no extra props:
 
 ```vue
 <template>
-    <!-- All Inputs anywhere inside this surface render without borders. -->
-    <PageContainer :theme-override="borderlessInputs">
+    <!-- Every Input inside this card uses the monospace font. -->
+    <Card :theme-override="monoInputs">
         <slot />
-    </PageContainer>
+    </Card>
 </template>
 
 <script setup>
-const borderlessInputs = {
+import Card from "@vueda/shell/card/Card.vue";
+
+const monoInputs = {
     Input: {
-        root: { class: "border-0" },
+        root: { class: "font-mono" },
     },
 };
 </script>
@@ -65,7 +73,7 @@ const borderlessInputs = {
 
 ## Restyle one component system-wide
 
-Use {@api js:function:@arrai-innovations/vueda/use/themeRegistry#overrideTheme} at app startup to add a project override. It applies after the component's defaults regardless of when they register, including through lazy routes. Every instance of the component picks up the override as its baseline.
+Call {@api js:function:@arrai-innovations/vueda/use/themeRegistry#overrideTheme} in `main.js`. `overrideTheme` adds a project override, which the registry keeps apart from the registered defaults. The override applies whether the component's default registers before or after the call, including from a lazy route. Every instance of the component starts from the overridden version.
 
 ```js
 // main.js
@@ -79,13 +87,13 @@ overrideTheme({
 });
 ```
 
-`overrideTheme` combines project classes with existing Button classes; the Tailwind merger replaces conflicting utilities and preserves the other classes. Later project calls combine classes and replace explicit compose lists. `setTheme` replaces the base theme while preserving project overrides; `clearThemeOverrides()` removes all project overrides while preserving the base. See [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered) for snapshot behavior, resets, and migration from `patchTheme`.
+The existing Button classes stay, and the override adds its own. With the default theme, an override class replaces a default class that sets the same CSS property. A later `overrideTheme` call combines its classes with those of earlier calls. {@api js:function:@arrai-innovations/vueda/use/themeRegistry#setTheme} replaces the registered defaults, and project overrides stay in effect. Reserve `setTheme` for installing a complete theme object. `clearThemeOverrides()` removes every project override. [How the theme is registered](../core-concepts/theming-and-customization#how-the-theme-is-registered) describes the registration paths and when `patchTheme` applies.
 
-Per-instance overrides still merge on top, so specific instances stay customizable. Patching a leaf entry does not reach components that merely look like it (calendar day cells, pagination items); restyle the family for those.
+A `themeOverride` on one instance still merges on top of the project override. The override reaches every component that renders a `Button`, such as `AlertDialogAction`. Calendar day cells and pagination items have their own theme keys, so the override does not reach them. To change them with Button, restyle the family.
 
 ## Restyle a visual family
 
-When the change should affect Button, calendar day triggers, pagination items, dialog actions, and anything else that composes from the button family, override the meta key (`_ButtonBase`, `_ButtonGhost`, etc.) instead of the leaf entries.
+To change Button, calendar day cells, pagination items, and other button-shaped components together, override the {@term Composition Primitive} that they share, such as `_ButtonBase` or `_ButtonGhost`:
 
 ```js
 // main.js
@@ -101,30 +109,30 @@ overrideTheme({
 });
 ```
 
-Every leaf entry whose default theme declares `composes: ['_ButtonGhost.root', ...]` picks up the change. Leaf entries that do not compose from `_ButtonGhost` are unaffected.
+Every theme slot that lists `_ButtonGhost.root` in its `composes` array picks up the change: ghost Buttons, calendar day cells, and inactive pagination items. The override does not reach slots that do not list it.
 
-The replace semantics on `composes` are also useful. To redirect a leaf entry to compose from a different meta key:
+A `composes` array in an override replaces the default array. To make a component build on a different primitive, override its `composes` array. This override makes the active pagination item use the primary fill:
 
 ```js
 overrideTheme({
     PaginationItem: {
         root: ({ isActive }) => ({
-            // Default composed from _ButtonOutline / _ButtonGhost; replace
-            // entirely so active state composes from the default variant instead.
+            // The default composes _ButtonOutline for the active item and
+            // _ButtonGhost for the others. This list replaces it.
             composes: ["_ButtonBase.root", isActive ? "_ButtonDefault.root" : "_ButtonGhost.root"],
         }),
     },
 });
 ```
 
-Override a meta key when the change is about a visual relationship shared across components rather than one component's identity. Available family meta keys are documented in the API reference for the component theme entries that compose from them.
+Override a primitive when the change is about how related components look together. Override a component's own key when the change is about that one component. The [theme keys reference]{@api theming:keys} lists every primitive and the components that compose it.
 
 ## Re-skin via tokens
 
-Most rebrand-level changes (primary color, control radius, control heights, focus ring, shadow stack, sidebar widths, calendar cell sizing) resolve to CSS custom properties defined in `@vueda/theme/vueda-tailwind/base.css`. Override the tokens in your own CSS, after the `base.css` import:
+Colors, radius, control heights, focus ring, shadows, sidebar widths, and calendar cell sizes come from [theme tokens]{@term Theme Token}. These are CSS custom properties that `@vueda/theme/vueda-tailwind/base.css` defines. Override the tokens in your own stylesheet, after the `base.css` import:
 
 ```css
-/* main.css */
+/* src/index.css */
 @import "tailwindcss";
 @import "@vueda/theme/vueda-tailwind/base.css";
 
@@ -135,15 +143,23 @@ Most rebrand-level changes (primary color, control radius, control heights, focu
 }
 ```
 
-No JavaScript runs; every Tailwind utility that references the token (`bg-primary`, `h-vueda-control`, `rounded-vueda-control`) automatically picks up the new value across the entire app. Light/dark variants are scoped through the existing `.dark` selector.
+You change no JavaScript. Every Tailwind utility that reads an overridden token (`bg-primary`, `h-vueda-control`, `rounded-vueda-control`) uses the new value across the app. `base.css` sets the dark mode values under the `.dark` selector.
 
-The default theme keeps its primary fill unchanged between modes. `--primary-foreground` supplies dark labels on solid fills; `--primary-text` supplies a shade in light mode and a tint in dark mode for links and tinted labels. `--primary-text-active` serves pressed links. The text and hover/active colors derive from `--primary`, but check their contrast when choosing a different brand color and override each role as needed. Use `text-primary-text` for blue text on page or lightly tinted surfaces and `text-primary-foreground` for labels on solid primary fills. `--ring` and `--info` follow the readable text color by default.
+The primary color has several roles, each with its own token:
 
-`--vueda-brand-blue`, `--vueda-brand-navy`, and `--vueda-brand-grey` define the identity palette. Supporting surfaces and body text derive from navy and grey with white or black. Override those identity tokens for a coordinated palette change, or individual semantic tokens to retune a particular surface.
+- {@api css-token:primary}: the fill of primary actions. The default is the same in light and dark mode.
+- {@api css-token:primary-foreground}: dark labels on primary fills. Use `text-primary-foreground` for them.
+- {@api css-token:primary-text}: primary-colored text, such as links, on the page, cards, and lightly tinted surfaces. Use `text-primary-text` for it.
+- {@api css-token:primary-text-active}: the text of a pressed link.
+- {@api css-token:ring} and {@api css-token:info}: the focus ring and informational color. By default both use `--primary-text`.
 
-Some tokens to know:
+`base.css` computes the hover, pressed, and text colors from `--primary`, so they follow a new brand color. Check their contrast against the new color, and override any role that falls short.
 
-- **Color**: `--primary`, `--background`, `--foreground`, `--card`, `--muted`, `--accent`, `--destructive`, `--success`, `--warning`, `--info`, `--border`, `--input`, `--ring`. Sidebar variants follow the same pattern under `--sidebar-*`.
+{@api css-token:vueda-brand-blue}, {@api css-token:vueda-brand-navy}, and {@api css-token:vueda-brand-grey} define the identity palette. `base.css` computes the colors of supporting surfaces and body text by mixing navy and grey with white or black. Override the identity tokens to change the palette as a whole, or override single tokens to change one surface.
+
+A selection of tokens, by group:
+
+- **Color**: `--primary`, `--background`, `--foreground`, `--card`, `--muted`, `--accent`, `--destructive`, `--success`, `--warning`, `--info`, `--border`, `--input`, `--ring`. The sidebar has its own set under `--sidebar-*`.
 - **Control sizing**: `--vueda-control-height`, `--vueda-control-height-sm`, `--vueda-control-height-lg`, `--vueda-control-px-*`.
 - **Specialized sizes**: `--vueda-chip-height`, `--vueda-cmd-input-height`, `--vueda-cal-day`, `--vueda-cal-cell`, `--vueda-sidebar-width`.
 - **Radius**: `--vueda-control-radius`, `--vueda-card-radius`, `--vueda-modal-radius`, `--vueda-pill-radius`.
@@ -151,57 +167,71 @@ Some tokens to know:
 - **Motion**: `--vueda-duration-interaction`, `--vueda-ease-interaction`.
 - **Fonts**: {@api css-token:vueda-font-sans} and {@api css-token:vueda-font-mono}. See [Load or replace the fonts](#load-or-replace-the-fonts).
 
-The full set with default values lives in `base.css` itself, with section comments explaining what each token controls.
+The [theme tokens reference]{@api theming:tokens} lists every token with its light and dark values.
 
 ### Load or replace the fonts
 
-`base.css` names fonts but does not ship them. The default stacks ask for IBM Plex Sans for interface text and JetBrains Mono for machine-generated, positional, and digit-stable values. If the page never loads a face with that exact family name, the browser silently falls back to a system font. Nothing errors, but text widths change, so column headers wrap, chips grow, and dense layouts stop matching the component reference.
+`base.css` names fonts but ships no font files. The default stacks ask for IBM Plex Sans for interface text and JetBrains Mono for machine-generated, positional, and digit-stable values. The theme uses weights 400 for body text, 500 for controls ({@api css-token:vueda-font-weight-ui}), and 600 for labels ({@api css-token:vueda-font-weight-label}). The application loads the fonts, so that it can use fonts that it already loads for its own pages.
 
-VUEDA leaves font loading to the application, because the application usually loads fonts for its own chrome already. A bundled copy would download the same family twice, or a family the app replaces anyway.
+When no loaded face matches a family name, the browser uses a system font without an error. Text widths then change: column headers wrap, chips grow, and dense layouts no longer match the component reference.
 
-To keep the default look, load both families at the three weights the theme uses. Body text uses 400, controls use 500 ({@api css-token:vueda-font-weight-ui}), and labels use 600 ({@api css-token:vueda-font-weight-label}). The static [Fontsource](https://fontsource.org/) packages register the exact family names the stacks expect:
-
-```js
-// main.js
-import "@fontsource/ibm-plex-sans/400.css";
-import "@fontsource/ibm-plex-sans/500.css";
-import "@fontsource/ibm-plex-sans/600.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/500.css";
-import "@fontsource/jetbrains-mono/600.css";
-```
-
-To use different fonts, or fonts your app already loads under another name, override the stacks after the `base.css` import. Name the family exactly as its `@font-face` rule registers it. Variable builds often use a different name from the static ones: `@fontsource-variable/ibm-plex-sans` registers `IBM Plex Sans Variable`, not `IBM Plex Sans`.
+A project generated from the VUEDA templates loads both families in `src/index.css`. The [Fontsource](https://fontsource.org/) variable packages `@fontsource-variable/ibm-plex-sans` and `@fontsource-variable/jetbrains-mono` register the families as `IBM Plex Sans Variable` and `JetBrains Mono Variable`, so the stylesheet puts those names first in each stack:
 
 ```css
-/* main.css */
+/* src/index.css */
 @import "tailwindcss";
 @import "@vueda/theme/vueda-tailwind/base.css";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/jetbrains-mono";
 
+:root {
+    --vueda-font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --vueda-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+```
+
+In another project, install both packages as dependencies and add the same lines. If you replace the default theme, remove the font imports and the `:root` rule along with the `base.css` import.
+
+To use other fonts, load them and override the two stacks after the `base.css` import. Name each family exactly as its `@font-face` rule registers it:
+
+```css
 :root {
     --vueda-font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
     --vueda-font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 ```
 
-A replacement font is a customization like any other token change. It changes text metrics, so screens drift from the component reference by the width difference between the fonts. Keep the default fonts when matching the reference closely matters more than the brand.
+A different font has different text widths, so screens no longer match the component reference exactly. Keep the default fonts when a close match to the reference matters more than the brand.
 
-To confirm the fonts loaded, run `document.fonts.check('600 16px "IBM Plex Sans"')` in the browser console with your family name. It returns `false` when no matching face is available.
+To confirm that a family loaded, run `await document.fonts.load('600 16px "IBM Plex Sans Variable"')` in the browser console, with your family name in place of `IBM Plex Sans Variable`. The result is an empty array when no loaded font face has that name.
+
+## Port a shadcn-vue block
+
+[shadcn-vue](https://www.shadcn-vue.com/) blocks, such as sidebar layouts and dashboard shells, do not install into a VUEDA project. A block imports components from `@/components/ui/...` paths and uses the `cn()` helper, and VUEDA provides neither. Most VUEDA components carry the shadcn-vue names (`Button`, `Dialog`, `Alert`, `Pagination`), so a block's markup needs few changes.
+
+To port a block:
+
+1. Copy the block's markup and script into a component in your project.
+2. Replace each `@/components/ui/...` import with an import of the VUEDA component file. The Source section of the component's API page gives the file path under `client/lib/`; replace that prefix with `@vueda/`. For example, `Button` is `@vueda/controls/button/Button.vue`.
+3. Check each component's props on its API page. For example, a VUEDA `Button` takes `tone` and `emphasis`, and a shadcn-vue `Button` takes `variant`.
+4. Remove the `cn()` calls. Move each class that restyles a VUEDA component into a `themeOverride`, an `overrideTheme` call, or a token, as described in the sections above.
 
 ## Common pitfalls
 
-**Reaching for `setTheme` to change a value.** If the change is a color, dimension, or duration, it almost certainly belongs in a CSS token. Reaching for `setTheme` produces a customization that does not propagate through composition or to surfaces you forgot to override.
+**Using `setTheme` to change a value.** `setTheme` replaces every registered default, so a theme object that leaves out an already loaded component removes that component's default classes. A color, a size, or a duration belongs in a token, as in [Re-skin via tokens](#re-skin-via-tokens).
 
-**Reaching for `themeOverride` for a system-wide change.** A `themeOverride` prop on a single component does not affect other instances. If the change should apply everywhere the component appears, use `overrideTheme`, which also works before the defaults register.
+**Using `themeOverride` for a system-wide change.** A `themeOverride` prop changes one component and its descendants. For a change everywhere the component appears, use `overrideTheme`, as in [Restyle one component system-wide](#restyle-one-component-system-wide).
 
-**Overriding a leaf entry when the change is family-wide.** Patching `Button` does not affect `CalendarCellTrigger`, `PaginationItem`, or `AlertDialogAction`, even though they look like buttons. If the change is conceptually about button-shaped things, override the relevant meta key (`_ButtonBase`, `_ButtonGhost`, etc.) so all composing leaves pick it up.
+**Overriding a component's key for a family-wide change.** An override of `Button` does not reach `CalendarCellTrigger` or `PaginationItem`, which have their own theme keys. When the change applies to every button-shaped component, override the composition primitive that they share, such as `_ButtonBase` or `_ButtonGhost`.
 
-**Drawing app chrome with a plain `border`.** VUEDA's edges step from 2px at a device pixel ratio of 1 down to 1px at a ratio of 2. That scale avoids colour fringing on common office displays. A Tailwind `border` or `border-b` stays at 1px, so a header drawn with it looks thinner than the VUEDA surfaces beside it. Use the matching utilities from `base.css` instead:
+**Drawing app chrome with a plain `border`.** VUEDA draws edges with the {@term Hairline}. Its width comes from the [`--vueda-hairline-width`]{@api css-token:vueda-hairline-width} token. The token steps from 2px at a device pixel ratio of 1 down to 1px at a ratio of 2. That scale avoids color fringing on common office displays.
+
+A Tailwind `border` or `border-b` stays at 1px, so a header drawn with it looks thinner than the VUEDA surfaces beside it. Use the matching utilities from `base.css` instead:
 
 - `border-b-hairline` (or `-t`, `-l`, `-r`, `-x`, `-y`) for one edge.
 - `border-hairline` for four real border sides.
 - `hairline hairline-border` for a four-sided edge on an element with no other box-shadow.
 
-**Naming a font the page never loads.** The token stacks name families; they do not load them. A stack whose first family has no loaded face falls back to a system font without any warning. Load the fonts or override the stacks, as in [Load or replace the fonts](#load-or-replace-the-fonts).
+**Naming a font that the page does not load.** The token stacks name families; they do not load them. A stack whose first family has no loaded face falls back to a system font without any warning. Load the fonts or override the stacks, as in [Load or replace the fonts](#load-or-replace-the-fonts).
 
-**Forgetting that `composes` uses replace semantics.** Declaring `composes` on an override does not append to the default's compose list; it replaces it entirely. If you intend to extend the default's composition, write the full new list.
+**Expecting `composes` to extend the default list.** A `composes` array in an override replaces the default array. To add a primitive, write the full list, as in [Restyle a visual family](#restyle-a-visual-family).

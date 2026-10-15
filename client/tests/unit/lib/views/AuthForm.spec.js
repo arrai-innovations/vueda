@@ -20,7 +20,7 @@ const useAuthFlow = vi.fn(() => ({
 }));
 vi.mock("@vueda/use/useAuthFlow.js", () => ({ useAuthFlow }));
 
-const storeState = { pendingFlow: null };
+const storeState = { authPendingFlow: null };
 const storeUser = vi.fn(() => storeState);
 vi.mock("@vueda/stores/storeUser.js", () => ({ storeUser }));
 
@@ -84,5 +84,15 @@ describe("lib/views/AuthForm.vue", () => {
         expect(useAuthFlow).toHaveBeenCalledWith(
             expect.objectContaining({ formProps: { initialValues: { email: "" } } }),
         );
+    });
+
+    scopedIt("requires recent authentication by default", () => {
+        mountAuthForm();
+        expect(useAuthFlow).toHaveBeenCalledWith(expect.objectContaining({ requireRecentAuth: true }));
+    });
+
+    scopedIt("passes requireRecentAuth: false to useAuthFlow", () => {
+        mountAuthForm({ props: { requireRecentAuth: false } });
+        expect(useAuthFlow).toHaveBeenCalledWith(expect.objectContaining({ requireRecentAuth: false }));
     });
 });

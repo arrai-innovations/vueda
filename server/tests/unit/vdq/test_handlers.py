@@ -54,11 +54,11 @@ def _create_attachment(filename: str, mimetype: str, content: bytes, *, inline: 
 
 
 @pytest.mark.django_db
-def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, queue_item_email):
+def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     detail = AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
         html='<p>Hi<img src="cid:logo"></p>',
@@ -75,10 +75,10 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
 
     generated_cid = "generated-inline"
 
-    def fake_attach_inline_image(email_message, content, filename, subtype, idstring):
-        assert content == inline_attachment.get_content()
-        assert filename == inline_attachment.filename
-        assert idstring == inline_attachment.content_id_string
+    inline_images_attached = []
+
+    def record_attach_inline_image(email_message, content, filename, subtype, idstring):
+        inline_images_attached.append((content, filename, idstring))
         return generated_cid
 
     original_send = send_email.__globals__["EmailMultiAlternatives"].send
@@ -87,14 +87,18 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
         self.anymail_status = SimpleNamespace(message_id="fake-message-id", status={"sent"})
         return original_send(self, *args, **kwargs)
 
-    monkeypatch.setattr("vueda.vdq.handlers.attach_inline_image", fake_attach_inline_image)
+    monkeypatch.setattr("vueda.vdq.handlers.attach_inline_image", record_attach_inline_image)
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
+    # The inline image is attached once, from the attachment's own content, filename and cid.
+    assert inline_images_attached == [
+        (inline_attachment.get_content(), inline_attachment.filename, inline_attachment.content_id_string)
+    ]
     assert detail.message_id == "fake-message-id"
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
     assert len(mail.outbox) == 1
     message = mail.outbox[0]
@@ -108,9 +112,11 @@ def test_send_email_with_inline_and_regular_attachments(settings, monkeypatch, q
 
 
 @pytest.mark.django_db
-def test_send_email_sets_reply_to(settings, monkeypatch, queue_item_email):
+def test_send_email_sets_reply_to(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
-    detail = AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    detail = AnyMailQueueItem.objects.create(
+        queue_item=sending_email_without_detail, subject="Subject", text="Plain text"
+    )
     reply_to = Receiver.objects.create(email="reply@domain.invalid", name="Reply", cell="+18005550108")
     AnyMailQueueItemReceiverReplyTo.objects.create(receiver=reply_to, anymail_queue_item=detail)
 
@@ -122,17 +128,17 @@ def test_send_email_sets_reply_to(settings, monkeypatch, queue_item_email):
 
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
     assert mail.outbox[0].reply_to == ["reply@domain.invalid"]
 
 
 @pytest.mark.django_db
-def test_send_email_records_error_status(settings, monkeypatch, queue_item_email):
+def test_send_email_records_error_status(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     detail = AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
         html="<p>Hi</p>",
@@ -144,21 +150,21 @@ def test_send_email_records_error_status(settings, monkeypatch, queue_item_email
 
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
     detail.refresh_from_db()
     assert detail.message_id == "message"
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "errored"
-    assert "Anymail status" in queue_item_email.result
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "errored"
+    assert "Anymail status" in sending_email_without_detail.result
 
 
 @pytest.mark.django_db
-def test_send_email_transient_error(settings, monkeypatch, queue_item_email):
+def test_send_email_transient_error(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
     )
@@ -169,15 +175,15 @@ def test_send_email_transient_error(settings, monkeypatch, queue_item_email):
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
     with pytest.raises(AnymailTransientError):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
 
 @pytest.mark.django_db
-def test_send_email_non_transient_error(settings, monkeypatch, queue_item_email):
+def test_send_email_non_transient_error(settings, monkeypatch, sending_email_without_detail):
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
 
     AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email,
+        queue_item=sending_email_without_detail,
         subject="Subject",
         text="Plain text",
     )
@@ -188,11 +194,11 @@ def test_send_email_non_transient_error(settings, monkeypatch, queue_item_email)
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
     with pytest.raises(AnymailAPIError):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
 
 @pytest.mark.django_db
-def test_twilio_send_sms_success(settings, monkeypatch, queue_item_sms):
+def test_twilio_send_sms_success(settings, sending_sms):
     settings.TWILIO_ACCOUNT_SID = None
     settings.TWILIO_AUTH_TOKEN = None
 
@@ -211,18 +217,18 @@ def test_twilio_send_sms_success(settings, monkeypatch, queue_item_sms):
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=FakeMessages())
 
-    handler.send_sms(queue_item_sms)
+    handler.send_sms(sending_sms)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.result == "sent"
-    assert queue_item_sms.sms.message_sid == "SM123"
-    assert queue_item_sms.workflow_state.code == "awaiting"
-    assert message_calls["from_"] == queue_item_sms.sender.cell.as_e164
-    assert message_calls["to"] == queue_item_sms.receiver.cell.as_e164
+    sending_sms.refresh_from_db()
+    assert sending_sms.result == "sent"
+    assert sending_sms.sms.message_sid == "SM123"
+    assert sending_sms.workflow_state.code == "awaiting"
+    assert message_calls["from_"] == sending_sms.sender.cell.as_e164
+    assert message_calls["to"] == sending_sms.receiver.cell.as_e164
 
 
 @pytest.mark.django_db
-def test_twilio_send_sms_handles_error(settings, monkeypatch, queue_item_sms):
+def test_twilio_send_sms_handles_error(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = None
     settings.TWILIO_AUTH_TOKEN = None
 
@@ -239,21 +245,21 @@ def test_twilio_send_sms_handles_error(settings, monkeypatch, queue_item_sms):
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=FakeMessages())
 
-    handler.send_sms(queue_item_sms)
+    handler.send_sms(sending_sms)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "errored"
-    assert "boom" in queue_item_sms.result
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "errored"
+    assert "boom" in sending_sms.result
 
 
 @pytest.mark.django_db
-def test_twilio_pull_sms_status(settings, monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_status(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.sms.message_sid = "SM001"
-    queue_item_sms.sms.save()
+    sending_sms.fast_transition("await")
+    sending_sms.sms.message_sid = "SM001"
+    sending_sms.sms.save()
 
     message = SimpleNamespace(sid="SM001", status="delivered")
 
@@ -273,22 +279,22 @@ def test_twilio_pull_sms_status(settings, monkeypatch, queue_item_sms):
 
     monkeypatch.setattr(handler, "update_sms_qi", fake_update)
 
-    handler.pull_sms_status(queue_item_sms.queued)
-    assert calls["queue_item"].pk == queue_item_sms.pk
+    handler.pull_sms_status(sending_sms.queued)
+    assert calls["queue_item"].pk == sending_sms.pk
     assert calls["status"] == "delivered"
 
 
 @pytest.mark.django_db
-def test_twilio_pull_sms_timeout_only(settings, monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_timeout_only(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.sms.message_sid = "SM002"
-    queue_item_sms.sms.save()
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.sms.message_sid = "SM002"
+    sending_sms.sms.save()
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
 
     class FakeMessage:
         status = "delivered"
@@ -319,16 +325,16 @@ def test_twilio_pull_sms_timeout_only(settings, monkeypatch, queue_item_sms):
 
 
 @pytest.mark.django_db
-def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch, queue_item_sms):
+def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "Test_Twilio_Account_SID"
     settings.TWILIO_AUTH_TOKEN = "Test_Twilio_Auth_Token"
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.sms.message_sid = "SM003"
-    queue_item_sms.sms.save()
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.sms.message_sid = "SM003"
+    sending_sms.sms.save()
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
 
     class FakeTwilioRestException(Exception):  # noqa:N818
         def __init__(self, msg="err"):
@@ -351,47 +357,47 @@ def test_twilio_pull_sms_timeout_only_handles_fetch_error(settings, monkeypatch,
 
     handler.pull_sms_timeout_only()
 
-    assert triggered["timeout"][0] == queue_item_sms.pk
+    assert triggered["timeout"][0] == sending_sms.pk
     assert triggered["timeout"][1] == 1
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_delivered(queue_item_sms):
-    queue_item_sms.fast_transition("await")
+def test_update_sms_qi_delivered(sending_sms):
+    sending_sms.fast_transition("await")
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=lambda sid: None)
 
-    handler.update_sms_qi(queue_item_sms, "delivered", message=SimpleNamespace(error_code=None, error_message=""))
+    handler.update_sms_qi(sending_sms, "delivered", message=SimpleNamespace(error_code=None, error_message=""))
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.result == ""
-    assert queue_item_sms.workflow_state.code == "succeeded"
+    sending_sms.refresh_from_db()
+    assert sending_sms.result == ""
+    assert sending_sms.workflow_state.code == "succeeded"
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_failure(settings, monkeypatch, queue_item_sms):
+def test_update_sms_qi_failure(settings, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
 
-    queue_item_sms.fast_transition("await")
+    sending_sms.fast_transition("await")
     handler = TwilioQueueItemHandler()
 
-    handler.update_sms_qi(queue_item_sms, "failed")
+    handler.update_sms_qi(sending_sms, "failed")
 
-    assert "SMS Status" in queue_item_sms.result
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "errored"
+    assert "SMS Status" in sending_sms.result
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "errored"
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_timeout(settings, monkeypatch, queue_item_sms):
+def test_update_sms_qi_timeout(settings, monkeypatch, sending_sms):
     settings.TWILIO_ACCOUNT_SID = "sid"
     settings.TWILIO_AUTH_TOKEN = "token"
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
 
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
 
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=lambda sid: None)
@@ -403,24 +409,24 @@ def test_update_sms_qi_timeout(settings, monkeypatch, queue_item_sms):
 
     monkeypatch.setattr("vueda.vdq.handlers.timeout_queue_item", fake_timeout)
 
-    handler.update_sms_qi(queue_item_sms, "sent")
+    handler.update_sms_qi(sending_sms, "sent")
 
-    assert triggered["timeout"][0] == queue_item_sms.pk
-
-
-@pytest.mark.django_db
-def test_timeout_queue_item(queue_item_sms):
-    queue_item_sms.fast_transition("await")
-    timeout_queue_item(queue_item_sms, 2)
-    queue_item_sms.refresh_from_db()
-    assert "Status not received" in queue_item_sms.result
-    assert queue_item_sms.workflow_state.code == "unconfirmed"
+    assert triggered["timeout"][0] == sending_sms.pk
 
 
 @pytest.mark.django_db
-def test_handle_bounce_updates_states(monkeypatch, queue_item_email):
-    sender = queue_item_email.sender
-    receiver = queue_item_email.receiver
+def test_timeout_queue_item(sending_sms):
+    sending_sms.fast_transition("await")
+    timeout_queue_item(sending_sms, 2)
+    sending_sms.refresh_from_db()
+    assert "Status not received" in sending_sms.result
+    assert sending_sms.workflow_state.code == "unconfirmed"
+
+
+@pytest.mark.django_db
+def test_handle_bounce_updates_states(sending_email_without_detail):
+    sender = sending_email_without_detail.sender
+    receiver = sending_email_without_detail.receiver
 
     def make_queue_item(message_id):
         qi = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
@@ -507,24 +513,24 @@ class TagEmailTrackingStrategy(EmailTrackingStrategy):
 
 
 @pytest.mark.django_db
-def test_send_email_carries_the_queue_item_key_in_metadata(settings, queue_item_email):
+def test_send_email_carries_the_queue_item_key_in_metadata(settings, sending_email_without_detail):
     set_email_backend(settings, "anymail.backends.test.EmailBackend")
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
-    assert _anymail_params(mail.outbox[0])["metadata"] == {"vdq_queue_item": str(queue_item_email.pk)}
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == "0"
-    assert queue_item_email.workflow_state.code == "awaiting"
+    assert _anymail_params(mail.outbox[0])["metadata"] == {"vdq_queue_item": str(sending_email_without_detail.pk)}
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == "0"
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
 
 @pytest.mark.django_db
 def test_send_email_sends_once_without_tracking_data_when_the_esp_refuses_it(
-    settings, monkeypatch, caplog, queue_item_email
+    settings, monkeypatch, caplog, sending_email_without_detail
 ):
     set_email_backend(settings, "anymail.backends.test.EmailBackend")
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
 
     def refuse_metadata(self, metadata):
         self.unsupported_feature("metadata")
@@ -532,20 +538,22 @@ def test_send_email_sends_once_without_tracking_data_when_the_esp_refuses_it(
     monkeypatch.setattr("anymail.backends.test.TestPayload.set_metadata", refuse_metadata)
 
     with caplog.at_level(logging.INFO, logger="vueda.vdq.handlers"):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
     assert len(mail.outbox) == 1
     assert "metadata" not in _anymail_params(mail.outbox[0])
     assert "Sending it without tracking data" in caplog.text
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == "0"
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == "0"
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
 
 @pytest.mark.django_db
-def test_send_email_raises_an_unsupported_feature_unrelated_to_tracking_data(settings, monkeypatch, queue_item_email):
+def test_send_email_raises_an_unsupported_feature_unrelated_to_tracking_data(
+    settings, monkeypatch, sending_email_without_detail
+):
     set_email_backend(settings, "anymail.backends.test.EmailBackend")
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
 
     def refuse_reply_to(self, emails):
         self.unsupported_feature("reply_to")
@@ -553,37 +561,37 @@ def test_send_email_raises_an_unsupported_feature_unrelated_to_tracking_data(set
     monkeypatch.setattr("anymail.backends.test.TestPayload.set_reply_to", refuse_reply_to)
 
     with pytest.raises(AnymailUnsupportedFeature):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
     assert mail.outbox == []
 
 
 @pytest.mark.django_db
-def test_send_email_with_the_no_op_strategy_sends_without_tracking_data(settings, caplog, queue_item_email):
+def test_send_email_with_the_no_op_strategy_sends_without_tracking_data(settings, caplog, sending_email_without_detail):
     set_email_backend(settings, "anymail.backends.test.EmailBackend")
     settings.VDQ_EMAIL_TRACKING_STRATEGY = "vueda.vdq.tracking.EmailTrackingStrategy"
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
 
     with caplog.at_level(logging.INFO, logger="vueda.vdq.handlers"):
-        send_email(queue_item_email)
+        send_email(sending_email_without_detail)
 
     assert len(mail.outbox) == 1
     assert "metadata" not in _anymail_params(mail.outbox[0])
     assert "tracking data" not in caplog.text
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
 
 @pytest.mark.django_db
-def test_send_email_uses_a_custom_strategy_from_settings(settings, queue_item_email):
+def test_send_email_uses_a_custom_strategy_from_settings(settings, sending_email_without_detail):
     set_email_backend(settings, "anymail.backends.test.EmailBackend")
     settings.VDQ_EMAIL_TRACKING_STRATEGY = TagEmailTrackingStrategy
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
     params = _anymail_params(mail.outbox[0])
-    assert params["tags"] == [f"vdq-{queue_item_email.pk}"]
+    assert params["tags"] == [f"vdq-{sending_email_without_detail.pk}"]
     assert "metadata" not in params
 
 
@@ -597,17 +605,17 @@ def test_send_email_uses_a_custom_strategy_from_settings(settings, queue_item_em
     ],
 )
 def test_send_email_keeps_the_state_a_tracking_event_set_first(
-    settings, monkeypatch, queue_item_email, event_type, expected_state, expected_result
+    settings, monkeypatch, sending_email_without_detail, event_type, expected_state, expected_result
 ):
     """A tracking event that arrives before the message ID is stored applies, and the send keeps its result."""
     set_email_backend(settings, "django.core.mail.backends.locmem.EmailBackend")
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
     event = SimpleNamespace(
         message_id="mid-race",
         event_type=event_type,
         esp_event={},
         reject_reason="denied",
-        metadata={"vdq_queue_item": str(queue_item_email.pk)},
+        metadata={"vdq_queue_item": str(sending_email_without_detail.pk)},
     )
 
     def fake_send(self, *args, **kwargs):
@@ -617,16 +625,16 @@ def test_send_email_keeps_the_state_a_tracking_event_set_first(
 
     monkeypatch.setattr("django.core.mail.EmailMultiAlternatives.send", fake_send)
 
-    send_email(queue_item_email)
+    send_email(sending_email_without_detail)
 
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == "mid-race"
-    assert queue_item_email.workflow_state.code == expected_state
-    assert queue_item_email.result == expected_result
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == "mid-race"
+    assert sending_email_without_detail.workflow_state.code == expected_state
+    assert sending_email_without_detail.result == expected_result
 
 
 @pytest.mark.django_db
-def test_twilio_send_sms_adds_the_queue_item_key_to_the_status_callback(settings, queue_item_sms):
+def test_twilio_send_sms_adds_the_queue_item_key_to_the_status_callback(settings, sending_sms):
     settings.TWILIO_ACCOUNT_SID = None
     settings.TWILIO_AUTH_TOKEN = None
     settings.TWILIO_WEBHOOK_URL = "https://example.com/vueda.vdq/twilio-status-callback/?env=test"
@@ -641,10 +649,10 @@ def test_twilio_send_sms_adds_the_queue_item_key_to_the_status_callback(settings
     handler = TwilioQueueItemHandler()
     handler.twilio_client = SimpleNamespace(messages=FakeMessages())
 
-    handler.send_sms(queue_item_sms)
+    handler.send_sms(sending_sms)
 
     assert message_calls["status_callback"] == (
-        f"https://example.com/vueda.vdq/twilio-status-callback/?env=test&queue_item={queue_item_sms.pk}"
+        f"https://example.com/vueda.vdq/twilio-status-callback/?env=test&queue_item={sending_sms.pk}"
     )
 
 
@@ -663,7 +671,7 @@ def test_twilio_status_callback_url_replaces_an_existing_key():
     ],
 )
 def test_twilio_send_sms_keeps_the_state_a_status_callback_set_first(
-    settings, queue_item_sms, message_status, expected_state, expected_result
+    settings, sending_sms, message_status, expected_state, expected_result
 ):
     """A status callback that arrives before the SID is stored applies, and the send keeps its result."""
     settings.TWILIO_ACCOUNT_SID = None
@@ -672,7 +680,7 @@ def test_twilio_send_sms_keeps_the_state_a_status_callback_set_first(
 
     class FakeMessages:
         def create(self, **kwargs):
-            callback_item = QueueItem.objects.select_related("sms").get(pk=queue_item_sms.pk)
+            callback_item = QueueItem.objects.select_related("sms").get(pk=sending_sms.pk)
             callback_item.sms.message_sid = "SM123"
             callback_item.sms.save(update_fields=["message_sid"])
             handler.update_sms_qi(callback_item, message_status, webhook=True)
@@ -680,77 +688,73 @@ def test_twilio_send_sms_keeps_the_state_a_status_callback_set_first(
 
     handler.twilio_client = SimpleNamespace(messages=FakeMessages())
 
-    handler.send_sms(queue_item_sms)
+    handler.send_sms(sending_sms)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.sms.message_sid == "SM123"
-    assert queue_item_sms.workflow_state.code == expected_state
-    assert queue_item_sms.result.startswith(expected_result)
-    assert "queued" not in queue_item_sms.result
+    sending_sms.refresh_from_db()
+    assert sending_sms.sms.message_sid == "SM123"
+    assert sending_sms.workflow_state.code == expected_state
+    assert sending_sms.result.startswith(expected_result)
+    assert "queued" not in sending_sms.result
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("message_status", ["queued", "sending", "sent"])
-def test_update_sms_qi_moves_a_sending_item_to_awaiting_on_an_in_flight_status(
-    settings, queue_item_sms, message_status
-):
+def test_update_sms_qi_moves_a_sending_item_to_awaiting_on_an_in_flight_status(settings, sending_sms, message_status):
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
     handler = TwilioQueueItemHandler()
 
-    handler.update_sms_qi(queue_item_sms, message_status, webhook=True)
+    handler.update_sms_qi(sending_sms, message_status, webhook=True)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "awaiting"
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "awaiting"
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("message_status", ["accepted", "canceled", "read", "partially_delivered"])
 def test_update_sms_qi_times_out_an_awaiting_item_on_a_status_vdq_does_not_handle(
-    settings, monkeypatch, queue_item_sms, message_status
+    settings, monkeypatch, sending_sms, message_status
 ):
     """An item past the window times out on any status that is neither delivered nor failed."""
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
-    queue_item_sms.fast_transition("await")
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.fast_transition("await")
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
     handler = TwilioQueueItemHandler()
 
-    handler.update_sms_qi(queue_item_sms, message_status, webhook=True)
+    handler.update_sms_qi(sending_sms, message_status, webhook=True)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "unconfirmed"
-    assert "Status not received" in queue_item_sms.result
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "unconfirmed"
+    assert "Status not received" in sending_sms.result
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_leaves_an_awaiting_item_inside_the_window_on_a_status_vdq_does_not_handle(
-    settings, queue_item_sms
-):
+def test_update_sms_qi_leaves_an_awaiting_item_inside_the_window_on_a_status_vdq_does_not_handle(settings, sending_sms):
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
-    queue_item_sms.fast_transition("await")
+    sending_sms.fast_transition("await")
     handler = TwilioQueueItemHandler()
 
-    handler.update_sms_qi(queue_item_sms, "accepted", webhook=True)
+    handler.update_sms_qi(sending_sms, "accepted", webhook=True)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "awaiting"
-    assert queue_item_sms.result == ""
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "awaiting"
+    assert sending_sms.result == ""
 
 
 @pytest.mark.django_db
-def test_update_sms_qi_ignores_a_status_vdq_does_not_handle(settings, queue_item_sms):
+def test_update_sms_qi_ignores_a_status_vdq_does_not_handle(settings, sending_sms):
     settings.VDQ_TWILIO_SMS_TIMEOUT_HOURS = 1
-    queue_item_sms.done_since = timezone.now() - timedelta(hours=3)
-    queue_item_sms.save(update_fields=["done_since"])
+    sending_sms.done_since = timezone.now() - timedelta(hours=3)
+    sending_sms.save(update_fields=["done_since"])
     handler = TwilioQueueItemHandler()
 
-    handler.update_sms_qi(queue_item_sms, "partially_delivered", webhook=True)
+    handler.update_sms_qi(sending_sms, "partially_delivered", webhook=True)
 
-    queue_item_sms.refresh_from_db()
-    assert queue_item_sms.workflow_state.code == "sending"
-    assert queue_item_sms.result == ""
+    sending_sms.refresh_from_db()
+    assert sending_sms.workflow_state.code == "sending"
+    assert sending_sms.result == ""
 
 
 @pytest.mark.django_db
@@ -766,89 +770,93 @@ def test_update_sms_qi_ignores_a_status_vdq_does_not_handle(settings, queue_item
     ],
 )
 def test_handle_bounce_finds_a_sending_item_by_metadata_and_stores_the_message_id(
-    queue_item_email, event_type, expected_state
+    sending_email_without_detail, event_type, expected_state
 ):
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
     event = SimpleNamespace(
         message_id="mid-new",
         event_type=event_type,
         esp_event={},
         reject_reason="denied",
-        metadata={"vdq_queue_item": str(queue_item_email.pk)},
+        metadata={"vdq_queue_item": str(sending_email_without_detail.pk)},
     )
 
     handle_bounce(None, event, "esp")
 
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == "mid-new"
-    assert queue_item_email.workflow_state.code == expected_state
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == "mid-new"
+    assert sending_email_without_detail.workflow_state.code == expected_state
 
 
 @pytest.mark.django_db
-def test_handle_bounce_ignores_metadata_that_names_an_item_with_another_message_id(caplog, queue_item_email):
+def test_handle_bounce_ignores_metadata_that_names_an_item_with_another_message_id(
+    caplog, sending_email_without_detail
+):
     AnyMailQueueItem.objects.create(
-        queue_item=queue_item_email, subject="Subject", text="Plain text", message_id="mid-a"
+        queue_item=sending_email_without_detail, subject="Subject", text="Plain text", message_id="mid-a"
     )
-    queue_item_email.fast_transition("await")
+    sending_email_without_detail.fast_transition("await")
     event = SimpleNamespace(
         message_id="mid-b",
         event_type="delivered",
         esp_event={},
-        metadata={"vdq_queue_item": str(queue_item_email.pk)},
+        metadata={"vdq_queue_item": str(sending_email_without_detail.pk)},
     )
 
     with caplog.at_level(logging.WARNING):
         handle_bounce(None, event, "esp")
 
     assert "which stores message_id=mid-a" in caplog.text
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == "mid-a"
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == "mid-a"
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
 
 @pytest.mark.django_db
-def test_handle_bounce_drops_an_event_whose_metadata_finds_no_item(caplog, queue_item_email):
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+def test_handle_bounce_drops_an_event_whose_metadata_finds_no_item(caplog, sending_email_without_detail):
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
     event = SimpleNamespace(
         message_id="mid-orphan",
         event_type="delivered",
         esp_event={},
-        metadata={"vdq_queue_item": str(queue_item_email.pk + 1000)},
+        metadata={"vdq_queue_item": str(sending_email_without_detail.pk + 1000)},
     )
 
     with caplog.at_level(logging.WARNING):
         handle_bounce(None, event, "esp")
 
     assert "unknown message_id=mid-orphan" in caplog.text
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == ""
-    assert queue_item_email.workflow_state.code == "sending"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == ""
+    assert sending_email_without_detail.workflow_state.code == "sending"
 
 
 @pytest.mark.django_db
-def test_handle_bounce_does_not_match_an_item_by_an_empty_message_id(caplog, queue_item_email):
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
+def test_handle_bounce_does_not_match_an_item_by_an_empty_message_id(caplog, sending_email_without_detail):
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
     event = SimpleNamespace(message_id="", event_type="delivered", esp_event={}, metadata={})
 
     with caplog.at_level(logging.WARNING):
         handle_bounce(None, event, "esp")
 
     assert "Tracking event" in caplog.text
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "sending"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "sending"
 
 
 @pytest.mark.django_db
-def test_handle_bounce_uses_a_custom_strategy_and_still_checks_the_message_id(settings, caplog, queue_item_email):
+def test_handle_bounce_uses_a_custom_strategy_and_still_checks_the_message_id(
+    settings, caplog, sending_email_without_detail
+):
     settings.VDQ_EMAIL_TRACKING_STRATEGY = f"{__name__}.TagEmailTrackingStrategy"
-    AnyMailQueueItem.objects.create(queue_item=queue_item_email, subject="Subject", text="Plain text")
-    tags = [f"vdq-{queue_item_email.pk}"]
+    AnyMailQueueItem.objects.create(queue_item=sending_email_without_detail, subject="Subject", text="Plain text")
+    tags = [f"vdq-{sending_email_without_detail.pk}"]
 
     handle_bounce(None, SimpleNamespace(message_id="mid-tag", event_type="sent", esp_event={}, tags=tags), "esp")
 
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.anymail.message_id == "mid-tag"
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.anymail.message_id == "mid-tag"
+    assert sending_email_without_detail.workflow_state.code == "awaiting"
 
     with caplog.at_level(logging.WARNING):
         handle_bounce(
@@ -856,5 +864,5 @@ def test_handle_bounce_uses_a_custom_strategy_and_still_checks_the_message_id(se
         )
 
     assert "which stores message_id=mid-tag" in caplog.text
-    queue_item_email.refresh_from_db()
-    assert queue_item_email.workflow_state.code == "awaiting"
+    sending_email_without_detail.refresh_from_db()
+    assert sending_email_without_detail.workflow_state.code == "awaiting"

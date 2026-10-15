@@ -301,6 +301,35 @@ class FilterSetChoicesRequestMixin:
 class BaseModelInfoFilterSetChoices(FilterSetChoicesRequestMixin):
     """The request fixtures plus the checks every group's choices share."""
 
+    @staticmethod
+    def assert_choice_value_contract(response_data, expected_choices, context):
+        """
+        Filter-choice responses always include a serialized `value` field.
+        The serializer contract is CharField, so runtime values are expected as strings.
+        """
+        response_values_by_label = {result["label"]: result["value"] for result in response_data["results"]}
+        for expected_choice in expected_choices:
+            label = expected_choice["label"]
+            msg = f"{context} -> label={label!r}"
+            assert label in response_values_by_label, msg
+
+            response_value = response_values_by_label[label]
+            assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
+
+            if "value" in expected_choice:
+                assert response_value == expected_choice["value"], (
+                    f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
+                )
+
+
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesPermissionNamesMapping(FilterSetChoicesRequestMixin):
+    """The choices endpoint checks permissions named by PERMISSION_NAMES_MAPPING as it stands per request.
+
+    The test creates its own users with the permissions it needs, so it needs neither the admin nor the
+    customer test data, and runs once rather than once per subclass.
+    """
+
     def test_filter_choices_reads_permission_names_mapping_at_call_time(self, settings, api_client):
         # ModelInfoFilterSetChoicesViewSet.get_queryset previously closed over
         # PERMISSION_NAMES_MAPPING at import (vueda/info/viewsets.py), so overriding "read"/"list"
@@ -359,26 +388,6 @@ class BaseModelInfoFilterSetChoices(FilterSetChoicesRequestMixin):
         # longer satisfy the check once the override maps "read"/"list" to mutated names.
         assert stale_permission_response.status_code == HTTPStatus.FORBIDDEN, response_body(stale_permission_response)
         assert mutated_permission_response.status_code == HTTPStatus.OK, response_body(mutated_permission_response)
-
-    @staticmethod
-    def assert_choice_value_contract(response_data, expected_choices, context):
-        """
-        Filter-choice responses always include a serialized `value` field.
-        The serializer contract is CharField, so runtime values are expected as strings.
-        """
-        response_values_by_label = {result["label"]: result["value"] for result in response_data["results"]}
-        for expected_choice in expected_choices:
-            label = expected_choice["label"]
-            msg = f"{context} -> label={label!r}"
-            assert label in response_values_by_label, msg
-
-            response_value = response_values_by_label[label]
-            assert isinstance(response_value, str), f"{msg} -> value should be str, got {type(response_value).__name__}"
-
-            if "value" in expected_choice:
-                assert response_value == expected_choice["value"], (
-                    f"{msg} -> expected value={expected_choice['value']!r}, got {response_value!r}"
-                )
 
 
 @pytest.mark.django_db
@@ -627,7 +636,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         )
 
     def test_distributor_choices_filtered_by_quantity_of_ten(self, authenticated_client):
-        """quantity=3 matches only the one T-Shirt product, so only that distributor appears."""
+        """quantity=10 narrows the distributor choices to T-Shirt Corp. and Vibrant Looks Inc."""
         register_model("store", "product")
 
         response = authenticated_client.get(
@@ -639,7 +648,7 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
         assert response.status_code == HTTPStatus.OK, response_body(response)
         result_labels = frozenset(r["label"] for r in response.data["results"])
         assert result_labels == frozenset({"T-Shirt Corp.", "Vibrant Looks Inc."}), (
-            f"Expected distributor choices filtered to shirt-product distributor only, got: {result_labels}"
+            f"Expected distributor choices narrowed to T-Shirt Corp. and Vibrant Looks Inc., got: {result_labels}"
         )
 
     def test_special_care_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
@@ -662,10 +671,10 @@ class TestModelInfoFilterSetChoicesQueryParamFiltering(BaseModelInfoFilterSetCho
             f"Expected special_care choices filtered to cookie-product values only, got: {result_labels}"
         )
 
-    def test_tangible_type_choices_filtered_by_tangible_type_digital(self, authenticated_client):
+    def test_tangible_type_choices_filtered_by_name_icontains_cookies(self, authenticated_client):
         """name_icontains=cookies narrows tangible_type choices (queryset path) to only those used by cookie products.
 
-        All cookie products are Physical; Digital is not used by any product, so it should be absent.
+        Every cookie product is Physical, so Digital, which only non-cookie products use, is absent.
         """
         register_model("store", "product")
 
@@ -913,6 +922,191 @@ class TestModelInfoFiltersetChoicesRowRules(FilterSetChoicesRequestMixin):
         self.get_choice_labels(authenticated_client, "product", "tangible_type")
 
         assert sorted(calls) == [("store.list_product", "list"), ("store.list_tangibletype", "list")]
+
+
+class ProductWithoutCookiesViewSet(store_viewsets.ProductViewSet):
+    """Lists every product except the two cookie products, which are all that Tasty Treats Assoc. distributes."""
+
+    def get_queryset(self):
+        return super().get_queryset().exclude(name__icontains="cookies")
+
+
+class ProductDistributorAllValuesWithoutCookiesViewSet(ProductWithoutCookiesViewSet):
+    filterset_class = ProductDistributorAllValuesFilterSet
+
+
+class ProductWithoutDigitalViewSet(store_viewsets.ProductViewSet):
+    """Lists every product except the two music releases, which are the only digital products."""
+
+    def get_queryset(self):
+        return super().get_queryset().exclude(tangible_type__code="digital")
+
+
+class ProductRecordingViewSet(store_viewsets.ProductViewSet):
+    """Records the state that each ``get_queryset()`` call sees on the viewset instance."""
+
+    seen: ClassVar[list] = []
+
+    def get_queryset(self):
+        self.seen.append(
+            {
+                "request": self.request,
+                "action": self.action,
+                "detail": self.detail,
+                "args": self.args,
+                "kwargs": self.kwargs,
+            }
+        )
+        return super().get_queryset()
+
+
+class ProductUnreadQuerysetViewSet(store_viewsets.ProductViewSet):
+    """Fails any request that builds its queryset."""
+
+    def get_queryset(self):
+        raise AssertionError("static choices read no rows")
+
+
+@pytest.mark.django_db
+class TestModelInfoFiltersetChoicesViewSetQueryset(FilterSetChoicesRequestMixin):
+    """
+    Dynamic choices come from the rows that the registered viewset's ``get_queryset()`` returns for a
+    ``list`` request, narrowed by the row rules and the other active filters.
+
+    The admin holds every model-level permission these cases consult, so a missing choice can only
+    come from the viewset's queryset or from a row rule that a case installs.
+    """
+
+    test_data_class = AdminTestData
+    user_email = "test_admin@domain.invalid"
+
+    @staticmethod
+    def register_product(viewset):
+        info.registration.get_empty_registry()
+        info.register(store_serializers.ProductSerializer, viewset)
+
+    @pytest.mark.parametrize(
+        "viewset",
+        [ProductWithoutCookiesViewSet, ProductDistributorAllValuesWithoutCookiesViewSet],
+        ids=["AllValuesMultipleFilter", "AllValuesFilter"],
+    )
+    def test_value_choices_omit_values_found_only_on_rows_the_viewset_excludes(self, authenticated_client, viewset):
+        self.register_product(viewset)
+
+        labels = self.get_choice_labels(authenticated_client, "product", "distributor")
+
+        assert labels == frozenset({"Awesome Music Co.", "T-Shirt Corp.", "Vibrant Looks Inc."})
+
+    def test_model_choices_omit_a_related_row_referenced_only_by_rows_the_viewset_excludes(self, authenticated_client):
+        """Only the music releases are digital. The Digital row still exists, but no listed product references it."""
+        self.register_product(ProductWithoutDigitalViewSet)
+
+        labels = self.get_choice_labels(authenticated_client, "product", "tangible_type")
+
+        assert labels == frozenset({"Physical"})
+        assert store_models.TangibleType.objects.filter(code="digital").exists()
+
+    def test_multiple_model_choices_omit_related_rows_referenced_only_by_rows_the_viewset_excludes(
+        self, authenticated_client
+    ):
+        """The cookies carry Perishable, Temperature Controlled, and Fragile. The paints carry Dangerous."""
+        self.register_product(ProductWithoutCookiesViewSet)
+
+        labels = self.get_choice_labels(authenticated_client, "product", "special_care")
+
+        assert labels == frozenset({"Dangerous"})
+
+    def test_main_model_row_rules_and_other_filters_narrow_the_viewset_rows(
+        self, authenticated_client, test_data, monkeypatch
+    ):
+        """
+        The viewset drops Tasty Treats Assoc., the row rule drops Vibrant Looks Inc. (the paints), and
+        the tangible type filter drops Awesome Music Co. (the digital releases).
+        """
+        self.register_product(ProductWithoutCookiesViewSet)
+        hide_rows(monkeypatch, store_models.Product, Q(name__icontains="paint"))
+
+        labels = self.get_choice_labels(
+            authenticated_client, "product", "distributor", tangible_type=test_data.tangible_type["physical"].pk
+        )
+
+        assert labels == frozenset({"T-Shirt Corp."})
+
+    def test_related_model_row_rules_narrow_the_related_rows_of_the_viewset_rows(
+        self, authenticated_client, monkeypatch
+    ):
+        """The listed products reference only Dangerous. Hiding that row leaves no choice."""
+        self.register_product(ProductWithoutCookiesViewSet)
+        hide_rows(monkeypatch, store_models.SpecialCare, Q(code="dangerous"))
+
+        labels = self.get_choice_labels(authenticated_client, "product", "special_care")
+
+        assert labels == frozenset()
+
+    @pytest.mark.parametrize("filter_name", ["distributor", "tangible_type"])
+    def test_viewset_get_queryset_runs_as_a_list_request(
+        self, authenticated_client, test_data, monkeypatch, filter_name
+    ):
+        self.register_product(ProductRecordingViewSet)
+        seen = []
+        monkeypatch.setattr(ProductRecordingViewSet, "seen", seen)
+
+        self.get_choice_labels(authenticated_client, "product", filter_name, name_icontains="shirt")
+
+        assert len(seen) == 1
+        state = seen[0]
+        assert state["action"] == "list"
+        assert state["detail"] is False
+        assert state["args"] == ()
+        assert state["kwargs"] == {}
+        assert state["request"].user == test_data.users[self.user_email]
+        assert state["request"].query_params["name_icontains"] == "shirt"
+
+    @pytest.mark.parametrize(
+        ("filter_name", "expected"),
+        [
+            ("disabled", frozenset({"Yes", "No"})),
+            ("condition", frozenset({"New", "Like New", "Refurbished", "Used"})),
+        ],
+    )
+    def test_static_choices_do_not_build_the_viewset_queryset(self, authenticated_client, filter_name, expected):
+        self.register_product(ProductUnreadQuerysetViewSet)
+
+        labels = self.get_choice_labels(authenticated_client, "product", filter_name)
+
+        assert labels == expected
+
+    @pytest.mark.parametrize("filter_name", ["distributor", "tangible_type", "special_care"])
+    def test_query_count_does_not_grow_with_row_count(self, authenticated_client, test_data, filter_name):
+        self.register_product(ProductWithoutCookiesViewSet)
+        url = reverse("info.model_info_filterset_choices-list", args=("store", "product", filter_name))
+
+        # The first request for a user fills that user's permission cache, a one-time cost that
+        # would otherwise land on whichever row count runs first.
+        warm_up_response = authenticated_client.get(url, format="json")
+        assert warm_up_response.status_code == HTTPStatus.OK, response_body(warm_up_response)
+
+        counts = {}
+        for row_count in (2, 10):
+            for i in range(row_count):
+                distributor = store_models.Distributor.objects.create(
+                    name=f"Distributor {row_count}-{i}", description="Distributor"
+                )
+                product = store_models.Product.objects.create(
+                    distributor=distributor,
+                    name=f"Product {row_count}-{i}",
+                    order_between=(1, 10),
+                    tangible_type=test_data.tangible_type["physical"],
+                )
+                product.special_care.add(test_data.special_care["fragile"])
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(url, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"filterset choices query count grows with row count: {counts}"
 
 
 class WorkflowChoicesTestData(BaseTestUserMixin, BaseTestGroupMixin):

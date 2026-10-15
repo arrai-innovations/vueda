@@ -548,8 +548,8 @@ class VuedaSearchFilterBackend(SearchFilter):
     """
     Custom search filter that supports trigram and word similarity. Use the prefix `#`
     to indicate that the search term in `search_fields` should use trigram
-    similarity comparison, and `~` for word similarity. The similarity threshold can be set on the ViewSet
-    as `similarity_threshold`.
+    similarity comparison, and `~` for word similarity. PostgreSQL's `pg_trgm.similarity_threshold`
+    and `pg_trgm.word_similarity_threshold` settings decide which values match.
 
     A search field that reaches through a multi-valued relation matches inside a subquery built from
     the view's search queryset: the queryset its `get_search_queryset()` returns, or the model's
@@ -568,11 +568,6 @@ class VuedaSearchFilterBackend(SearchFilter):
     }
 
     search_threshold = 0.2
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if "similarity_threshold" in kwargs:
-            self.similarity_threshold = kwargs["similarity_threshold"]
 
     def construct_search(self, field_name, queryset):
         """
@@ -628,7 +623,7 @@ class VuedaSearchFilterBackend(SearchFilter):
         unified 'combined_rank' annotation.
 
         1. Parse search fields and terms using DRF's SearchFilter behavior.
-        2. Separate VUEDA-prefixed fields (ranked fields (`V:`) and trigram similar fields (`#`)) from standard deterministic lookups.
+        2. Separate VUEDA-prefixed fields (ranked fields (`V:`), trigram similar fields (`#`), and word similar fields (`~`)) from standard deterministic lookups.
         3. For ranked fields: annotate rank components (full-text, trigram, word-boundary matches).
         4. For trigram similar fields: combine all terms into one and filter DRF-style (OR across fields).
         5. For deterministic lookups: filter (OR across fields, AND across terms) and boost rank.
