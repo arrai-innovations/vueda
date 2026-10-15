@@ -221,6 +221,24 @@ class CartOrderingRelatedFormattedNameViewSet(CartViewSet):
     ordering = [Lower("customer__formatted_name")]
 
 
+class CartOrderingRelatedFormattedNameTransformViewSet(CartViewSet):
+    """Offers `customer__formatted_name__lower` through `ordering_fields`: a transform after the
+    formatted name of a related model.
+
+    Customer reaches its formatted name through `formatted_name_lookup_expression =
+    "data__formatted_name"`, so `VuedaOrderingFilter` rewrites the path to
+    `customer__data__formatted_name__lower` and keeps the transform. Without the rewrite the request
+    fails with `FieldError`, because the `formatted_name` annotation belongs to Customer's querysets,
+    not to the Cart query that joins Customer.
+
+    Django has no `lower` transform until a project registers one, so the tests register `Lower` on
+    `CharField` around each request. The default `ordering` is `id`, so the rows come back in a
+    different order unless the request sorts by the transformed name."""
+
+    ordering = ["id"]
+    ordering_fields = ["customer__formatted_name__lower"]
+
+
 class CartOrderingMultiValuedFormattedNameViewSet(CartViewSet):
     """Offers formatted_name across a reverse foreign key (`cart_items__formatted_name`).
 
@@ -236,6 +254,13 @@ class CartRelatedFormattedNameFilterViewSet(CartViewSet):
     rewriting can be exercised on the filtering side."""
 
     filterset_class = my_filtersets.CartRelatedFormattedNameFilterSet
+
+
+class CartFormattedNameTransformFilterViewSet(CartViewSet):
+    """Swaps in a filterset whose filter applies a transform after a related model's formatted_name,
+    so the path rewriting is exercised with the transform kept on the rewritten path."""
+
+    filterset_class = my_filtersets.CartFormattedNameTransformFilterSet
 
 
 class CartEmptyFilterSetViewSet(CartViewSet):

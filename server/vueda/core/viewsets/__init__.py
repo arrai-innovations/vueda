@@ -23,18 +23,16 @@ import datetime
 import warnings
 import weakref
 from collections.abc import Iterable
-from functools import cache
 
 import pghistory
 from django.conf import settings
-from django.contrib.admin.utils import NotRelationField
-from django.contrib.admin.utils import get_fields_from_path
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
+from django.db.models import F
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
@@ -59,6 +57,8 @@ from vueda.core.exceptions import gate_warnings
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.parsers import NestedMultipartMixin
+from vueda.core.paths import path_annotation_name
+from vueda.core.paths import query_path_field
 from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
@@ -80,40 +80,45 @@ from vueda.history.serializers.actions import HistoryActionGroupSerializer
 COLUMN_TOTAL_ZEROES = {"DurationField": datetime.timedelta(0)}
 
 
-@cache
 def _column_total_zero(model, path):
     """
-    The zero to total ``path`` down to when nothing matched, cached per model and path.
+    The zero to total ``path`` down to when nothing matched.
 
-    Resolving the leaf field is `_meta` walking rather than a query, and `column_totals` is declared
-    on the class, so the answer never changes for a given pair and is worked out once per process.
+    Resolving the path builds an empty ``Query`` and walks ``_meta`` without running a query, so it
+    is cheap enough to do on each request that asks for the total. It is not cached, because a path
+    that ends in a transform depends on Django's lookup registry, which ``register_lookup`` can
+    change after the first request.
 
     A path that doesn't resolve gets the numeric zero, which is never used: ``aggregate()`` raises
     ``FieldError`` for it on the same call, and ``vueda_info.E013`` reports it at check time. A path
-    naming a queryset annotation is the exception -- it resolves against the query rather than
-    ``_meta``, so :func:`_column_total_zero_for` handles that one before this is reached.
+    that starts with a queryset annotation resolves against the query rather than ``_meta``, so
+    :func:`_column_total_annotation_zero` handles it instead.
     """
     try:
-        field = get_fields_from_path(model, path)[-1]
-    except (FieldDoesNotExist, NotRelationField):
+        # A path that ends in a transform resolves to the transform's output field, so `hours__ceil`
+        # totals down to the zero of what the transform returns.
+        field = query_path_field(model, path)
+    except FieldDoesNotExist:
         return 0
     return COLUMN_TOTAL_ZEROES.get(field.get_internal_type(), 0)
 
 
-def _column_total_zero_for(model, path, annotation):
+def _column_total_annotation_zero(annotation):
     """
-    The zero for ``path``, reading ``annotation``'s own output field when the path names one.
+    The zero for a total over ``annotation``, read from the annotation's output field.
 
-    A queryset annotation has no entry in ``_meta`` to walk to, so the cached lookup above would
-    fall back to the numeric zero for it -- wrong for an annotation that computes a duration, where
-    the database is handed a plain ``0`` as an interval. The annotation carries the type itself.
+    A queryset annotation has no entry in ``_meta`` to walk to, so the lookup above would fall back
+    to the numeric zero for it -- wrong for an annotation that computes a duration, where
+    the database is handed a plain ``0`` as an interval. The annotation carries the type itself. A
+    total that applies transforms to an annotation, such as ``launched__year``, is summed over a
+    generated annotation of the transformed value, which carries the output field of its last
+    transform.
 
-    Not cached, because the annotation belongs to a queryset rather than to the class. An expression
-    that can't name a single output field (mixed types, which Django refuses to guess at) falls back
-    to the numeric zero, and the aggregate raises for it on the same call the way it always did.
+    ``annotation`` is the expression the query already resolved, so reading its type builds nothing.
+    An expression that can't name a single output field (mixed types, which Django refuses to guess
+    at) falls back to the numeric zero, and the aggregate raises for it on the same call the way it
+    always did.
     """
-    if annotation is None:
-        return _column_total_zero(model, path)
     try:
         internal_type = annotation.output_field.get_internal_type()
     except (FieldError, AttributeError):
@@ -426,8 +431,14 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         declared = self.get_declared_column_totals()
         model = queryset.model
         annotations = queryset.query.annotations
-        column_names = [name for name in requested_column_totals if declared[name] not in annotations]
-        annotation_names = [name for name in requested_column_totals if declared[name] in annotations]
+        # A path that starts with an annotation is an annotation total, whether it names the annotation
+        # itself or applies transforms to it (`launched__year`). Django resolves the first segment
+        # against the annotations, which exist only on this queryset, not on the re-selection below.
+        starts_with_annotation = {
+            name: path_annotation_name(annotations, declared[name]) is not None for name in requested_column_totals
+        }
+        annotation_names = [name for name in requested_column_totals if starts_with_annotation[name]]
+        column_names = [name for name in requested_column_totals if not starts_with_annotation[name]]
         # Every total is aggregated under a generated alias and mapped back to its own name below.
         # A total is normally named after what it sums, so `{"line_total": "line_total"}` is the
         # ordinary spelling, and two totals may sum the same field. Either way a total's own name
@@ -449,7 +460,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         distinct_fields = queryset.query.distinct_fields
         pk_names = {"pk", model._meta.pk.name, model._meta.pk.attname}
         if distinct_fields and pk_names.isdisjoint(distinct_fields):
-            masked = [field for field in distinct_fields if field.split("__")[0] in annotations]
+            masked = [field for field in distinct_fields if path_annotation_name(annotations, field) is not None]
             if masked:
                 raise NotImplementedError(
                     f"{type(self).__name__} cannot compute column totals over a queryset that selects "
@@ -499,15 +510,30 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             rows = queryset.order_by().distinct()
             if selects_one_per_group:
                 rows = rows.filter(pk__in=matched_pks)
-            paths = list(dict.fromkeys(declared[name] for name in annotation_names))
+            # A path that applies transforms to an annotation (`launched__year`) is annotated under a
+            # generated name first, and that name is selected and summed. Summing the path itself
+            # would make Django rebuild the annotation's expression in the outer query, which breaks
+            # for an aggregate or a `Subquery` annotation. A plain name that `.alias()` added goes the
+            # same way, because `values()` refuses to select an alias. The generated name extends the
+            # alias of the first total that names the path, whose prefix no annotation starts with,
+            # so neither can shadow the other. Two totals over the same path share one generated name.
+            selected = queryset.query.annotation_select
+            transformed = {}
+            for name in annotation_names:
+                path = declared[name]
+                if path not in selected and path not in transformed:
+                    transformed[path] = f"{aliases[name]}_value"
+            if transformed:
+                rows = rows.annotate(**{alias: F(path) for path, alias in transformed.items()})
+            summed = {name: transformed.get(declared[name], declared[name]) for name in annotation_names}
             aggregated = (
-                rows.values("pk", *paths)
+                rows.values("pk", *dict.fromkeys(summed.values()))
                 .distinct()
                 .aggregate(
                     **{
                         aliases[name]: Sum(
-                            declared[name],
-                            default=_column_total_zero_for(model, declared[name], annotations[declared[name]]),
+                            summed[name],
+                            default=_column_total_annotation_zero(rows.query.annotations[summed[name]]),
                         )
                         for name in annotation_names
                     }

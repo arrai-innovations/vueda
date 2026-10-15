@@ -1,15 +1,19 @@
 from django.db.models import F
 from django.db.models.functions import Coalesce
+from django.db.models.functions import Length
 
+from tests.product.filtersets import LookupFormattedNameTransformFilterSet
 from tests.product.filtersets import ProductFilterSet
 from tests.product.models import Product
 from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.product.models import ProductModelOrderingPK
+from tests.product.models import ProductRelease
 from tests.product.serializers import ProductModelOrderingFormattedNameSerializer
 from tests.product.serializers import ProductModelOrderingLookupFormattedNameSerializer
 from tests.product.serializers import ProductModelOrderingPKSerializer
 from tests.product.serializers import ProductPropertyFieldSerializer
+from tests.product.serializers import ProductReleaseSerializer
 from tests.product.serializers import ProductRenamedFieldSerializer
 from tests.product.serializers import ProductSerializer
 from tests.product.serializers import ProductSourceFieldSerializer
@@ -67,6 +71,15 @@ class ProductModelOrderingLookupFormattedNameViewSet(VuedaViewSet):
 
     queryset = ProductModelOrderingLookupFormattedName.objects.all()
     serializer_class = ProductModelOrderingLookupFormattedNameSerializer
+
+
+class ProductModelOrderingLookupFormattedNameFilterViewSet(VuedaViewSet):
+    """Adds a filter on `formatted_name__lower` to ProductModelOrderingLookupFormattedName, whose
+    formatted name comes from `formatted_name_lookup_expression = "label"`."""
+
+    queryset = ProductModelOrderingLookupFormattedName.objects.all()
+    serializer_class = ProductModelOrderingLookupFormattedNameSerializer
+    filterset_class = LookupFormattedNameTransformFilterSet
 
 
 class ProductModelOrderingFormattedNameViewSet(VuedaViewSet):
@@ -251,6 +264,259 @@ class ProductOrderingUnreadableFieldsEntryViewSet(ProductOrderingViewSet):
     way and taking the metadata endpoint down with a declaration it only has to describe."""
 
     ordering_fields = ["name", 7]
+
+
+class ProductReleaseTransformDefaultViewSet(VuedaViewSet):
+    """Declares a default `ordering` whose terms end in transforms, and an empty `ordering_fields`.
+
+    Django accepts both terms in `order_by()`, so the system checks pass and `model_ordering.default`
+    reports them under their dotted names."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering = ["released__year", "-released__month"]
+    ordering_fields = []
+
+
+class ProductReleaseTransformFieldsViewSet(VuedaViewSet):
+    """Offers three paths that end in transforms through `ordering_fields`: a single transform, a
+    chain of two (`released__date__year`), and a key on a `JSONField` (`specs__rank`).
+
+    The default `ordering` is `name`, so a request for `?o=released.year` can only be explained by the
+    year if the rows come back in a different order."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering = ["name"]
+    ordering_fields = ["released__year", "released__date__year", "specs__rank"]
+
+
+class ProductReleaseMisspelledTransformViewSet(VuedaViewSet):
+    """Offers `released__yaer` through `ordering_fields`. `yaer` is no transform that Django holds for
+    a `DateTimeField`, so the path names nothing and `vueda_info.E006` reports it."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name", "released__yaer"]
+
+
+class ProductReleaseUnrequestableTransformNullsViewSet(VuedaViewSet):
+    """Declares a nulls placement on `released__year`, which `ordering_fields` and the default
+    ordering leave out. The path resolves, so `vueda_info.E007` hints to add it to `ordering_fields`
+    rather than saying that the model has no such field."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name"]
+    nulls_ordering = {"released__year": "first"}
+
+
+class ProductReleaseAnnotationTransformViewSet(VuedaViewSet):
+    """Offers `launched__year` through `ordering_fields`, where `launched` is an annotation that
+    `get_queryset` adds rather than a model field.
+
+    Django resolves the first segment against the annotations and applies `year` to the annotation
+    as a transform, so the ordering works, and the checks and the metadata resolve it the same way."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering = ["name"]
+    ordering_fields = ["launched__year"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(launched=F("released"))
+
+
+class ProductReleaseAnnotationDefaultViewSet(VuedaViewSet):
+    """Declares a default `ordering` of `-launched__year` and `name_length`, where both `launched` and
+    `name_length` are annotations that `get_queryset` adds, and an empty `ordering_fields`.
+
+    `model_ordering` reports both in `default`, with their directions, and in `fields`, typed from
+    the annotations: the year as a number, and the length as a number."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering = ["-launched__year", "name_length"]
+    ordering_fields = []
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(launched=F("released"), name_length=Length("name"))
+
+
+class ProductReleaseAnnotationTransformTotalViewSet(VuedaViewSet):
+    """Declares a total of `launched__year`, a transform on an annotation that `get_queryset` adds.
+
+    The total annotates `launched__year` under a generated name, selects it once per row, and sums
+    it, so each release adds its year. A year makes a meaningless total, but the check judges only
+    the output type, and an integer can be summed."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    column_totals = {"launch_year": "launched__year"}
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(launched=F("released"))
+
+
+class ProductReleaseMisspelledAnnotationTransformTotalViewSet(VuedaViewSet):
+    """Declares a total of `launched__yaer`. `yaer` is no transform that Django holds for the
+    date/time annotation, so `vueda_info.E013` names the misspelled transform."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    column_totals = {"launch_year": "launched__yaer"}
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(launched=F("released"))
+
+
+class ProductReleaseAliasTransformViewSet(VuedaViewSet):
+    """Offers `launched` and `launched__year`, where `launched` comes from `.alias()` rather than
+    `.annotate()`.
+
+    A plain string `order_by("launched__year")` raises `FieldError`, because Django resolves a
+    transform in a string only against the selected annotations. `VuedaOrderingFilter` orders by the
+    path through `F("launched__year")` instead, which resolves against every annotation, so both
+    entries work and the checks accept both."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["launched", "launched__year"]
+
+    def get_queryset(self):
+        return super().get_queryset().alias(launched=F("released"))
+
+
+class ProductReleaseAliasTransformTotalViewSet(VuedaViewSet):
+    """Declares a total of `launched__year` and a total of `name_length`, where both `launched` and
+    `name_length` come from `.alias()`.
+
+    `values()` refuses to select an alias, so both totals are summed through a generated
+    annotation, `F("launched__year")` and `F("name_length")`. Django resolves those against every
+    annotation, aliases included, so both totals work and `vueda_info.E013` accepts them."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    column_totals = {"launch_year": "launched__year", "name_length": "name_length"}
+
+    def get_queryset(self):
+        return super().get_queryset().alias(launched=F("released"), name_length=Length("name"))
+
+
+class ProductReleaseUntypedAnnotationTotalViewSet(VuedaViewSet):
+    """Declares a total of `launched__year`, where `launched` is a `Coalesce` over a date/time and a
+    string with no `output_field`.
+
+    Django can't determine the annotation's type, so it can't look up any transform for it.
+    `vueda_info.E013` says that, rather than blaming the transform's spelling."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    column_totals = {"launch_year": "launched__year"}
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(launched=Coalesce("released", "name"))
+
+
+class ProductReleaseDottedJSONKeyViewSet(VuedaViewSet):
+    """Offers `specs__v1.2` and `specs__a,b`, keys on a `JSONField` whose names contain a dot and a
+    comma.
+
+    The query can sort by either, but no client can request them. The dotted name `specs.v1.2` reads
+    back as `specs__v1__2`, and DRF splits `specs.a,b` into two terms. `vueda_info.E006` reports both,
+    and `model_ordering` leaves both out."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name", "specs__v1.2", "specs__a,b"]
+
+
+class ProductReleaseDottedAnnotationViewSet(VuedaViewSet):
+    """Offers `v1.2`, an annotation whose name contains a dot. `annotate()` accepts it when the name
+    is passed through `**kwargs`, and the query sorts by it.
+
+    A client sends dotted names, though, so `?o=v1.2` reads back as `v1__2`, and no request can name
+    this annotation. `vueda_info.E006` reports it, and `model_ordering` leaves it out."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name", "v1.2"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(**{"v1.2": F("name")})
+
+
+class ProductReleaseDottedNullsOrderingViewSet(VuedaViewSet):
+    """Keys a nulls placement on `specs__v1.2`, a key on a `JSONField` whose name contains a dot, and
+    leaves it out of `ordering_fields`.
+
+    Adding it to `ordering_fields` wouldn't help, because no `?o=` request can name a dotted key, so
+    the `vueda_info.E007` hint says to annotate the value under a plain name instead."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name"]
+    nulls_ordering = {"specs__v1.2": "last"}
+
+
+class ProductReleaseJSONPKKeyViewSet(VuedaViewSet):
+    """Offers `specs__pk`, a key named `pk` on a `JSONField`.
+
+    A trailing `pk` is usually the primary key alias, but `specs` is not a relation, so here it is a
+    key transform that Django orders by."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["specs__pk"]
+
+
+class ProductReleaseFunctionLookupViewSet(VuedaViewSet):
+    """Offers `name__left`. The tests register `Left` on `CharField` under the name `left`.
+
+    `Left` is a database function rather than a `Transform`, so Django's lookup registry holds it but
+    never hands it out as a transform, and `order_by("name__left")` fails with a `FieldError`.
+    `vueda_info.E006` reports the path with that error."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name", "name__left"]
+
+
+class ProductReleaseTwoArgumentTransformViewSet(VuedaViewSet):
+    """Offers `name__twoarg`. The tests register a `Transform` subclass under that name that needs two
+    arguments, which a path can't give it.
+
+    Django raises `TypeError` for it when a query orders by the path, and the check run raises the
+    same `TypeError`, so the error points at the broken transform."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    ordering_fields = ["name__twoarg"]
+
+
+class ProductReleaseJSONKeyTotalViewSet(VuedaViewSet):
+    """Declares a total of `specs__rank`, a key on a `JSONField`.
+
+    The key resolves, but its output is JSON rather than a number, so `vueda_info.E013` reports that
+    it cannot be summed."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+    column_totals = {"rank": "specs__rank"}
+
+
+class ProductModelOrderingLookupFormattedNameTransformViewSet(VuedaViewSet):
+    """Offers `formatted_name__lower` through `ordering_fields`, on a model that reaches
+    `formatted_name` through `formatted_name_lookup_expression = "label"`.
+
+    Django has no `lower` transform until a project registers one, so the tests register `Lower` on
+    `CharField` around each request. The default `ordering` is `id`, so the rows come back in a
+    different order unless the request sorts by the transformed name."""
+
+    queryset = ProductModelOrderingLookupFormattedName.objects.all()
+    serializer_class = ProductModelOrderingLookupFormattedNameSerializer
+    ordering = ["id"]
+    ordering_fields = ["formatted_name__lower"]
 
 
 class ProductModelOrderingWhitelistViewSet(ProductViewSet):

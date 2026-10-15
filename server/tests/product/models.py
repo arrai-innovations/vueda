@@ -172,6 +172,23 @@ class ProductModelOrderingPK(VuedaModel):
         return self.name
 
 
+class ProductRelease(VuedaModel):
+    """A product release, with a date/time column and a JSON column for ordering paths that end in a
+    transform: `released__year`, `released__date__year`, and the key transform `specs__rank`."""
+
+    name = models.CharField(max_length=255)
+    released = models.DateTimeField()
+    specs = models.JSONField(default=dict)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
+
+    def __str__(self):
+        return self.name
+
+
 class ProductCascadeOwner(VuedaModel):
     """Parent of the cascade-delete regression fixture. Deleting one of these collects the
     `ProductCascadeOrderedByFormattedName` rows pointing at it, which is where a base manager that

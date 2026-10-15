@@ -75,6 +75,31 @@ Where the value needs a join or an aggregate, prefer a real column over an annot
 
 A real column gets both rules checked for you, and a view can compute anything the annotation could.
 
+### Totals Over a Transform
+
+A path may end in a transform. A transform is a lookup that turns each row's value into another value before the sum, such as `__len` on an array. Most numeric transforms are database functions that a project registers itself. A bill per started hour, for example, rounds each entry up to a whole hour before adding them:
+
+```python
+from django.db.models import DecimalField
+from django.db.models.functions import Ceil
+
+DecimalField.register_lookup(Ceil)
+
+
+class TimesheetEntryViewSet(VuedaViewSet):
+    queryset = TimesheetEntry.objects.all()
+    serializer_class = TimesheetEntrySerializer
+    column_totals = {"billable_hours": "hours__ceil"}
+```
+
+Entries of 1.25 and 0.5 hours total 3 billable hours. Summing first and rounding after would give 2.
+
+Register the transform once at startup, such as in an app's `AppConfig.ready()`. A transform that isn't registered names nothing, so the check reports the path, and Django would refuse it too.
+
+The two rules above apply to the transform's output rather than to the column. `hours__ceil` passes because `Ceil` returns a decimal. A key on a `JSONField` fails, because its output is still JSON. The check judges only the type. Whether the sum means something is yours to decide: a path such as `created__year` passes, because a year is an integer.
+
+A transform may also follow an annotation that `get_queryset` adds, such as `launched__year` on a `launched` annotation. The annotation may come from `.annotate()` or `.alias()`. VUEDA works out the transformed value once per matched row, in a distinct `(primary key, value)` subquery, and sums those values. So a row that a join matched more than once still counts once. The check judges the output type of the transform, so `launched__year` passes because a year is an integer. The check also names a transform that it can't apply, such as a misspelled `launched__yaer`.
+
 ## Requesting Totals
 
 Totals are opt-in. A `list` request names the ones it wants in the column totals query parameter, which defaults to `ct` and is configured by the top-level `COLUMN_TOTALS_PARAM` setting:
@@ -166,10 +191,11 @@ A misconfigured `column_totals` is reported by the `vueda_info.E013` system chec
 - a key `aggregate()` could not use as a column alias;
 - a key a client could not ask for: one containing a comma, an empty one, or one of the wildcard spellings;
 - a value whose path resolves to neither a field on the model nor an annotation the viewset's own `get_queryset` adds;
+- a value that applies something to such an annotation that is not a transform Django can apply, or that applies a transform to an annotation whose own type Django can't determine;
 - a value that reaches through a relation matching more than one related row;
-- a value whose resolved leaf field cannot be summed.
+- a value whose resolved leaf field, or the output of the transform it ends in, cannot be summed.
 
-The last two apply to model fields only. A path naming a queryset annotation is accepted and checked no further, and the three path rules are skipped altogether when the queryset cannot be built without a request — see [Totalling a Queryset Annotation](#totalling-a-queryset-annotation).
+The relation rule applies to model fields only. The type rule applies to model fields and to the output of a transform. A path naming a queryset annotation itself is accepted and checked no further, and the path rules are skipped altogether when the queryset cannot be built without a request — see [Totalling a Queryset Annotation](#totalling-a-queryset-annotation).
 
 It does not check the key against anything client-side; see below.
 

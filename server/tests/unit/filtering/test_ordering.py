@@ -1,3 +1,5 @@
+from datetime import UTC
+from datetime import datetime
 from datetime import timedelta
 from http import HTTPStatus
 from typing import ClassVar
@@ -5,7 +7,10 @@ from typing import ClassVar
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import connection
+from django.db import models
+from django.db.models.functions import Lower
 from django.test.utils import CaptureQueriesContext
+from django.test.utils import register_lookup
 from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -13,6 +18,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.product.models import Product
 from tests.product.models import ProductModelOrderingLookupFormattedName
+from tests.product.models import ProductRelease
 from tests.store.models import Cart
 from tests.store.models import Customer
 from tests.store.models import Distributor
@@ -1726,3 +1732,187 @@ class TestOrderingParamOnAnnotationNamedInOrderingFields:
 
         assert response.data["totalRecords"] == 3, response_body(response)  # noqa: PLR2004
         assert [x["formatted_name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
+
+
+class ProductReleaseOrderingTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Admin": [
+            ("product", "ProductRelease", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Admin"],
+        },
+    }
+
+
+@pytest.fixture
+def product_release_ordering_data():
+    data = ProductReleaseOrderingTestData()
+    # Insertion order is Cherry, Apple, Banana, and the default `name` ordering is Apple, Banana,
+    # Cherry. By release year the order is Banana, Cherry, Apple, and by descending rank it is Banana,
+    # Apple, Cherry. Each ordering differs from the others, so a passing assertion can only be
+    # explained by the ordering it names.
+    ProductRelease.objects.create(name="Cherry", released=datetime(2024, 6, 15, 12, tzinfo=UTC), specs={"rank": 1})
+    ProductRelease.objects.create(name="Apple", released=datetime(2025, 6, 15, 12, tzinfo=UTC), specs={"rank": 2})
+    ProductRelease.objects.create(name="Banana", released=datetime(2023, 6, 15, 12, tzinfo=UTC), specs={"rank": 3})
+    return data
+
+
+@pytest.mark.django_db
+class TestOrderingParamOnTransformPaths:
+    """ProductReleaseTransformFieldsViewSet offers `released__year`, `released__date__year`, and
+    `specs__rank` through `ordering_fields`. Each path ends in a transform, and a client requests it
+    by its dotted name.
+    """
+
+    def test_ordering_param_on_a_transform_sorts_by_its_value(
+        self, product_release_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_transform_fields"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "released.year"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["name"] for x in response.data["results"]] == ["Banana", "Cherry", "Apple"]
+
+    def test_ordering_param_on_a_chained_transform_sorts_by_its_value(
+        self, product_release_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_transform_fields"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-released.date.year"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["name"] for x in response.data["results"]] == ["Apple", "Cherry", "Banana"]
+
+    def test_ordering_param_on_a_json_key_sorts_by_its_value(self, product_release_ordering_data, api_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_transform_fields"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-specs.rank"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["name"] for x in response.data["results"]] == ["Banana", "Apple", "Cherry"]
+
+
+@pytest.mark.django_db
+class TestOrderingParamOnAnnotationTransform:
+    """ProductReleaseAnnotationTransformViewSet offers `launched__year`, where `launched` is an
+    annotation that `get_queryset` adds. Django applies the transform to the annotation."""
+
+    def test_ordering_param_on_an_annotation_transform_sorts_by_its_value(
+        self, product_release_ordering_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_annotation_transform"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "launched.year"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["name"] for x in response.data["results"]] == ["Banana", "Cherry", "Apple"]
+
+    def test_ordering_param_on_an_alias_transform_sorts_by_its_value(
+        self, product_release_ordering_data, api_client, settings
+    ):
+        """ProductReleaseAliasTransformViewSet adds `launched` with `.alias()`. A plain string
+        `order_by("-launched__year")` would raise `FieldError`, so this passes only because the filter
+        orders through `F("launched__year").desc()`."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_alias_transform"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-launched.year"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["name"] for x in response.data["results"]] == ["Apple", "Cherry", "Banana"]
+
+
+@pytest.mark.django_db
+class TestOrderingParamOnFormattedNameTransform:
+    """A transform after `formatted_name`, on the model's own formatted name and on a related one.
+
+    Both models reach `formatted_name` through a lookup expression. Each viewset's default ordering is
+    `id`, which matches neither expected order below, so a passing assertion can only be explained by
+    the transformed name.
+
+    `lower` is a transform only once a project registers it, so each request runs with `Lower`
+    registered on `CharField`.
+    """
+
+    def test_ordering_param_on_the_models_own_formatted_name_transform(
+        self, product_model_ordering_lookup_formatted_name_data, api_client, settings
+    ):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_model_ordering_lookup_formatted_name_transform"
+
+        user = product_model_ordering_lookup_formatted_name_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        with register_lookup(models.CharField, Lower):
+            response = api_client.get(
+                reverse("product.productmodelorderinglookupformattedname-list"),
+                data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "-formatted_name.lower"},
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["formatted_name"] for x in response.data["results"]] == ["Cherry", "Banana", "Apple"]
+
+    def test_ordering_param_on_a_related_formatted_name_transform(self, cart_ordering_data, api_client, settings):
+        """Without the rewrite to `customer__data__formatted_name__lower`, this request fails with
+        `FieldError`, because the `formatted_name` annotation belongs to Customer's querysets and not
+        to the Cart query that joins Customer."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_ordering_related_formatted_name_transform"
+
+        user = cart_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        with register_lookup(models.CharField, Lower):
+            response = api_client.get(
+                reverse("store.cart-list"),
+                data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "customer.formatted_name.lower"},
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        emails = [Cart.objects.get(pk=x["id"]).customer.user.email for x in response.data["results"]]
+        assert emails == [
+            "customer_1day@domain.invalid",
+            "customer_2days@domain.invalid",
+            "customer_null@domain.invalid",
+        ], response_body(response)
