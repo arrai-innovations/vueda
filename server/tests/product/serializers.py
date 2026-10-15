@@ -4,6 +4,7 @@ from tests.product.models import Product
 from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.product.models import ProductModelOrderingPK
+from tests.product.models import ProductRelease
 from vueda.core.serializers import VuedaSerializer
 
 
@@ -56,6 +57,12 @@ class ProductModelOrderingFormattedNameSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = ProductModelOrderingFormattedName
         fields = ["id", "name"] + VuedaSerializer.Meta.fields
+
+
+class ProductReleaseSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = ProductRelease
+        fields = ["id", "name", "released", "specs"] + VuedaSerializer.Meta.fields
 
 
 class ProductModelOrderingLookupFormattedNameSerializer(VuedaSerializer):

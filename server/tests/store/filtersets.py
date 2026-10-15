@@ -173,6 +173,23 @@ class CartRelatedFormattedNameFilterSet(VuedaFilterSet):
         fields = ["last_modified"]
 
 
+class CartFormattedNameTransformFilterSet(VuedaFilterSet):
+    """Filters against `customer__formatted_name__lower`: a transform after the formatted name of a
+    related model.
+
+    Customer reaches its formatted name through `formatted_name_lookup_expression =
+    "data__formatted_name"`, so `FormattedNamePathFilterSetMixin` rewrites the path to
+    `customer__data__formatted_name__lower` and keeps the transform. Django has no `lower` transform
+    until a project registers one, so the tests register `Lower` on `CharField` around each request.
+    """
+
+    customer_name_lower = rest_framework.CharFilter(field_name="customer__formatted_name__lower")
+
+    class Meta:
+        model = my_models.Cart
+        fields = []
+
+
 class ProductAutoDerivedFilterSet(VuedaFilterSet):
     """A `Meta.fields` dict entry naming a relation gets its dotted public name for free.
 

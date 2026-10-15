@@ -60,5 +60,6 @@ from tests.erring.viewsets.viewsets import UnresolvableOrderingFieldsViewSet  # 
 from tests.erring.viewsets.viewsets import UnresolvableOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import ValidGetFormattedNameOrderingFieldsViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import ValidGetFormattedNameOrderingViewSet  # noqa: F401
+from tests.erring.viewsets.viewsets import ValidGetFormattedNameTransformOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import ValidLookupExpressionOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import ValidNullsOrderingViewSet  # noqa: F401

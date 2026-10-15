@@ -16,18 +16,19 @@ from collections.abc import Iterable
 import django_filters
 from django.conf import settings
 from django.contrib.admin.utils import NotRelationField
-from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import RangeField
 from django.core import validators
 from django.core.exceptions import FieldDoesNotExist
-from django.core.exceptions import FieldError
 from django.core.validators import EMPTY_VALUES
 from django.core.validators import StepValueValidator
 from django.db import connection
+from django.db.models.constants import LOOKUP_SEP
+from django.forms.utils import pretty_name
 from django.utils.functional import cached_property
+from django.utils.translation import gettext
 from django_filters.fields import ChoiceIterator
 from django_filters.filters import AllValuesFilter
 from django_filters.filters import AllValuesMultipleFilter
@@ -41,10 +42,14 @@ from vueda.core.open_api import conditional_extend_schema_field_decorator
 from vueda.core.open_api import route_path
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_fields_entry_name
-from vueda.core.ordering import ordering_fields_from_path
+from vueda.core.ordering import ordering_path_field
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
+from vueda.core.paths import PUBLIC_PATH_SEP
+from vueda.core.paths import annotation_path_output_field
+from vueda.core.paths import has_public_ordering_name
 from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.paths import query_path_field
 from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
@@ -75,6 +80,10 @@ class UnnameableOrderingTermError(Exception):
     the rows arrive sorted by the first and then the second, which is not what such an expression
     does.
 
+    A path that contains ``.`` or ``,`` has no name to send back either. A key transform on a
+    ``JSONField`` can name any key, such as ``specs__v1.2``, but the dotted ``?o=`` name ``specs.v1.2``
+    reads back as ``specs__v1__2``, a different path. See ``vueda.core.paths.has_public_ordering_name``.
+
     Raised by ``ModelInfoSerializer.get_ordering_data`` and handled where ordering metadata is
     assembled, alongside the paths that resolve to no field at all.
     """
@@ -89,6 +98,9 @@ METHOD_MAPPING = {
     "update": "put",
 }
 
+
+#: What ``django_filters.utils.verbose_field_name`` returns for a path it can't follow to model fields.
+INVALID_FILTER_FIELD_NAME = "[invalid name]"
 
 FIELD_TYPE_MAPPING = {
     "AutoField": "numeric",
@@ -602,7 +614,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             "fields": list(column_totals),
         }
 
-    def get_ordering_data(self, model, order_by, *, include_ascending=True):
+    def get_ordering_data(self, model, order_by, *, include_ascending=True, queryset=None):
         """
         Metadata for one ordering term: the field name a client sends to request it, that field's
         semantic type, and (unless ``include_ascending`` is false) the direction the term sorts in.
@@ -620,25 +632,65 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         than what a function wrapped around it returns — ``Length("name")`` reports ``name`` as
         ``alpha``, not the integer the expression sorts on.
 
+        A path that ends in a transform is different, because the transform is part of the name that
+        the client sends back. ``created__year`` is reported as ``created.year`` and typed from the
+        transform's output field, so it is ``numeric`` rather than ``datetime``.
+
+        When ``queryset`` is given, a term that names one of its annotations, or a transform on one,
+        is reported under that name and typed from the annotation (see
+        ``get_annotation_ordering_type``). A path that resolves as a model field is typed from the field
+        first, so a ``formatted_name`` reached through a lookup expression keeps the type of the column
+        it lands on. Without ``queryset``, an annotation name resolves to nothing, as any unknown name
+        does.
+
         Raises ``UnnameableOrderingTermError`` for a term that references no field or more than one, since
-        neither has a single name a client could send back.
+        neither has a single name a client could send back. A path with no ``?o=`` name that reads back
+        as the same path raises it too (see ``has_public_ordering_name``). Raises ``FieldDoesNotExist``
+        for a path that names nothing.
         """
         field_names = ordering_term_field_names(order_by)
-        if len(field_names) != 1:
+        if len(field_names) != 1 or not has_public_ordering_name(field_names[0]):
             raise UnnameableOrderingTermError(order_by)
 
         field_name = field_names[0]
-        fields = ordering_fields_from_path(model, field_name)
-        field = fields[-1]
+        try:
+            field_type = FIELD_TYPE_MAPPING.get(ordering_path_field(model, field_name).get_internal_type(), "alpha")
+        except FieldDoesNotExist:
+            if queryset is None:
+                raise
+            if field_name in queryset.query.annotations:
+                field_type = self.get_annotation_ordering_type(queryset, field_name)
+            else:
+                # One resolution answers both questions: whether the path names an annotation with
+                # transforms that Django can apply, and what the last transform outputs.
+                output_field = annotation_path_output_field(queryset.query, field_name)
+                if output_field is None:
+                    raise
+                field_type = FIELD_TYPE_MAPPING.get(output_field.get_internal_type(), "alpha")
 
         ordering_data = {"name": orm_ordering_path_to_public(field_name)}
 
         if include_ascending:
             ordering_data["ascending"] = ordering_term_is_ascending(order_by)
 
-        ordering_data["type"] = FIELD_TYPE_MAPPING.get(field.get_internal_type(), "alpha")
+        ordering_data["type"] = field_type
 
         return ordering_data
+
+    @staticmethod
+    def names_queryset_annotation(queryset, path):
+        """
+        Whether ``path`` names an annotation that ``queryset`` carries, either by its own name or with
+        transforms that Django can apply to it, such as ``launched__year``.
+
+        A plain annotation name always counts, even when Django can't determine its type. Such an
+        annotation, such as a ``Coalesce`` over mixed types, makes every query on the queryset fail
+        with Django's own ``FieldError`` until it declares an ``output_field``, so it is not an ordering
+        mistake. A path with transforms counts only when they resolve, so a misspelled
+        ``launched__yaer`` names nothing.
+        """
+        # `annotation_path_output_field` is None for a path that doesn't start with an annotation too.
+        return path in queryset.query.annotations or annotation_path_output_field(queryset.query, path) is not None
 
     @staticmethod
     def get_annotation_ordering_type(queryset, annotation_name):
@@ -650,15 +702,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         guess for some — a ``Coalesce`` over mixed types raises ``FieldError`` rather than pick one —
         so an annotation whose type can't be resolved falls back to ``"alpha"``, the same way a column
         of an unmapped type does.
+
+        A path that applies transforms to an annotation, such as ``ordered__year``, is typed from the
+        output of its last transform. ``ordered.year`` is ``numeric`` even when ``ordered`` is a date.
         """
+        # An expression whose output field has no `get_internal_type()` is reported as "alpha" too, as
+        # `_column_total_annotation_zero` treats it: the metadata endpoint describes the viewset and
+        # shouldn't fail over one annotation it can't type.
         try:
-            internal_type = queryset.query.annotations[annotation_name].output_field.get_internal_type()
-        except (FieldError, KeyError, AttributeError):
+            internal_type = annotation_path_output_field(queryset.query, annotation_name).get_internal_type()
+        except AttributeError:
             return "alpha"
 
         return FIELD_TYPE_MAPPING.get(internal_type, "alpha")
 
-    def get_default_ordering_data(self, model, ordering):
+    def get_default_ordering_data(self, model, ordering, queryset=None):
         """
         Metadata for every term of a default ordering (a model's ``Meta.ordering``, or a viewset's
         own ``ordering``), or nothing at all when one of those terms can't be resolved.
@@ -672,16 +730,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         still accepts an explicit ``?o=`` request on each of those fields; what is dropped is the
         claim about how the rows currently arrive, not the fields themselves.
 
-        A term naming a queryset annotation is dropped the same way, and that one is a gap rather
-        than a judgement. An annotation resolves to no model field path, so there is no field to read
-        a type from, and nothing here can tell an annotation that the viewset's own ``get_queryset``
-        added from a name that is simply wrong. A queryset can pick up an annotation anywhere on its
-        way here, including in a manager or a helper that this method never sees. The ordering still
-        runs and ``?o=`` on that name is still accepted; only the report is missing. A default that
-        orders by a real column gives the client a name it can be told about: a model field for a stored value, a
-        ``GeneratedField`` for a value derived from the same row, or a column on an unmanaged model
-        over a database view, reached through a ``OneToOneField``, for a value that needs a join or
-        an aggregate.
+        A term naming an annotation that ``queryset`` carries, or a transform on one, is reported
+        under that name and typed from the annotation (see ``get_ordering_data``). ``queryset`` is the
+        viewset's own, built without a request, so it carries every annotation that its
+        ``get_queryset`` and its manager add. A model's ``Meta.ordering`` with no viewset to read is
+        resolved without one, and a name there that isn't a model field drops the default as any
+        unknown name does.
         """
         if not ordering:
             return []
@@ -696,7 +750,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         for order_by in ordering:
             try:
                 terms = expand_ordering_pk(model, order_by)
-                data = [self.get_ordering_data(model, term) for term in terms]
+                data = [self.get_ordering_data(model, term, queryset=queryset) for term in terms]
             except (FieldDoesNotExist, NotRelationField, UnnameableOrderingTermError):
                 # A default ordering term isn't guaranteed to resolve to a real model field path: a
                 # field can be renamed or removed without its model's `Meta.ordering` being updated,
@@ -750,23 +804,28 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         - ``formatted_name`` is reported under that name when the model stores it as a column or
           reaches it through ``formatted_name_lookup_expression``, and is typed from the column it
           lands on. A ``formatted_name`` computed by ``get_formatted_name()`` has no column, so it is
-          left out (see ``ordering_fields_from_path``). A related ``formatted_name`` is reported under
+          left out (see ``ordering_path_field``). A related ``formatted_name`` is reported under
           its declared path, dotted.
+        - A path that ends in a transform is reported under its own dotted path, typed from the
+          transform's output field. ``created__year`` is reported as
+          ``{"name": "created.year", "type": "numeric"}``.
         - A scalar function over one column is reported under that column, typed from the column,
           with ``ascending`` from the term's direction. ``Lower("name").desc()`` is reported as
           ``{"name": "name", "type": "alpha", "ascending": false}``, and ``Length("name")`` is typed
           ``alpha``.
         - An annotation is typed from its ``output_field``, or ``"alpha"`` when Django cannot resolve
-          one (see ``get_annotation_ordering_type``).
+          one (see ``get_annotation_ordering_type``). A path that applies transforms to an annotation,
+          such as ``ordered__year``, is reported as ``ordered.year`` and typed from the last
+          transform's output. Both are reported whether ``ordering_fields`` or the default ordering
+          names them.
         - ``"?"`` in ``ordering_fields`` names no field, so it is not reported, although DRF accepts
           ``o=?`` for it and returns the rows in random order.
         - An entry that resolves to no field is left out, and the ``vueda_info.E006`` system check
           reports it.
 
         ``default`` is reported whole or not at all (see ``get_default_ordering_data``). It is empty
-        when any term resolves to no field, reads more than one column or none, or names an
-        annotation. Each column that a multi-column term reads still appears in ``fields``, without
-        ``ascending``.
+        when any term resolves to no field or annotation, or reads more than one column or none. Each
+        column that a multi-column term reads still appears in ``fields``, without ``ascending``.
         """
         ordering_data = {
             "default": [],
@@ -779,6 +838,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: viewsets.VuedaViewSet
         if viewset is None:
             model = instance.model_class()
+            queryset = None
         else:
             queryset = viewset().get_queryset()
             model = queryset.model
@@ -791,7 +851,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset_ordering = getattr(viewset, "ordering", None)
         default_ordering = viewset_ordering if viewset_ordering else model._meta.ordering
 
-        default = self.get_default_ordering_data(model, default_ordering)
+        default = self.get_default_ordering_data(model, default_ordering, queryset=queryset)
         ordering_data["default"] = [data["name"] for data in default]
 
         # Every field the default ordering references, whether or not the default itself could be
@@ -800,7 +860,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # report under — a `Coalesce("name", "formatted_name")` default offers both columns
         # individually, and saying nothing about either would leave them orderable but unreachable
         # for a metadata-driven client.
-        default_field_names = self.get_default_ordering_field_names(model, default_ordering)
+        default_field_names = self.get_default_ordering_field_names(model, default_ordering, queryset=queryset)
 
         fields_by_name = {}
         if viewset is not None:
@@ -823,7 +883,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 # model field", not a literal field name, so it must be expanded here too. The
                 # expansion covers the queryset's annotations as well as the model's own fields.
                 if ordering_fields == "__all__":
-                    annotation_names = list(queryset_annotations)
+                    # An annotation whose name contains a dot or a comma can be named in no `?o=`
+                    # request (see `has_public_ordering_name`), so it is not offered either.
+                    annotation_names = [name for name in queryset_annotations if has_public_ordering_name(name)]
                     order_bys = [field.name for field in model._meta.fields] + annotation_names
                 else:
                     # An entry may be a plain field name or a `(field_name, label)` pair; DRF offers
@@ -836,8 +898,16 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     # An entry naming an annotation resolves to no model field, so it would be
                     # dropped by the loop below and never reported. DRF accepts `?o=` on it and
                     # `vueda_info.E006` deliberately stays quiet about it, so leaving it out would
-                    # make it orderable but invisible to every client.
-                    annotation_names = [name for name in order_bys if name in queryset_annotations]
+                    # make it orderable but invisible to every client. An entry that applies
+                    # transforms to an annotation (`ordered__year`) is collected the same way. Either
+                    # kind is left out when its `?o=` name can't read back as the same path, such as an
+                    # annotation named `v1.2` (see `has_public_ordering_name`); `vueda_info.E006`
+                    # reports that one.
+                    annotation_names = [
+                        name
+                        for name in order_bys
+                        if has_public_ordering_name(name) and self.names_queryset_annotation(queryset, name)
+                    ]
             else:
                 # When `ordering_fields` isn't declared, DRF's OrderingFilter defaults to allowing
                 # ordering on any readable field of the canonical serializer, keyed by each field's
@@ -912,10 +982,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         return ordering_data
 
-    def get_default_ordering_field_names(self, model, ordering):
+    def get_default_ordering_field_names(self, model, ordering, queryset=None):
         """
         Every field a default ordering references, mapped to that field's semantic type, in the order
-        the terms name them.
+        the terms name them. An annotation that ``queryset`` carries counts as a field here, typed the
+        way ``get_ordering_data`` types it.
 
         This is the field-by-field view of a default ordering, as opposed to the term-by-term view
         ``get_default_ordering_data`` reports. The two differ for a term that names more than one
@@ -931,6 +1002,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         :type model: Type[django.db.models.Model]
         :param ordering: The default ordering declaration.
         :type ordering: Union[str, Iterable]
+        :param queryset: The viewset's own queryset, whose annotations the ordering may name. None
+            for a model's ``Meta.ordering`` with no viewset to read.
+        :type queryset: Optional[django.db.models.QuerySet]
         :return: Field path -> semantic type, in declaration order.
         :rtype: Dict[str, str]
         """
@@ -949,7 +1023,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             for field_name in ordering_term_field_names(term):
                 try:
                     for expanded in expand_ordering_pk(model, field_name):
-                        data = self.get_ordering_data(model, expanded, include_ascending=False)
+                        data = self.get_ordering_data(model, expanded, include_ascending=False, queryset=queryset)
                         field_types.setdefault(data["name"], data["type"])
                 except (FieldDoesNotExist, NotRelationField, UnnameableOrderingTermError):
                     continue
@@ -996,7 +1070,40 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ]
 
     @staticmethod
-    def get_model_filtering_label(filter_obj, model, declared_label=None):
+    def get_model_filtering_fallback_label(filter_obj, filter_name):
+        """
+        A title cased label built from ``filter_name``, for a filter whose path django-filter can't name.
+
+        It is built the way ``django_filters.utils.label_for_filter`` builds one, with the filter's
+        name in place of the verbose field names: ``exclude`` first for a negated filter, then the name
+        made readable the way Django labels a form field that declares no label
+        (``django.forms.utils.pretty_name``), then the lookup expression in words. A lookup expression
+        that the name already ends with is taken off the name first, so
+        ``customer_formatted_name_icontains`` reads ``Customer Formatted Name Contains`` rather than
+        repeating the lookup. A dot in a public filter name reads as a space.
+
+        :param filter_obj: The filter to label.
+        :type filter_obj: django_filters.filters.Filter
+        :param filter_name: The filter's name, as ``model_filtering`` reports it.
+        :type filter_name: str
+        :return: The label.
+        :rtype: str
+        """
+        name = filter_name.replace(PUBLIC_PATH_SEP, "_")
+        lookup_expr = filter_obj.lookup_expr
+        words = [gettext("exclude")] if filter_obj.exclude else []
+
+        # A lookup expression list belongs to a `LookupChoiceFilter`, whose label names no lookup.
+        if isinstance(lookup_expr, str) and lookup_expr:
+            name = name.removesuffix(f"_{lookup_expr.replace(LOOKUP_SEP, '_')}")
+            words += [pretty_name(name), django_filters.utils.verbose_lookup_expr(lookup_expr)]
+        else:
+            words.append(pretty_name(name))
+
+        return " ".join(str(word) for word in words if word).title()
+
+    @staticmethod
+    def get_model_filtering_label(filter_obj, model, declared_label=None, filter_name=None):
         """
         The filter's declared label, or a title cased label generated from its field name and lookup
         expression when it doesn't declare one.
@@ -1007,6 +1114,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         caches it onto the filter, and building ``Filter.field`` reads it. So by the time we get here
         every bound filter reports a label, and none of them can still tell us whether that label was
         declared or generated.
+
+        django-filter builds a label from the verbose names of the model fields that the path names.
+        A path it can't follow, such as a related ``formatted_name`` reached through a lookup
+        expression or a path that ends in a transform, gives it nothing to name, and it labels the
+        filter ``[invalid name]``. The label falls back to ``filter_name`` instead, made readable the
+        way Django labels a form field that declares no label (``django.forms.utils.pretty_name``):
+        ``customer_name`` becomes ``Customer Name``. A dotted public name reads the same way, so
+        ``customer.formatted_name`` becomes ``Customer Formatted Name``.
         """
         label = declared_label
         if label is None:
@@ -1014,9 +1129,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             # `formatted_name` filter at the column behind it. A generated label names the field a
             # client filters on, not the server-side path the query ends up using.
             field_name = getattr(filter_obj, "vueda_declared_field_name", filter_obj.field_name)
-            label = django_filters.utils.label_for_filter(
-                model, field_name, filter_obj.lookup_expr, filter_obj.exclude
-            ).title()
+            if filter_name and django_filters.utils.verbose_field_name(model, field_name) == INVALID_FILTER_FIELD_NAME:
+                label = ModelInfoSerializer.get_model_filtering_fallback_label(filter_obj, filter_name)
+            else:
+                label = django_filters.utils.label_for_filter(
+                    model, field_name, filter_obj.lookup_expr, filter_obj.exclude
+                ).title()
         return label
 
     @staticmethod
@@ -1365,12 +1483,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     continue
 
                 widget = field.widget
+                # Django resolves the path, so a `field_name` that ends in a transform
+                # (`created__year`, or a rewritten `customer__data__formatted_name__lower`) is typed
+                # from the transform's output rather than left untyped.
                 try:
-                    model_fields = get_fields_from_path(model, filter_obj.field_name)
+                    model_field = query_path_field(model, filter_obj.field_name)
                 except Exception:
                     model_field = None
-                else:
-                    model_field = model_fields[-1]
 
                 # Label
                 #
@@ -1382,7 +1501,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 # filters` is.
                 declared_filter = declared_filters.get(filter_name)
                 label = self.get_model_filtering_label(
-                    filter_obj, model, declared_filter.label if declared_filter is not None else None
+                    filter_obj,
+                    model,
+                    declared_filter.label if declared_filter is not None else None,
+                    filter_name=filter_name,
                 )
 
                 field_type_db = self.get_model_fields_db_field_type(filter_name, model_field, True)
