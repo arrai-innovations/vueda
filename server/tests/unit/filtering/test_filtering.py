@@ -8,7 +8,10 @@ import pytest
 from django.conf import settings
 from django.core.exceptions import FieldError
 from django.db import connection
+from django.db import models
 from django.db.models import Count
+from django.db.models.functions import Lower
+from django.test.utils import register_lookup
 from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -16,6 +19,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import cached_filterset_field_names
 from tests.conftest import clear_cached_filterset_fields
 from tests.conftest import response_body
+from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.store import filtersets as store_filtersets
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
@@ -1564,3 +1568,177 @@ class TestFilteringOnRelatedFormattedName:
         filterset_class(queryset=store_models.Cart.objects.all())
 
         assert filterset_class.base_filters["customer_formatted_name"].field_name == "customer__formatted_name"
+
+
+class FormattedNameTransformFilterTestData(BaseTestUserMixin, BaseTestGroupMixin):
+    groups_to_create: ClassVar[dict] = {
+        "Admin": [
+            ("store", "Cart", "list"),
+            ("product", "ProductModelOrderingLookupFormattedName", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Admin"],
+        },
+    }
+
+
+@pytest.mark.django_db
+class TestFilteringOnFormattedNameTransform:
+    """A filter whose `field_name` applies a transform after `formatted_name`.
+
+    Both models reach `formatted_name` through `formatted_name_lookup_expression`. The values below
+    are stored with capitals and requested in lower case, so an exact match only succeeds when the
+    `lower` transform reaches the column. Django has no `lower` transform until a project registers
+    one, so each request runs with `Lower` registered on `CharField`.
+    """
+
+    def test_a_transform_after_a_related_formatted_name_reaches_the_column(self, api_client, settings):
+        """`customer__formatted_name__lower` is rewritten to `customer__data__formatted_name__lower`.
+        Without the rewrite the request fails with `FieldError`, because the `formatted_name`
+        annotation belongs to Customer's querysets and not to the Cart query that joins Customer."""
+        from django.contrib.auth import get_user_model
+
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_cart_formatted_name_transform_filter"
+
+        data = FormattedNameTransformFilterTestData()
+        for email in ("Apple@domain.invalid", "Banana@domain.invalid"):
+            user = get_user_model().objects.create(email=email, name=email, is_active=True)
+            store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=user))
+
+        api_client.force_authenticate(user=data.users["test_admin@domain.invalid"])
+
+        with register_lookup(models.CharField, Lower):
+            response = api_client.get(
+                reverse("store.cart-list"),
+                data={"customer_name_lower": "banana@domain.invalid"},
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["totalRecords"] == 1, response_body(response)
+        cart = store_models.Cart.objects.get(pk=response.data["results"][0]["id"])
+        assert cart.customer.user.email == "Banana@domain.invalid"
+
+    def test_a_transform_after_the_models_own_formatted_name_reaches_the_annotation(self, api_client, settings):
+        """`formatted_name__lower` starts with the `formatted_name` annotation that
+        `VuedaViewSet.get_queryset` adds, so it is left alone and Django applies `lower` to the
+        annotation."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_lookup_formatted_name_transform_filter"
+
+        data = FormattedNameTransformFilterTestData()
+        for label in ("Apple", "Banana"):
+            ProductModelOrderingLookupFormattedName.objects.create(label=label)
+
+        api_client.force_authenticate(user=data.users["test_admin@domain.invalid"])
+
+        with register_lookup(models.CharField, Lower):
+            response = api_client.get(
+                reverse("product.productmodelorderinglookupformattedname-list"),
+                data={"formatted_name_lower": "apple"},
+                format="json",
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [row["formatted_name"] for row in response.data["results"]] == ["Apple"], response_body(response)
+
+    def test_the_declared_path_is_what_the_filter_reports(self):
+        """The rewrite is on the filterset's own copy of the filter, which keeps the declared path for
+        the label and the metadata to read."""
+        filterset = store_filtersets.CartFormattedNameTransformFilterSet(queryset=store_models.Cart.objects.all())
+        filter_ = filterset.filters["customer_name_lower"]
+
+        assert filter_.field_name == "customer__data__formatted_name__lower"
+        assert filter_.vueda_declared_field_name == "customer__formatted_name__lower"
+
+
+@pytest.mark.django_db
+class TestFilterLabelForAPathDjangoFilterCannotName:
+    """django-filter builds a filter's label from the model fields its path names. A related
+    `formatted_name` reached through a lookup expression, or a transform after it, names no model field,
+    and django-filter would label such a filter `[invalid name]`. `model_filtering` falls back to the
+    filter's own name instead, made readable the way Django labels a form field with no label."""
+
+    def test_a_filter_on_a_related_formatted_name_is_labelled_from_its_name(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        filterset = store_filtersets.CartRelatedFormattedNameFilterSet(queryset=store_models.Cart.objects.all())
+
+        label = ModelInfoSerializer.get_model_filtering_label(
+            filterset.filters["customer_formatted_name"], store_models.Cart, filter_name="customer_formatted_name"
+        )
+
+        assert label == "Customer Formatted Name"
+
+    def test_a_transform_after_a_related_formatted_name_is_labelled_from_its_name(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        filterset = store_filtersets.CartFormattedNameTransformFilterSet(queryset=store_models.Cart.objects.all())
+
+        label = ModelInfoSerializer.get_model_filtering_label(
+            filterset.filters["customer_name_lower"], store_models.Cart, filter_name="customer_name_lower"
+        )
+
+        assert label == "Customer Name Lower"
+
+    def test_a_dotted_public_name_reads_as_words(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        filterset = store_filtersets.CartRelatedFormattedNameFilterSet(queryset=store_models.Cart.objects.all())
+
+        label = ModelInfoSerializer.get_model_filtering_label(
+            filterset.filters["customer_formatted_name"], store_models.Cart, filter_name="customer.formatted_name"
+        )
+
+        assert label == "Customer Formatted Name"
+
+    def test_a_negated_filter_keeps_exclude_and_its_lookup_in_words(self):
+        """django-filter would put `exclude` in front and the lookup in words after the field names.
+        The fallback keeps both, so a negated filter is never labelled as if it included rows."""
+        from django_filters import rest_framework
+
+        from vueda.info.serializers import ModelInfoSerializer
+
+        filter_ = rest_framework.CharFilter(
+            field_name="customer__formatted_name", lookup_expr="icontains", exclude=True
+        )
+        filter_.model = store_models.Cart
+
+        label = ModelInfoSerializer.get_model_filtering_label(
+            filter_, store_models.Cart, filter_name="customer_formatted_name"
+        )
+
+        assert label == "Exclude Customer Formatted Name Contains"
+
+    def test_a_lookup_at_the_end_of_the_name_is_not_repeated(self):
+        """A name such as `customer_formatted_name_icontains` already ends with its lookup, so the lookup
+        comes off the name before it is added back in words."""
+        from vueda.info.serializers import ModelInfoSerializer
+
+        filterset = store_filtersets.CartRelatedFormattedNameFilterSet(queryset=store_models.Cart.objects.all())
+
+        label = ModelInfoSerializer.get_model_filtering_label(
+            filterset.filters["customer_formatted_name_icontains"],
+            store_models.Cart,
+            filter_name="customer_formatted_name_icontains",
+        )
+
+        assert label == "Customer Formatted Name Contains"
+
+    def test_a_declared_label_is_used_as_written(self):
+        from vueda.info.serializers import ModelInfoSerializer
+
+        filterset = store_filtersets.CartRelatedFormattedNameFilterSet(queryset=store_models.Cart.objects.all())
+
+        label = ModelInfoSerializer.get_model_filtering_label(
+            filterset.filters["customer_formatted_name_icontains"],
+            store_models.Cart,
+            "Customer name contains",
+            filter_name="customer_formatted_name_icontains",
+        )
+
+        assert label == "Customer name contains"

@@ -24,19 +24,25 @@ from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import FORMATTED_NAME_LOOKUP_EXPRESSION
 from vueda.core.formatted_name import FORMATTED_NAME_SELECT_RELATED
 from vueda.core.formatted_name import path_multiplies_rows
-from vueda.core.formatted_name import resolve_formatted_name_path
+from vueda.core.formatted_name import resolve_formatted_name_transform_path
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import PK_ALIAS
 from vueda.core.ordering import expand_ordering_pk
 from vueda.core.ordering import ordering_field_key
 from vueda.core.ordering import ordering_fields_entry_name
-from vueda.core.ordering import ordering_fields_from_path
+from vueda.core.ordering import ordering_path_field
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
 from vueda.core.ordering import queryset_explicit_ordering
 from vueda.core.ordering import rewrite_ordering_term_field_names
 from vueda.core.paths import PUBLIC_PATH_SEP
+from vueda.core.paths import annotation_path_field
+from vueda.core.paths import annotation_path_output_field
+from vueda.core.paths import has_public_ordering_name
+from vueda.core.paths import path_annotation_name
 from vueda.core.paths import public_ordering_path_to_orm
+from vueda.core.paths import query_path_field
+from vueda.core.paths import query_path_multiplies_rows
 
 
 # The column types `Sum` means something for. Numeric columns, plus `DurationField` -- an interval,
@@ -262,8 +268,13 @@ def _names_formatted_name(ordering):
     # (`F("formatted_name").asc(nulls_first=True)`), or with a scalar function over it
     # (`Lower("formatted_name")`), and a term built on several fields is caught if any one of them is
     # the formatted name. Only the model's own un-prefixed name counts: a related
-    # `customer__formatted_name` is the related model's to resolve, not this one's.
-    return any(field_name == FORMATTED_NAME for term in ordering for field_name in ordering_term_field_names(term))
+    # `customer__formatted_name` is the related model's to resolve, not this one's. The model's own
+    # name followed by transforms (`formatted_name__unaccent`) still names it, so it counts too.
+    return any(
+        field_name.partition(LOOKUP_SEP)[0] == FORMATTED_NAME
+        for term in ordering
+        for field_name in ordering_term_field_names(term)
+    )
 
 
 def _validate_formatted_name_ordering(model, viewset, *, include_model_ordering=True):
@@ -309,35 +320,65 @@ def _validate_formatted_name_ordering(model, viewset, *, include_model_ordering=
     ]
 
 
-def _queryset_annotation_names(viewset):
+def _queryset_query(viewset):
     """
-    The annotations a viewset's own queryset carries, which are orderable without being model fields.
+    The query behind a viewset's own queryset. Its annotations are orderable without being model
+    fields.
 
     ``None`` when the queryset can't be built at check time — a ``get_queryset`` that reaches for
     ``self.request`` raises here, and without knowing its annotations a term can't be judged.
     """
     try:
-        return set(viewset().get_queryset().query.annotations)
+        return viewset().get_queryset().query
     except Exception:
         # Any failure here means the annotations are simply unknown, which is not the check's business.
         return None
 
 
-def _ordering_path_resolves(model, path):
+def _as_sentence(message):
     """
-    Whether an ordering path names a field, a path through the model's relations, or a lookup.
+    ``message`` ending as a sentence, so the next sentence in a check's text reads apart from it.
+
+    Django ends some ``FieldError`` messages without punctuation, such as ``Cannot resolve keyword 'x'
+    into field. Choices are: a, b``, and gets a full stop added. One that already ends in ``.``, ``?``,
+    or ``!``, such as ``... perhaps you meant year?``, is returned unchanged.
+    """
+    return message if message.endswith((".", "?", "!")) else f"{message}."
+
+
+def _ordering_path_error(model, path, query=None):
+    """
+    Why an ordering path doesn't resolve, as Django's own error message. ``None`` when it resolves.
+
+    The message is the one that Django's ``FieldError`` carries, such as ``Cannot resolve keyword
+    'yaer' into field. Join on 'released' not permitted.``, which is what a list request ordered by
+    the path fails with. So a check reports the same error the request would.
 
     Resolving follows the same rules the metadata does, so a path the metadata resolves (a "pk" alias,
-    or a formatted_name reached through a lookup expression) is never reported as if it were broken.
-    An annotation on the viewset's queryset resolves to nothing here, so a caller checks those first.
+    a formatted_name reached through a lookup expression, or a path that ends in a transform such as
+    ``created__year``) is never reported as if it were broken.
+
+    A path that starts with an annotation on ``query``, such as ``launched__year``, is resolved
+    against the annotation. That includes an annotation that ``.alias()`` added, because
+    ``VuedaOrderingFilter`` orders by such a path through ``F()``. Django can't type every plain
+    annotation, such as a ``Coalesce`` over mixed types, although ordering by one still works, so a
+    caller accepts every plain annotation name before it asks this.
     """
     try:
-        for expanded in expand_ordering_pk(model, path):
-            ordering_fields_from_path(model, expanded)
-    except (FieldDoesNotExist, NotRelationField):
-        return False
+        if query is not None and path_annotation_name(query.annotations, path) is not None:
+            annotation_path_field(query, path)
+        else:
+            for expanded in expand_ordering_pk(model, path):
+                ordering_path_field(model, expanded)
+    except (FieldDoesNotExist, NotRelationField) as error:
+        return _as_sentence(str(error))
 
-    return True
+    return None
+
+
+def _ordering_path_resolves(model, path, query=None):
+    """Whether an ordering path resolves. See :func:`_ordering_path_error`."""
+    return _ordering_path_error(model, path, query) is None
 
 
 def _requestable_ordering_names(viewset):
@@ -350,7 +391,7 @@ def _requestable_ordering_names(viewset):
     and a default ordering term written as a string already is one. A placement keyed on any other
     name is never applied.
 
-    The view is built without a request, the same way ``_queryset_annotation_names`` builds it, and is
+    The view is built without a request, the same way ``_queryset_query`` builds it, and is
     given the ``list`` action that ``?o=`` is sent to. When ``ordering_fields`` isn't declared, DRF
     builds the viewset's serializer to read its fields. The context carries the view because a
     serializer mixin may read ``context["view"].action`` to decide what those fields are.
@@ -388,8 +429,8 @@ def _validate_ordering_declarations(model, viewset):
     if viewset is None:
         return []
 
-    annotation_names = _queryset_annotation_names(viewset)
-    if annotation_names is None:
+    query = _queryset_query(viewset)
+    if query is None:
         return []
 
     errors = []
@@ -419,16 +460,20 @@ def _validate_ordering_declarations(model, viewset):
         # its own and reported by name rather than by the term it came from.
         for term in declaration:
             for path in ordering_term_field_names(term):
-                if path in annotation_names:
-                    continue
-
                 # A formatted_name computed in Python resolves to nothing either, but
                 # `vueda_info.E005` already reports that with an answer specific to it, so it isn't
                 # reported twice.
-                if _names_formatted_name((path,)) and _formatted_name_is_python_only(model):
+                # A path that starts with an annotation, such as `formatted_name__lower` on a queryset
+                # that annotates `formatted_name`, is resolved against the annotation below instead.
+                if path_annotation_name(query.annotations, path) is None and (
+                    _names_formatted_name((path,)) and _formatted_name_is_python_only(model)
+                ):
                     continue
 
-                if not _ordering_path_resolves(model, path):
+                # Every plain annotation name resolves, whatever Django can tell about its type, so
+                # it only has to pass the public-name rule below.
+                django_error = None if path in query.annotations else _ordering_path_error(model, path, query)
+                if django_error is not None:
                     # What a stale term costs depends on which attribute holds it, so the hint says
                     # which of the two this is rather than describing both.
                     if attr_name == "ordering":
@@ -436,15 +481,42 @@ def _validate_ordering_declarations(model, viewset):
                     else:
                         consequence = ", so clients are never offered this field to order by."
 
+                    # The message is Django's own, so the check reports the error that a list request
+                    # ordered by this path fails with.
                     errors.append(
                         Error(
-                            f"Ordering by '{path}' is declared in {viewset.__name__}.{attr_name}, but "
-                            f"{model.__name__} has no such field, related field, or lookup.",
+                            f"Ordering by '{path}' is declared in {viewset.__name__}.{attr_name}, but Django "
+                            f"can't resolve it: {django_error}",
                             hint=(
                                 f"Point it at a field {model.__name__} has, at a path through its "
                                 "relations, or at an annotation the viewset's own `get_queryset` adds. "
                                 "Model-info metadata leaves what it can't resolve out of "
                                 f"`model_ordering`{consequence}"
+                            ),
+                            obj=viewset,
+                            id="vueda_info.E006",
+                        )
+                    )
+                elif not has_public_ordering_name(path):
+                    # A key on a `JSONField` (`specs__v1.2`) or an annotation name passed through
+                    # `**kwargs` (`"v1.2"`) can contain a `.` or `,`. The query sorts by it, but no
+                    # `?o=` name reads back as it, because the client sends dotted names.
+                    if attr_name == "ordering":
+                        consequence = (
+                            "The ordering still runs, but model-info metadata reports no "
+                            "`model_ordering.default` for it."
+                        )
+                    else:
+                        consequence = "Model-info metadata leaves it out of `model_ordering`."
+
+                    errors.append(
+                        Error(
+                            f"Ordering by '{path}' is declared in {viewset.__name__}.{attr_name}, but no `?o=` "
+                            "name can carry the path, because it contains a '.' or a ','.",
+                            hint=(
+                                f"No client can request this path. {consequence} Annotate the value under a "
+                                "name without a dot or a comma in the viewset's own `get_queryset`, e.g. "
+                                "`.annotate(v1_2=KeyTextTransform('v1.2', 'specs'))`, and order by that name."
                             ),
                             obj=viewset,
                             id="vueda_info.E006",
@@ -522,14 +594,17 @@ def _unrequestable_nulls_ordering_error(model, viewset, attr_name, label, field_
     if requestable(field_name):
         return None
 
-    annotation_names = _queryset_annotation_names(viewset) or set()
+    query = _queryset_query(viewset)
+    annotations = query.annotations if query is not None else {}
 
     def resolves(path):
-        return requestable(path) or path in annotation_names or _ordering_path_resolves(model, path)
+        return requestable(path) or path in annotations or _ordering_path_resolves(model, path, query)
 
     spelling = field_name
     hint_parts = []
-    if PUBLIC_PATH_SEP in field_name:
+    # A dotted key that resolves as written is a `JSONField` key with a `.` in it (`specs__v1.2`),
+    # not a misspelled `?o=` name, so its `__`-joined form would name a different key.
+    if PUBLIC_PATH_SEP in field_name and not resolves(field_name):
         candidate = public_ordering_path_to_orm(field_name)
         if resolves(candidate):
             spelling = candidate
@@ -539,15 +614,21 @@ def _unrequestable_nulls_ordering_error(model, viewset, attr_name, label, field_
             )
 
     if not requestable(spelling):
-        if resolves(spelling):
+        if resolves(spelling) and not has_public_ordering_name(spelling):
+            # Adding it to `ordering_fields` wouldn't help: `vueda_info.E006` reports that, because no
+            # `?o=` request can name a path with a `.` or a `,` in it.
+            hint_parts.append(
+                f"No `?o=` name can carry '{spelling}', because it contains a '.' or a ','. Annotate the value "
+                "under a name without a dot or a comma in the viewset's own `get_queryset`, and key the "
+                "placement on that name."
+            )
+        elif resolves(spelling):
             hint_parts.append(
                 f"Add '{spelling}' to `ordering_fields`, or remove it from `{attr_name}`. A list request can "
                 "only sort by a field that `ordering_fields` or the default ordering names."
             )
         else:
-            hint_parts.append(
-                f"{model.__name__} has no field, related field, or lookup at that path for the database to sort by."
-            )
+            hint_parts.append(f"Django can't resolve that path: {_ordering_path_error(model, spelling, query)}")
 
     hint_parts.append(
         "As declared, the placement is never applied, so nulls arrive wherever the database puts them by default."
@@ -836,7 +917,7 @@ def _comparable_ordering(model, ordering):
                 return None
 
             field_name = field_names[0]
-            path = resolve_formatted_name_path(model, field_name) or field_name
+            path = resolve_formatted_name_transform_path(model, field_name) or field_name
             expression = _ordering_term_expression(expanded)
             if isinstance(expression, F):
                 expression = F(path)
@@ -904,7 +985,7 @@ def _list_queryset(viewset):
     The queryset that a list request on the viewset starts from, as far as a check can build it.
 
     That is what ``get_queryset()`` returns, called on a view built without a request, the same way
-    ``_queryset_annotation_names`` builds it. A ``get_queryset()`` that needs the request raises here,
+    ``_queryset_query`` builds it. A ``get_queryset()`` that needs the request raises here,
     and the class-level ``queryset`` is used instead. ``None`` when neither is available.
 
     A ``FieldError`` is raised to the caller instead. ``order_by()`` checks a plain string name as soon
@@ -997,9 +1078,15 @@ def _orders_by_own_annotation(queryset, ordering):
     ``formatted_name`` doesn't count. ``FormattedNameManager`` adds it to every queryset of a model
     that reaches the name through a lookup expression, and ``Meta.ordering`` can name it, so an
     ordering by it is not one that only a queryset can hold.
+
+    A path that applies transforms to such an annotation, such as ``launched__year``, names it too.
     """
     annotation_names = set(queryset.query.annotations) - {FORMATTED_NAME}
-    return any(name in annotation_names for term in ordering for name in ordering_term_field_names(term))
+    return any(
+        path_annotation_name(annotation_names, name) is not None
+        for term in ordering
+        for name in ordering_term_field_names(term)
+    )
 
 
 def _ordering_state(queryset):
@@ -1904,18 +1991,27 @@ def _validate_column_total_name(viewset, name):
     return []
 
 
-def _validate_column_total_path(model, viewset, name, path, annotation_names):
+def _validate_column_total_path(model, viewset, name, path, query):
     """
     Report a ``column_totals`` value that can't be summed as declared.
 
-    ``annotation_names`` are the annotations the viewset's own queryset carries, from
-    :func:`_queryset_annotation_names`. A path naming one is accepted and checked no further: there
-    is no model field behind it to read a type from, and ``aggregate()`` resolves it perfectly well.
-    This is the same allowance ordering makes for the same reason (see
-    :func:`_validate_ordering_declarations`), so the two declarations accept the same paths.
+    ``query`` is the query behind the viewset's own queryset, from :func:`_queryset_query`. A path
+    naming one of its annotations is accepted and checked no further: there is no model field behind
+    it to read a type from, and ``aggregate()`` resolves it perfectly well. This is the same allowance
+    ordering makes for the same reason (see :func:`_validate_ordering_declarations`), so the two
+    declarations accept the same paths.
 
-    Three ways it can fail, each with its own answer:
+    A path may end in one or more transforms, such as ``hours__ceil`` when a project registers
+    ``Ceil`` on ``DecimalField``, or ``launched__year`` on an annotation. The transforms are resolved
+    the way Django resolves them, and the type check reads the output of the last one. Whether the sum
+    means something is the project's to judge.
 
+    Four ways it can fail, each with its own answer:
+
+    - It applies something to an annotation that is not a transform Django can apply, such as a
+      misspelled ``launched__yaer``. An annotation whose own type Django can't determine takes no
+      transform at all, and gets a message of its own. A list request asking for either raises
+      ``FieldError``.
     - It doesn't name a field on the model, walking ``__`` through relations the way the ORM does,
       and isn't one of those annotations either. ``queryset.aggregate()`` raises ``FieldError`` on
       the first list request that asks for it.
@@ -1925,8 +2021,8 @@ def _validate_column_total_path(model, viewset, name, path, annotation_names):
       ``aggregate()`` call. Ask for a good total alongside a bad one and the good one comes back
       wrong, with nothing to say so. Supporting totals across those relations needs a different
       aggregation design than one ``aggregate()`` call, so they are refused here.
-    - It lands on something ``Sum`` means nothing for -- a relation itself, or a column that isn't
-      numeric or a duration.
+    - It lands on something ``Sum`` means nothing for -- a relation itself, or a column or transform
+      output that isn't numeric or a duration.
     """
     if not isinstance(path, str) or not path:
         return [
@@ -1940,32 +2036,68 @@ def _validate_column_total_path(model, viewset, name, path, annotation_names):
             )
         ]
 
-    if path in annotation_names:
+    if path in query.annotations:
         # An annotation the viewset's own `get_queryset` adds. `aggregate()` resolves it like any
         # other expression, and there is no model field behind it to check a type or a join against,
         # so the rest of this function has nothing to say about it. What it sums is the project's
         # own to get right, the same as for an annotation named in `ordering_fields`.
         return []
 
-    try:
-        fields = get_fields_from_path(model, path)
-    except (FieldDoesNotExist, NotRelationField):
-        return [
-            _column_totals_error(
-                viewset,
-                f"{viewset.__name__}.column_totals['{name}'] is '{path}', but {model.__name__} has no such "
-                "field or related field.",
-                hint=(
-                    f"Point it at a column on {model.__name__}, at one reached through its relations with "
-                    "`__`, or at an annotation the viewset's own `get_queryset` adds. Where the value needs "
-                    "a join or an aggregate, model it as a database view (a `managed = False` model related "
-                    "by `OneToOneField`) and total a real column on that view. A list request asking for "
-                    "this total raises `FieldError` from `queryset.aggregate()`."
-                ),
-            )
-        ]
+    # The `FieldError` message Django raises for a path it can't resolve, which is what a list request
+    # asking for the total fails with. The check reports Django's own words for it.
+    annotation_name = path_annotation_name(query.annotations, path)
+    if annotation_name is not None:
+        # Transforms on an annotation. There is still no join to check, but the transforms have to
+        # resolve, and their output has to be something `Sum` means something for.
+        try:
+            field = annotation_path_field(query, path)
+        except FieldDoesNotExist as error:
+            if annotation_path_output_field(query, annotation_name) is None:
+                # The annotation itself has no type Django can determine, such as a `Coalesce` over
+                # mixed types, so no transform can be looked up for it, however it is spelled.
+                hint = (
+                    "Give the annotation's expression an `output_field`, e.g. "
+                    "`Coalesce(..., output_field=DateTimeField())`. A list request asking for this total "
+                    "raises `FieldError`."
+                )
+            else:
+                hint = (
+                    "Check the spelling. A transform that isn't built in has to be registered first, e.g. "
+                    "`DecimalField.register_lookup(Ceil)`. A list request asking for this total raises "
+                    "`FieldError`."
+                )
+            return [
+                _column_totals_error(
+                    viewset,
+                    f"{viewset.__name__}.column_totals['{name}'] is '{path}', but Django can't resolve it: "
+                    f"{_as_sentence(str(error))}",
+                    hint=hint,
+                )
+            ]
 
-    if path_multiplies_rows(fields):
+        # An annotation belongs to the rows being totalled, so it joins nothing of its own here.
+        multiplies_rows = False
+    else:
+        try:
+            field = query_path_field(model, path)
+        except FieldDoesNotExist as error:
+            return [
+                _column_totals_error(
+                    viewset,
+                    f"{viewset.__name__}.column_totals['{name}'] is '{path}', but Django can't resolve it: "
+                    f"{_as_sentence(str(error))}",
+                    hint=(
+                        f"Point it at a column on {model.__name__}, at one reached through its relations with "
+                        "`__`, or at an annotation the viewset's own `get_queryset` adds. Where the value needs "
+                        "a join or an aggregate, model it as a database view (a `managed = False` model related "
+                        "by `OneToOneField`) and total a real column on that view. A list request asking for "
+                        "this total raises `FieldError` from `queryset.aggregate()`."
+                    ),
+                )
+            ]
+        multiplies_rows = query_path_multiplies_rows(model, path)
+
+    if multiplies_rows:
         return [
             _column_totals_error(
                 viewset,
@@ -1981,7 +2113,6 @@ def _validate_column_total_path(model, viewset, name, path, annotation_names):
             )
         ]
 
-    field = fields[-1]
     if field.is_relation:
         return [
             _column_totals_error(
@@ -2062,7 +2193,7 @@ def _validate_column_totals(model, viewset):
     # `self.request`, most often -- so there is no telling an annotation from a stale path. Ordering
     # skips its whole check in that case; here only the path half depends on it, so the names are
     # still checked and the paths are left alone.
-    annotation_names = _queryset_annotation_names(viewset)
+    query = _queryset_query(viewset)
 
     errors = []
     for name, path in column_totals.items():
@@ -2072,8 +2203,8 @@ def _validate_column_totals(model, viewset):
         # one fix brings both back into scope. A name Django only deprecates still works today, so
         # its path is checked as usual -- the warning is about an upgrade, not about this total
         # being broken now.
-        if annotation_names is not None and not any(isinstance(message, Error) for message in name_messages):
-            errors.extend(_validate_column_total_path(model, viewset, name, path, annotation_names))
+        if query is not None and not any(isinstance(message, Error) for message in name_messages):
+            errors.extend(_validate_column_total_path(model, viewset, name, path, query))
 
     return errors
 

@@ -34,12 +34,12 @@ Every name in `model_ordering` is the [public name]{@term Public Name} that a cl
 
 A default ordering is reported whole or not at all. `default` is empty when any of its terms cannot be reported under one name. Two kinds of term cause that:
 
-- A term that resolves to no field, such as a field renamed without updating `ordering`. Every `list` request that falls back to it fails with Django's `FieldError`.
+- A term that resolves to no field and no queryset annotation, such as a field renamed without updating `ordering`. Every `list` request that falls back to it fails with Django's `FieldError`.
 - A term that reads more than one column, or none, such as `Concat("first_name", "last_name")` or `"?"`. The rows are sorted, and nothing describes the sort.
 
 A viewset `ordering` that fails to resolve does not fall back to the model's `Meta.ordering`. DRF passes the viewset's `ordering` to [`order_by()`]{@api ext:django:django.db.models.query.QuerySet.order_by} as written, so the request fails.
 
-The `vueda_info.E006` system check reports a viewset `ordering` or `ordering_fields` entry that names no field. Django's `models.E015` reports the same drift in `Meta.ordering`. E006 builds the viewset's queryset to learn its annotations. When `get_queryset` raises without a request, for example because it reads `self.request`, E006 skips that viewset.
+The `vueda_info.E006` system check reports a viewset `ordering` or `ordering_fields` entry that names no field. Django's `models.E015` reports the same drift in `Meta.ordering`. E006 follows the same resolution as the metadata, so a `"pk"` alias, a `formatted_name` reached through a lookup expression, a path that ends in a transform such as `created__year`, and an annotation that `get_queryset` adds are all accepted. For a path that doesn't resolve, E006 quotes Django's own `FieldError` message. E006 builds the viewset's queryset to learn its annotations. When `get_queryset` raises without a request, for example because it reads `self.request`, E006 skips that viewset.
 
 An `ordering_fields` entry that names no field is left out of `fields`, and the other entries stay. The ordering backend still accepts `o` for that entry, because it validates against the declared names. A request that names it fails in `order_by()` with a server error.
 
@@ -47,7 +47,7 @@ An `ordering_fields` entry that names no field is left out of `fields`, and the 
 
 An annotation that the viewset's `get_queryset` adds is orderable. It appears in `fields` when `ordering_fields` names it or is `"__all__"`, or when the default ordering names it. Its `type` comes from the annotation's `output_field`. The `type` is `alpha` when Django cannot resolve one.
 
-A default ordering that names an annotation is reported under the annotation's name, in `default` and in `fields`. A multi-column function becomes reportable once it is annotated and the ordering names the annotation, or once a {@api ext:django:django.db.models.GeneratedField} or a database view column holds it. [Declare List Ordering](../guides/declare-list-ordering.md#make-a-function-default-visible) shows each option.
+A default ordering that names an annotation is reported under the annotation's name, in `default` and in `fields`. A transform on an annotation, such as `launched__year`, is reported the same way, under its dotted name `launched.year`, and typed from the transform's output. An annotation stays unreported when `get_queryset` needs the request, because the metadata builds the queryset without one. A multi-column function becomes reportable once it is annotated and the ordering names the annotation, or once a {@api ext:django:django.db.models.GeneratedField} or a database view column holds it. [Declare List Ordering](../guides/declare-list-ordering.md#make-a-function-default-visible) shows each option.
 
 ### Database Functions in a Default Ordering
 
@@ -83,6 +83,29 @@ No system check reads a filter's `field_name`. A filter on one of the two unrewr
 
 `VuedaCompositePrimaryKeyFilterSet` declares no default filters, because a composite primary key model has no `id` field. [Set Up CRUD for a Composite Primary Key Model](../guides/composite-primary-keys.md) covers its filters.
 
+A transform may follow `formatted_name` in a filter's `field_name`. The rewrite keeps it: `customer__formatted_name__unaccent` queries `customer__data__formatted_name__unaccent`, and `formatted_name__unaccent` on the model's own annotation is left for Django to apply. See [Transforms in an Ordering Path](#transforms-in-an-ordering-path) for which transforms Django accepts.
+
+```python
+class CartFilterSet(VuedaFilterSet):
+    customer_name = rest_framework.CharFilter(
+        field_name="customer__formatted_name__unaccent",
+        lookup_expr="icontains",
+    )
+```
+
+Whether a transform also applies to the value a client sends depends on the transform:
+
+| `field_name`                         | Lookup      | Applied to                        | Client sends | Matches "José Smith" |
+| ------------------------------------ | ----------- | --------------------------------- | ------------ | -------------------- |
+| `customer__formatted_name__unaccent` | `icontains` | the column and the client's value | `jose`       | Yes                  |
+| `customer__formatted_name__lower`    | `exact`     | the column only                   | `josé smith` | Yes                  |
+| `customer__formatted_name__lower`    | `exact`     | the column only                   | `José Smith` | No                   |
+| `customer__formatted_name`           | `iexact`    | the column and the client's value | `JOSÉ SMITH` | Yes                  |
+
+Django marks `unaccent` as bilateral, which is what makes it apply to both sides. It needs `django.contrib.postgres` in `INSTALLED_APPS` and the `unaccent` database extension. `lower` and `upper` are database functions that a project registers as transforms itself, with `CharField.register_lookup(Lower)`, and they apply to the column alone. For a case-insensitive match, use the `iexact` or `icontains` lookup on `customer__formatted_name` instead of a `lower` transform.
+
+django-filter can't build a label from such a path, because `formatted_name` on a model that reaches it through a lookup expression is not a model field. The label falls back to the filter's own name and lookup, so `customer_name` above is labelled "Customer Name Contains". Declare a `label` when that doesn't read well to the person using the list (see [Filter labels](#filter-labels)).
+
 ### Filtering metadata
 
 [`model_filtering`]{@api rest:schema:ModelInfoFilter} maps each filter's public name to an entry. Every entry carries `hidden`, `label`, `lookup_exprs`, `required`, `type_db`, `type_model`, `type_filter`, `choices`, and `input_type`. Optional keys, such as `suffixes`, appear when they apply.
@@ -116,6 +139,33 @@ class ProductFilterSet(VuedaFilterSet):
 ```
 
 The check's hint says to rename or remove one of them. It also covers names generated from `Meta.fields`.
+
+### Filter labels
+
+`model_filtering` reports a label for every filter, and the client shows it in the filter menu and on the filter's chip. The label is decided in this order:
+
+1. **A declared `label`** is used as written: `rest_framework.CharFilter(field_name="customer__formatted_name", label="Customer")` is labelled "Customer".
+2. **Otherwise, django-filter builds one from the declared path.** It joins the verbose names of the model fields that the path names, adds the lookup expression in words, and VUEDA title-cases the result. `field_name="customer__user__email", lookup_expr="icontains"` is labelled "Customer User Email Address Contains", because the `email` field's verbose name is "email address".
+3. **When django-filter can't follow the path, the filter's own name is used instead.** Django labels a form field that declares no label the same way: underscores become spaces, and VUEDA title-cases the result. A dot in a public filter name reads as a space too. The words django-filter would add stay: "Exclude" in front of a negated filter, and the lookup expression in words after the name. A lookup that the name already ends with is taken off the name first, so it isn't repeated.
+
+The third step applies to a path that names something other than a model field. That covers `formatted_name` on a model that reaches it through `formatted_name_lookup_expression`, and a path that ends in a transform, such as `customer__formatted_name__lower`. django-filter's own label for such a path would be `[invalid name]`.
+
+`model_filtering` reports django-filter's label unless it is `[invalid name]`, and the Django fallback in that case. Customer reaches its `formatted_name` through a lookup expression in these examples, and both columns are title-cased the way `model_filtering` reports them:
+
+| Filter name                         | `field_name`                      | Lookup                      | django-filter               | Django fallback                  |
+| ----------------------------------- | --------------------------------- | --------------------------- | --------------------------- | -------------------------------- |
+| `customer_email`                    | `customer__user__email`           | `exact`                     | Customer User Email Address | Not used                         |
+| `customer_formatted_name`           | `customer__formatted_name`        | `exact`                     | `[Invalid Name]`            | Customer Formatted Name          |
+| `customer_name_lower`               | `customer__formatted_name__lower` | `exact`                     | `[Invalid Name]`            | Customer Name Lower              |
+| `customer.formatted_name`           | `customer__formatted_name`        | `exact`                     | `[Invalid Name]`            | Customer Formatted Name          |
+| `customer_formatted_name_icontains` | `customer__formatted_name`        | `icontains`                 | `[Invalid Name]`            | Customer Formatted Name Contains |
+| `customer_name`                     | `customer__formatted_name`        | `icontains`, `exclude=True` | `[Invalid Name]`            | Exclude Customer Name Contains   |
+
+A declared `label` replaces both columns.
+
+The Django fallback applies to `model_filtering`, which the VUEDA client reads. django-filter's own label on the filter is still `[invalid name]`, and DRF's browsable API shows that one. Declare a `label` on such a filter to fix both.
+
+A generated label describes the path, not what the reader is looking for. A filter named `formatted_name` on an invoice list is labelled "Formatted Name", which says nothing about invoices to someone filtering the list. Name a filter after what it means to the reader, such as `customer_name`, or declare a `label`.
 
 ## Queryset Ordering
 
@@ -207,6 +257,76 @@ A value other than `"first"` or `"last"` is ignored at request time, and the row
 To read the names a list request can sort by, the check builds the viewset without a request. When the viewset's `get_queryset`, or the serializer that DRF reads default ordering fields from, needs the request, the check skips the keys that no request can sort by.
 
 `model_ordering` does not report nulls placement.
+
+## Transforms in an Ordering Path
+
+A declared ordering path may end in a transform. A transform is a lookup that turns a field's value into another value, such as `__year` on a date or `__len` on an array. Django accepts these paths in `order_by()` and in `Meta.ordering`, and VUEDA accepts them in a viewset's `ordering`, `ordering_fields`, and `nulls_ordering`.
+
+```python
+class InvoiceViewSet(VuedaViewSet):
+    queryset = Invoice.objects.all()
+    serializer_class = InvoiceSerializer
+
+    ordering = ["created__year", "-created__month"]
+    ordering_fields = ["created__year", "created__date__year", "details__priority"]
+    # model_ordering.default == ["created.year", "created.month"]
+    # model_ordering.fields includes {"name": "created.year", "type": "numeric", "ascending": true}
+    # `?o=created.year` and `?o=-details.priority` are accepted.
+```
+
+VUEDA looks each transform up in Django's own lookup registry, the same way a query does. So any transform that Django resolves for the field works:
+
+- a built-in transform, such as `year`, `month`, or `date`;
+- a chain of transforms, such as `created__date__year`;
+- a transform that a project registers on a field class itself;
+- a key on a `JSONField`, such as `details__priority`.
+
+A misspelled transform, such as `created__yaer`, names nothing. `vueda_info.E006` reports it the same way it reports a misspelled field.
+
+A key on a `JSONField` can contain any character, including a `.` or a `,`. That is a limitation, described under [Names that contain a dot or a comma](#names-that-contain-a-dot-or-a-comma).
+
+`model_ordering` reports the path under its dotted name, which is the name a client sends back in `?o=`. The `type` comes from the transform's output, not from the column. `created.year` is `numeric`, because the database sorts the year as a number. A key on a `JSONField` is `alpha`, the same as the `JSONField` itself.
+
+This differs from a database function. `ExtractYear("created")` sorts by the same value as `created__year`, but it is an expression around the column. So it is reported under the column's own name, `created`, and typed from the column (see [Database Functions in a Default Ordering](#database-functions-in-a-default-ordering)). Write the path form when a client should be able to name the transformed value in `?o=`.
+
+A path does not have to start with a model field. Two other starting points accept transforms too:
+
+- **A queryset annotation.** `ordering_fields = ["launched__year"]` works when `get_queryset` adds a `launched` annotation. Django applies the transform to the annotation, and `model_ordering.fields` reports `launched.year`, typed from the transform's output. The annotation may come from `.annotate()` or `.alias()`. A plain string in Django's `order_by()` can't apply a transform to an `.alias()` name, so `VuedaOrderingFilter` orders by such a path through an `F()` expression, which can. A default ordering that names such a path is reported in `model_ordering.default` as well (see [Queryset annotations](#queryset-annotations)).
+- **`formatted_name`.** `formatted_name__unaccent` and `customer__formatted_name__unaccent` both work, including on a model that reaches `formatted_name` through `formatted_name_lookup_expression`. `VuedaOrderingFilter` rewrites the part up to `formatted_name` to the lookup expression behind it and keeps the transforms, so the database applies them to the column the lookup expression lands on. The model's own `formatted_name` is left on its annotation, and Django applies the transforms there.
+
+Some transforms are not built in. `Lower` and `Ceil`, for example, are database functions. A path such as `name__lower` works only after a project registers the function as a transform, with `CharField.register_lookup(Lower)`. Until then, `vueda_info.E006` reports the path as naming nothing, because Django would refuse it too.
+
+A `column_totals` path may end in a transform as well. See [Totals Over a Transform](../guides/list-column-totals#totals-over-a-transform).
+
+### Names that contain a dot or a comma
+
+A client can't sort by a name that contains a `.` or a `,`. This is a known limitation of the `?o=` parameter, and no setting lifts it.
+
+`?o=` takes dotted names, and the client sends every ordering term that way. VUEDA turns each `.` in a term back into `__` to find the ORM path. So a `.` that belongs to the name itself is read as a separator. DRF splits a `?o=` value on commas, so a `,` splits the name into two terms.
+
+Django model fields can't contain either character. Two kinds of name can:
+
+- **A key on a `JSONField`.** `ordering_fields = ["specs__v1.2"]` names the key `v1.2`. Its dotted name, `specs.v1.2`, reads back as `specs__v1__2`, a different key.
+- **An annotation name built from a dictionary.** `.annotate(**{"v1.2": F("name")})` is valid Django. Its dotted name, `v1.2`, reads back as `v1__2`.
+
+The query itself sorts by such a name without trouble. A viewset's `ordering` that names one still orders every list. What fails is naming it from a client:
+
+- `vueda_info.E006` reports the declaration, so `manage.py check` fails until it changes.
+- `model_ordering` leaves the name out of `fields`. A default ordering that names one is not reported in `default` either.
+- `?o=` rejects the dotted name with a `400`, rather than sorting by the different path that it reads back as.
+
+To make such a value sortable, annotate it under a name without a dot or a comma in the viewset's own `get_queryset`, and order by that name:
+
+```python
+from django.db.models.fields.json import KeyTextTransform
+
+
+class ReleaseViewSet(VuedaViewSet):
+    ordering_fields = ["spec_v1_2"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(spec_v1_2=KeyTextTransform("v1.2", "specs"))
+```
 
 ## Query Namespace and Validation Boundary
 
