@@ -70,9 +70,13 @@ const handleSuccess = (response) => {
     toast.success("New recovery codes generated successfully.");
 };
 
+// ViewSetupDevice returns to `returnPath` once the new device is active, which brings the user back here.
 const goToSetupDevice = async () => {
     if (router.hasRoute("setup-device")) {
-        await router.push({ name: "setup-device" });
+        await router.push({
+            name: "setup-device",
+            query: { returnPath: router.currentRoute.value.fullPath },
+        });
     }
 };
 
