@@ -64,7 +64,7 @@ The integrator template's `client/src/router/index.js` defines every route in th
 
 A user who still owes a two-factor code stays signed out until the server accepts it, so `2fa` uses `requireUnauth`.
 
-The server refuses device setup and recovery codes without a recent session, so `setup-device` and `recovery-codes` use `requireRecentAuth` and send the user to `reauthenticate`. `ViewSetupDevice` takes `app` and `model` props that name the device model. VUEDA's device model is `totpdevice` in the `vueda_user` app. Neither page is part of a flow, so link them from your account settings. When the device is active, `ViewSetupDevice` goes to the `returnPath` query value if the link sets one.
+The server refuses device setup and recovery codes without a recent session, so `setup-device` and `recovery-codes` use `requireRecentAuth` and send the user to `reauthenticate`. `ViewSetupDevice` takes `app` and `model` props that name the device model. VUEDA's device model is `totpdevice` in the `vueda_user` app. Neither page is part of a flow, so link them from your account settings. When the device is active, `ViewSetupDevice` goes to the `returnPath` query value if the link sets one. The recovery codes page sets `returnPath` to itself when it offers device setup, so the user comes back to their new codes.
 
 {@api vue:component:ViewChangePassword} also acts for a signed-in user. The server accepts a password change without a recent session, so route it at any path behind `requireAuth`.
 
