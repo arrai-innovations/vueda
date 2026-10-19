@@ -59,7 +59,6 @@ The server requires:
 - A nested row drops an unknown key without an error ([#424](https://github.com/arrai-innovations/vueda/issues/424)).
 - Choice endpoints return the first 200 rows and have no search ([#381](https://github.com/arrai-innovations/vueda/issues/381)).
 - The checks for `formatted_name` managers cover only the default manager of registered models ([#259](https://github.com/arrai-innovations/vueda/issues/259), [#496](https://github.com/arrai-innovations/vueda/issues/496)). A missed manager fails at query time.
-- An authenticator app added after an email or SMS device produces codes that do not validate ([#448](https://github.com/arrai-innovations/vueda/issues/448)).
 - The permissions overview cannot delete a group ([#423](https://github.com/arrai-innovations/vueda/issues/423)).
 - A workflow cannot be retired from a model that has objects ([#431](https://github.com/arrai-innovations/vueda/issues/431)).
 - Object transition lists ignore `allow_transition` overrides, so the client can offer a transition that fails ([#430](https://github.com/arrai-innovations/vueda/issues/430)).
