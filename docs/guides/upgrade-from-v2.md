@@ -30,7 +30,7 @@ Export every `Historical*` table before you apply those migrations. A user histo
 
 ### Update Python, Django, and Dependencies
 
-Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.16 or later. It installs from the public PyPI index as `vueda`. Remove any private index and source binding for `vueda` from your `pyproject.toml`. The beta is a prerelease, so opt in when you add it:
+Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.18 or later. It installs from the public PyPI index as `vueda`. Remove any private index and source binding for `vueda` from your `pyproject.toml`. The beta is a prerelease, so opt in when you add it:
 
 ```bash
 uv add --prerelease allow vueda
