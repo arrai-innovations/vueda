@@ -51,7 +51,7 @@ The client requires:
 
 - A configured `formProps` entry applies differently on create than on update, read, and detail screens ([#341](https://github.com/arrai-innovations/vueda/issues/341)).
 - `FormModel` ignores its `variant` when it resolves theme entries ([#339](https://github.com/arrai-innovations/vueda/issues/339)).
-- A custom `#fields` layout does not receive per-field slots ([#338](https://github.com/arrai-innovations/vueda/issues/338)). `FieldRenderer` ignores its `fieldProps` prop ([#337](https://github.com/arrai-innovations/vueda/issues/337)).
+- A custom `#fields` layout does not receive per-field slots ([#338](https://github.com/arrai-innovations/vueda/issues/338)).
 - A display field whose path starts with a model field named `related` or `calculated` renders blank ([#310](https://github.com/arrai-innovations/vueda/issues/310)).
 - `useVersion().newClientAvailable` stays false unless the project defines `VITE_PACKAGE_VERSION` itself, because `vuedaViteConfig()` does not define it ([#300](https://github.com/arrai-innovations/vueda/issues/300)).
 - Binding `on-submission-error-handler` on `AuthForm` makes a failed submission throw ([#409](https://github.com/arrai-innovations/vueda/issues/409)).

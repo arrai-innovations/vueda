@@ -261,11 +261,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                     :widget-components="formModel.widgetComponents"
                 >
                     <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
-                        <field-renderer
-                            :field-props="fieldProps?.[fieldName]"
-                            :form-model="formModel"
-                            :form-model-name="fieldName"
-                        >
+                        <field-renderer :form-model="formModel" :form-model-name="fieldName">
                             <template v-for="slotName in slotNames" #[slotName]="slotProps">
                                 <slot :name="slotName" v-bind="slotProps" />
                             </template>

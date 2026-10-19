@@ -139,4 +139,76 @@ describe("lib/use/useFieldRenderer.js", () => {
         await flushPromises();
         expect(result.fieldValuePath.value).toBe("items[3].name");
     });
+
+    describe("fieldProps prop", () => {
+        const makeProps = (overrides = {}) =>
+            vue.reactive({
+                formModelName: "foo",
+                formModel: {
+                    fieldComponents: { foo: "FieldFoo" },
+                    widgetComponents: {},
+                    fieldDetails: {},
+                    fieldProps: { foo: { label: "Config", help: "From config", themeOverride: { a: 1 } } },
+                    widgetProps: { foo: { themeOverride: { c: 3 } } },
+                },
+                objectGridFieldSlotProps: {},
+                ...overrides,
+            });
+
+        scopedIt("applies props that only the prop sets", async () => {
+            const props = makeProps({ fieldProps: { placeholder: "From prop" } });
+            const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+            expect(result.fieldProps.value.placeholder).toBe("From prop");
+            expect(result.fieldProps.value.help).toBe("From config");
+        });
+
+        scopedIt("wins over the form model's field props and attrs for the same key", async () => {
+            const props = makeProps({ fieldProps: { label: "Prop" } });
+            const result = await withSetup(() => useFieldRenderer(props, { label: "Attr" }, {}));
+            expect(result.fieldProps.value.label).toBe("Prop");
+        });
+
+        scopedIt("does not replace the props that the renderer computes", async () => {
+            const props = makeProps({ fieldProps: { name: "other", formModelName: "other", hidden: true } });
+            const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+            expect(result.fieldProps.value.name).toBe("foo");
+            expect(result.fieldProps.value.formModelName).toBe("foo");
+            expect(result.fieldProps.value.hidden).toBe(false);
+        });
+
+        scopedIt("composes its themeOverride with the form model's for the field and the widget", async () => {
+            const props = makeProps({ fieldProps: { themeOverride: { p: 4 } }, themeOverride: { b: 2 } });
+            const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+            expect(result.fieldProps.value.themeOverride).toEqual({ a: 1, p: 4, b: 2 });
+            expect(result.widgetProps.value.themeOverride).toEqual({ a: 1, p: 4, c: 3, b: 2 });
+        });
+
+        scopedIt("layers its themeOverride after the form model's and before the component's", async () => {
+            const props = makeProps({
+                fieldProps: { themeOverride: { a: "prop", b: "prop" } },
+                themeOverride: { b: "component" },
+            });
+            const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+            expect(result.fieldProps.value.themeOverride).toEqual({ a: "prop", b: "component" });
+        });
+
+        scopedIt("leaves the field props unchanged when the prop is empty", async () => {
+            const attrs = { id: "id1", class: "cls" };
+            const withoutProp = await withSetup(() => useFieldRenderer(makeProps(), attrs, {}));
+            const withEmptyProp = await withSetup(() => useFieldRenderer(makeProps({ fieldProps: {} }), attrs, {}));
+            const expected = {
+                label: "Config",
+                help: "From config",
+                id: "id1",
+                name: "foo",
+                formModelName: "foo",
+                modelValue: undefined,
+                hidden: false,
+                themeOverride: { a: 1 },
+            };
+            expect(withoutProp.fieldProps.value).toEqual(expected);
+            expect(withEmptyProp.fieldProps.value).toEqual(expected);
+            expect(withEmptyProp.widgetProps.value.themeOverride).toEqual({ a: 1, c: 3 });
+        });
+    });
 });
