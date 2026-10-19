@@ -95,8 +95,10 @@ def _annotates_formatted_name(manager):
     Building a queryset opens no database connection, so this is safe in a check that runs before
     anything reaches a database.
 
-    ``None`` when the question has no answer: a ``get_queryset`` that reaches for request state
-    raises here, and so does one annotating a lookup expression that names no field.
+    A ``get_queryset`` that reaches for request state raises here, and so does one annotating a
+    lookup expression that names no field. That queryset says nothing about its annotations, so the
+    manager's class answers instead. A ``FormattedNameManager`` subclass counts as annotating, and
+    any other manager does not.
     """
     if manager is None:
         return False
@@ -104,11 +106,34 @@ def _annotates_formatted_name(manager):
     try:
         queryset = manager.get_queryset()
     except Exception:
-        # A queryset nobody can build says nothing about its annotations, and a check has no
-        # business raising.
-        return None
+        # A check has no business raising, and the class is the best evidence left.
+        return isinstance(manager, FormattedNameManager)
 
     return FORMATTED_NAME in queryset.query.annotations
+
+
+def _formatted_name_manager_fix(manager):
+    """
+    The hint sentences that say how to give ``manager`` the ``formatted_name`` annotation.
+
+    A ``FormattedNameManager`` subclass that lacks the annotation already inherits the class that adds
+    it, so telling it to subclass ``FormattedNameManager`` would send the developer nowhere. The cause
+    is a ``get_queryset()`` that builds a fresh queryset instead of narrowing the one ``super()``
+    returns. The fix tells the developer to build on ``super().get_queryset()``. Any other manager is
+    missing the class itself.
+    """
+    if isinstance(manager, FormattedNameManager):
+        return (
+            f"{type(manager).__name__} already subclasses FormattedNameManager, but its `get_queryset()` "
+            "returns a queryset without the annotation. Build on `super().get_queryset()` rather than a "
+            "fresh queryset, so the annotation survives."
+        )
+
+    return (
+        "FormattedNameManager is what annotates the lookup expression as `formatted_name` on the "
+        "model's own querysets. Subclass it instead of `models.Manager`, or pass it to "
+        "`Manager.from_queryset()` as the base."
+    )
 
 
 class FormattedNameManager(models.Manager):
@@ -270,7 +295,9 @@ class FormattedNameBaseModel(models.Model):
         things, a term and a manager, so a model in this state gets both.
 
         The manager is asked by reading the queryset it builds, not its class, so a manager of a
-        project's own that annotates the path keeps the term withheld whatever it inherits.
+        project's own that annotates the path keeps the term withheld whatever it inherits. When the
+        queryset can't be built at startup, ``_annotates_formatted_name`` asks the class instead, so a
+        ``FormattedNameManager`` subclass that reads request state keeps the term withheld too.
 
         ``formatted_name_annotation_path`` is the single rule behind every ``formatted_name``
         annotation VUEDA adds, so asking it rather than reading the lookup expression directly keeps
@@ -299,7 +326,14 @@ class FormattedNameBaseModel(models.Model):
         # Read from `_meta` rather than from the class, so a `Meta.default_manager_name` pointing at a
         # manager that annotates counts — that is a supported way to fix the model, and Django uses
         # the same attribute to decide which manager the annotation comes from.
-        if _annotates_formatted_name(cls._meta.default_manager) is not True:
+        try:
+            default_manager = cls._meta.default_manager
+        except ValueError:
+            # `Meta.default_manager_name` naming a manager the model doesn't have raises here. That
+            # declaration is broken whatever the ordering says, so Django's checks run unchanged.
+            return super()._check_ordering()
+
+        if not _annotates_formatted_name(default_manager):
             return super()._check_ordering()
 
         remaining = [term for term in ordering if not _names_own_formatted_name(term)]
@@ -373,8 +407,15 @@ class FormattedNameBaseModel(models.Model):
 
         # Read from `_meta`, the attribute `Meta.default_manager_name` resolves to, so pointing it at
         # a manager that annotates is a fix this accepts.
-        default_manager = cls._meta.default_manager
-        if _annotates_formatted_name(default_manager) is not False:
+        try:
+            default_manager = cls._meta.default_manager
+        except ValueError:
+            # `Meta.default_manager_name` naming a manager the model doesn't have raises here. That
+            # declaration is broken whatever the manager would annotate, and reporting it as a missing
+            # annotation would point at the wrong line.
+            return []
+
+        if _annotates_formatted_name(default_manager):
             return []
 
         if default_manager is None:
@@ -387,12 +428,11 @@ class FormattedNameBaseModel(models.Model):
             checks.Error(
                 f"{cls.__name__} reaches formatted_name through formatted_name_lookup_expression, but {declared}.",
                 hint=(
-                    "FormattedNameManager is what annotates the lookup expression as `formatted_name` on "
-                    "the model's own querysets. Subclass it instead of `models.Manager` (or pass it to "
-                    "`Manager.from_queryset()` as the base), or point `Meta.default_manager_name` at a "
-                    "manager that does. Without it `formatted_name` resolves only on querysets "
-                    "`VuedaViewSet.get_queryset` builds, so ordering or filtering by it anywhere else "
-                    "raises FieldError, and a `Meta.ordering` naming it makes every query raise."
+                    f"{_formatted_name_manager_fix(default_manager)} Pointing `Meta.default_manager_name` "
+                    "at a manager that annotates `formatted_name` also works. Without the annotation, "
+                    "`formatted_name` resolves only on querysets `VuedaViewSet.get_queryset` builds, so "
+                    "ordering or filtering by it anywhere else raises FieldError, and a `Meta.ordering` "
+                    "naming it makes every query raise."
                 ),
                 obj=cls,
                 id="vueda_core.E019",

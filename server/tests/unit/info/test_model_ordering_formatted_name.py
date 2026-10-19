@@ -510,6 +510,37 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
 
         assert errors == []
 
+    def test_the_term_is_withheld_for_a_subclass_whose_queryset_needs_a_request(self, monkeypatch):
+        """A manager that narrows `super()`'s queryset by request state can't build one at startup,
+        so its queryset has no answer to give. Its class still says it annotates, and reporting the
+        term would block `migrate` over an ordering that works on every request."""
+
+        class RequestScopedManager(FormattedNameManager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_the_term_is_reported_for_a_plain_manager_whose_queryset_needs_a_request(self, monkeypatch):
+        """With no queryset to read, the class is the only evidence, and a plain `models.Manager`
+        subclass gives no reason to think the term resolves."""
+
+        class RequestScopedManager(models.Manager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert [error.msg for error in errors] == [
+            "'ordering' refers to the nonexistent field, related field, or lookup 'formatted_name'."
+        ]
+
     def test_a_stale_term_is_still_reported_when_the_default_manager_does_not_annotate(self, monkeypatch):
         """Nothing is withheld in this state, so the rest of the declaration is judged exactly as
         Django would judge it — one error per broken term, not one for the whole ordering."""
@@ -890,6 +921,9 @@ class TestFormattedNameDefaultManagerSystemChecks:
         errors = ProductModelOrderingLookupFormattedName.check()
 
         assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "LosesTheAnnotationManager already subclasses FormattedNameManager" in errors[0].hint
+        assert "Build on `super().get_queryset()`" in errors[0].hint
+        assert "Subclass it instead of `models.Manager`" not in errors[0].hint
 
     def test_default_manager_name_selecting_an_annotating_manager_passes(self):
         """The model declares a plain `objects`, which would be its default without
@@ -913,6 +947,56 @@ class TestFormattedNameDefaultManagerSystemChecks:
             errors = SelectsAnnotatingManager.check()
 
         assert errors == []
+
+    def test_a_plain_manager_whose_queryset_needs_a_request_is_reported(self, monkeypatch):
+        """A queryset that can't be built at startup has no annotations to read, so the class answers.
+        A plain `models.Manager` subclass gives no reason to think `formatted_name` resolves, and
+        filtering by it raises on every request."""
+
+        class RequestScopedManager(models.Manager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+
+        errors = ProductModelOrderingLookupFormattedName.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+
+    def test_a_subclass_whose_queryset_needs_a_request_passes(self, monkeypatch):
+        """The same unanswerable queryset on a `FormattedNameManager` subclass. Its class says it
+        annotates, so the model is not reported."""
+
+        class RequestScopedManager(FormattedNameManager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+
+        assert ProductModelOrderingLookupFormattedName.check() == []
+
+    def test_a_misspelled_default_manager_name_does_not_crash_the_check(self):
+        """`_meta.default_manager` raises `ValueError` when `Meta.default_manager_name` names a manager
+        the model doesn't have. Model checks run on every installed model, so letting it escape would
+        stop `manage.py check` with a traceback instead of a message."""
+        with isolate_apps("tests.features"):
+
+            class MisspelledDefaultManager(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "objcts"
+                    ordering = ["formatted_name"]
+
+            errors = MisspelledDefaultManager.check()
+
+        assert "vueda_core.E019" not in [error.id for error in errors]
 
     def test_a_model_with_a_formatted_name_column_is_not_reported(self, monkeypatch):
         """A `GeneratedField` column is a real field, so there is no annotation for a manager to be
