@@ -70,6 +70,52 @@ describe("lib/views/AuthForm.vue", () => {
         expect(stub.props("redirectTo")).toBe(mockRedirectTo);
     });
 
+    describe("Submission error handler", () => {
+        scopedIt("passes a caller's handler to useAuthFlow as a declared prop", () => {
+            const onSubmissionErrorHandler = vi.fn();
+            mountAuthForm({ props: { onSubmissionErrorHandler } });
+            expect(useAuthFlow).toHaveBeenCalledWith(expect.objectContaining({ onSubmissionErrorHandler }));
+        });
+
+        scopedIt("passes the composed handler to ActionForm as one function for a template binding", () => {
+            // A template binding keeps the kebab-case key, which Vue would merge with AuthForm's
+            // own `on*` binding into an array if it stayed in $attrs.
+            const callerHandler = () => true;
+            const Parent = defineComponent({
+                setup: () => () => h(AuthForm, { header: "Sign In", "on-submission-error-handler": callerHandler }),
+            });
+            const wrapper = mount(Parent);
+            const stub = wrapper.getComponent(ActionFormStub);
+            expect(stub.props("onSubmissionErrorHandler")).toBe(mockOnSubmissionErrorHandler);
+            expect(stub.vm.$attrs).not.toHaveProperty("on-submission-error-handler");
+            expect(stub.vm.$attrs).not.toHaveProperty("onSubmissionErrorHandler");
+            expect(useAuthFlow).toHaveBeenCalledWith(
+                expect.objectContaining({ onSubmissionErrorHandler: callerHandler }),
+            );
+        });
+
+        scopedIt("passes the composed handler to the form-content slot as one function for a template binding", () => {
+            const callerHandler = () => true;
+            let slotProps;
+            const Parent = defineComponent({
+                setup: () => () =>
+                    h(
+                        AuthForm,
+                        { header: "Sign In", "on-submission-error-handler": callerHandler },
+                        {
+                            "form-content": (props) => {
+                                slotProps = props;
+                                return h("div", { "data-qa": "custom-form" });
+                            },
+                        },
+                    ),
+            });
+            mount(Parent);
+            // The template compiler camelizes slot prop names.
+            expect(slotProps.onSubmissionErrorHandler).toBe(mockOnSubmissionErrorHandler);
+        });
+    });
+
     scopedIt("forwards slot content via form-content slot", () => {
         const wrapper = mountAuthForm({
             slots: {

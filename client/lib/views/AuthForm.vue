@@ -39,6 +39,17 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
+    /**
+     * Handles a failed submission in place of `defaultOnSubmissionError`. Reauthentication stays with `AuthForm`: an
+     * `UnauthorizedError` that sends the user to the sign-in or reauthenticate route does not reach this handler.
+     * `ActionForm` shows server feedback on the form's fields before any handler runs. Every other error reaches this
+     * handler once. Return `true`, or a promise that resolves `true`, when the handler dealt with the error. Return
+     * `false` to let `ActionForm` record the error and show its error toast.
+     */
+    onSubmissionErrorHandler: {
+        type: Function,
+        default: undefined,
+    },
     /** Additional props forwarded to the underlying form composable. */
     formProps: {
         type: Object,
@@ -61,7 +72,9 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const { formContext, onSubmissionErrorHandler: OnSubmissionErrorHandler, redirectTo } = useAuthFlow(props);
+// useAuthFlow composes the caller's onSubmissionErrorHandler behind its reauthentication handling. It is a declared
+// prop, not an attr: Vue merges two `on*` bindings of one name into an array rather than overriding one.
+const { formContext, onSubmissionErrorHandler: submissionErrorHandler, redirectTo } = useAuthFlow(props);
 const theme = useTheme("AuthForm", props);
 const emit = defineEmits([
     /** Emitted on mount with a readonly ref to the reactive form values object. */
@@ -94,13 +107,13 @@ onMounted(() => {
                         name="form-content"
                         v-bind="$attrs"
                         :run-action="runAction"
-                        :on-submission-error-handler="OnSubmissionErrorHandler"
+                        :on-submission-error-handler="submissionErrorHandler"
                         :redirect-to="redirectTo"
                     >
                         <action-form
                             :run-action="runAction"
                             v-bind="$attrs"
-                            :on-submission-error-handler="OnSubmissionErrorHandler"
+                            :on-submission-error-handler="submissionErrorHandler"
                             :redirect-to="redirectTo"
                             :action-state="userStore"
                         >

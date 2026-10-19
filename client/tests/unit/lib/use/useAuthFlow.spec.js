@@ -207,6 +207,101 @@ describe("lib/use/useAuthFlow.js", () => {
         });
     });
 
+    describe("onSubmissionErrorHandler option", () => {
+        scopedIt("redirects for an UnauthorizedError without calling the option", async () => {
+            const onSubmissionErrorHandler = vi.fn(async () => true);
+            const flow = useAuthFlow({ formProps: {}, onSubmissionErrorHandler });
+            storeState.authPendingFlow = "reauthenticate";
+            const result = await flow.onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledWith({ name: "reauthenticate", query: { redirect: "/current" } });
+            expect(onSubmissionErrorHandler).not.toHaveBeenCalled();
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("sends a signed-out user to sign-in without calling the option", async () => {
+            const onSubmissionErrorHandler = vi.fn(async () => true);
+            const flow = useAuthFlow({ formProps: {}, onSubmissionErrorHandler });
+            storeState.loggedIn = false;
+            const result = await flow.onSubmissionErrorHandler({
+                error: new UnauthorizedError("nope"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(true);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/current" } });
+            expect(onSubmissionErrorHandler).not.toHaveBeenCalled();
+        });
+
+        scopedIt("passes another error to the option once, in place of defaultOnSubmissionError", async () => {
+            const onSubmissionErrorHandler = vi.fn(async () => true);
+            const flow = useAuthFlow({ formProps: {}, onSubmissionErrorHandler });
+            const error = new Error("bad");
+            const result = await flow.onSubmissionErrorHandler({ error, formContext: {}, toast: toastMock });
+            expect(result).toBe(true);
+            expect(onSubmissionErrorHandler).toHaveBeenCalledTimes(1);
+            expect(onSubmissionErrorHandler).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("resolves false when an asynchronous option resolves false", async () => {
+            const onSubmissionErrorHandler = vi.fn(async () => {
+                await flushPromises();
+                return false;
+            });
+            const flow = useAuthFlow({ formProps: {}, onSubmissionErrorHandler });
+            const result = await flow.onSubmissionErrorHandler({
+                error: new Error("bad"),
+                formContext: {},
+                toast: toastMock,
+            });
+            expect(result).toBe(false);
+            expect(onSubmissionErrorHandler).toHaveBeenCalledTimes(1);
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+
+        scopedIt("resolves true when an asynchronous option resolves true after a delay", async () => {
+            let resolveHandler;
+            const onSubmissionErrorHandler = vi.fn(
+                () =>
+                    new Promise((resolve) => {
+                        resolveHandler = resolve;
+                    }),
+            );
+            const flow = useAuthFlow({ formProps: {}, onSubmissionErrorHandler });
+            const pending = flow.onSubmissionErrorHandler({
+                error: new Error("bad"),
+                formContext: {},
+                toast: toastMock,
+            });
+            let settled = false;
+            pending.then(() => {
+                settled = true;
+            });
+            await flushPromises();
+            expect(settled).toBe(false);
+            resolveHandler(true);
+            expect(await pending).toBe(true);
+        });
+
+        scopedIt("passes an UnauthorizedError to the option when the redirect fails", async () => {
+            const onSubmissionErrorHandler = vi.fn(async () => false);
+            const flow = useAuthFlow({ formProps: {}, onSubmissionErrorHandler });
+            routerPush.mockResolvedValueOnce(new Error("Navigation aborted"));
+            storeState.authPendingFlow = "reauthenticate";
+            const error = new UnauthorizedError("nope");
+            const result = await flow.onSubmissionErrorHandler({ error, formContext: {}, toast: toastMock });
+            expect(result).toBe(false);
+            expect(onSubmissionErrorHandler).toHaveBeenCalledTimes(1);
+            expect(onSubmissionErrorHandler).toHaveBeenCalledWith({ error, formContext: {}, toast: toastMock });
+            expect(defaultOnSubmissionError).not.toHaveBeenCalled();
+        });
+    });
+
     describe("authPendingFlow watch", () => {
         scopedIt("redirects to reauthenticate on mfa_reauthenticate flow", async () => {
             useAuthFlow({ formProps: {} });

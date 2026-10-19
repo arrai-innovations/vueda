@@ -286,6 +286,8 @@ The store actions that need a recent session, such as `setupTOTPDevice` and `get
 - When the router cannot complete either navigation, the error goes to the form's usual error handling.
 - Every other error goes to the form's usual error handling.
 
+The form's usual error handling is {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionError}. To replace it, pass [`onSubmissionErrorHandler`]{@api vue:component:AuthForm:prop:onSubmissionErrorHandler}. Your handler receives each error that `AuthForm` does not send to `sign-in` or `reauthenticate`, so you control ordinary errors without reimplementing reauthentication. Return `true` when your handler dealt with the error. Return `false` to let `ActionForm` record the error and show its error toast. The handler can be asynchronous.
+
 Set [`requireRecentAuth`]{@api vue:component:AuthForm:prop:requireRecentAuth} to `false` for a form whose action the server accepts without a recent session. The user then stays on the form while a reauthentication flow is pending. Change-password is one such action: the server checks the current password instead. `changePassword` does not reload the current user, so its `UnauthorizedError` goes to the form's usual error handling. {@api vue:component:ViewChangePassword} sets `requireRecentAuth` to `false`, and so does this form:
 
 ```vue
