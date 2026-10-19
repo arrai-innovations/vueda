@@ -49,7 +49,6 @@ The client requires:
 
 ### Known Limitations
 
-- The integrator templates do not define the `2fa` and `reauthenticate` routes. Two-factor sign-in fails in a generated project until you add them ([#410](https://github.com/arrai-innovations/vueda/issues/410)).
 - A configured `formProps` entry applies differently on create than on update, read, and detail screens ([#341](https://github.com/arrai-innovations/vueda/issues/341)).
 - `FormModel` ignores its `variant` when it resolves theme entries ([#339](https://github.com/arrai-innovations/vueda/issues/339)).
 - A custom `#fields` layout does not receive per-field slots ([#338](https://github.com/arrai-innovations/vueda/issues/338)). `FieldRenderer` ignores its `fieldProps` prop ([#337](https://github.com/arrai-innovations/vueda/issues/337)).

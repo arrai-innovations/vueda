@@ -106,7 +106,10 @@ vi.mock("@arrai-innovations/vue-sonner", () => ({ toast: toastMock }));
 
 const routerPush = vi.fn();
 const routerHasRoute = vi.fn(() => true);
-vi.mock("vue-router", () => ({ useRouter: () => ({ push: routerPush, hasRoute: routerHasRoute }) }));
+const routerCurrentRoute = { value: { fullPath: "/recovery-codes/" } };
+vi.mock("vue-router", () => ({
+    useRouter: () => ({ push: routerPush, hasRoute: routerHasRoute, currentRoute: routerCurrentRoute }),
+}));
 
 let ViewRecoveryCodes;
 let activeRef;
@@ -184,11 +187,14 @@ describe("lib/views/ViewRecoveryCodes.vue", () => {
             expect(userStore.getRecoveryCodes).not.toHaveBeenCalled();
         });
 
-        scopedIt("set-up button routes to setup-device when registered", async () => {
+        scopedIt("set-up button routes to setup-device with this page as the return path", async () => {
             const wrapper = mount(ViewRecoveryCodes);
             await findButtonByLabel(wrapper, "Set up a device").trigger("click");
             expect(routerHasRoute).toHaveBeenCalledWith("setup-device");
-            expect(routerPush).toHaveBeenCalledWith({ name: "setup-device" });
+            expect(routerPush).toHaveBeenCalledWith({
+                name: "setup-device",
+                query: { returnPath: "/recovery-codes/" },
+            });
         });
 
         scopedIt("set-up button no-ops when setup-device route is not registered", async () => {
