@@ -113,6 +113,7 @@ describe("lib/views/AuthForm.vue", () => {
             mount(Parent);
             // The template compiler camelizes slot prop names.
             expect(slotProps.onSubmissionErrorHandler).toBe(mockOnSubmissionErrorHandler);
+            expect(slotProps).not.toHaveProperty("on-submission-error-handler");
         });
     });
 

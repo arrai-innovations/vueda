@@ -42,9 +42,10 @@ const props = defineProps({
     /**
      * Handles a failed submission in place of `defaultOnSubmissionError`. Reauthentication stays with `AuthForm`: an
      * `UnauthorizedError` that sends the user to the sign-in or reauthenticate route does not reach this handler.
-     * `ActionForm` shows server feedback on the form's fields before any handler runs. Every other error reaches this
-     * handler once. Return `true`, or a promise that resolves `true`, when the handler dealt with the error. Return
-     * `false` to let `ActionForm` record the error and show its error toast.
+     * `ActionForm` keeps server field feedback: it shows a `ServerFeedbackError` on the form's fields, and that error
+     * does not reach this handler. An error from a dry run does not reach this handler either. Every other error
+     * reaches this handler once. Return `true`, or a promise that resolves `true`, when the handler dealt with the
+     * error. Return `false` to let `ActionForm` record the error and show its error toast.
      */
     onSubmissionErrorHandler: {
         type: Function,
