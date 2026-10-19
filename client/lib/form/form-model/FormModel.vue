@@ -5,7 +5,7 @@ import FormMessage from "@vueda/form/form-model/FormMessage.vue";
 import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, useSlots } from "vue";
+import { computed, reactive, toRef, useSlots } from "vue";
 
 /**
  * This component is a form model that renders fields based on the configuration for the model.
@@ -185,7 +185,7 @@ const props = defineProps({
         default: undefined,
         description: "Field names to render as computed fields, if not wanting to use the configuration default.",
     },
-    /** Visual variant passed to the theme system to select an alternate form style. */
+    /** Visual variant for the theme system. A function-form `FormModel` theme entry receives it as `{ variant }`, so a project can register an alternate form style for each variant. */
     variant: {
         type: String,
         default: "default",
@@ -228,7 +228,7 @@ const props = defineProps({
     },
     ...THEME_OVERRIDE_PROPS,
 });
-const theme = useTheme("FormModel", props);
+const theme = useTheme("FormModel", props, reactive({ variant: toRef(props, "variant") }));
 const formModel = useFormModel(props);
 const slots = useSlots();
 const mySlotNames = ["before-fields", "after-fields", "form-level-chores", "default"];

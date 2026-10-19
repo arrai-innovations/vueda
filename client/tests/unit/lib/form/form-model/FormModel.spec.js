@@ -67,7 +67,7 @@ describe("lib/form/form-model/FormModel.vue", () => {
 
     scopedIt("calls useTheme and useFormModel", () => {
         mount(FormModel, { props: { app: "a", model: "m" } });
-        expect(mockedUseTheme).toHaveBeenCalledWith("FormModel", expect.any(Object));
+        expect(mockedUseTheme).toHaveBeenCalledWith("FormModel", expect.any(Object), { variant: "default" });
         expect(mockedUseFormModel).toHaveBeenCalledWith(expect.any(Object));
     });
 
