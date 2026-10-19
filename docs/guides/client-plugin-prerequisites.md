@@ -60,7 +60,7 @@ Importing `@vueda/theme/vueda-tailwind/index.js` registers all built-in componen
 
 VUEDA ships a first-party Tailwind CSS theme at `@vueda/theme/vueda-tailwind/index.js`. This is the recommended starting point. It maps each component's named slots to Tailwind utility classes and supports patches through `patchTheme()` and per-component `themeOverride` props. For an explanation of the available customization scopes, see [Theming and Customization](../core-concepts/theming-and-customization); for concrete recipes, see [Customize VUEDA Appearance](customize-vueda-appearance).
 
-Using the `vueda-tailwind` theme requires Tailwind CSS to be set up in your project so those utility classes generate CSS. Install `tailwindcss` and `@tailwindcss/vite` as dev dependencies and add the plugin to your `vite.config.js`:
+Using the `vueda-tailwind` theme requires Tailwind CSS to be set up in your project so those utility classes generate CSS. Install Tailwind CSS 4 (`tailwindcss`) and `@tailwindcss/vite` as dev dependencies and add the plugin to your `vite.config.js`:
 
 ```javascript
 import tailwindcss from "@tailwindcss/vite";
@@ -89,6 +89,30 @@ When installing your own theme object, call `setTheme` after the built-in defaul
 **What depends on it:** Themed components resolve their slot classes from the registry. Built-in components import their own theme modules, so they receive defaults even without the aggregate import or a `setTheme` call.
 
 **What fails without CSS:** Registered class names have no styling effect unless the corresponding CSS is generated and loaded. Keep Tailwind and `base.css` in the application stylesheet.
+
+## Register the Icons
+
+VUEDA components look up their icons in the {@term Icon Registry}. The registry starts empty, and a lookup for an icon that nobody registered returns no icon. Register icons before the app mounts.
+
+The Font Awesome Free preset registers an icon for every name that the built-in components use. Install its packages:
+
+```bash
+pnpm add @fortawesome/fontawesome-svg-core @fortawesome/free-solid-svg-icons @fortawesome/vue-fontawesome
+```
+
+Then install the preset in `main.js`. Font Awesome adds its stylesheet at runtime by default. Import the stylesheet yourself and turn off the runtime stylesheet:
+
+```javascript
+import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+import { installFontAwesomeFreeIcons } from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
+
+faConfig.autoAddCss = false;
+
+installFontAwesomeFreeIcons();
+```
+
+To use another icon library, pass your own registry to `setIcons()`. A registry maps a component name to its icon names, and each icon name to a `{ component, props }` entry. Entries under the `Default` key apply to every component. `patchIcons()` merges a partial registry over the current one. The `fontAwesomeFreeIcons` export of `@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js` lists every name that the built-in components look up.
 
 ## CRUDL Adapters
 
