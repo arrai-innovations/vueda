@@ -108,11 +108,10 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string} titleStr - Formatted page title derived from the view name and model verbose name. Empty until the verbose name is known.
  * @property {boolean} pageLoading - Combined loading state (model config + instance fetch).
  * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit buttons.
- * @property {object} computedWidgetProps - Merged widget props (explicit overrides + calculated object data).
  * @property {Error|null} combinedError - The first active error across prop validation, model config, instance fetch, and form submission; null when none.
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
  * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
- * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value.
+ * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value. When the object has calculated values, they join the merged `widgetProps` map.
  * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current view's action. True (optimistic) until the object has loaded.
  */
 
@@ -248,29 +247,29 @@ export function useDetailView(options, formInitialValue) {
     const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
     const formId = computed(() => `${options.app}-${options.model}-${options.pk}-${options.viewName}`);
 
-    const computedWidgetProps = computed(() => ({
-        ...options.widgetProps,
-        ...instanceObject?.state?.calculatedObject,
-    }));
-
-    const combinedFormProps = useFormModelProps({
+    const formModelProps = useFormModelProps({
         app: () => options.app,
         model: () => options.model,
         view: () => options.viewName,
         configFormProps: () => modelConfig.config.formProps,
         formProps: () => options.formProps,
-        viewProps: () => ({
-            ...pickViewFormModelProps(options),
-            // Calculated values join whichever widgetProps map wins, so they never displace a configured map.
-            widgetProps: Object.keys(instanceObject?.state?.calculatedObject || {}).length
-                ? {
-                      ...(options.widgetProps ??
-                          options.formProps?.widgetProps ??
-                          modelConfig.config.formProps?.widgetProps),
-                      ...instanceObject.state.calculatedObject,
-                  }
-                : options.widgetProps,
-        }),
+        viewProps: () => pickViewFormModelProps(options),
+    });
+
+    // Calculated values join the widgetProps map that the merge picked, so they never change which map applies.
+    const combinedFormProps = computed(() => {
+        const calculatedObject = instanceObject?.state?.calculatedObject;
+        if (!Object.keys(calculatedObject || {}).length) {
+            return formModelProps.value;
+        }
+        const merged = { ...formModelProps.value };
+        // When both spellings remain, Vue binds the later key, so read that one.
+        const widgetPropsKey = Object.keys(merged)
+            .reverse()
+            .find((key) => key === "widgetProps" || key === "widget-props");
+        merged.widgetProps = { ...merged[widgetPropsKey], ...calculatedObject };
+        delete merged["widget-props"];
+        return merged;
     });
 
     const availableActions = computed(() => {
@@ -331,7 +330,6 @@ export function useDetailView(options, formInitialValue) {
             titleStr,
             pageLoading,
             formId,
-            computedWidgetProps,
             combinedError,
             combinedErrored,
             combinedWhileText,

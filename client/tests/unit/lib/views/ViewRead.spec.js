@@ -59,7 +59,6 @@ beforeEach(async () => {
             titleStr: "Read Widget",
             pageLoading: false,
             formId: "testApp-testModel-42-read",
-            computedWidgetProps: {},
             combinedError: null,
             combinedErrored: false,
             combinedWhileText: "",

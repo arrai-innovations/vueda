@@ -201,5 +201,21 @@ describe("formProps precedence across the form views", () => {
             const { formModel } = await mountView(name);
             expect(formModel.props("widgetProps")).toEqual({ name: { source: "config" }, total: 3 });
         });
+
+        scopedIt("layers calculated values over a kebab-case widget-props map in model config", async () => {
+            delete modelConfig.config.formProps.widgetProps;
+            modelConfig.config.formProps["widget-props"] = { status: { clearable: false } };
+            instanceState.calculatedObject = { total: 3 };
+            const { formModel } = await mountView(name);
+            expect(formModel.props("widgetProps")).toEqual({ status: { clearable: false }, total: 3 });
+        });
+    });
+
+    describe.each(["ViewUpdate", "DetailView"])("%s with a calculated object and widgetProps passed", (name) => {
+        scopedIt("keeps the configured map cleared when the view passes null widgetProps", async () => {
+            instanceState.calculatedObject = { total: 3 };
+            const { formModel } = await mountView(name, { widgetProps: null });
+            expect(formModel.props("widgetProps")).toEqual({ total: 3 });
+        });
     });
 });

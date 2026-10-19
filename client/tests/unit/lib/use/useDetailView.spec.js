@@ -143,7 +143,6 @@ describe("lib/use/useDetailView.js", () => {
             expect(instance).toHaveProperty("titleStr");
             expect(instance).toHaveProperty("pageLoading");
             expect(instance).toHaveProperty("formId");
-            expect(instance).toHaveProperty("computedWidgetProps");
             expect(instance).toHaveProperty("combinedError");
             expect(instance).toHaveProperty("combinedErrored");
             expect(instance).toHaveProperty("combinedWhileText");
@@ -385,15 +384,6 @@ describe("lib/use/useDetailView.js", () => {
             mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
             await nextTick();
             expect(instance.currentActionAvailable).toBe(false);
-        });
-    });
-
-    describe("computedWidgetProps", () => {
-        scopedIt("merges widgetProps with calculatedObject from instance state", async () => {
-            props.widgetProps = { size: "sm" };
-            mockInstanceObject.state.calculatedObject = { extra: "data" };
-            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
-            expect(instance.computedWidgetProps).toEqual({ size: "sm", extra: "data" });
         });
     });
 
