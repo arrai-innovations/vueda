@@ -165,33 +165,51 @@ def _resolve_expandable_field_serializer_class(field_data):
     return field_serializer
 
 
-def _get_routed_serializer_classes():
-    """Return the serializer classes used by ViewSets registered with a router, anywhere in the URL conf.
+def _get_routed_view_serializers():
+    """Return a ``(view_class, serializer_class, route)`` triple for each DRF view route in the URL conf.
 
-    Walking the resolved URL conf (rather than vueda.info's registry) means this covers any DRF ViewSet
-    with a router route, not just ones registered with VUEDA's meta-info system -- the expandable_fields
-    format being validated comes from rest_flex_fields2, not VUEDA.
+    DRF's ``as_view()`` sets ``cls`` and ``initkwargs`` on the view function it returns, so this finds
+    ViewSets registered with a router and DRF views such as ``UpdateAPIView`` routed with ``path()``. A
+    plain Django view has no ``cls`` and is skipped.
+
+    The serializer is the ``serializer_class`` passed to ``as_view()``. When none was passed, it is the
+    view class's own ``serializer_class`` attribute. A route whose serializer is missing, or is not a
+    class, such as a property, is skipped. ``route`` joins the patterns that lead to the view, such as
+    ``"erring/timesheets/<int:pk>/"``. A view routed more than once appears once per route.
     """
     from django.urls import URLPattern
     from django.urls import URLResolver
     from django.urls import get_resolver
 
-    def walk(patterns, seen_viewsets):
-        serializer_classes = []
+    def walk(patterns, prefix):
+        triples = []
         for pattern in patterns:
+            route = prefix + str(pattern.pattern)
             if isinstance(pattern, URLPattern):
-                viewset_class = getattr(pattern.callback, "cls", None)
-                if viewset_class is None or viewset_class in seen_viewsets:
+                view_class = getattr(pattern.callback, "cls", None)
+                if view_class is None:
                     continue
-                seen_viewsets.add(viewset_class)
-                serializer_class = getattr(viewset_class, "serializer_class", None)
-                if serializer_class is not None:
-                    serializer_classes.append(serializer_class)
+                initkwargs = getattr(pattern.callback, "initkwargs", None) or {}
+                serializer_class = initkwargs.get("serializer_class", getattr(view_class, "serializer_class", None))
+                if inspect.isclass(serializer_class):
+                    triples.append((view_class, serializer_class, route))
             elif isinstance(pattern, URLResolver):
-                serializer_classes.extend(walk(pattern.url_patterns, seen_viewsets))
-        return serializer_classes
+                triples.extend(walk(pattern.url_patterns, route))
+        return triples
 
-    return walk(get_resolver().url_patterns, set())
+    return walk(get_resolver().url_patterns, "")
+
+
+def _get_routed_serializer_classes():
+    """Return the serializer class of each DRF view routed anywhere in the URL conf.
+
+    Walking the resolved URL conf (rather than vueda.info's registry) means this covers any routed DRF
+    view, not just ones registered with VUEDA's meta-info system -- the expandable_fields format being
+    validated comes from rest_flex_fields2, not VUEDA. That includes a serializer passed to ``as_view()``,
+    such as one that ``@action(serializer_class=...)`` sets for an extra action's route. A serializer appears
+    once per route, and ``_get_seed_serializer_classes`` drops the repeats.
+    """
+    return [serializer_class for _view, serializer_class, _route in _get_routed_view_serializers()]
 
 
 def _get_registered_serializer_classes():
@@ -208,7 +226,7 @@ def _get_registered_serializer_classes():
 def _get_seed_serializer_classes():
     """Return the serializer classes graph traversal starts from.
 
-    The seed is the union of routed ViewSet serializers and vueda.info registrations, routed ones first,
+    The seed is the union of routed DRF view serializers and vueda.info registrations, routed ones first,
     with duplicates dropped. A serializer that is both routed and registered appears once.
     """
     return list(dict.fromkeys([*_get_routed_serializer_classes(), *_get_registered_serializer_classes()]))
@@ -256,14 +274,20 @@ def check_expandable_fields_configuration(app_configs, **kwargs):
 
 def check_exclude_fields_serializer_usage(app_configs, **kwargs):
     """
-    ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` reads ``self.context["view"].action``. A view is only
-    ever present in context when the serializer is a routed ViewSet's ``serializer_class`` directly -- never
-    when it is reached as a nested field, an ``expandable_fields`` entry, or a ``register_serializer()``
-    (viewset-less) registration. Those uses raise a bare ``KeyError: 'view'`` from ``manage.py spectacular``
-    (and from the ``/info/`` meta-API), since the serializer is instantiated without a view in its context.
+    Report ``ExcludeFieldsSerializerMixin`` serializers used as a nested field or an ``expandable_fields``
+    entry (``vueda_core.E007``, ``E008``), or as the ``serializer_class`` of a routed DRF view that is not
+    a ViewSet (``vueda_core.E021``).
+
+    ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` picks its exclusions from the action of the view in
+    the serializer's context. A nested serializer shares its root serializer's context, so a nested copy of
+    the mixin would apply its exclusions for the parent view's action. That behavior is not supported, so
+    these uses are rejected. Only a ViewSet has an action, so the mixin raises ``ImproperlyConfigured``
+    whenever any other DRF view builds its fields. A serializer registered with ``register_serializer()`` is
+    not reported for having no ViewSet of its own. Without a view in context, the mixin excludes no fields.
     """
+    from rest_framework.viewsets import ViewSetMixin
+
     from vueda.core.serializers import ExcludeFieldsSerializerMixin
-    from vueda.info.registration import get_all_registrations
 
     errors = []
 
@@ -275,9 +299,9 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                         f"{child_serializer_class.__name__} is used as {serializer_class.__name__}'s "
                         f"{field_name!r} field, but inherits ExcludeFieldsSerializerMixin.",
                         hint=(
-                            "ExcludeFieldsSerializerMixin requires a view in its context, which is only present "
-                            "when it is a routed ViewSet's serializer_class directly -- not when nested as a "
-                            "field on another serializer."
+                            "A nested serializer shares its parent's context, so ExcludeFieldsSerializerMixin "
+                            "would apply its exclusions for the parent view's action. That is not supported. "
+                            "Remove the mixin from the nested serializer."
                         ),
                         obj=child_serializer_class,
                         id="vueda_core.E007",
@@ -296,33 +320,45 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
                         f"({serializer_class.__name__}.Meta.expandable_fields[{field_name!r}]), but inherits "
                         "ExcludeFieldsSerializerMixin.",
                         hint=(
-                            "ExcludeFieldsSerializerMixin requires a view in its context, which is only present "
-                            "when it is a routed ViewSet's serializer_class directly -- not when reachable "
-                            "through another serializer's expandable_fields."
+                            "An expanded serializer shares its parent's context, so ExcludeFieldsSerializerMixin "
+                            "would apply its exclusions for the parent view's action. That is not supported. "
+                            "Remove the mixin from the expanded serializer."
                         ),
                         obj=child_serializer_class,
                         id="vueda_core.E008",
                     )
                 )
 
-    for _key, registration in get_all_registrations().items():
-        if registration["viewset"] is not None:
-            continue
+    # Only a ViewSet has an action. The mixin raises ImproperlyConfigured whenever any other DRF view builds
+    # the serializer's fields, reads included, so report the view here first. One error covers every route
+    # of the same view and serializer, and names each route. A view that picks its serializer in
+    # get_serializer_class() is not visible here, and the runtime error covers it.
+    routes_by_view = {}
+    for view_class, serializer_class, route in _get_routed_view_serializers():
+        if issubclass(serializer_class, ExcludeFieldsSerializerMixin) and not issubclass(view_class, ViewSetMixin):
+            key = (view_class, serializer_class)
+            if key not in routes_by_view:
+                routes_by_view[key] = []
+            routes_by_view[key].append(route)
 
-        serializer_class = registration["serializer"]
-        if issubclass(serializer_class, ExcludeFieldsSerializerMixin):
-            errors.append(
-                Error(
-                    f"{serializer_class.__name__} is registered with register_serializer() (no viewset), but "
-                    "inherits ExcludeFieldsSerializerMixin.",
-                    hint=(
-                        "ExcludeFieldsSerializerMixin requires a view in its context, which is never present "
-                        "for a serializer registered without a viewset."
-                    ),
-                    obj=serializer_class,
-                    id="vueda_core.E009",
-                )
+    for (view_class, serializer_class), routes in routes_by_view.items():
+        errors.append(
+            Error(
+                f"{view_class.__name__} uses {serializer_class.__name__}, which inherits "
+                f"ExcludeFieldsSerializerMixin, but {view_class.__name__} is not a ViewSet. It is routed at "
+                f"{', '.join(repr(route) for route in routes)}.",
+                hint=(
+                    "ExcludeFieldsSerializerMixin picks its exclusions by the ViewSet's action, which tells a "
+                    "create from an update. Only a ViewSet has an action. Without one, a write through this view "
+                    "could set every field that exclude_create_fields or exclude_update_fields locks, so the "
+                    "serializer raises ImproperlyConfigured whenever this view builds its fields. Route the "
+                    "serializer through a ViewSet. If the view must stay as it is, give it a serializer without "
+                    "the mixin, and lock fields there with read_only=True."
+                ),
+                obj=view_class,
+                id="vueda_core.E021",
             )
+        )
 
     return errors
 

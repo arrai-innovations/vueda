@@ -338,20 +338,28 @@ class VuedaExcludeFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
 
 @pytest.mark.django_db
 class TestModelInfoExcludeFieldsSerializerMixin:
-    """ExcludeFieldsSerializer is registered with a ViewSet directly -- the only valid use of
-    ExcludeFieldsSerializerMixin. Regression coverage for ModelInfoSerializer.get_model_fields()
-    threading its context through get_model_fields_data(), instead of instantiating the canonical
-    serializer bare (which raised KeyError: 'view')."""
+    """ExcludeFieldsSerializer is registered with a ViewSet directly. Regression coverage for
+    ModelInfoSerializer.get_model_fields() threading its context through get_model_fields_data() and
+    get_field_model_info(), instead of instantiating the canonical serializer bare (which raised
+    KeyError: 'view' before #162)."""
 
     @pytest.fixture
     def test_data(self):
         return VuedaExcludeFieldsTestData()
 
+    @pytest.fixture(autouse=True)
+    def isolated_registry(self):
+        """The registry is a module global, and a registration left behind here changes what other test
+        modules see when they read the registry without resetting it."""
+        original = info.registration._registry
+        info.registration.get_empty_registry()
+        yield
+        info.registration._registry = original
+
     def test_model_fields_does_not_crash(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 
-        info.registration.get_empty_registry()
         info.register(err_serializers.ExcludeFieldsSerializer, err_viewsets.ExcludeFieldsViewSet)
 
         response = api_client.get(
@@ -367,13 +375,33 @@ class TestModelInfoExcludeFieldsSerializerMixin:
             "object_revision",
         ]
 
+    def test_get_field_model_info_reading_own_fields_does_not_crash(self, test_data, api_client):
+        """get_model_fields() calls get_field_model_info on a canonical serializer instance built with the
+        request's context. This override builds that instance's fields, which runs the mixin's
+        get_extra_kwargs(), and reads the view's action from the context. Before #162, the instance had no
+        context, and the mixin raised KeyError: 'view'. Without the context, the override's own read of
+        self.context['view'] would raise."""
+        user = test_data.users["test_customer_1@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        info.register(
+            err_serializers.ExcludeFieldsReadingOwnFieldsSerializer, err_viewsets.ExcludeFieldsReadingOwnFieldsViewSet
+        )
+
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("erring", "noexpandablefieldsdata")),
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_fields"},
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        # "retrieve" is the model-info view's own action, so the override received the request's context.
+        assert response.data["model_fields"]["id"]["label"] == "Overridden id for retrieve"
+
 
 @pytest.mark.django_db
 class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
-    """ExcludeFieldsSerializer is registered with register_serializer() and no ViewSet. vueda_core.E009
-    reports this as unsupported on the grounds that ExcludeFieldsSerializerMixin never receives a view in
-    its context. This exercises every /info/ metadata section against such a registration to record whether
-    that claim still holds."""
+    """ExcludeFieldsSerializer is registered with register_serializer() and no ViewSet. Every /info/
+    metadata section resolves for this registration."""
 
     @pytest.fixture
     def test_data(self):
@@ -381,12 +409,12 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
 
     @pytest.fixture(autouse=True)
     def isolated_registry(self):
-        """The registry is a module global, and a viewset-less ExcludeFieldsSerializer registration left
-        behind here makes check_exclude_fields_serializer_usage() report vueda_core.E009 in other test
-        modules that read the registry without resetting it."""
+        """The registry is a module global, and a registration left behind here changes what other test
+        modules see when they read the registry without resetting it."""
+        original = info.registration._registry
         info.registration.get_empty_registry()
         yield
-        info.registration.get_empty_registry()
+        info.registration._registry = original
 
     def test_every_metadata_section_does_not_crash(self, test_data, api_client):
         user = test_data.users["test_customer_1@domain.invalid"]
