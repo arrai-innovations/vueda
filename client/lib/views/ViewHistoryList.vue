@@ -200,8 +200,13 @@ watch([() => props.app, () => props.model, () => props.pk], () => {
         resettingTarget.value = false;
     });
 });
+/**
+ * Page title naming the model's verbose name (e.g. "History of widget"). Empty until the verbose
+ * name is known, so PageTitle shows a skeleton instead of a guessed label.
+ */
 const titleStr = computed(() => {
-    return `History of ${modelConfig.info?.verboseName}`;
+    const verboseName = modelConfig.config?.verboseName;
+    return verboseName ? `History of ${verboseName}` : "";
 });
 const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
 

@@ -96,6 +96,16 @@ describe("lib/use/useViewCreate.js", () => {
             await flushPromises();
         };
 
+        scopedIt("titleStr is empty until the model verbose name is known", async () => {
+            mockModelConfig.config.verboseName = "";
+            const { result } = await buildSelectionViewCreate({ quantity: 1, total: null });
+            expect(result.instance.titleStr).toBe("");
+
+            mockModelConfig.config.verboseName = "order";
+            await flushPromises();
+            expect(result.instance.titleStr).toBe("Create Order");
+        });
+
         scopedIt("submits only submitFields, leaving a displayed read-only field out of the body", async () => {
             const { result, saves } = await buildSelectionViewCreate({ quantity: 1, total: null });
 
