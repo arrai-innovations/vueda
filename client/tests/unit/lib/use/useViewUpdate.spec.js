@@ -131,7 +131,6 @@ describe("lib/use/useViewUpdate.js", () => {
             titleStr: "Update Widget",
             pageLoading: false,
             formId: "testApp-testModel-42-update",
-            computedWidgetProps: {},
             combinedError: null,
             combinedErrored: false,
             combinedWhileText: "",

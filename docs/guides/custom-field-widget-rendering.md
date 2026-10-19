@@ -73,7 +73,7 @@ For the same field, a prop wins over model config. A prop entry wins even when i
 
 {@api vue:component:ViewRead} takes none of these props. Set the `read` layer in model config for the read view.
 
-Model config {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.formProps} can also carry these keys. When it and a view prop set the same key, which one wins depends on the view, as [Configuration Precedence](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes.
+Model config {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.formProps} can also carry these keys. When it and a view prop set the same key, the view prop wins and replaces the configured map whole. [Configuration Precedence](../core-concepts/contract-first-dynamic-ui#configuration-precedence) describes the full order.
 
 ## Target Expanded Fields
 

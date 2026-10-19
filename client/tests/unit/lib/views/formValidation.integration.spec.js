@@ -87,7 +87,6 @@ describe("lib/{views,widgets}/*.vue", () => {
                                     titleStr: "Order",
                                     pageLoading: false,
                                     combinedFormProps: {},
-                                    computedWidgetProps: {},
                                     currentActionAvailable: true,
                                 }),
                                 actions: reactive({
