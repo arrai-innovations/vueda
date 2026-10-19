@@ -138,9 +138,11 @@ def _formatted_name_manager_fix(manager):
     is a ``get_queryset()`` that builds a fresh queryset instead of narrowing the one ``super()``
     returns. The fix tells the developer to build on ``super().get_queryset()``.
 
-    Any other manager is missing the class itself. Every way of building a manager has its own fix, so
-    the hint names each one. A manager built with ``QuerySet.as_manager()`` has no base class to
-    change. Its fix names the real queryset class when the manager is one of those.
+    A manager built with ``QuerySet.as_manager()`` has no base class to change. Its fix replaces it
+    with ``FormattedNameManager.from_queryset()``, built from the manager's own queryset class.
+
+    Any other manager is missing the class itself. Its fix is to subclass ``FormattedNameManager``, or
+    to pass it to ``Manager.from_queryset()`` as the base.
     """
     if isinstance(manager, FormattedNameManager):
         return (
@@ -149,19 +151,20 @@ def _formatted_name_manager_fix(manager):
             "fresh queryset, so the annotation survives."
         )
 
-    fix = (
-        "FormattedNameManager is what annotates the lookup expression as `formatted_name` on the "
-        "model's own querysets. Subclass it instead of `models.Manager`, or pass it to "
-        "`Manager.from_queryset()` as the base."
+    what_annotates = (
+        "FormattedNameManager is what annotates the lookup expression as `formatted_name` on the model's own querysets."
     )
 
-    queryset_class = "QuerySet"
     if getattr(manager, "_built_with_as_manager", False):
         queryset_class = manager._queryset_class.__name__
+        return (
+            f"{what_annotates} A manager built with `{queryset_class}.as_manager()` has no base to pass, so "
+            f"replace it with `FormattedNameManager.from_queryset({queryset_class})()`."
+        )
 
     return (
-        f"{fix} A manager built with `{queryset_class}.as_manager()` has no base to pass, so replace it "
-        f"with `FormattedNameManager.from_queryset({queryset_class})()`."
+        f"{what_annotates} Subclass it instead of `models.Manager`, or pass it to `Manager.from_queryset()` "
+        "as the base."
     )
 
 

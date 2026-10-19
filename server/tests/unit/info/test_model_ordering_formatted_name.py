@@ -808,6 +808,7 @@ class TestFormattedNameDefaultManagerSystemChecks:
             "but its default manager (objects, a Manager) does not annotate it."
         )
         assert "Subclass it instead of `models.Manager`" in errors[0].hint
+        assert "as_manager()" not in errors[0].hint
         assert "Meta.default_manager_name" in errors[0].hint
         assert errors[0].obj is PlainManagerLookupExpression
 
@@ -1169,6 +1170,7 @@ class TestFormattedNameOtherManagerSystemChecks:
         assert "its manager labelled" in errors[0].msg
         assert "`LabelQuerySet.as_manager()` has no base to pass" in errors[0].hint
         assert "`FormattedNameManager.from_queryset(LabelQuerySet)()`" in errors[0].hint
+        assert "Subclass it instead of `models.Manager`" not in errors[0].hint
 
     def test_an_opted_out_second_manager_passes(self):
         with isolate_apps("tests.features"):
