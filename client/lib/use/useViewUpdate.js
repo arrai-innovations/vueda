@@ -47,7 +47,7 @@ const VIEW_NAME = "update";
  *
  * Optional data-fetching overrides.
  * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response; overrides the model config default when non-empty.
- * @property {string[]} [submitFields] - Field paths sent in the update request body; overrides the model config default when non-empty.
+ * @property {string[]} [submitFields] - Field paths sent in the update request body, which also carries the primary key. Overrides the model config default when non-empty.
  * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the instance.
  * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
  *

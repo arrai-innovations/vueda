@@ -45,7 +45,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field paths sent in the update request body; falls back to the model config's submitFields when omitted or empty. */
+    /** Field paths sent in the update request body, which also carries the primary key. Falls back to the model config's submitFields when omitted or empty. */
     submitFields: {
         type: Array,
         default: undefined,
