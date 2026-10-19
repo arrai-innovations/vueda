@@ -161,6 +161,6 @@ order_line = OrderLine.objects.get(pk=(1, 42))
 url = reverse("myapp.orderline-detail", args=[json.dumps(order_line.pk)])
 ```
 
-## Known Limit: List Selection Actions
+## Act on Selected Rows
 
-When you select rows in a list, the route carries each selected key as its own `pk` query value, so a composite key reaches the view intact. Bulk delete, activate, and deactivate still fail for these models. The server reads their `pks` body with [`PrimaryKeyListSerializer`]{@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}, which accepts only integers, so it answers `400`. [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline) describes how identifiers travel between views. Issue [#422](https://github.com/arrai-innovations/vueda/issues/422) tracks accepting every primary key type.
+When you select rows in a list, the route carries each selected key as its own `pk` query value, so a composite key reaches the view intact. Bulk delete, activate, and deactivate send the selected keys in a `pks` body. Each entry is the key's JSON array as a string, the same form that the detail URL takes. [`PrimaryKeyListSerializer`]{@api py:class:vueda.core.serializers.PrimaryKeyListSerializer} converts each entry to the key's column values. An entry that is not such a string answers `400`. So does an entry with the wrong number of values. [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline) describes how identifiers travel between views.
