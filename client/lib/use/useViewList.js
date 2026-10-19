@@ -223,7 +223,7 @@ const VIEW_NAME = "list";
  * @property {boolean} errored - True when either model config or instance list has a non-filter error.
  * @property {Error|null} error - The active error, or null.
  * @property {() => void} dismissError - Clears all active errors.
- * @property {string} titleStr - Formatted page title derived from the model's verbose plural name.
+ * @property {string} titleStr - Formatted page title derived from the model's verbose plural name (e.g. "List Widgets"). Empty until the verbose plural name is known.
  */
 
 /**
@@ -970,7 +970,12 @@ export function useViewList(options) {
     );
 
     const loading = computed(() => loadingCombine(instanceList.state.loading, modelConfig.loading));
-    const titleStr = computed(() => `List ${memoizedStartCase(modelConfig.config?.verboseNamePlural || "items")}`);
+    // Empty until the model's plural verbose name is known, so PageTitle shows a skeleton instead
+    // of a guessed label.
+    const titleStr = computed(() => {
+        const verboseNamePlural = memoizedStartCase(modelConfig.config?.verboseNamePlural);
+        return verboseNamePlural ? `List ${verboseNamePlural}` : "";
+    });
     const errored = computed(() =>
         modelConfig.errored || (instanceList.state.errored && !(instanceList.state.error instanceof ListFilterError))
             ? instanceList.state.errored

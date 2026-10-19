@@ -24,8 +24,11 @@
  * ```
  *
  * @example Wiring the page title
- * ```html
- * <page-title :loading="instance.pageLoading" :title="instance.titleStr" />
+ * ```js
+ * import { usePageTitle } from "@vueda/use/usePageTitle.js";
+ *
+ * // The layout's PageTitle shows a skeleton while the title is empty.
+ * usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
  * ```
  *
  * @example Wiring action buttons
