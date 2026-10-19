@@ -62,6 +62,15 @@ def record_authentication_methods(client, *methods):
     session.save()
 
 
+@pytest.fixture
+def encrypted_mfa_secrets(monkeypatch):
+    """Make VUEDA's MFA adapter store secrets reversed, so code that skips ``decrypt`` reads the wrong secret."""
+    from vueda.user.adapters import VuedaAllAuthMFAAdapter
+
+    monkeypatch.setattr(VuedaAllAuthMFAAdapter, "encrypt", lambda self, text: text[::-1])
+    monkeypatch.setattr(VuedaAllAuthMFAAdapter, "decrypt", lambda self, encrypted_text: encrypted_text[::-1])
+
+
 def cached_filterset_field_names(filterset_class):
     """
     The names of the filters on ``filterset_class`` itself that are holding a built form field.

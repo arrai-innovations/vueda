@@ -48,9 +48,9 @@ class CustomerSerializer(VuedaSerializer):
 
 For a real example, [`VuedaSerializer.get_field_model_info`]{@api py:function:vueda.core.serializers.VuedaSerializer.get_field_model_info} sets `type_db` and `type_model` to `CharField` for `workflow_state_code` and `workflow_state_name`. Both fields read through a `@property` on workflow models.
 
-Write the override so it uses only the `fields` argument. Model info calls the hook on a serializer instance created with no context, so `self.context` is empty. On a serializer that uses [`ExcludeFieldsSerializerMixin`]{@api py:class:vueda.core.serializers.ExcludeFieldsSerializerMixin}, reading `self.fields` there raises `KeyError: 'view'` ([#162](https://github.com/arrai-innovations/vueda/issues/162)).
+Model info calls the hook on a serializer instance built with the model info request's context. So `self.context["view"]` is the model info endpoint's own view, whose action is `retrieve`. It is not the model's own viewset.
 
-To correct a field inside an [expand]{@term Expand}, override `get_field_model_info` on the expanded serializer. VUEDA applies that serializer's own hook when it builds the expand's child fields.
+To correct a field inside an [expand]{@term Expand}, override `get_field_model_info` on the expanded serializer. VUEDA applies that serializer's own hook when it builds the expand's child fields. For an expand, VUEDA calls the hook on an instance created with no context, so `self.context` is empty there. Write a hook that an expanded serializer uses so that it reads only the `fields` argument.
 
 ## Add Display-Only Value Labels
 

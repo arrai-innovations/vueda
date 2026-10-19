@@ -89,8 +89,20 @@ The generated file is a standard Django migration with these additions:
 - `changed_data`, the list of recorded changes.
 - `history_change_reason`, which marks the history that the migration writes.
 - `migration_app_label`, the app whose permissions the migration creates before it applies the changes.
-- Copies of [`forwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow}, [`backwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.backwards_migrate_workflow}, and the functions they call. After applying the changes, they give each object without an object state the workflow's initial state. When the initial state changes, they move object states that nothing has moved since creation. [Reversing a Workflow Migration](#reversing-a-workflow-migration) describes what the backwards function does to object states.
+- Copies of [`forwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow}, [`backwards_migrate_workflow`]{@api py:function:vueda.workflow.management.commands.makeworkflowmigrations.backwards_migrate_workflow}, and the functions they call. [How Object States Are Updated](#how-object-states-are-updated) describes the forward behavior. [Reversing a Workflow Migration](#reversing-a-workflow-migration) describes the backwards behavior.
 - A comment marker that `makeworkflowmigrations` and `updateworkflowmigrations` use to find workflow migrations.
+
+### How Object States Are Updated
+
+After applying its recorded changes, a workflow migration checks the objects of every workflow. An object without an object state gets its workflow's initial state. An existing object state moves to the current initial state only when its event history contains an `insert` event and no other event. A state with any later event stays where it is.
+
+An object state with no events also stays where it is, even when the initial state changes. Object states carried over from v2 predate the event triggers, so their empty event history cannot show whether they moved. Preserving those states does not depend on converting or retaining v2 history.
+
+`makeworkflowmigrations` performs the same checks on the local database, even when it detects no workflow changes. Its `--dry-run` leaves object states unchanged.
+
+Older v3-generated migration files can still reset states with no events because they contain copies of the functions. After upgrading VUEDA, run `python manage.py updateworkflowmigrations myapp` for the apps that own those files, review the changes, and commit them before applying the migrations to an upgraded database. [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations) describes the dependency checks and files that the command skips. Migrations generated with `--import-instead` use VUEDA's current functions when they run and receive the fix through the package upgrade.
+
+This fix prevents future resets. It does not restore states that an older migration or command already reset.
 
 ### How `changed_data` Is Formatted
 
@@ -222,6 +234,7 @@ Naming an installed app is an error. The command names the app, reports that it 
 Workflow migrations carry everything they need to run, so you do not need to update them after each VUEDA upgrade. Run the command in these cases:
 
 - The VUEDA release notes say that a fix to the embedded functions needs it.
+- You have v3-generated migrations whose embedded functions reset object states with no events. Update them before applying them to a database upgraded from v2, as [How Object States Are Updated](#how-object-states-are-updated) describes.
 - You are squashing migrations.
 - A migration names a workflow by code alone: a workflow reference in its `changed_data` has `code` but no `historical_app_label`. That reference becomes ambiguous once another model takes over the workflow code. The command adds the app label and model that each code meant when the change was recorded. Run it once for your own apps and commit the result.
 

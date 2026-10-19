@@ -386,7 +386,7 @@ class TestExpandableFieldsChecks:
 @pytest.mark.django_db
 class TestExcludeFieldsSerializerUsageChecks:
     def test_registered_with_a_view_passes_system_check(self, settings):
-        """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly -- the only valid use."""
+        """ExcludeFieldsSerializer is a routed ViewSet's serializer_class directly, one supported placement."""
         from vueda.core.checks import check_exclude_fields_serializer_usage
 
         settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_valid"
@@ -411,9 +411,9 @@ class TestExcludeFieldsSerializerUsageChecks:
                 "ExcludeFieldsSerializer is used as ExcludeFieldsAsNestedFieldSerializer's 'leaf' field, but "
                 "inherits ExcludeFieldsSerializerMixin.",
                 hint=(
-                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
-                    "it is a routed ViewSet's serializer_class directly -- not when nested as a field on "
-                    "another serializer."
+                    "A nested serializer shares its parent's context, so ExcludeFieldsSerializerMixin would "
+                    "apply its exclusions for the parent view's action. That is not supported. Remove the "
+                    "mixin from the nested serializer."
                 ),
                 obj=err_serializers.ExcludeFieldsSerializer,
                 id="vueda_core.E007",
@@ -437,20 +437,73 @@ class TestExcludeFieldsSerializerUsageChecks:
                 "(ExcludeFieldsAsExpandableFieldSerializer.Meta.expandable_fields['leaf']), but inherits "
                 "ExcludeFieldsSerializerMixin.",
                 hint=(
-                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
-                    "it is a routed ViewSet's serializer_class directly -- not when reachable through another "
-                    "serializer's expandable_fields."
+                    "An expanded serializer shares its parent's context, so ExcludeFieldsSerializerMixin would "
+                    "apply its exclusions for the parent view's action. That is not supported. Remove the "
+                    "mixin from the expanded serializer."
                 ),
                 obj=err_serializers.ExcludeFieldsSerializer,
                 id="vueda_core.E008",
             )
         ]
 
-    def test_register_serializer_only_system_check_error(self, settings):
-        """A serializer registered with info.register_serializer() (no viewset) never gets a view in
-        context; check must flag it as E009."""
+    def test_generic_view_system_check_error(self, settings):
+        """DRF UpdateAPIView routes, none of them a ViewSet: ExcludeFieldsGenericUpdateView declares
+        ExcludeFieldsSerializer as its serializer_class attribute and is routed twice, and a plain
+        UpdateAPIView receives it through as_view(serializer_class=...). Neither view has an action for the
+        mixin to pick exclusions by, so the check must flag both as E021. The view routed twice gets one
+        error that names both routes."""
         from django.core.checks import Error
+        from rest_framework.generics import UpdateAPIView
 
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_generic_view"
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        hint = (
+            "ExcludeFieldsSerializerMixin picks its exclusions by the ViewSet's action, which tells a create from "
+            "an update. Only a ViewSet has an action. Without one, a write through this view could set every field "
+            "that exclude_create_fields or exclude_update_fields locks, so the serializer raises "
+            "ImproperlyConfigured whenever this view builds its fields. Route the serializer through a ViewSet. If "
+            "the view must stay as it is, give it a serializer without the mixin, and lock fields there with "
+            "read_only=True."
+        )
+        assert errors == [
+            Error(
+                "ExcludeFieldsGenericUpdateView uses ExcludeFieldsSerializer, which inherits "
+                "ExcludeFieldsSerializerMixin, but ExcludeFieldsGenericUpdateView is not a ViewSet. It is routed "
+                "at 'erring/exclude_fields_generic_view/<int:pk>/', "
+                "'erring/exclude_fields_generic_view_again/<int:pk>/'.",
+                hint=hint,
+                obj=err_viewsets.ExcludeFieldsGenericUpdateView,
+                id="vueda_core.E021",
+            ),
+            Error(
+                "UpdateAPIView uses ExcludeFieldsSerializer, which inherits ExcludeFieldsSerializerMixin, but "
+                "UpdateAPIView is not a ViewSet. It is routed at "
+                "'erring/exclude_fields_generic_view_initkwargs/<int:pk>/'.",
+                hint=hint,
+                obj=UpdateAPIView,
+                id="vueda_core.E021",
+            ),
+        ]
+
+    def test_generic_view_with_overridden_serializer_passes_system_check(self, settings):
+        """ExcludeFieldsGenericUpdateView's own serializer_class uses the mixin, but this route passes
+        as_view(serializer_class=NoExpandableFieldsDataSerializer), which does not. DRF builds that route's
+        serializer from the as_view() argument, so the check must read it from there and report nothing."""
+        from vueda.core.checks import check_exclude_fields_serializer_usage
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_exclude_fields_generic_view_overridden"
+
+        errors = check_exclude_fields_serializer_usage(app_configs=None)
+
+        assert errors == []
+
+    def test_register_serializer_only_passes_system_check(self, settings):
+        """A serializer registered with info.register_serializer() (no viewset) has no view of its own.
+        Without a view, the mixin excludes no fields, so the check reports nothing."""
         from vueda import info
         from vueda.core.checks import check_exclude_fields_serializer_usage
 
@@ -460,18 +513,7 @@ class TestExcludeFieldsSerializerUsageChecks:
 
         errors = check_exclude_fields_serializer_usage(app_configs=None)
 
-        assert errors == [
-            Error(
-                "ExcludeFieldsSerializer is registered with register_serializer() (no viewset), but inherits "
-                "ExcludeFieldsSerializerMixin.",
-                hint=(
-                    "ExcludeFieldsSerializerMixin requires a view in its context, which is never present for a "
-                    "serializer registered without a viewset."
-                ),
-                obj=err_serializers.ExcludeFieldsSerializer,
-                id="vueda_core.E009",
-            )
-        ]
+        assert errors == []
 
     def test_registered_parent_nested_field_system_check_error(self, settings):
         """A registered parent's declared nested ExcludeFieldsSerializerMixin child is flagged as E007.
@@ -495,9 +537,9 @@ class TestExcludeFieldsSerializerUsageChecks:
                 "ExcludeFieldsSerializer is used as ExcludeFieldsAsNestedFieldSerializer's 'leaf' field, but "
                 "inherits ExcludeFieldsSerializerMixin.",
                 hint=(
-                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
-                    "it is a routed ViewSet's serializer_class directly -- not when nested as a field on "
-                    "another serializer."
+                    "A nested serializer shares its parent's context, so ExcludeFieldsSerializerMixin would "
+                    "apply its exclusions for the parent view's action. That is not supported. Remove the "
+                    "mixin from the nested serializer."
                 ),
                 obj=err_serializers.ExcludeFieldsSerializer,
                 id="vueda_core.E007",
@@ -523,9 +565,9 @@ class TestExcludeFieldsSerializerUsageChecks:
                 "(ExcludeFieldsAsExpandableFieldSerializer.Meta.expandable_fields['leaf']), but inherits "
                 "ExcludeFieldsSerializerMixin.",
                 hint=(
-                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
-                    "it is a routed ViewSet's serializer_class directly -- not when reachable through another "
-                    "serializer's expandable_fields."
+                    "An expanded serializer shares its parent's context, so ExcludeFieldsSerializerMixin would "
+                    "apply its exclusions for the parent view's action. That is not supported. Remove the "
+                    "mixin from the expanded serializer."
                 ),
                 obj=err_serializers.ExcludeFieldsSerializer,
                 id="vueda_core.E008",
@@ -579,9 +621,9 @@ class TestExcludeFieldsSerializerUsageChecks:
                 "ExcludeFieldsSerializer is used as ExcludeFieldsAsNestedFieldSerializer's 'leaf' field, but "
                 "inherits ExcludeFieldsSerializerMixin.",
                 hint=(
-                    "ExcludeFieldsSerializerMixin requires a view in its context, which is only present when "
-                    "it is a routed ViewSet's serializer_class directly -- not when nested as a field on "
-                    "another serializer."
+                    "A nested serializer shares its parent's context, so ExcludeFieldsSerializerMixin would "
+                    "apply its exclusions for the parent view's action. That is not supported. Remove the "
+                    "mixin from the nested serializer."
                 ),
                 obj=err_serializers.ExcludeFieldsSerializer,
                 id="vueda_core.E007",

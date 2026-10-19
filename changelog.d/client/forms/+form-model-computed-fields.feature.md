@@ -1,2 +1,0 @@
-- **`FormModel`**:
-    - A `computedFields` prop names the fields to render as computed fields: read-only, in `FormField`, and outside the form context. It replaces the model config `computedFields` list, which the `OverridingModelConfig` type now declares. Views pass it through `formProps`.

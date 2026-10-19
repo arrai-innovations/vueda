@@ -31,6 +31,7 @@ from allauth.headless.mfa.views import AuthenticateView
 from allauth.headless.mfa.views import ManageRecoveryCodesView
 from allauth.headless.mfa.views import ReauthenticateView as MFAReauthenticateView
 from allauth.mfa.internal.constants import LoginStageKey
+from allauth.mfa.utils import decrypt
 from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -809,9 +810,7 @@ def totp_code(request):
     if not device:
         return Response({"detail": "No device for requested method"}, status=status.HTTP_400_BAD_REQUEST)
 
-    authenticator = device.authenticator
-    secret = authenticator.data.get("secret")
-    code = get_current_totp_code(secret)
+    code = get_current_totp_code(decrypt(device.authenticator.data["secret"]))
     context = {"code": code}
     adapter = get_adapter()
     send_action = {
