@@ -23,7 +23,7 @@ import { useRouter } from "vue-router";
  * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
  * @property {string[]} [submitFields] - Field paths to send in the request body. A top-level name sends that
  *  field's whole value; a dotted path sends only that nested value. When omitted, every non-ignored form value
- *  is sent.
+ *  is sent. An update body also carries the object's primary key, which names the object to save.
  */
 
 /**
@@ -516,14 +516,12 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             const formValues = props.submitFields
                 ? pick(formContext.state.submittingValues, props.submitFields)
                 : formContext.state.submittingValues;
+            const { pk, pkKey } = instanceObject.state;
+            // The update handler builds the request URL from the body's primary key. The instance's
+            // pk goes in last, so every save targets the object that this form edits.
             const args = {
-                object: {
-                    ...formValues,
-                },
+                object: isUpdate ? { ...formValues, [pkKey]: pk } : { ...formValues },
             };
-            if (isUpdate) {
-                args.id = instanceObject.state.object[instanceObject.state.pkKey];
-            }
             await performAndHandle(createOrUpdate, args, isUpdate, generation);
         } catch (e) {
             // errors here are outside the normal course for expected errors

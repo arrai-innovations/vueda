@@ -48,7 +48,7 @@ import { defineStore } from "pinia";
  * @property {string[]} displayFields - field names to display by default
  * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} submitFields - field paths sent in the create/update request body by default
+ * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key.
  * @property {string[]} expand - field names to expand; empty unless the model config names some
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
@@ -85,7 +85,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [displayFields] - field names to display by default
  * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in text/display adapters support automatic links; custom adapters and slots retain control of navigation.
  * @property {string[]} [fetchFields] - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} [submitFields] - field paths sent in the create/update request body by default
+ * @property {string[]} [submitFields] - field paths sent in the create/update request body by default. An update body also carries the primary key.
  * @property {string[]} [expand] - field names to expand by default
  * @property {string[]} [computedFields] - field names to treat as computed: read-only, rendered with `FormField`
  * @property {string[]} [routeActions] - actions to configure routes for
