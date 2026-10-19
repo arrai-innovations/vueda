@@ -264,6 +264,7 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 - File and image widgets read the `url` of a `{name, url}` value.
 - `WidgetDuration` takes a duration string. With the `seconds` prop, it takes a number of seconds.
 - Read-only fields render formatted values. The `widget(<name>)default` slot receives `rawValue` for code that needs the stored value.
+- `FormModel`'s `fields` slot binds the merged field props map as `allFieldProps`. Render each field in a custom `fields` layout with `FormModelField`, which receives the per-field slots that you pass to the form. [Lay Out the Fields Yourself](custom-field-widget-rendering.md#lay-out-the-fields-yourself) shows the layout.
 - A custom `redirectTo` on `ActionForm` that stays on the form after a success must return or resolve `false`. The form treats any other result as navigation away and keeps its buttons disabled. [What an Action Form Does on Pre-Flight, Submit, and Cancel](transition-ux-and-redirects.md#what-an-action-form-does-on-pre-flight-submit-and-cancel) describes the contract.
 - Save buttons read "Create" and "Update". Update tests that find "Submit".
 - The `escapeHtml` export is removed. Send markup unencoded when it should render.

@@ -18,3 +18,17 @@ export const watchIfDev = (source, cb, options) => {
     }
     return () => {};
 };
+
+/**
+ * Report a mistake that a developer must fix. Throws in development, so the mistake cannot go unnoticed.
+ * Logs a console warning in production, so a deployed page keeps rendering.
+ *
+ * @param {string} message - The description of the mistake and how to fix it.
+ * @returns {void}
+ */
+export const reportDevError = (message) => {
+    if (import.meta.env.DEV) {
+        throw new Error(message);
+    }
+    console.warn(message);
+};
