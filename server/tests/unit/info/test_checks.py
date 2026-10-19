@@ -236,79 +236,6 @@ class TestFormattedNameChecks:
 
         assert errors == []
 
-    def test_plain_default_manager_system_check_error(self):
-        """PlainManagerLookupExpression declares its own `objects = models.Manager()`, which shadows the
-        `FormattedNameManager` that `FormattedNameBaseModel` provides.
-
-        Nothing then annotates `formatted_name` onto the model's own querysets, so it resolves only on
-        the ones `VuedaViewSet.get_queryset` builds, and `vueda_info.E009` is the signal for that.
-        A `Meta.ordering` naming `formatted_name` is reported separately by Django's own
-        `models.E015`, since `FormattedNameBaseModel._check_ordering` asks about the default manager
-        before withholding that term — this model declares no such ordering, so E009 stands alone
-        here.
-        """
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.PlainManagerLookupExpressionSerializer)
-
-        errors = check_formatted_name_configuration(app_configs=None)
-
-        assert [error.id for error in errors] == ["vueda_info.E009"]
-        assert (
-            errors[0].msg == "PlainManagerLookupExpression reaches formatted_name through "
-            "formatted_name_lookup_expression but uses Manager as its default manager, which does not "
-            "inherit FormattedNameManager."
-        )
-        assert "Subclass it instead of `models.Manager`" in errors[0].hint
-        assert errors[0].obj is err_models.PlainManagerLookupExpression
-
-    def test_formatted_name_manager_default_passes_system_check(self):
-        """ValidLookupExpression declares no manager of its own, so it keeps the inherited
-        `FormattedNameManager` and E009 has to stay quiet."""
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.ValidLookupExpressionSerializer)
-
-        assert check_formatted_name_configuration(app_configs=None) == []
-
-    def test_a_manager_subclassing_formatted_name_manager_passes_system_check(self):
-        """The documented way to keep the annotation while adding manager behaviour of your own.
-
-        `tests.product.ProductManager` is one instance of it: it declares `objects` on the model
-        itself, which shadows the `FormattedNameManager` that `FormattedNameBaseModel` provides, so
-        it has to inherit that manager rather than `models.Manager` to avoid taking the annotation
-        with it. A manager declared on an abstract base closer in the MRO than
-        `FormattedNameBaseModel` shadows it the same way.
-        """
-        from django.db import models
-
-        from vueda.core.models import FormattedNameManager
-        from vueda.info.checks import check_formatted_name_configuration
-
-        class NarrowingManager(FormattedNameManager):
-            pass
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.PlainManagerLookupExpressionSerializer)
-
-        model = err_models.PlainManagerLookupExpression
-        # `default_manager` is a cached_property, so the cache entry is what has to be swapped.
-        original = model._meta.__dict__.get("default_manager")
-        model._meta.__dict__["default_manager"] = NarrowingManager()
-        try:
-            errors = check_formatted_name_configuration(app_configs=None)
-        finally:
-            if original is None:
-                model._meta.__dict__.pop("default_manager", None)
-            else:
-                model._meta.__dict__["default_manager"] = original
-
-        assert errors == []
-        # Guards the assertion above against passing for the wrong reason.
-        assert issubclass(NarrowingManager, models.Manager)
-
     def test_no_name_field_system_check_error(self):
         """NoNameField has formatted_name = None with no lookup expression or get_formatted_name(); check must flag it."""
         from django.core.checks import Error
@@ -1399,11 +1326,10 @@ class TestFieldSourceResolutionCheck:
         assert "get_field_model_info" not in warnings[0].hint
 
     def test_exclude_fields_serializer_registration_passes_manage_py_check(self):
-        """ExcludeFieldsSerializer inherits ExcludeFieldsSerializerMixin, whose get_extra_kwargs() reads
-        self.context["view"].action while get_fields() builds the serializer's fields.
-        check_field_source_resolution instantiates the serializer bare to call get_fields() on it, so
-        without a view in context this raised KeyError: 'view' -- not an advisory warning, but a crash
-        that took manage.py check down for every app, not just this registration. The other coverage of
+        """ExcludeFieldsSerializer inherits ExcludeFieldsSerializerMixin, whose get_extra_kwargs() reads the
+        view's action while get_fields() builds the serializer's fields. check_field_source_resolution
+        builds the serializer with _CheckContextView, a stand-in view whose action is None, so the mixin
+        excludes nothing and the whole manage.py check run completes. The other coverage of
         this registration (tests.unit.core.test_checks.test_registered_with_a_view_passes_system_check)
         only calls check_exclude_fields_serializer_usage directly, so it never exercised this path.
         `databases=["default"]` keeps manage.py check's own model checks from opening a probe

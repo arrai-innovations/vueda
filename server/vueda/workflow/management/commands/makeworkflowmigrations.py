@@ -814,11 +814,12 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
 
 
 def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, *, reversing=False):
-    """Give every object of a workflow its initial state, and move one nothing has changed since.
+    """Create missing object states and move states with only a recorded creation to the initial state.
 
     An object state with only its creation recorded against it is still wherever it was put, so a
     changed initial state moves it. One that carries any later event was moved by someone, and the
-    state they moved it to is theirs to keep.
+    state they moved it to is theirs to keep. A state with no events also stays where it is: it may
+    predate the event triggers, so missing history does not prove that it has never moved.
 
     TODO: An earlier run of this counts as someone, because its update is an event like any other.
       A workflow whose initial state changes twice therefore moves its objects only the first time.
@@ -851,10 +852,8 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
         if obj_state.state_id == initial_state.state_id:
             continue
 
-        changed_since_created = (
-            object_state_event_class.objects.filter(pgh_obj_id=obj_state.pk).exclude(pgh_label="insert").exists()
-        )
-        if not changed_since_created:
+        events = object_state_event_class.objects.filter(pgh_obj_id=obj_state.pk)
+        if events.filter(pgh_label="insert").exists() and not events.exclude(pgh_label="insert").exists():
             workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
 
 

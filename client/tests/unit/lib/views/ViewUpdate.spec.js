@@ -83,7 +83,6 @@ beforeEach(async () => {
             titleStr: "Update Widget",
             pageLoading: false,
             formId: "testApp-testModel-42-update",
-            computedWidgetProps: {},
             combinedError: null,
             combinedErrored: false,
             combinedWhileText: "",

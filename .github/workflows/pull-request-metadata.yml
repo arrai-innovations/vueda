@@ -44,6 +44,22 @@ jobs:
             - name: Install locked tooling dependencies
               # Use the base branch's lockfile and never run install scripts.
               run: pnpm --filter vueda-monorepo install --frozen-lockfile --ignore-scripts
+            - name: Reject a title that GitHub cut short
+              # GitHub cuts a long commit subject at "…" when it fills in the title, and starts the
+              # description with the rest.
+              env:
+                  # Passed through the environment so neither value is parsed as shell.
+                  TITLE: ${{ github.event.pull_request.title }}
+                  BODY: ${{ github.event.pull_request.body }}
+              run: |
+                  status=0
+                  case "$TITLE" in
+                      *…) echo "::error::The title ends in \"…\" because GitHub cut it from a long commit subject. Write the full title."; status=1 ;;
+                  esac
+                  case "$BODY" in
+                      …*) echo "::error::The description starts with \"…\", which is the end of a title that GitHub cut short. Move that text back into the title."; status=1 ;;
+                  esac
+                  exit $status
             - name: Check the title against commitlint
               env:
                   # Passed through the environment so the title is never parsed as shell.

@@ -201,6 +201,66 @@ describe("lib/use/useObjectForm.js", () => {
         expect(routerPush).toHaveBeenCalled();
     });
 
+    describe("submit body", () => {
+        const buildSubmit = (pk, submitFields = ["name"]) => {
+            const props = reactive({
+                app: "app",
+                model: "model",
+                verboseName: "model",
+                redirectAfter: null,
+                submitFields,
+            });
+            const formContext = {
+                state: reactive({
+                    anyModified: true,
+                    anyError: false,
+                    submittingValues: { id: "9", name: "test", notes: "packed" },
+                    errors: {},
+                    anyIgnored: false,
+                    ignored: {},
+                }),
+                setAllTouched: vi.fn(),
+                handleServerFormValidationError: vi.fn(),
+            };
+            const instanceObject = {
+                state: reactive({
+                    pkKey: "id",
+                    pk,
+                    // A submit instance holds no object until its first save returns one.
+                    object: {},
+                    errored: false,
+                    error: null,
+                }),
+                create: vi.fn().mockResolvedValue(),
+                update: vi.fn().mockResolvedValue(),
+                clearError: vi.fn(),
+            };
+            const { submit } = useObjectForm({ props, formContext, instanceObject });
+            return { instanceObject, submit };
+        };
+
+        scopedIt("limits a create body to submitFields", async () => {
+            const { instanceObject, submit } = buildSubmit("");
+            await submit();
+            await flushPromises();
+            expect(instanceObject.create).toHaveBeenCalledWith({ object: { name: "test" } });
+        });
+
+        scopedIt("adds the instance's primary key to an update body under pkKey", async () => {
+            const { instanceObject, submit } = buildSubmit("7");
+            await submit();
+            await flushPromises();
+            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: "7" } });
+        });
+
+        scopedIt("keeps the instance's primary key when submitFields names a different form value", async () => {
+            const { instanceObject, submit } = buildSubmit("7", ["id", "name"]);
+            await submit();
+            await flushPromises();
+            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: "7" } });
+        });
+    });
+
     scopedIt("submit ingests custom server feedback errors from adapter overrides", async () => {
         class CustomServerFeedbackError extends ServerFeedbackError {
             constructor() {

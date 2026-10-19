@@ -48,7 +48,7 @@ import { defineStore } from "pinia";
  * @property {string[]} displayFields - field names to display by default
  * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} submitFields - field paths sent in the create/update request body by default
+ * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key.
  * @property {string[]} expand - field names to expand; empty unless the model config names some
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
@@ -62,7 +62,7 @@ import { defineStore } from "pinia";
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
  * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
- * @property {object} formProps - extra props to pass the form model
+ * @property {object} formProps - extra props to pass the form model. The view's own `formProps` prop and form props win over these keys. The `app`, `model`, and `view` keys are ignored, because the view sets them.
  * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} fieldComponents - overriding components for individual fields
  * @property {object} fieldProps - extra props to pass a field component in a form model
  * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
@@ -85,7 +85,7 @@ import { defineStore } from "pinia";
  * @property {string[]} [displayFields] - field names to display by default
  * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in text/display adapters support automatic links; custom adapters and slots retain control of navigation.
  * @property {string[]} [fetchFields] - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} [submitFields] - field paths sent in the create/update request body by default
+ * @property {string[]} [submitFields] - field paths sent in the create/update request body by default. An update body also carries the primary key.
  * @property {string[]} [expand] - field names to expand by default
  * @property {string[]} [computedFields] - field names to treat as computed: read-only, rendered with `FormField`
  * @property {string[]} [routeActions] - actions to configure routes for
@@ -98,7 +98,7 @@ import { defineStore } from "pinia";
  * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
  * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
  * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each available filter details, by filter name
- * @property {object} [formProps] - extra props to pass the form model
+ * @property {object} [formProps] - extra props to pass the form model. The view's own `formProps` prop and form props win over these keys. The `app`, `model`, and `view` keys are ignored, because the view sets them.
  * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
  * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} [fieldComponents] - overriding components for individual fields

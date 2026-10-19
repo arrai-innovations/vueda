@@ -47,13 +47,21 @@ const VIEW_NAME = "update";
  *
  * Optional data-fetching overrides.
  * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response; overrides the model config default when non-empty.
- * @property {string[]} [submitFields] - Field paths sent in the update request body; overrides the model config default when non-empty.
+ * @property {string[]} [submitFields] - Field paths sent in the update request body, which also carries the primary key. Overrides the model config default when non-empty.
  * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the instance.
  * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
  *
  * Optional form overrides.
- * @property {object} [formProps] - Extra props merged into the FormModel component.
- * @property {object} [widgetProps] - Extra props forwarded to every widget component inside the form.
+ * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {string[]} [fields] - Field names that the form renders. Replaces the model config list.
+ * @property {object} [fieldDetails] - Map of field paths to field detail overrides.
+ * @property {string[]} [expand] - Relations that the form renders as inline fieldsets. Replaces the model config list.
+ * @property {object} [expandDetails] - Map of expand paths to detail overrides.
+ * @property {object} [fieldComponents] - Map of field paths to field component overrides.
+ * @property {object} [widgetComponents] - Map of field paths to widget component overrides.
+ * @property {object} [fieldProps] - Map of field paths to props for each field component.
+ * @property {object} [widgetProps] - Map of field paths to props for each widget component.
+ * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {'list'|'read'|null} [redirectAfter] - Named view to redirect to after a successful update; null stays on the current page.
  */
 
@@ -92,7 +100,15 @@ export function useViewUpdate(options) {
         calculatedObjectRules: computed(() => options.calculatedObjectRules ?? {}),
         fetchFields: toRef(options, "fetchFields"),
         formProps: toRef(options, "formProps"),
+        fields: toRef(options, "fields"),
+        fieldDetails: toRef(options, "fieldDetails"),
+        expand: toRef(options, "expand"),
+        expandDetails: toRef(options, "expandDetails"),
+        fieldComponents: toRef(options, "fieldComponents"),
+        widgetComponents: toRef(options, "widgetComponents"),
+        fieldProps: toRef(options, "fieldProps"),
         widgetProps: toRef(options, "widgetProps"),
+        formModelVariant: toRef(options, "formModelVariant"),
         objectForm: undefined,
     });
 

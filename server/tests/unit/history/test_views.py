@@ -11,6 +11,18 @@ from tests.conftest import response_body
 from tests.store import models as store_models
 
 
+def test_workflow_state_history_route_path(settings):
+    # The client's `historyWorkflowStateHistory` default requests this path inside `routes/`.
+    settings.ROOT_URLCONF = "tests.unit.history.urls_workflow_state_history"
+
+    history_url = reverse(
+        "workflow-state-history",
+        kwargs={"app_label": "store", "model": "customer_order", "object_id": 7},
+    )
+
+    assert history_url == "/vueda.history/workflow-state-history/store/customer_order/7/"
+
+
 @pytest.mark.django_db(databases=("default", "db_logging"))
 class TestWorkflowStateHistoryView:
     @pytest.fixture

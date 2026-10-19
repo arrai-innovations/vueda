@@ -10,6 +10,7 @@ from allauth.mfa.adapter import get_adapter
 from allauth.mfa.models import Authenticator
 from allauth.mfa.totp.internal import auth as totp_auth
 from allauth.mfa.totp.internal import flows as totp_flows
+from allauth.mfa.utils import encrypt
 from django.db.transaction import atomic
 from rest_framework import serializers
 from rest_framework import status as drf_status
@@ -30,12 +31,23 @@ from vueda.core.viewsets import VuedaViewSet
 from vueda.user.adapters import get_adapter as vueda_get_adapter
 from vueda.user.filtersets import TOTPDeviceFilterSet
 from vueda.user.models import TOTPDevice
+from vueda.user.schema import RateLimitedSerializer
 from vueda.user.serializers import TOTPDeviceSerializer
 from vueda.user.serializers import TOTPSetupSerializer
+from vueda.user.throttles import throttle_code_send
 from vueda.user.utils import get_current_totp_code
 
 
 class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
+    """
+    List, set up, activate, and remove the signed-in user's two-factor devices.
+
+    All of a user's devices share one allauth TOTP ``Authenticator`` and its secret. Sign-in codes for email and
+    SMS are computed from the stored secret when they are sent, so the authenticator app is the only device that
+    holds a copy of the secret. Adding or removing the app therefore gives the authenticator a new secret, which
+    leaves the email and SMS devices working and stops any earlier copy of the app from producing valid codes.
+    """
+
     permission_classes = [IsAuthenticated]
     serializer_class = TOTPDeviceSerializer
     queryset = TOTPDevice.objects.all()
@@ -55,17 +67,31 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             .first()
         )
 
+    @staticmethod
+    def _replace_secret(authenticator, secret):
+        authenticator.data["secret"] = encrypt(secret)
+        authenticator.save(update_fields=["data"])
+
     @conditional_extend_schema_decorator(
         summary="Set up TOTP device",
         responses={
             200: conditional_open_api_types().OBJECT,
             400: conditional_open_api_types().OBJECT,
+            429: RateLimitedSerializer,
         },
     )
     @atomic
     @recent_auth_required
     @action(detail=False, methods=["post"])
     def setup(self, request):
+        """
+        Start setting up a two-factor device with the requested ``method``.
+
+        Each setup generates a new setup secret and keeps it in the session. For ``totp`` (an authenticator app),
+        returns that secret and its QR code. For ``email`` and ``sms``, sends a code from that secret to
+        ``destination``, so the code proves that the user receives messages there and does not confirm sign-in.
+        The device is added when ``activate`` confirms the code.
+        """
         authenticator = self._get_authenticator_with_lock()
         method = request.data.get("method")
         serializer = TOTPSetupSerializer(data=request.data)
@@ -75,12 +101,12 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
                 raise VuedaValidationError({"method": ["SMS method is not available."]})
             raise VuedaValidationError({"method": ["Invalid method"]})
 
-        secret = totp_auth.get_totp_secret(regenerate=not authenticator)
         if (
             authenticator
             and TOTPDevice.objects.filter(authenticator=authenticator, user=request.user, method=method).exists()
         ):
             raise VuedaValidationError({"method": ["An activated TOTP device already exists with " + method]})
+        secret = totp_auth.get_totp_secret(regenerate=True)
 
         if method == "totp":
             request.session[self.TOTP_SESSION_KEY] = {
@@ -102,6 +128,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             )
         elif method == "sms":
             phone = request.data.get("destination")
+            throttle_code_send(request, request.user, method, destination=phone)
 
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "sms": phone}
             context = {
@@ -111,6 +138,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
 
         elif method == "email":
             email = request.data.get("destination")
+            throttle_code_send(request, request.user, method, destination=email)
             request.session[self.TOTP_SESSION_KEY] = {"method": method, "email": email}
             context = {
                 "code": get_current_totp_code(secret),
@@ -133,6 +161,13 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
     @recent_auth_required
     @action(detail=False, methods=["post"])
     def activate(self, request):
+        """
+        Confirm the ``code`` for the device that ``setup`` started, and add the device.
+
+        The code is checked against the setup secret. The first device creates the user's TOTP authenticator with
+        that secret. An authenticator app added to an existing authenticator replaces its secret with the setup
+        secret. An email or SMS device joins the existing authenticator and leaves its secret unchanged.
+        """
         authenticator = self._get_authenticator_with_lock()
         code = request.data.get("code")
         if not code:
@@ -150,10 +185,11 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         secret = totp_auth.get_totp_secret(regenerate=False)
         if not totp_auth.validate_totp_code(secret, code):
             raise VuedaValidationError({"code": ["Invalid code"]})
-        form_data = {"secret": secret}
-        form = SimpleNamespace(**form_data)
         if not authenticator:
-            authenticator = totp_flows.activate_totp(request, form)[0]
+            authenticator = totp_flows.activate_totp(request, SimpleNamespace(secret=secret))[0]
+        elif device_type == "totp":
+            self._replace_secret(authenticator, secret)
+        totp_auth.clear_totp_secret(request)
         if device_type == "email":
             TOTPDevice.objects.create(
                 authenticator=authenticator,
@@ -185,6 +221,12 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
     @atomic
     @recent_auth_required
     def destroy(self, request, *args, **kwargs):
+        """
+        Remove one device by ``pk``, or several by ``pks`` in the request body.
+
+        Removing the last device turns two-factor authentication off. Removing the authenticator app while other
+        devices remain gives the authenticator a new secret, so the removed app's codes stop working.
+        """
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
         pk = kwargs.get("pk")
         serializer_data = {"pks": [pk]} if pk else request.data
@@ -193,10 +235,12 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         pks = serializer.validated_data["pks"]
         if not dry_run:
             authenticator = self._get_authenticator_with_lock()
-            queryset = self.get_queryset().filter(pk__in=pks)
-            count = self.get_queryset().count()
-            queryset.delete()
-            if count == len(pks) and authenticator:
+            removed = self.get_queryset().filter(pk__in=pks)
+            removes_app = removed.filter(method="totp").exists()
+            removed.delete()
+            if authenticator and not self.get_queryset().exists():
                 totp_flows.deactivate_totp(request, authenticator)
+            elif authenticator and removes_app:
+                self._replace_secret(authenticator, totp_auth.generate_totp_secret())
 
         return Response(status=drf_status.HTTP_204_NO_CONTENT)

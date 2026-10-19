@@ -1,8 +1,8 @@
 /**
  * @module stores/storeWorkflow
- * @description Pinia store for fetching and caching workflow states, available transitions, history, and executing transitions for model objects.
+ * @description Pinia store for fetching and caching the workflow transitions a user may run on a model and the workflow state history of objects, and for executing transitions on objects.
  */
-import { assignReactiveObject, trimReactiveObject } from "@arrai-innovations/reactive-helpers";
+import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getAppModelDotName, memoizedSnakeCase } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
@@ -21,32 +21,31 @@ import { unref } from "vue";
 let usingVuedaWorkflow = true;
 
 /**
- * Ensure nested store maps exist for a particular app.model key.
+ * Ensure the per-object history maps exist for a particular app.model key.
  *
- * Some workflow fetch paths store per-object results under a two-level key:
+ * Object histories, their errors, and their promises are stored under a two-level key:
  * `bucket[appModelKey][objectPk]`. These containers must exist before indexing.
  *
  * @param {any} store
  * @param {string} key
- * @param {"objectStates"|"objectTransitions"|"objectHistories"} bucket
  * @private
  */
-const ensureWorkflowObjectBucket = (store, key, bucket) => {
-    if (!store[bucket][key]) {
-        store[bucket][key] = {};
+const ensureObjectHistoryBucket = (store, key) => {
+    if (!store.objectHistories[key]) {
+        store.objectHistories[key] = {};
     }
-    if (!store.promises[bucket][key]) {
-        store.promises[bucket][key] = {};
+    if (!store.promises.objectHistories[key]) {
+        store.promises.objectHistories[key] = {};
     }
-    if (!store.errors[bucket][key]) {
-        store.errors[bucket][key] = {};
+    if (!store.errors.objectHistories[key]) {
+        store.errors.objectHistories[key] = {};
     }
 };
 
 /**
  * Empty a two-level store container in place, leaves first.
  *
- * A consumer can hold a `toRef` handle into the inner object (for example the per-object state map
+ * A consumer can hold a `toRef` handle into the inner object (for example the per-object history map
  * for one `app.model`), so the leaf keys are deleted before the key that holds the inner object.
  * Neither container is ever replaced.
  *
@@ -119,36 +118,16 @@ export function getUsingVuedaWorkflow() {
  */
 
 /**
+ * One recorded workflow state of an object, as the workflow state history endpoint returns it.
+ *
  * @typedef {object} WorkflowHistoryEntry
- * @property {string} [code] - The code of the workflow state.
- * @property {string} [name] - The name of the workflow state.
- * @property {string} [timestamp] - The timestamp of the history entry.
- * @property {string} [user] - The user who made the change.
- * @property {string} [message] - The message associated with the history entry.
- */
-
-/**
- * @typedef {object} WorkflowObjectStateEntry
- * @property {string} app - The object's app name.
- * @property {string} model - The object's model name.
- * @property {string} pk - The object's primary key.
- * @property {WorkflowState} state - The current workflow state of the object.
- */
-
-/**
- * @typedef {object} WorkflowObjectTransitionsEntry
- * @property {string} app - The object's app name.
- * @property {string} model - The object's model name.
- * @property {string} pk - The object's primary key.
- * @property {WorkflowTransition[]} transitions - The available transitions for the object.
- */
-
-/**
- * @typedef {object} WorkflowObjectHistoryEntry
- * @property {string} app - The object's app name.
- * @property {string} model - The object's model name.
- * @property {string} pk - The object's primary key.
- * @property {WorkflowHistoryEntry[]} history - The workflow history of the object.
+ * @property {string} id - The event identifier, in the form `vueda_workflow.ObjectState:<event id>`.
+ *  It matches the `object_state_revision` that the server reports after a transition.
+ * @property {string|null} state - The code of the state the object moved to. It is `null` when that
+ *  state has since been deleted.
+ * @property {string} recorded_at - When the state was recorded, as an ISO 8601 timestamp.
+ * @property {number|null} actor - The primary key of the user who caused the change. It is `null` when
+ *  no user was recorded.
  */
 
 /**
@@ -188,24 +167,6 @@ export class WorkflowPermissionDeniedError extends WorkflowError {
 }
 
 /**
- * Update the target array with the source object, or add the source object to the target array.
- *
- * @param {object[]} target - The array to update or add to.
- * @param {object} source - The object to update or add.
- * @private
- */
-const updateState = (target, source) => {
-    const key = getAppModelDotName({ app: source.app, model: source.model });
-    if (!target[key]) {
-        return;
-    }
-
-    if (target[key][source.pk]) {
-        assignReactiveObject(target[key][source.pk], source);
-    }
-};
-
-/**
  * @param {import('vue').Ref<string>|string} app
  * @param {import('vue').Ref<string>|string} model
  * @param {import('vue').Ref<string>|string} pk
@@ -219,19 +180,6 @@ const makeResultObject = (app, model, pk) => ({
 });
 const workflowUserPermittedTransitionsUrl = (result) => {
     const routeTemplate = getUrl("workflowUserPermittedTransitions");
-    // Replace placeholders with actual values from the result object
-    const urlWithVariables = routeTemplate
-        .replace(":app", memoizedSnakeCase(result.app))
-        .replace(":model", memoizedSnakeCase(result.model))
-        .replace(":pk", result.pk);
-    return `${httpOrHttpsHostname}${urlWithVariables}`;
-};
-const modelStatesUrl = (app, model) =>
-    `${httpOrHttpsHostname}${getUrl("workflowStates")}${memoizedSnakeCase(app)}/${memoizedSnakeCase(model)}/`;
-const objectStatesUrl = (result) =>
-    `${httpOrHttpsHostname}${getUrl("workflowObjectState")}${memoizedSnakeCase(result.app)}/${memoizedSnakeCase(result.model)}/${result.pk}/`;
-const objectTransitionsUrl = (result) => {
-    const routeTemplate = getUrl("workflowObjectTransitions");
     // Replace placeholders with actual values from the result object
     const urlWithVariables = routeTemplate
         .replace(":app", memoizedSnakeCase(result.app))
@@ -265,44 +213,39 @@ const executeTransitionUrl = (result) => {
  */
 
 /**
- * A pinia store for current workflow states, available transitions, and workflow histories for objects
- * or possible states for models.
+ * A pinia store for the workflow transitions a user may run on each model and the workflow state
+ * history of each object. It also executes transitions.
+ *
+ * An object's current state and the transitions available on it are fields of the object itself:
+ * `workflow_state_code`, `workflow_state_name`, and `valid_transitions`.
  *
  * @example
  * ```js
- *     import { ref, unref, computed } from "vue";
- *     import { storeWorkflowStore } from "@vueda";
- *     import { useArrayFind } from "@vueuse/core";
- *     const workflowStore = storeWorkflowStore();
+ *     import { computed, ref } from "vue";
+ *     import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+ *     import { getAppModelDotName } from "@vueda/utils/case.js";
+ *     const workflowStore = storeWorkflow();
  *
- *     workflowStore.objectStates; // array of objects with app, model, pk, and state
- *     workflowStore.objectTransitions; // array of objects with app, model, pk, and transitions
- *     workflowStore.objectHistories; // array of objects with app, model, pk, and history
- *     workflowStore.modelStates; // object with keys of app.model and values of array of states
+ *     const app = ref("myApp");
+ *     const model = ref("myModel");
+ *     const objectPk = ref("myObjectPk");
  *
- *     // examples of reactively looking at a particular object's state, transitions, and history
- *     const myApp = ref("myApp"); // reactive will work
- *     const myModel = ref("myModel"); // reactive will work
- *     const objectPk = ref("myObjectPk"); // reactive will work
- *     const objectState = useArrayFind(workflowStore.objectStates, (state) => state.app === myApp && state.model === myModel && state.pk === objectPk);
- *     const objectTransitions = useArrayFind(workflowStore.objectTransitions, (transition) => transition.app === myApp && transition.model === myModel && transition.pk === objectPk);
- *     const objectHistory = useArrayFind(workflowStore.objectHistories, (history) => history.app === myApp && history.model === myModel && history.pk === objectPk);
- *     const modelStates = computed(() => workflowStore.modelStates[`${unref(myApp)}.${unref(myModel)}`]);
+ *     // the transitions the user may run on the model, and one object's state history
+ *     await workflowStore.fetchWorkflowTransition(app.value, model.value);
+ *     const history = await workflowStore.fetchObjectHistory(app.value, model.value, objectPk.value);
  *
- *     await workflowStore.fetchModelStates(app, model);
- *     await workflowStore.fetchObjectState(app, model, objectPk);
- *     await workflowStore.fetchObjectTransitions(app, model, objectPk);
- *     await workflowStore.fetchObjectHistory(app, model, objectPk);
- *     await workflowStore.executeTransition(app, model, objectPk, transition_code);
+ *     // the same history, read reactively from the cache
+ *     const cachedHistory = computed(
+ *         () => workflowStore.objectHistories[getAppModelDotName({ app: app.value, model: model.value })]?.[objectPk.value],
+ *     );
+ *
+ *     await workflowStore.executeTransition(app.value, model.value, objectPk.value, "approve");
  * ```
  */
 export const storeWorkflow = defineStore("workflow", {
     state: () => {
         const createErrorPromiseStructure = () => ({
-            objectStates: {},
-            objectTransitions: {},
             objectHistories: {},
-            modelStates: {},
             workflowTransitions: {},
         });
 
@@ -312,10 +255,7 @@ export const storeWorkflow = defineStore("workflow", {
              * reject with this error instead of asking the server again.
              *
              * @type {{
-             *     objectStates: {[appModelDotName: string]: {[objectPk: string]: Error}},
-             *     objectTransitions: {[appModelDotName: string]: {[objectPk: string]: Error}},
              *     objectHistories: {[appModelDotName: string]: {[objectPk: string]: Error}},
-             *     modelStates: {[appModelDotName: string]: Error},
              *     workflowTransitions: {[appModelDotName: string]: Error},
              * }}
              */
@@ -326,46 +266,18 @@ export const storeWorkflow = defineStore("workflow", {
              * fetch removes its entry when it settles.
              *
              * @type {{
-             *     objectStates: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
-             *     objectTransitions: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
-             *     objectHistories: {[appModelDotName: string]: {[objectPk: string]: Promise<*>}},
-             *     modelStates: {[appModelDotName: string]: Promise<WorkflowState[]|undefined>},
+             *     objectHistories: {[appModelDotName: string]: {[objectPk: string]: Promise<WorkflowHistoryEntry[]>}},
              *     workflowTransitions: {[appModelDotName: string]: Promise<WorkflowTransition[]|undefined>},
              * }}
              */
             promises: createErrorPromiseStructure(),
             /**
-             * The current workflow state of each fetched object, keyed by app and model dot name, then by
-             * object primary key. Each entry is the server's object-state response.
-             *
-             * @type {{[appModelDotName: string]: {[objectPk: string]: {state: WorkflowState}}}}
-             */
-            objectStates: {},
-            /**
-             * The transitions the authenticated user may run on each fetched object, keyed by app and
-             * model dot name, then by object primary key.
-             *
-             * @type {{[appModelDotName: string]: {[objectPk: string]: WorkflowTransition[]}}}
-             */
-            objectTransitions: {},
-            /**
              * The recorded workflow states of each fetched object, oldest first, keyed by app and model
              * dot name, then by object primary key.
              *
-             * @type {{[appModelDotName: string]: {[objectPk: string]: Array<{
-             *     id: string,
-             *     state: string|null,
-             *     recorded_at: string,
-             *     actor: number|null,
-             * }>}}}
+             * @type {{[appModelDotName: string]: {[objectPk: string]: WorkflowHistoryEntry[]}}}
              */
             objectHistories: {},
-            /**
-             * The possible workflow states of each fetched model, keyed by app and model dot name.
-             *
-             * @type {{[appModelDotName: string]: WorkflowState[]}}
-             */
-            modelStates: {},
             /**
              * The transitions the authenticated user is permitted to run on each fetched model, keyed by
              * app and model dot name. The server does not check any particular object for this list.
@@ -384,8 +296,8 @@ export const storeWorkflow = defineStore("workflow", {
     },
     actions: {
         /**
-         * Drops every cached workflow response, because permitted transitions, states, and history
-         * are all filtered for the authenticated user.
+         * Drops every cached workflow response, because permitted transitions and state histories
+         * are both filtered for the authenticated user.
          *
          * The module-level `usingVuedaWorkflow` flag is integrator configuration, not user data, so
          * it is untouched. Keys are deleted in place, deepest level first, so `toRef` handles
@@ -396,16 +308,12 @@ export const storeWorkflow = defineStore("workflow", {
          */
         clearAuthScoped() {
             this.authScopeGeneration += 1;
-            for (const bucket of ["objectStates", "objectTransitions", "objectHistories"]) {
-                clearNestedContainer(this[bucket]);
-                clearNestedContainer(this.errors[bucket]);
-                clearNestedContainer(this.promises[bucket]);
-            }
-            for (const bucket of ["modelStates", "workflowTransitions"]) {
-                trimReactiveObject(this[bucket], {});
-                trimReactiveObject(this.errors[bucket], {});
-                trimReactiveObject(this.promises[bucket], {});
-            }
+            clearNestedContainer(this.objectHistories);
+            clearNestedContainer(this.errors.objectHistories);
+            clearNestedContainer(this.promises.objectHistories);
+            trimReactiveObject(this.workflowTransitions, {});
+            trimReactiveObject(this.errors.workflowTransitions, {});
+            trimReactiveObject(this.promises.workflowTransitions, {});
         },
         /**
          * Fetches the transitions the authenticated user is permitted to run on a model and caches them
@@ -504,256 +412,25 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.workflowTransitions[key];
         },
         /**
-         * Fetches the possible workflow states of a model and caches them in `modelStates`.
-         *
-         * A cached list resolves at once, and a cached error rejects at once. A request already in flight
-         * for the same model is shared. The list is empty when workflow is off or the model does not
-         * enable it.
-         *
-         * @param {string} app - Django app label.
-         * @param {string} model - Model name.
-         * @returns {Promise<WorkflowState[]|undefined>} A promise for the states, or `undefined` when the
-         *  server sends an empty response. It rejects with `WorkflowError` when the request fails.
-         */
-        fetchModelStates(app, model) {
-            if (!app || !model) {
-                return Promise.reject(new Error("storeWorkflow.fetchModelStates: app and model must be provided"));
-            }
-            if (!usingVuedaWorkflow) {
-                return Promise.resolve([]);
-            }
-            const gated = gateOnWorkflowEnabled(app, model, [], () => this.fetchModelStates(app, model));
-            if (gated) {
-                return gated;
-            }
-            const key = getAppModelDotName({ app, model });
-            const generation = this.authScopeGeneration;
-            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
-            const existing = this.modelStates[key];
-            const cachedError = this.errors.modelStates[key];
-
-            if (existing) {
-                return Promise.resolve(existing);
-            }
-            if (cachedError) {
-                return Promise.reject(cachedError);
-            }
-            if (!this.promises.modelStates[key]) {
-                this.promises.modelStates[key] = fetchHelper(
-                    modelStatesUrl(app, model),
-                    {
-                        method: "GET",
-                    },
-                    "Failed to fetch states for model",
-                    WorkflowError,
-                    undefined,
-                    "marker",
-                )
-                    .then((data) => {
-                        if (!isCurrentAuthScope()) {
-                            // the authenticated user changed while this was in flight: this response was
-                            // filtered for the previous principal, so it must not be cached or returned.
-                            throw new AuthScopeInvalidatedError("storeWorkflow.fetchModelStates", key);
-                        }
-                        if (data !== "marker") {
-                            this.modelStates[key] = data;
-                            return this.modelStates[key];
-                        }
-                    })
-                    .catch((e) => {
-                        if (isCurrentAuthScope()) {
-                            this.errors.modelStates[key] = e;
-                        }
-                        throw e;
-                    })
-                    .finally(() => {
-                        if (isCurrentAuthScope()) {
-                            delete this.promises.modelStates[key];
-                        }
-                    });
-            }
-            return this.promises.modelStates[key];
-        },
-        /**
-         * Fetches the current workflow state of one object and caches it in `objectStates`.
-         *
-         * A cached state resolves at once, and a cached error rejects at once. A request already in flight
-         * for the same object is shared.
-         *
-         * @param {string} app - Django app label.
-         * @param {string} model - Model name.
-         * @param {string} objectPk - The object's primary key.
-         * @returns {Promise<{state: WorkflowState}|Array|undefined>} The cached entry when one exists. A new
-         *  fetch resolves to `undefined` after it caches the state. It resolves to an empty array when
-         *  workflow is off or the model does not enable it. It rejects with `WorkflowError` when the
-         *  request fails.
-         */
-        fetchObjectState(app, model, objectPk) {
-            if (!app || !model || !objectPk) {
-                return Promise.reject(
-                    new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
-                );
-            }
-            if (!usingVuedaWorkflow) {
-                return Promise.resolve([]);
-            }
-            const gated = gateOnWorkflowEnabled(app, model, [], () => this.fetchObjectState(app, model, objectPk));
-            if (gated) {
-                return gated;
-            }
-            const key = getAppModelDotName({ app, model });
-            const generation = this.authScopeGeneration;
-            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
-            ensureWorkflowObjectBucket(this, key, "objectStates");
-            const existing = this.objectStates[key][objectPk];
-            const cachedError = this.errors.objectStates[key]?.[objectPk];
-            if (existing) {
-                return Promise.resolve(existing);
-            }
-            if (cachedError) {
-                return Promise.reject(cachedError);
-            }
-            if (!this.promises.objectStates[key][objectPk]) {
-                const result = makeResultObject(app, model, objectPk);
-                this.promises.objectStates[key][objectPk] = fetchHelper(
-                    objectStatesUrl(result),
-                    {
-                        method: "GET",
-                    },
-                    "Failed to fetch object state",
-                    WorkflowError,
-                    undefined,
-                    "marker",
-                )
-                    .then((data) => {
-                        if (data === "Object does not have a workflow.") {
-                            return result;
-                        }
-                        if (!isCurrentAuthScope()) {
-                            // the authenticated user changed while this was in flight: this response was
-                            // filtered for the previous principal, so it must not be cached or returned.
-                            throw new AuthScopeInvalidatedError("storeWorkflow.fetchObjectState", `${key}.${objectPk}`);
-                        }
-                        this.objectStates[key][objectPk] = data;
-                    })
-                    .catch((e) => {
-                        if (isCurrentAuthScope()) {
-                            this.errors.objectStates[key][objectPk] = e;
-                        }
-                        throw e;
-                    })
-                    .finally(() => {
-                        if (isCurrentAuthScope()) {
-                            // a changed generation means `clearAuthScoped` already removed the bucket
-                            // this entry lived in.
-                            delete this.promises.objectStates[key][objectPk];
-                        }
-                    });
-            }
-            return this.promises.objectStates[key][objectPk];
-        },
-        /**
-         * Fetches the transitions the authenticated user may run on one object and caches them in
-         * `objectTransitions`.
-         *
-         * A cached list resolves at once, and a cached error rejects at once. A request already in flight
-         * for the same object is shared.
-         *
-         * @param {string} app - Django app label.
-         * @param {string} model - Model name.
-         * @param {string} objectPk - The object's primary key.
-         * @returns {Promise<WorkflowTransition[]|undefined>} The cached list when one exists. A new fetch
-         *  resolves to `undefined` after it caches the list. It resolves to an empty array when workflow
-         *  is off or the model does not enable it. It rejects with `WorkflowError` when the request fails.
-         */
-        fetchObjectTransitions(app, model, objectPk) {
-            if (!app || !model || !objectPk) {
-                return Promise.reject(
-                    new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
-                );
-            }
-            if (!usingVuedaWorkflow) {
-                return Promise.resolve([]);
-            }
-            const gated = gateOnWorkflowEnabled(app, model, [], () =>
-                this.fetchObjectTransitions(app, model, objectPk),
-            );
-            if (gated) {
-                return gated;
-            }
-
-            const key = getAppModelDotName({ app, model });
-            const generation = this.authScopeGeneration;
-            const isCurrentAuthScope = () => this.authScopeGeneration === generation;
-            ensureWorkflowObjectBucket(this, key, "objectTransitions");
-            const existing = this.objectTransitions[key][objectPk];
-            const cachedError = this.errors.objectTransitions[key]?.[objectPk];
-            if (existing) {
-                return Promise.resolve(existing);
-            }
-            if (cachedError) {
-                return Promise.reject(cachedError);
-            }
-            if (!this.promises.objectTransitions[key][objectPk]) {
-                const result = makeResultObject(app, model, objectPk);
-                this.promises.objectTransitions[key][objectPk] = fetchHelper(
-                    objectTransitionsUrl(result),
-                    {
-                        method: "GET",
-                    },
-                    "Failed to fetch object transitions",
-                    WorkflowError,
-                    undefined,
-                    "marker",
-                )
-                    .then((data) => {
-                        if (data === "Object does not have a workflow.") {
-                            return result;
-                        }
-                        if (!isCurrentAuthScope()) {
-                            // the authenticated user changed while this was in flight: this response was
-                            // filtered for the previous principal, so it must not be cached or returned.
-                            throw new AuthScopeInvalidatedError(
-                                "storeWorkflow.fetchObjectTransitions",
-                                `${key}.${objectPk}`,
-                            );
-                        }
-                        this.objectTransitions[key][objectPk] = data;
-                    })
-                    .catch((e) => {
-                        if (isCurrentAuthScope()) {
-                            this.errors.objectTransitions[key][objectPk] = e;
-                        }
-                        throw e;
-                    })
-                    .finally(() => {
-                        if (isCurrentAuthScope()) {
-                            // a changed generation means `clearAuthScoped` already removed the bucket
-                            // this entry lived in.
-                            delete this.promises.objectTransitions[key][objectPk];
-                        }
-                    });
-            }
-            return this.promises.objectTransitions[key][objectPk];
-        },
-        /**
          * Fetches the recorded workflow states of one object and caches them in `objectHistories`.
          *
          * A cached history resolves at once, and a cached error rejects at once. A request already in
-         * flight for the same object is shared.
+         * flight for the same object is shared. A transition that `executeTransition` runs on the object
+         * drops its cached history, so the next call fetches it again. A request that was already in flight
+         * when the transition ran still resolves for its callers, and its history is not cached.
          *
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
          * @param {string} objectPk - The object's primary key.
-         * @returns {Promise<object[]|undefined>} The cached history when one exists, in the shape
-         *  `objectHistories` holds. A new fetch resolves to `undefined` after it caches the history. It
+         * @returns {Promise<WorkflowHistoryEntry[]>} A promise for the object's history, oldest first. It
          *  resolves to an empty array when workflow is off or the model does not enable it. It rejects
-         *  with `WorkflowError` when the request fails.
+         *  with `WorkflowError` when the request fails. The server answers with a 404 for an object that
+         *  has no workflow state, so the history of that object also rejects with `WorkflowError`.
          */
         fetchObjectHistory(app, model, objectPk) {
             if (!app || !model || !objectPk) {
                 return Promise.reject(
-                    new Error("storeWorkflow.fetchObjectState: app,model and objectPk must all be provided"),
+                    new Error("storeWorkflow.fetchObjectHistory: app, model and objectPk must all be provided"),
                 );
             }
             if (!usingVuedaWorkflow) {
@@ -766,9 +443,9 @@ export const storeWorkflow = defineStore("workflow", {
             const key = getAppModelDotName({ app, model });
             const generation = this.authScopeGeneration;
             const isCurrentAuthScope = () => this.authScopeGeneration === generation;
-            ensureWorkflowObjectBucket(this, key, "objectHistories");
+            ensureObjectHistoryBucket(this, key);
             const existing = this.objectHistories[key][objectPk];
-            const cachedError = this.errors.objectHistories[key]?.[objectPk];
+            const cachedError = this.errors.objectHistories[key][objectPk];
             if (existing) {
                 return Promise.resolve(existing);
             }
@@ -777,22 +454,18 @@ export const storeWorkflow = defineStore("workflow", {
                 return Promise.reject(cachedError);
             }
             if (!this.promises.objectHistories[key][objectPk]) {
-                const result = makeResultObject(app, model, objectPk);
-
-                this.promises.objectHistories[key][objectPk] = fetchHelper(
-                    objectHistoriesUrl(result),
+                // `clearAuthScoped` and `executeTransition` remove this entry, so a request whose entry is
+                // gone answered for a previous user or before a transition, and its result is not cached.
+                const isCurrentRequest = () => this.promises.objectHistories[key]?.[objectPk] === request;
+                const request = fetchHelper(
+                    objectHistoriesUrl(makeResultObject(app, model, objectPk)),
                     {
                         method: "GET",
                     },
                     "Failed to fetch object histories",
                     WorkflowError,
-                    undefined,
-                    "marker",
                 )
                     .then((data) => {
-                        if (data === "Object does not have a workflow.") {
-                            return result;
-                        }
                         if (!isCurrentAuthScope()) {
                             // the authenticated user changed while this was in flight: this response was
                             // filtered for the previous principal, so it must not be cached or returned.
@@ -801,30 +474,44 @@ export const storeWorkflow = defineStore("workflow", {
                                 `${key}.${objectPk}`,
                             );
                         }
+                        if (!isCurrentRequest()) {
+                            // a transition ran on the object while this was in flight, so this history
+                            // may predate it.
+                            return data;
+                        }
                         this.objectHistories[key][objectPk] = data;
+                        return this.objectHistories[key][objectPk];
                     })
                     .catch((e) => {
-                        if (isCurrentAuthScope()) {
+                        if (!isCurrentAuthScope()) {
+                            // the authenticated user changed while this was in flight: this rejection was
+                            // determined for the previous principal, so it must not reach the caller as-is.
+                            throw new AuthScopeInvalidatedError(
+                                "storeWorkflow.fetchObjectHistory",
+                                `${key}.${objectPk}`,
+                            );
+                        }
+                        if (isCurrentRequest()) {
                             this.errors.objectHistories[key][objectPk] = e;
                         }
                         throw e;
                     })
                     .finally(() => {
-                        if (isCurrentAuthScope()) {
-                            // a changed generation means `clearAuthScoped` already removed the bucket
-                            // this entry lived in.
+                        if (isCurrentRequest()) {
                             delete this.promises.objectHistories[key][objectPk];
                         }
                     });
+                this.promises.objectHistories[key][objectPk] = request;
             }
             return this.promises.objectHistories[key][objectPk];
         },
         /**
          * Runs a workflow transition on one object or on several objects in one request.
          *
-         * After a single-object run that is not a dry run, the cached state and transitions for that
-         * object are updated from the response. When `router` and `stateToRoute` are given and the new
-         * state code is a key of `stateToRoute`, the router then navigates to that route.
+         * A run that is not a dry run drops the cached workflow state history of each object it ran on,
+         * and a history request still in flight for that object does not cache its result.
+         * When `router` and `stateToRoute` are given and the new state code is a key of `stateToRoute`,
+         * the router then navigates to that route.
          *
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
@@ -857,7 +544,7 @@ export const storeWorkflow = defineStore("workflow", {
             if (!app || !model || !objectPk || !transitionCode) {
                 return Promise.reject(
                     new Error(
-                        "storeWorkflow.fetchObjectState: app, model,objectPk and transition_code must all be provided",
+                        "storeWorkflow.executeTransition: app, model, objectPk and transitionCode must all be provided",
                     ),
                 );
             }
@@ -903,8 +590,14 @@ export const storeWorkflow = defineStore("workflow", {
                         return data;
                     }
                     responseData = data;
-                    updateState(this.objectStates, { ...result, ...data.new_state });
-                    updateState(this.objectTransitions, { ...result, transitions: data.new_transitions });
+                    // The transition recorded a new state for each object, so their cached histories and any
+                    // history request still in flight are stale.
+                    const key = getAppModelDotName({ app: result.app, model: result.model });
+                    for (const pk of Array.isArray(result.pk) ? result.pk : [result.pk]) {
+                        delete this.objectHistories[key]?.[pk];
+                        delete this.errors.objectHistories[key]?.[pk];
+                        delete this.promises.objectHistories[key]?.[pk];
+                    }
                     return data;
                 })
                 .finally(() => {
@@ -915,20 +608,6 @@ export const storeWorkflow = defineStore("workflow", {
                 });
 
             return returningPromise;
-        },
-        /**
-         * Replaces the per-model containers for object transitions, their promises, and their errors with
-         * empty objects.
-         *
-         * @param {string} app - Django app label.
-         * @param {string} model - Model name.
-         * @returns {void}
-         */
-        initializeObjectTransitions(app, model) {
-            const key = getAppModelDotName({ app, model });
-            this.objectTransitions[key] = {};
-            this.promises.objectTransitions[key] = {};
-            this.errors.objectTransitions[key] = {};
         },
     },
 });

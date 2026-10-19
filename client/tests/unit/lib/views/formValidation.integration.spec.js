@@ -87,7 +87,6 @@ describe("lib/{views,widgets}/*.vue", () => {
                                     titleStr: "Order",
                                     pageLoading: false,
                                     combinedFormProps: {},
-                                    computedWidgetProps: {},
                                     currentActionAvailable: true,
                                 }),
                                 actions: reactive({
@@ -157,9 +156,16 @@ describe("lib/{views,widgets}/*.vue", () => {
                     expect(wrapper.text()).not.toContain("This field is required.");
                     expect(send).toHaveBeenCalledOnce();
                     const values = { supplier: "one", email: "person@domain.invalid" };
-                    expect(send.mock.calls[0][0]).toEqual(
-                        expect.objectContaining(View === ActionForm ? { formValues: values } : { object: values }),
-                    );
+                    let expected;
+                    if (View === ActionForm) {
+                        expected = { formValues: values };
+                    } else if (View === ViewCreate) {
+                        expected = { object: values };
+                    } else {
+                        // Update forms carry the route pk in the saved object.
+                        expected = { object: { ...values, id: "1" } };
+                    }
+                    expect(send.mock.calls[0][0]).toEqual(expect.objectContaining(expected));
                 } finally {
                     wrapper.unmount();
                 }

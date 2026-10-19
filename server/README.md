@@ -119,7 +119,7 @@ class ProductViewSet(VuedaViewSet):
 To make this API discoverable by the client, register the serializer and viewset
 in your app's `AppConfig.ready()` and expose the viewset through a `VuedaRouter`.
 Apply migrations and assign permissions before accessing the model. The
-[model API guide](https://vueda.dev/v3/guides/create-crudl-surface.html) covers
+[model API guide](https://vueda.dev/v3/guides/create-crud-surface.html) covers
 registration, URL wiring, filtering, and verification.
 
 ## Configure application behavior

@@ -22,7 +22,7 @@ export const DEMO_USER = {
 export const LOGGED_OUT = {
     loggedIn: false,
     loggedInUser: {},
-    initialized: true,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
     authPendingFlow: null,
 };
 
@@ -30,7 +30,7 @@ export const LOGGED_OUT = {
 export const LOGGED_IN = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER },
-    initialized: true,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
     authPendingFlow: null,
 };
 
@@ -42,7 +42,7 @@ export const LOGGED_IN = {
 export const MFA_ENROLLED = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER, totp_devices: [{ id: 1, name: "1Password", confirmed: true }] },
-    initialized: true,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
     authPendingFlow: null,
 };
 
@@ -50,7 +50,7 @@ export const MFA_ENROLLED = {
 export const MFA_PENDING = {
     loggedIn: false,
     loggedInUser: { auth_pending_flow: AUTH_FLOW.MFA_AUTHENTICATE },
-    initialized: true,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
     authPendingFlow: AUTH_FLOW.MFA_AUTHENTICATE,
 };
 
@@ -61,7 +61,7 @@ export const MFA_PENDING = {
 export const REAUTH_PASSWORD = {
     loggedIn: true,
     loggedInUser: { ...DEMO_USER, auth_pending_flow: AUTH_FLOW.REAUTHENTICATE, totp_devices: [] },
-    initialized: true,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
     authPendingFlow: AUTH_FLOW.REAUTHENTICATE,
 };
 
@@ -76,7 +76,7 @@ export const REAUTH_MFA = {
         auth_pending_flow: AUTH_FLOW.MFA_REAUTHENTICATE,
         totp_devices: [{ id: 1, name: "1Password", confirmed: true }],
     },
-    initialized: true,
+    currentUserRequestStatus: { loading: false, error: null, errored: false },
     authPendingFlow: AUTH_FLOW.MFA_REAUTHENTICATE,
 };
 

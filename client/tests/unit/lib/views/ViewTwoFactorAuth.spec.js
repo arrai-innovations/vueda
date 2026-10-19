@@ -1,7 +1,8 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
+import { RateLimitedError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
-import { defineComponent, h, reactive, ref } from "vue";
+import { defineComponent, h, nextTick, reactive, ref } from "vue";
 
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 
@@ -102,6 +103,10 @@ const toastMock = {
     message: vi.fn(),
 };
 const routerPush = vi.fn();
+const routeMock = reactive({ query: {} });
+const whoIsLoading = () => ({ loading: true, error: null, errored: false });
+const whoIsSucceeded = () => ({ loading: false, error: null, errored: false });
+const whoIsFailed = (error) => ({ loading: false, error, errored: true });
 
 const WidgetOTPInputStub = defineComponent({
     name: "WidgetOTPInputStub",
@@ -136,6 +141,7 @@ vi.mock("@vueda/stores/storeUser.js", async () => {
 
 vi.mock("vue-router", () => ({
     useRouter: () => ({ push: routerPush }),
+    useRoute: () => routeMock,
 }));
 
 let ViewTwoFactorAuth;
@@ -145,7 +151,9 @@ let userStore;
 describe("lib/views/ViewTwoFactorAuth.vue", () => {
     beforeEach(async () => {
         Object.values(toastMock).forEach((fn) => fn.mockClear());
-        routerPush.mockClear();
+        routerPush.mockReset();
+        routerPush.mockResolvedValue(undefined);
+        routeMock.query = {};
         useIsActiveMock.mockReset();
         storeUserMock.mockReset();
         updateFormValue.mockClear();
@@ -155,6 +163,7 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
         userStore = reactive({
             loggedIn: false,
             authPendingFlow: "mfa_authenticate",
+            currentUserRequestStatus: { loading: undefined, error: null, errored: false },
             getTwoFactorAuthMethod: vi.fn().mockResolvedValue({ methods: [] }),
             sendTwoFactorAuthenticationCode: vi.fn().mockResolvedValue({}),
             twoFactorAuthenticate: vi.fn().mockResolvedValue({}),
@@ -187,14 +196,93 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             expect(updateFormValue).toHaveBeenLastCalledWith("method", undefined);
         });
 
-        scopedIt("redirects when methods fetch returns unauthorized", async () => {
-            userStore.getTwoFactorAuthMethod.mockRejectedValue(new UnauthorizedErrorClass("Unauthorized"));
+        scopedIt("redirects once when the expired sign-in watch reacts before the methods catch", async () => {
+            routeMock.query = { redirect: "/home" };
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.authPendingFlow = null;
+                await nextTick();
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
             const wrapper = mount(ViewTwoFactorAuth);
             activeRef.value = true;
             await flushPromises();
-            expect(toastMock.warning).toHaveBeenCalled();
-            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(toastMock.warning).toHaveBeenCalledWith("Your sign-in has expired", expect.any(Object));
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/home" } });
             expect(wrapper.vm.methods).toEqual([]);
+        });
+
+        scopedIt("redirects once when the methods catch reacts before the expired sign-in watch", async () => {
+            routeMock.query = { redirect: "/home" };
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.authPendingFlow = null;
+                userStore.currentUserRequestStatus = whoIsLoading();
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/home" } });
+        });
+
+        scopedIt("redirects a signed-out user after an unauthorized methods fetch whose refetch failed", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.currentUserRequestStatus = whoIsFailed(new Error("Network Error"));
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).not.toHaveBeenCalled();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+        });
+
+        scopedIt("shows an error and stays when a signed-in user's methods fetch is unauthorized", async () => {
+            userStore.loggedIn = true;
+            userStore.authPendingFlow = "mfa_reauthenticate";
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockImplementation(async () => {
+                userStore.authPendingFlow = null;
+                throw new UnauthorizedErrorClass("Unauthorized");
+            });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
+            expect(toastMock.warning).not.toHaveBeenCalled();
+            expect(routerPush).not.toHaveBeenCalled();
+        });
+
+        scopedIt("shows an error when the redirect fails, and the next refusal redirects again", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.getTwoFactorAuthMethod.mockRejectedValue(new UnauthorizedErrorClass("Unauthorized"));
+            routerPush.mockResolvedValueOnce({ type: 4 });
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).toHaveBeenCalledWith("Error fetching 2FA methods for the user", expect.any(Object));
+
+            activeRef.value = false;
+            await flushPromises();
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledTimes(2);
+            expect(toastMock.warning).toHaveBeenCalledTimes(2);
+            expect(toastMock.error).toHaveBeenCalledTimes(1);
         });
 
         scopedIt("shows toast on generic fetch error", async () => {
@@ -222,13 +310,27 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             vi.useRealTimers();
         });
 
-        scopedIt("handleSendCode reports errors", async () => {
+        scopedIt("handleSendCode reports a refused send and leaves sending enabled", async () => {
             const wrapper = mount(ViewTwoFactorAuth);
-            wrapper.vm.form.values = { method: "email" };
-            userStore.sendTwoFactorAuthenticationCode.mockRejectedValue(new Error("fail"));
+            wrapper.vm.form.values = { method: "sms" };
+            const error = new RateLimitedError(
+                "Too many requests",
+                { status: 429, statusText: "Too Many Requests" },
+                { detail: "Request was throttled." },
+            );
+            userStore.sendTwoFactorAuthenticationCode.mockRejectedValueOnce(error);
+
             await wrapper.vm.handleSendCode();
-            expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", expect.any(Object));
+
+            expect(toastMock.error).toHaveBeenCalledWith("Failed to send 2FA code", {
+                description: error.message,
+                duration: 15000,
+            });
             expect(wrapper.vm.timer).toBeNull();
+            wrapper.vm.form.values = { method: "email" };
+            await wrapper.vm.handleSendCode();
+            expect(userStore.sendTwoFactorAuthenticationCode).toHaveBeenLastCalledWith({ method: "email" });
+            wrapper.unmount();
         });
     });
 
@@ -274,6 +376,83 @@ describe("lib/views/ViewTwoFactorAuth.vue", () => {
             userStore.authPendingFlow = "mfa_reauthenticate";
             await flushPromises();
             expect(userStore.getTwoFactorAuthMethod).toHaveBeenCalled();
+        });
+    });
+
+    describe("Expired sign-in redirect", () => {
+        scopedIt("waits for who-is before redirecting an anonymous user with no pending flow", async () => {
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            await flushPromises();
+            expect(toastMock.warning).toHaveBeenCalledWith("Your sign-in has expired", {
+                description: "There is no two-factor sign-in in progress. Sign in again to continue.",
+                duration: 10000,
+            });
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+        });
+
+        scopedIt("redirects when a who-is refetch clears the pending flow", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+
+            userStore.currentUserRequestStatus = whoIsLoading();
+            userStore.authPendingFlow = null;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in" });
+        });
+
+        scopedIt("does not redirect after a failed who-is request", async () => {
+            userStore.currentUserRequestStatus = whoIsFailed(new Error("Network Error"));
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps the redirect query on the way back to sign-in", async () => {
+            routeMock.query = { redirect: "/home" };
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+            expect(routerPush).toHaveBeenCalledWith({ name: "sign-in", query: { redirect: "/home" } });
+        });
+
+        scopedIt("does not redirect a signed-in user whose second factor was just confirmed", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            mount(ViewTwoFactorAuth);
+            activeRef.value = true;
+            await flushPromises();
+
+            userStore.loggedIn = true;
+            userStore.authPendingFlow = null;
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
+            expect(toastMock.warning).not.toHaveBeenCalled();
+        });
+
+        scopedIt("does not redirect while inactive", async () => {
+            userStore.currentUserRequestStatus = whoIsSucceeded();
+            userStore.authPendingFlow = null;
+            mount(ViewTwoFactorAuth);
+            await flushPromises();
+            expect(routerPush).not.toHaveBeenCalled();
         });
     });
 

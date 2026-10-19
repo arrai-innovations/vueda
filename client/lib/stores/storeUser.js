@@ -5,7 +5,7 @@
 import { clearAuthScopedStores } from "@vueda/stores/authScope.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { getCSRFValue } from "@vueda/utils/csrf.js";
-import { FetchError, FormValidationError } from "@vueda/utils/errors.js";
+import { FetchError, FormValidationError, RateLimitedError } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
 import { getUrl } from "@vueda/utils/urls.js";
 import { defineStore, getActivePinia } from "pinia";
@@ -58,8 +58,24 @@ const authErrorResolver = (response, data) => {
     if (response.status === 401 || response.status === 403) {
         return new UnauthorizedError("Unauthorized", response, data);
     }
+    if (response.status === 429) {
+        return new RateLimitedError("Too many requests", response, data);
+    }
     return new UserError("Unexpected error occurred", response, data);
 };
+
+/**
+ * Sends a request for the user store. A failed response rejects with the error that `errorResolver` builds.
+ *
+ * @param {string} url - The URL to request.
+ * @param {RequestInit} init - The fetch options.
+ * @param {string} messagePrefix - The prefix for the error message.
+ * @param {(response: Response, data: *) => Error} [errorResolver=authErrorResolver] - Builds the error for a
+ *  failed response. A custom resolver handles its own statuses and passes the rest to `authErrorResolver`.
+ * @returns {Promise<*>} The decoded response data.
+ */
+const userFetch = (url, init, messagePrefix, errorResolver = authErrorResolver) =>
+    fetchHelper(url, init, messagePrefix, UserError, undefined, undefined, errorResolver);
 /**
  * @typedef {ReturnType<typeof storeUser>} UserStore
  */
@@ -74,13 +90,13 @@ const authErrorResolver = (response, data) => {
  *
  *   user.loggedIn; // reactive boolean for login state, true if logged-in
  *   user.loggedInUser; // reactive object for user details
- *   user.initialized; // reactive boolean for initialization state, true if initialized
+ *   user.currentUserRequestStatus.loading; // undefined before the first request, true while one runs, then false
+ *   user.currentUserRequestStatus.error; // error from the last current-user request, null when it succeeded
+ *   user.currentUserRequestStatus.errored; // true when the last current-user request failed
  *   user.loading; // reactive boolean for loading state, true if loading
  *   user.error; // reactive object for error details
  *   user.errored; // reactive boolean for error state, true if errored
- *   user.initializingPromise; // promise for initialization
  *
- *   user.init(); // fetch the current user, with initialization wrapping
  *   user.login({username: "username", password: "password"}); // login
  *   user.forgotPassword({email: "password"}); /
  *   user.resetPassword({password: "password", password_confirm: "password_confirm"});
@@ -106,11 +122,32 @@ export const storeUser = defineStore("user", {
          */
         loggedInUser: {},
         /**
-         * Whether the first who-is request has finished. `undefined` before any request, and `false` while a refetch runs.
+         * The status of the newest current-user request, which `fetchCurrentUser` sends to the who-is endpoint.
+         * It has the `useLoadingError` shape from reactive-helpers.
+         * Only `fetchCurrentUser` writes it, so the other actions never change it.
          *
-         * @type {boolean|undefined}
+         * - `loading` is `undefined` before the first request, `true` while a request runs, and `false` once
+         *   it finishes.
+         * - `error` holds the error from the finished request. It is `null` when the request succeeded.
+         * - `errored` is `true` when the finished request failed.
+         *
+         * The last current-user request succeeded when `loading` is `false` and `errored` is `false`.
+         *
+         * @type {{loading: boolean|undefined, error: Error|null, errored: boolean}}
          */
-        initialized: undefined,
+        currentUserRequestStatus: {
+            loading: undefined,
+            error: null,
+            errored: false,
+        },
+        /**
+         * The promise of the newest current-user request, so callers can wait for a request in flight instead of
+         * starting another. It settles with the newest request's outcome. The value is `null` before the
+         * first request.
+         *
+         * @type {Promise<void>|null}
+         */
+        currentUserRequest: null,
         /**
          * Whether a request made by this store is in flight.
          *
@@ -130,12 +167,6 @@ export const storeUser = defineStore("user", {
          * @type {boolean}
          */
         errored: false,
-        /**
-         * The who-is request that `init` started, so concurrent `init` calls wait on the same request.
-         *
-         * @type {Promise<void>|null}
-         */
-        initializingPromise: null,
         /**
          * The allauth flow the user must complete next, or `null` when none is pending.
          *
@@ -169,33 +200,41 @@ export const storeUser = defineStore("user", {
     }),
     actions: {
         /**
-         * Fetches the current user from the who-is endpoint and updates the login state.
+         * Fetches the current user from the who-is endpoint and updates the login state and `currentUserRequestStatus`.
          * When the authenticated user changes, clears the authorization-dependent stores and increments `identityGeneration`.
          *
+         * Only the newest request writes the user fields and `currentUserRequestStatus`. The promise of an older
+         * request settles with the newest request's outcome, so a caller that awaits it reads the newest answer.
+         *
          * @param {object} [options={}] - Fetch options.
-         * @param {boolean} [options.preserveError=false] - Whether to leave `error` and `errored` unchanged, on success and on failure.
+         * @param {boolean} [options.preserveError=false] - Whether to leave the store-wide `error` and `errored`
+         *  unchanged, on success and on failure. `currentUserRequestStatus` records the outcome either way.
          * @returns {Promise<void>} Resolves once the state is updated; rejects with the request error.
          */
         fetchCurrentUser({ preserveError = false } = {}) {
             // Captured synchronously, because the success handler below runs after an await and the
             // module-level active instance can belong to another Pinia by then.
             const pinia = getActivePinia();
-            if (this.initialized) {
-                this.initialized = false;
-            }
             this.loading = true;
+            this.currentUserRequestStatus.loading = true;
+            this.currentUserRequestStatus.error = null;
+            this.currentUserRequestStatus.errored = false;
             if (!preserveError) {
                 this.error = null;
                 this.errored = false;
             }
 
-            return fetchHelper(
+            const request = fetchHelper(
                 `${httpOrHttpsHostname}${getUrl("userCurrentUser")}`,
                 { method: "GET" },
                 "Error requesting current user",
                 UserError,
             )
                 .then((user) => {
+                    // A newer request has started since this one, so its answer is the current one.
+                    if (this.currentUserRequest !== request) {
+                        return this.currentUserRequest;
+                    }
                     // non-logged in users still 200, just empty user.
                     const nextPrincipalId = user?.id ?? null;
                     const previousPrincipalId = this.principalId;
@@ -204,7 +243,7 @@ export const storeUser = defineStore("user", {
                     this.loggedInUser = user;
                     this.principalId = nextPrincipalId;
                     // Every path that can change who is authenticated (login, logout, reauthenticate,
-                    // two-factor, TOTP activation, init) funnels through here, so this is the one place
+                    // two-factor, TOTP activation, route guards) funnels through here, so this is the one place
                     // that has to notice. Compare the principal only: `auth_pending_flow` changes on
                     // reauthenticate and `totp_devices` changes on device activation, neither of which
                     // changes what the user is permitted to see.
@@ -216,6 +255,11 @@ export const storeUser = defineStore("user", {
                     }
                 })
                 .catch((error) => {
+                    if (this.currentUserRequest !== request) {
+                        return this.currentUserRequest;
+                    }
+                    this.currentUserRequestStatus.error = error;
+                    this.currentUserRequestStatus.errored = true;
                     if (!preserveError) {
                         this.error = error;
                         this.errored = true;
@@ -224,10 +268,12 @@ export const storeUser = defineStore("user", {
                 })
                 .finally(() => {
                     this.loading = false;
-                    if (!this.initialized) {
-                        this.initialized = true;
+                    if (this.currentUserRequest === request) {
+                        this.currentUserRequestStatus.loading = false;
                     }
                 });
+            this.currentUserRequest = request;
+            return request;
         },
         /**
          * Signs the user in, then refetches the current user.
@@ -244,7 +290,7 @@ export const storeUser = defineStore("user", {
             this.errored = false;
             this.authPendingFlow = null;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("userLogin")}`,
                 {
                     method: "POST",
@@ -255,16 +301,12 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
                 .catch(async (error) => {
-                    await this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     if (!this.authPendingFlow) {
                         this.error = error;
                         this.errored = true;
@@ -329,6 +371,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's password again, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * Completes the `reauthenticate` flow. The server does not count a password confirmation for a user with a
          * two-factor device; their flow is `mfa_reauthenticate`, which `twoFactorReauthenticate` completes.
@@ -342,7 +386,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("reauthenticate")}`,
                 {
                     method: "POST",
@@ -353,17 +397,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -382,7 +423,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("forgotPassword")}`,
                 {
                     method: "POST",
@@ -393,15 +434,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                (response, data) => {
-                    if (response.status === 429) {
-                        return new UserError("Password reset requested too recently", response, data);
-                    }
-                    return authErrorResolver(response, data);
-                },
             )
                 .then((responseData) => {
                     return responseData;
@@ -429,7 +461,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("changePassword")}`,
                 {
                     method: "POST",
@@ -440,10 +472,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .catch((error) => {
                     this.error = error;
@@ -455,13 +483,15 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Handles an `UnauthorizedError` by refetching the current user, whose who-is response sets `authPendingFlow`.
-         * The refetch keeps the existing error and ignores its own failure. Other errors are ignored.
+         * Refetches the current user when `error` is an `UnauthorizedError`, so `authPendingFlow` names the flow that
+         * the server now requires. A request guarded by an auth flow, such as a pending sign-in or recent
+         * authentication, answers 401 when that flow has changed. The refetch keeps the existing error and ignores
+         * its own failure. Other errors are ignored.
          *
          * @param {Error} error - The error from a failed request.
          * @returns {Promise<void>|undefined} The refetch promise for an `UnauthorizedError`, otherwise `undefined`.
          */
-        _handle_error(error) {
+        _refetchUserOnUnauthorized(error) {
             if (error instanceof UnauthorizedError) {
                 return this.fetchCurrentUser({ preserveError: true }).catch(() => undefined);
             }
@@ -469,6 +499,8 @@ export const storeUser = defineStore("user", {
         /**
          * Starts setting up a two-factor device for the signed-in user.
          * For `email` and `sms`, the server sends a code to the destination; for `totp`, it returns the secret and a QR code.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The device method: `totp`, `email`, or `sms`.
@@ -480,7 +512,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("setupTOTPDevice")}`,
                 {
                     method: "POST",
@@ -491,18 +523,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -511,6 +539,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Activates the device that `setupTOTPDevice` started, then refetches the current user to pick up its devices.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the device.
@@ -521,7 +551,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("activateTOTPDevice")}`,
                 {
                     method: "POST",
@@ -532,19 +562,15 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     // Refresh user totp device data
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -553,6 +579,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Completes a two-factor sign-in with a code, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.code - The code from the user's device.
@@ -563,7 +591,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("twoFactorAuthenticate")}`,
                 {
                     method: "POST",
@@ -574,17 +602,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -593,6 +618,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Confirms the signed-in user's second factor with a code, then refetches the current user, which clears `authPendingFlow`.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * Completes the `mfa_reauthenticate` flow, which the server requires from a user with a two-factor device
          * before a reauthentication-guarded action.
@@ -606,7 +633,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("twoFactorReauthenticate")}`,
                 {
                     method: "POST",
@@ -617,17 +644,14 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then(() => {
                     return this.fetchCurrentUser();
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -649,7 +673,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${getUrl("resetPassword")}`,
                 {
                     method: "POST",
@@ -660,10 +684,6 @@ export const storeUser = defineStore("user", {
                     body: JSON.stringify(payload),
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
@@ -721,6 +741,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Fetches the two-factor methods of the user who is signing in or reauthenticating.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
          */
@@ -731,21 +753,14 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("getTOTPCode");
 
-            return fetchHelper(
-                `${httpOrHttpsHostname}${url}`,
-                { method: "GET" },
-                "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
-            )
+            return userFetch(`${httpOrHttpsHostname}${url}`, { method: "GET" }, "Error sending authentication request")
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -755,6 +770,8 @@ export const storeUser = defineStore("user", {
         /**
          * Asks the server to send a two-factor code to the device of the user who is signing in or
          * reauthenticating, for the given method.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The delivery method: `email` or `sms`.
@@ -765,7 +782,7 @@ export const storeUser = defineStore("user", {
             this.error = null;
             this.errored = false;
             const url = getUrl("getTOTPCode");
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${url}`,
                 {
                     method: "POST",
@@ -775,19 +792,15 @@ export const storeUser = defineStore("user", {
                     },
                     body: JSON.stringify(payload),
                 },
-
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -796,6 +809,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Generates a new set of recovery codes for the signed-in user, replacing any existing set.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the new codes.
          */
@@ -806,7 +821,7 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("recoveryCodes");
 
-            return fetchHelper(
+            return userFetch(
                 `${httpOrHttpsHostname}${url}`,
                 {
                     method: "POST",
@@ -816,18 +831,14 @@ export const storeUser = defineStore("user", {
                     },
                 },
                 "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
             )
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
@@ -836,6 +847,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Fetches the signed-in user's recovery codes, and generates them when the user has none.
+         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
+         * that the server now requires.
          *
          * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the unused codes.
          */
@@ -846,43 +859,22 @@ export const storeUser = defineStore("user", {
 
             const url = getUrl("recoveryCodes");
 
-            return fetchHelper(
-                `${httpOrHttpsHostname}${url}`,
-                { method: "GET" },
-                "Error sending authentication request",
-                UserError,
-                undefined,
-                undefined,
-                authErrorResolver,
-            )
+            return userFetch(`${httpOrHttpsHostname}${url}`, { method: "GET" }, "Error sending authentication request")
                 .then((responseData) => {
                     return responseData;
                 })
-                .catch((error) => {
+                .catch(async (error) => {
                     if (error.response?.status === 404) {
                         return this.generateRecoveryCode();
                     }
                     this.error = error;
                     this.errored = true;
-                    this._handle_error(error);
+                    await this._refetchUserOnUnauthorized(error);
                     throw error;
                 })
                 .finally(() => {
                     this.loading = false;
                 });
-        },
-        /**
-         * Fetches the current user once, and waits for that request on later calls.
-         *
-         * @returns {Promise<void>}
-         */
-        async init() {
-            if (!this.initialized) {
-                this.initializingPromise = this.fetchCurrentUser();
-            }
-            if (this.initializingPromise) {
-                await this.initializingPromise;
-            }
         },
         /**
          * Clears `error` and `errored`.

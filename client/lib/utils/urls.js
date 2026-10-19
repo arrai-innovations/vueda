@@ -12,7 +12,7 @@ const defaultUrls = {
     checkReauthentication: "/routes/vueda.user/totpdevice/check_reauthentication/",
     forgotPassword: "/routes/vueda.user/forgot-password/",
     getTOTPCode: "/routes/vueda.user/totp_code/",
-    historyWorkflowStateHistory: "/routes/history/workflow-state-history/:app/:model/:pk/",
+    historyWorkflowStateHistory: "/routes/vueda.history/workflow-state-history/:app/:model/:pk/",
     infoModelInfo: "/routes/vueda.info/model_info/",
     infoModelInfoChoices: "/routes/vueda.info/model_info_choices/",
     infoModelInfoFilterChoices: "/routes/vueda.info/model_info_filter_choices/",
@@ -34,10 +34,7 @@ const defaultUrls = {
     userLogout: "/routes/vueda.user/logout/",
     workflowExecuteTransition: "/routes/vueda.workflow/workflows/:app/:model/execute-transition/",
     workflowList: "/routes/vueda.workflow/workflows/",
-    workflowObjectState: "/routes/vueda.workflow/workflows/:app/:model/object-state/:pk/",
-    workflowObjectTransitions: "/routes/vueda.workflow/workflows/:app/:model/object-transitions/:pk/",
     workflowRetrieveTransition: "/routes/vueda.workflow/workflows/",
-    workflowStates: "/routes/vueda.workflow/workflows/states/",
     workflowUserPermittedTransitions: "/routes/vueda.workflow/workflows/:app/:model/permitted_transitions/",
 };
 

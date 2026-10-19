@@ -17,6 +17,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.management import call_command
 from django.db import models
 from django.db.models import Q
@@ -59,6 +60,15 @@ def record_authentication_methods(client, *methods):
     session = client.session
     session[AUTHENTICATION_METHODS_SESSION_KEY] = [{"method": method, "at": time.time()} for method in methods]
     session.save()
+
+
+@pytest.fixture
+def encrypted_mfa_secrets(monkeypatch):
+    """Make VUEDA's MFA adapter store secrets reversed, so code that skips ``decrypt`` reads the wrong secret."""
+    from vueda.user.adapters import VuedaAllAuthMFAAdapter
+
+    monkeypatch.setattr(VuedaAllAuthMFAAdapter, "encrypt", lambda self, text: text[::-1])
+    monkeypatch.setattr(VuedaAllAuthMFAAdapter, "decrypt", lambda self, encrypted_text: encrypted_text[::-1])
 
 
 def cached_filterset_field_names(filterset_class):
@@ -148,6 +158,12 @@ def api_client():
     Reuse the Django REST Framework API client for all tests intelligently (xdist will make a new one for each worker).
     """
     return APIClient()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def clear_cache():
+    """Empty the cache before each test, so rate-limit counts and cooldowns from one test never reach another."""
+    cache.clear()
 
 
 @pytest.fixture(autouse=True, scope="function")

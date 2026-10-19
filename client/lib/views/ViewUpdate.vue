@@ -45,7 +45,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field paths sent in the update request body; falls back to the model config's submitFields when omitted or empty. */
+    /** Field paths sent in the update request body, which also carries the primary key. Falls back to the model config's submitFields when omitted or empty. */
     submitFields: {
         type: Array,
         default: undefined,
@@ -62,10 +62,10 @@ const props = defineProps({
         default: () => [],
     },
     ...THEME_OVERRIDE_PROPS,
-    /** Theme variant forwarded to the inner FormModel component. */
+    /** Theme variant that the inner FormModel component receives as `variant`. Wins over a `variant` in the model config's `formProps` when passed. */
     formModelVariant: {
         type: String,
-        default: "default",
+        default: undefined,
     },
     /** Field names to render in the form; overrides the model config default. */
     fields: {
@@ -97,17 +97,17 @@ const props = defineProps({
         type: Object,
         default: undefined,
     },
-    /** Extra props merged into the FormModel component. */
+    /** Extra props for the inner FormModel component. They win over the model config's `formProps` and lose to this view's own form props. The `app`, `model`, and `view` keys are ignored, because the view sets them. */
     formProps: {
         type: Object,
         default: undefined,
     },
-    /** Map of field paths to additional props passed to the field component. */
+    /** Map of field paths to additional props passed to the field component. Replaces a `fieldProps` map in the model config's `formProps` when passed. */
     fieldProps: {
         type: Object,
         default: undefined,
     },
-    /** Map of field paths to additional props passed to the widget component. */
+    /** Map of field paths to additional props passed to the widget component. Replaces a `widgetProps` map in the model config's `formProps` when passed. */
     widgetProps: {
         type: Object,
         default: undefined,
@@ -294,21 +294,7 @@ onMounted(() => {
                 </Alert>
             </slot>
             <form v-else v-bind="$attrs" :id="instance.formId" @submit.prevent="objectForm.submit">
-                <form-model
-                    :app="app"
-                    :field-components="fieldComponents"
-                    :field-details="fieldDetails"
-                    :field-props="fieldProps"
-                    :fields="fields"
-                    :expand="expand"
-                    :expand-details="expandDetails"
-                    :model="model"
-                    :variant="formModelVariant"
-                    view="update"
-                    :widget-components="widgetComponents"
-                    :widget-props="instance.computedWidgetProps"
-                    v-bind="instance.combinedFormProps"
-                >
+                <form-model v-bind="instance.combinedFormProps">
                     <template
                         v-for="(_, slot) in omit(slots, [
                             'form-confirm-dialog-warnings',
