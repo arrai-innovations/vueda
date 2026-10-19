@@ -587,7 +587,13 @@ class FormattedNameBaseModel(models.Model):
         if formatted_name_annotation_path(cls) is None:
             return []
 
-        default_manager = cls._meta.default_manager
+        try:
+            default_manager = cls._meta.default_manager
+        except ValueError:
+            # `Meta.default_manager_name` naming a manager the model doesn't have raises here. Without
+            # a default there is no telling which manager is a second one, so none is reported.
+            return []
+
         errors = []
         for manager in cls._meta.managers:
             # `_meta.default_manager` is one of the objects in `_meta.managers`, so identity tells the
@@ -707,7 +713,15 @@ class FormattedNameBaseModel(models.Model):
         if _ordering_resolves(base_manager) is not False:
             return []
 
-        if _ordering_resolves(cls._meta.default_manager) is not True:
+        try:
+            default_manager = cls._meta.default_manager
+        except ValueError:
+            # `Meta.default_manager_name` naming a manager the model doesn't have raises here. With no
+            # default manager to compile against, the ordering can't be judged sound, so nothing is
+            # blamed on the base manager.
+            return []
+
+        if _ordering_resolves(default_manager) is not True:
             return []
 
         # "_base_manager" is the name Django gives the manager it builds when no declaration named

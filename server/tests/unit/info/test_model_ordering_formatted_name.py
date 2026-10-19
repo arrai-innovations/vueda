@@ -1029,6 +1029,27 @@ class TestFormattedNameDefaultManagerSystemChecks:
 
         assert "vueda_core.E019" not in [error.id for error in errors]
 
+    def test_a_misspelled_default_manager_name_does_not_crash_the_base_manager_check(self):
+        """Django's `models.E015` skips an expression term, so this ordering reaches the base-manager
+        check, which compiles the ordering on the default manager too. With no default manager to
+        read, it blames nothing on the base manager."""
+        with isolate_apps("tests.features"):
+
+            class MisspelledDefaultManagerExpressionOrdering(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "objcts"
+                    ordering = [models.F("formatted_name").asc()]
+
+            errors = MisspelledDefaultManagerExpressionOrdering.check()
+
+        assert "vueda_core.E017" not in [error.id for error in errors]
+
     def test_a_model_with_a_formatted_name_column_is_not_reported(self, monkeypatch):
         """A `GeneratedField` column is a real field, so there is no annotation for a manager to be
         missing."""
