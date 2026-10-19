@@ -51,6 +51,16 @@ expandable_fields = {
 
 The value must be a tuple. A list such as `[TagSerializer, {}]` fails the system check `vueda_core.E001`. The check [`check_expandable_fields_configuration`]{@api py:function:vueda.core.checks.check_expandable_fields_configuration} runs with Django's system checks, for example on `manage.py check`. It covers each routed viewset's `serializer_class`, each registered serializer, and every serializer they reach through nested fields and `expandable_fields`.
 
+Do not name an expand `related` or `calculated`. The client reads a path that starts with `related.` or `calculated.` from the row's related or calculated object. The fields of an expand with either name would render blank. The system check `vueda_core.E022` reports such an expand. Give the expand another name, and set `source` in its options to read the model field:
+
+```python
+expandable_fields = {
+    "related_widget": (WidgetSerializer, {"source": "related"}),
+}
+```
+
+The same holds for a dotted path through a serializer field named `related` or `calculated`, such as a JSON field. Building the model config throws when `displayFields`, `fetchFields`, or `submitFields` names such a path. A field of either name still works as a single segment, such as `related` in `displayFields`.
+
 Each expanded relation adds one join or prefetch query per request and adds its data to every row. [Field and Expand Semantics](../core-concepts/field-and-expand-semantics) describes the query plan.
 
 ## Expand a generic foreign key
@@ -206,6 +216,8 @@ Confirm the setup in the browser's network panel:
 **Expanded field columns show no values.** `displayFields` names an `expand.subfield` key, but the view's `expand` does not name that relation. Without the expand, the client builds no `fieldDetails` entry for the key, and the server returns the related primary key. Add the relation to `expand`.
 
 **Building the model config throws `Model config for <app>.<model> is invalid`.** The message names each problem. A dotted entry such as `category.name` in `displayFields`, `fetchFields`, or `submitFields` needs `category` in the same view's `expand`. An `expand` entry must name an expand that model info declares.
+
+**`manage.py check` reports `vueda_core.E022`, or the model config throws for a reserved name.** The serializer names an expand or field `related` or `calculated`. Rename it, as in [Declare expandable fields](#declare-expandable-fields).
 
 **A form shows a select where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Add the relation to that view's `expand`.
 

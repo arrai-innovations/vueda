@@ -24,6 +24,11 @@ class ExpandableFieldsListViewSet(VuedaViewSet):
     serializer_class = my_serializers.ExpandableFieldsListSerializer
 
 
+class ExpandableFieldsClientNamespaceViewSet(VuedaViewSet):
+    queryset = my_models.NoExpandableFieldsData.objects.all()
+    serializer_class = my_serializers.ExpandableFieldsClientNamespaceSerializer
+
+
 class ExpandableFieldsBadTupleLengthViewSet(VuedaViewSet):
     queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExpandableFieldsBadTupleLengthSerializer
