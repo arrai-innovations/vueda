@@ -39,7 +39,7 @@ python manage.py check
 - **The queryset calls `.reverse()`.** Django keeps it through the `order_by()` that applies the viewset's `ordering` or a client's `o`, so every sort comes back reversed. Remove the `.reverse()` and declare the order that you want.
 - **The queryset groups its rows.** A queryset that annotates an aggregate, such as `Count("items")`, has a `GROUP BY`, and Django leaves `Meta.ordering` out of it. With no viewset `ordering`, the rows arrive unordered. Declare the order as the viewset's `ordering`.
 
-`vueda_info.E015` reports a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a manager whose ordered query Django rejects.
+`vueda_info.E015` reports a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose query Django rejects, when the manager builds it or when E015 compiles an ordered one.
 
 `vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation that `get_queryset` adds.
 

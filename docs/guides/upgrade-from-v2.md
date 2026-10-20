@@ -107,7 +107,7 @@ Server v2 registered no system checks. Server v3 registers checks in `vueda_core
 - `vueda_info.E010`: a `queryset` or `get_queryset()` ordering that disagrees with the declared ordering, that orders by fields alone with no declared ordering, or that calls `.reverse()` on a sortable list. It also reports a grouped list queryset that makes Django drop `Meta.ordering`, and a `get_queryset()` or `queryset` query that Django rejects.
 - `vueda_info.E013`: a column total path that crosses a reverse or many-to-many relation, or that ends on a field that cannot be summed.
 - `vueda_info.E014`: a search annotation that the search queryset lacks.
-- `vueda_info.E015`: a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose ordered query Django rejects, such as a misspelled `F()` name or transform.
+- `vueda_info.E015`: a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose query Django rejects, such as a misspelled field, `F()` name, or transform.
 
 `vueda_info.E006` and `E013` also reject paths that end in a transform, such as `created__year`. Server v2 accepted those. Until [#494](https://github.com/arrai-innovations/vueda/issues/494) lands, declare an annotation for such a path, or silence the check.
 
