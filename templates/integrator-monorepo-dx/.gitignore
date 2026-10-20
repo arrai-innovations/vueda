@@ -10,3 +10,7 @@ server/gunicorn.conf.py
 server/config.local.toml
 # local TLS certificate and key
 server/*.pem
+# uploaded files (MEDIA_ROOT in local development)
+server/media
+# client build output
+client/dist

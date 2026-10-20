@@ -3,5 +3,22 @@ target-version = "py312"
 
 [lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
-ignore = ["E501"]
+# RUF012 would flag the list attributes on every Django Meta class and migration.
+ignore = ["E501", "RUF012"]
 
+[lint.per-file-ignores]
+# base.py receives INSTALLED_APPS and the other Django settings from get_defaults() at run time.
+"config/settings/*" = ["F821"]
+# makemigrations writes its own import order.
+"**/migrations/*" = ["I001"]
+
+[lint.isort]
+# Imports from VUEDA form their own group, between other third-party packages and this project's own modules.
+section-order = ["future", "standard-library", "third-party", "vueda", "first-party", "local-folder"]
+
+[lint.isort.sections]
+vueda = ["vueda"]
+
+[format]
+# makemigrations writes its own formatting.
+exclude = ["**/migrations/*"]

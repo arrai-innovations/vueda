@@ -4,20 +4,27 @@
 
 ## Quick start
 
+### Install
+
+From the project root:
+
+```bash
+uv sync --all-packages
+pnpm install
+```
+
 ### Server
 
 ```bash
 cd server
-uv sync
 uv run python manage.py migrate
-uv run python manage.py runserver {{ bind_ip }}:{{ server_port }}
+uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
 ```
 
 ### Client
 
 ```bash
 cd client
-pnpm install
 pnpm dev
 ```
 
@@ -26,4 +33,3 @@ pnpm dev
 - Server config is loaded from `server/config.toml` + `server/config.local.toml`.
 - `server/config.local.toml` names the services the server needs: PostgreSQL at `DATABASE_URL`, and the cache at `CACHE_URL` that holds sessions.
 - Client Vite config is composed from `@arrai-innovations/vueda/lib/vite.js`.
-

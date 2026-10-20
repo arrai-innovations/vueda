@@ -1,17 +1,17 @@
-import { createApp } from "vue";
-import { createPinia } from "pinia";
+import TheApp from "./TheApp.vue";
+import { getRouter } from "./router/index.js";
 import { config as faConfig } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
+import { installFontAwesomeFreeIcons } from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
 // Register all defaults before applying project patches. For per-component
 // loading, omit this import; components register defaults when their modules load.
 // Project patches must still run after the defaults they customize have loaded.
 // Keep the base.css import in your stylesheet with either loading path.
 import "@vueda/theme/vueda-tailwind/index.js";
-import { installFontAwesomeFreeIcons } from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
 import { setupDefaultListCrud } from "@vueda/utils/listCrud.js";
 import { setupDefaultObjectCrud } from "@vueda/utils/objectCrud.js";
-import { getRouter } from "./router/index.js";
-import TheApp from "./TheApp.vue";
+import { createPinia } from "pinia";
+import { createApp } from "vue";
 
 faConfig.autoAddCss = false;
 
@@ -31,4 +31,3 @@ app.use(router);
 app.mount("#the-app");
 
 export default app;
-
