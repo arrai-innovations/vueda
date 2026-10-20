@@ -32,7 +32,7 @@ A nested write that changes a `Customer` row also needs the permissions that [Se
 
 ## Name the Relation in Each Form View's `expand`
 
-A form renders a relation as an inline only when the view's [`expand`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.expand} names it. The default `expand` is empty. Without an entry, a foreign key or a many-to-many relation renders a combobox that searches the related rows. A reverse foreign key shows a field render failure on the create and update forms.
+A form renders a relation as an inline only when the view's [`expand`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.expand} names it. The default `expand` is empty. Without an entry, a foreign key or a many-to-many relation renders a combobox that searches the related rows. A reverse foreign key shows its linked rows read-only on the create and update forms. Those forms also leave it out of the request body.
 
 Call {@api js:method:@arrai-innovations/vueda/stores/storeModelConfig#storeModelConfig.setConfig} when the application starts, before any view of the model renders. Name the relations in the `create`, `update`, and `read` layers:
 
@@ -128,6 +128,6 @@ The create and update views name each relation from `expand` in `e` when the for
 
 **`submitFields for shop.order names expand-flattened display field(s): items.quantity.`** `submitFields` lists a dotted entry. List the relation's own name, `items`, in `submitFields`. The inline submits its rows under that name.
 
-**`No widget component found for field "items" in app "shop" model "order"`.** The form renders the relation as a plain field, and the field's type has no widget. Add the relation to the view's `expand`.
+**The create or update form shows `items` read-only, and a save leaves the order's items unchanged.** The view's `expand` does not name the relation. A form edits a reverse foreign key only as an inline. Without the expand, the form shows the linked rows read-only and leaves the field out of the request body. Add the relation to the view's `expand`.
 
 **`There was an error while rendering the "customer.id" field.`** `displayFields` lists dotted entries for another relation but none for `customer`. Add dotted entries for `customer`, as [Choose the Fields in Each Row](#choose-the-fields-in-each-row) describes.
