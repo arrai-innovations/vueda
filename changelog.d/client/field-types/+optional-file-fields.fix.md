@@ -1,0 +1,2 @@
+- **Read-only file and image fields (`WidgetFileReadOnly`, `ColumnFile`)**:
+    - A read view and a list cell now show a stored file as a link labelled with the file name, through the new `FileDisplay`, and show a dash when there is no file. Before, both printed the `{ "name": ..., "url": ... }` object as text. Saving an optional file field with no file, or removing the file in `WidgetFile`, needs a server that accepts `null` for a `blank=True` file column.

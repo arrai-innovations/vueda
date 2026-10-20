@@ -83,6 +83,18 @@ describe("lib/utils/fieldMappings.js", () => {
         expect(manyFieldMappings.JSONField.JSONField.widget).toBe(availableWidgets.WidgetJson);
     });
 
+    it.each(["FileField", "ImageField"])(
+        "maps a read-only %s to the read-only file widget and its list column to the file adapter",
+        async (type) => {
+            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            const { columnMappings } = await import("@vueda/utils/columnMappings.js");
+
+            expect(defaultFieldMappings[type][type].readOnlyWidget).toBe(availableWidgets.WidgetFileReadOnly);
+            expect(columnMappings[type][type].column).toBe("ColumnFile");
+        },
+    );
+
     it.each(["DateField", "DateTimeField", "TimeField"])(
         "maps a read-only %s to the read-only date widget",
         async (type) => {

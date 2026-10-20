@@ -17,6 +17,7 @@ import "./DiagnosticStrip.theme.js";
 import "./DurationDisplay.theme.js";
 import "./ErrorDisplay.theme.js";
 import "./FieldPickerMenuList.theme.js";
+import "./FileDisplay.theme.js";
 import "./JsonDisplay.theme.js";
 import "./Kbd.theme.js";
 import "./KbdGroup.theme.js";
@@ -42,6 +43,7 @@ export default {
     // ---------- Text utilities ----------
     BooleanDisplay: {},
     ErrorDisplay: {},
+    FileDisplay: {},
     JsonDisplay: {},
     ClickToCopyText: {},
     // ---------- Badges and keyboard hints ----------
