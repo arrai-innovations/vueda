@@ -46,6 +46,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Use Expand and Sparse Field Controls](expand-and-fields-controls.md): Control payload shape with `expand` and `fields`.
 - [Customize Model Info Field and Expand Metadata](customize-model-info-metadata.md): Correct generated `model_fields`/`model_expands` metadata for `SerializerMethodField`s with `get_field_model_info` and `get_expand_model_info`.
 - [Build Nested/Inlined Writes](nested-writable-inlines.md): Handle writable nested relations and server validation behavior.
+- [Render a Relation as an Inline](render-relations-as-inlines.md): Show a relation as a stacked or tabular inline on create, update, and read forms, and choose the fields in each row.
 - [Customize Field and Widget Rendering](custom-field-widget-rendering.md): Override field/widget components and props in model config.
 - [Handle Form Validation and Server Errors](form-validation-and-errors.md): Map server validation responses into VUEDA form context.
 

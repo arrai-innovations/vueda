@@ -7,7 +7,7 @@ status: draft
 
 # Build Nested/Inlined Writes
 
-A {@term Nested Write} saves a parent object and its related objects in one create or update request. This guide sets up the serializers and the request, then customizes the {@term Inline} rows that edit the related objects on the client. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md) describes how the serializer processes the nested body.
+A {@term Nested Write} saves a parent object and its related objects in one create or update request. This guide sets up the serializers and the request, then customizes the {@term Inline} rows that edit the related objects on the client. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md) describes how the serializer processes the nested body. [Render a Relation as an Inline](./render-relations-as-inlines.md) describes the model config that makes a form render each inline.
 
 ## Before You Begin
 
