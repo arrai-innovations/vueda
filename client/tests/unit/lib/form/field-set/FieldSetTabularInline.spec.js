@@ -28,7 +28,9 @@ vi.mock("@vueda/objects-grid/ObjectsGrid.vue", () => ({
                               h(
                                   "div",
                                   { "data-row": rowIndex },
-                                  slots["field(item-action-bar)"]?.({ pk: obj?.id, rowIndex }),
+                                  Object.keys(slots)
+                                      .filter((name) => name.startsWith("field("))
+                                      .map((name) => slots[name]({ pk: obj?.id, rowIndex })),
                               ),
                           )
                         : [],
@@ -184,6 +186,17 @@ describe("lib/form/field-set/FieldSetTabularInline.vue", () => {
             const wrapper = mountWithContext([{}], options);
             expect(wrapper.find('[data-row="0"] [data-qa="control-button"]').exists()).toBe(false);
         }
+    });
+
+    scopedIt("does not pass the fieldset's field props to its cell renderers", () => {
+        const wrapper = mountWithContext([{ id: 1 }], {
+            state: {
+                fieldObjects: [{ name: "child" }],
+                computedFieldProps: { label: "Items", readOnly: false, contextless: false },
+            },
+        });
+        const cell = wrapper.get('[data-row="0"] [data-qa="field-renderer"]');
+        expect(cell.attributes()).not.toHaveProperty("field-props");
     });
 
     scopedIt("supports the destroy-button slot without server action metadata", async () => {

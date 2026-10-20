@@ -85,6 +85,26 @@ describe("lib/form/form-model/FormModel.vue", () => {
         expect(wrapper.text()).toContain("Loading model information.");
     });
 
+    scopedIt("leaves its fieldProps to the form model rather than passing them to each renderer again", () => {
+        mockedUseFormModel.mockReturnValueOnce(
+            reactive({
+                fields: ["name"],
+                baseFieldNames: ["name"],
+                fieldComponents: {},
+                fieldProps: { name: { label: "From form model" } },
+                fieldDetails: {},
+                widgetComponents: {},
+                widgetProps: {},
+            }),
+        );
+        const fieldProps = { name: { label: "Override", themeOverride: { root: { class: ["x"] } } } };
+        const wrapper = mount(FormModel, { props: { app: "a", model: "m", fieldProps } });
+        expect(mockedUseFormModel.mock.calls.at(-1)[0].fieldProps).toEqual(fieldProps);
+        const field = wrapper.getComponent(FieldRendererStub);
+        expect(field.props("formModel").fieldProps.name).toEqual({ label: "From form model" });
+        expect(field.props("fieldProps")).toBeUndefined();
+    });
+
     scopedIt("renders fields and slots", () => {
         mockedUseFormModel.mockReturnValueOnce(
             reactive({
