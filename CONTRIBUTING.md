@@ -57,6 +57,12 @@ fragment carry the topic.
 The text after the prefix must describe the concrete outcome, not merely
 classify the work. The title should account for the whole branch.
 
+Mark a breaking change with `!` before the colon, as in
+`fix(checks)!: report get_queryset and default manager orderings`. A change is
+breaking when an integrator must change code, configuration, or data to keep a
+project working after upgrading. A breaking pull request also carries `impact:breaking`; see
+[Pull request labels](#pull-request-labels).
+
 Examples:
 
 - `feat(server): support Django 6.1 and MAILERS`
@@ -177,6 +183,9 @@ request rather than in a later edit.
   describe the branch. Every topic that a changelog fragment's directory names
   needs its `topic:*` label. With no topic label, the check adds the fragments'
   topics. If topic labels exist but miss a fragment's topic, the check fails.
+- Carry `impact:breaking` exactly when the title marks the change breaking with
+  `!`. The check adds the label to a title with `!`. It fails a pull request
+  that carries the label on a title without `!`.
 - Drop `status:needs-decision`. A pull request that settles the decision no
   longer needs it, and the issue keeps its own copy until it closes.
 - Add a label the issue lacks when the branch grew into another package.
