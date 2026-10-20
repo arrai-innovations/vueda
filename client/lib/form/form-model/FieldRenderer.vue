@@ -36,7 +36,7 @@ const props = defineProps({
     fieldProps: {
         type: Object,
         description:
-            "Field props merged over formModel.fieldProps[formModelName]. A key set here wins over the same key from the form model or from attrs. Its themeOverride merges with the form model's field theme override, for the field and the widget. The renderer still sets name, formModelName, modelValue, and hidden itself.",
+            "Field props merged over formModel.fieldProps[formModelName]. A key set here wins over the same key from the form model or from attrs. Its themeOverride merges with the form model's field theme override, for the field and the widget. The renderer ignores readOnly here and keeps the form model's value. The renderer still sets name, formModelName, modelValue, and hidden itself.",
         default: () => ({}),
     },
     widgetProps: {

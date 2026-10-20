@@ -176,6 +176,17 @@ describe("lib/use/useFieldRenderer.js", () => {
             expect(result.fieldProps.value.hidden).toBe(false);
         });
 
+        scopedIt("keeps the form model's readOnly", async () => {
+            const props = makeProps({ fieldProps: { readOnly: false } });
+            props.formModel.fieldProps.foo.readOnly = true;
+            const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+            expect(result.fieldProps.value.readOnly).toBe(true);
+            const editable = await withSetup(() =>
+                useFieldRenderer(makeProps({ fieldProps: { readOnly: true } }), {}, {}),
+            );
+            expect(editable.fieldProps.value).not.toHaveProperty("readOnly");
+        });
+
         scopedIt("composes its themeOverride with the form model's for the field and the widget", async () => {
             const props = makeProps({ fieldProps: { themeOverride: { p: 4 } }, themeOverride: { b: 2 } });
             const result = await withSetup(() => useFieldRenderer(props, {}, {}));
