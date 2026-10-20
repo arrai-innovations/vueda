@@ -15,6 +15,9 @@ export const FormContextSymbol = Symbol("formContext");
 /** @type {symbol} Injection key for the reactive form model. */
 export const FormModelSymbol = Symbol("formModel");
 
+/** @type {symbol} Injection key for the per-field slots that `FormModel` forwards to each `FormModelField`. */
+export const FormModelFieldSlotsSymbol = Symbol("formModelFieldSlots");
+
 /** @type {symbol} Injection key for the reactive filter model. */
 export const FilterModelSymbol = Symbol("filterModel");
 

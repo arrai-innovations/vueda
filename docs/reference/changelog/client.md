@@ -51,7 +51,6 @@ The client requires:
 
 - A configured `formProps` entry applies differently on create than on update, read, and detail screens ([#341](https://github.com/arrai-innovations/vueda/issues/341)).
 - `FormModel` ignores its `variant` when it resolves theme entries ([#339](https://github.com/arrai-innovations/vueda/issues/339)).
-- A custom `#fields` layout does not receive per-field slots ([#338](https://github.com/arrai-innovations/vueda/issues/338)).
 - `useVersion().newClientAvailable` stays false unless the project defines `VITE_PACKAGE_VERSION` itself, because `vuedaViteConfig()` does not define it ([#300](https://github.com/arrai-innovations/vueda/issues/300)).
 - Relation selects built on `WidgetModel` load only the first 200 options and have no search. List filter dropdowns have the same limit ([#381](https://github.com/arrai-innovations/vueda/issues/381)). `WidgetCombobox`, the default relation widget, searches the list endpoint and does not have this limit.
 - A form does not report fields that failed to render. A user can submit a form with a field that they never saw ([#197](https://github.com/arrai-innovations/vueda/issues/197)).

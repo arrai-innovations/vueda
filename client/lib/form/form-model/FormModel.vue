@@ -1,11 +1,12 @@
 <script setup>
 import LoadingSpinnerBlock from "@vueda/display/loading/LoadingSpinnerBlock.vue";
-import FieldRenderer from "@vueda/form/form-model/FieldRenderer.vue";
 import FormMessage from "@vueda/form/form-model/FormMessage.vue";
+import FormModelField from "@vueda/form/form-model/FormModelField.vue";
 import "@vueda/theme/vueda-tailwind/form/FormModel.theme.js";
 import { useFormModel } from "@vueda/use/useFormModel.js";
+import { useFormModelFieldSlots } from "@vueda/use/useFormModelFieldSlots.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, useSlots } from "vue";
+import { useSlots } from "vue";
 
 /**
  * This component is a form model that renders fields based on the configuration for the model.
@@ -140,6 +141,12 @@ import { computed, useSlots } from "vue";
  * - Similarly, `widget(fieldName)slotName` provides content to a **named slot** `slotName` of the widget component for the specified field.
  *
  * **Note:** The same principles apply to `field(fieldName)` slots when customizing field components.
+ *
+ * **Custom `#fields` layouts:** the `fields` slot replaces the default field loop. Render each field
+ * with `FormModelField`, which receives the per-field slots declared on `FormModel`. A plain
+ * `FieldRenderer` does not receive them. A `#fields` layout that renders no `FormModelField` while
+ * `FormModel` has per-field slots throws in development and logs a console warning in production.
+ * So does a `field(<path>)` or `widget(<path>)` slot whose path names no field of the form.
  * ```
  */
 
@@ -231,8 +238,7 @@ const props = defineProps({
 const theme = useTheme("FormModel", props);
 const formModel = useFormModel(props);
 const slots = useSlots();
-const mySlotNames = ["before-fields", "after-fields", "form-level-chores", "default"];
-const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlotNames.includes(slotName)));
+useFormModelFieldSlots(props, formModel, slots);
 </script>
 
 <template>
@@ -247,12 +253,13 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                 <form-message type="message" />
             </slot>
             <div v-bind="$attrs" :class="theme('fields')">
+                <!-- @slot fields Replace the default field loop. Render each field with FormModelField so the per-field slots reach it. -->
                 <slot
+                    :all-field-props="formModel.fieldProps"
                     :all-widget-props="formModel.widgetProps"
                     :field-components="formModel.fieldComponents"
                     :field-details="formModel.fieldDetails"
                     :field-names="formModel.baseFieldNames"
-                    :field-props="formModel.fieldProps"
                     :form-attrs="$attrs"
                     :form-model="formModel"
                     :form-props="$props"
@@ -261,11 +268,7 @@ const slotNames = computed(() => Object.keys(slots).filter((slotName) => !mySlot
                     :widget-components="formModel.widgetComponents"
                 >
                     <template v-for="fieldName in formModel.baseFieldNames" :key="fieldName">
-                        <field-renderer :form-model="formModel" :form-model-name="fieldName">
-                            <template v-for="slotName in slotNames" #[slotName]="slotProps">
-                                <slot :name="slotName" v-bind="slotProps" />
-                            </template>
-                        </field-renderer>
+                        <form-model-field :form-model="formModel" :form-model-name="fieldName" />
                     </template>
                 </slot>
             </div>
