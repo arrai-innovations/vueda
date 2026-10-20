@@ -89,7 +89,7 @@ To read the registry from your own code, {@api py:function:vueda.info.registrati
 
 ## Client Discovery
 
-The client learns about a model only by requesting its model info, which the route guard does for each route's model. It treats every model info failure the same way. An unregistered model, a nonexistent model, a server error, and a network failure all produce a "Model Not Found" toast and a redirect, as [Server-Client Metadata Contract](./server-client-metadata-contract.md#failure-modes-and-recovery) describes.
+The client learns about a model only by requesting its model info, which the route guard does for each route's model. A `403` response produces a "Permission Denied" toast and a redirect. Every other model info failure produces a "Model Not Found" toast and a redirect: an unregistered model, a nonexistent model, a server error, or a network failure. [Server-Client Metadata Contract](./server-client-metadata-contract.md#failure-modes-and-recovery) describes both cases.
 
 The client caches the failure per model and sends no further request for it. A model registered after the client cached its failure stays blocked until the cache clears. [Reactive Data Flow](./reactive-data-flow.md#when-caches-clear) describes when that happens.
 

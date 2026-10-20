@@ -80,10 +80,11 @@ Both the guard and `ViewActionRouter` translate the route's action before they c
 
 ## Failure Modes
 
-`requireModelInfo` redirects to `actionRedirect` in three cases:
+`requireModelInfo` redirects to `actionRedirect` in four cases:
 
 - **The action is not in the allowlist.** The user sees an "Action Not Found" toast.
 - **Model info fails to load.** The store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfoError}, and the user sees "Model Not Found".
+- **The server answers the model info request with `403`.** The store rejects with the same `ModelInfoError`, and the user sees "Permission Denied" with the server's `detail`. The server refuses model info to a user who lacks `contenttypes.read_contenttype`.
 - **The route is a transition, and the server answers the permitted transitions request with `403`.** The workflow store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}, and the user sees "Permission Denied". The denial affects transition routes only: a CRUD route of the same model opens when model info lists its action. A workflow with no workflow permission rows returns `403` to every user; [Workflow as a Permission Overlay](./workflow-permission-overlay.md#failure-surfaces-and-symptom-signatures) describes the causes.
 
 The model info and workflow stores cache these failures per model, so later navigations to that model fail without a new request. {@term Auth-Scoped Stores} describes when those caches clear.
