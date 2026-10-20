@@ -41,7 +41,7 @@ python manage.py check
 
 `vueda_info.E015` reports a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose query Django rejects, when the manager builds it or when E015 compiles an ordered one.
 
-`vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation that `get_queryset` adds.
+`vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation that `get_queryset` adds. A path may also end in a transform, such as `created__year`. [Transforms in an Ordering Path](../core-concepts/filtering-and-ordering-semantics.md#transforms-in-an-ordering-path) gives the rules.
 
 `vueda_info.E005` reports ordering on a `formatted_name` that `get_formatted_name()` computes. Set `formatted_name_lookup_expression` on that model, or order by another field.
 

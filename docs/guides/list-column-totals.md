@@ -55,7 +55,7 @@ class InvoiceLineViewSet(VuedaViewSet):
 
 The system check accepts the name without applying the two path rules, so the annotation must have one value per row. An annotation that reads the multi-valued side of a join has a value per related row, and its total is wrong. [`get_column_info`]{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.get_column_info} describes how each kind of total counts a matched row once.
 
-When the value could be a column, store it in a {@api ext:django:django.db.models.GeneratedField} or a database view instead, so the check validates the path. [Declare List Ordering](./declare-list-ordering.md#make-a-function-or-annotation-default-visible) shows both, and [Queryset Annotations](../core-concepts/filtering-and-ordering-semantics.md#queryset-annotations) gives the same advice for ordering.
+When the value could be a column, store it in a {@api ext:django:django.db.models.GeneratedField} or a database view instead, so the check validates the path. [Declare List Ordering](./declare-list-ordering.md#make-a-function-default-visible) shows both, and [Queryset Annotations](../core-concepts/filtering-and-ordering-semantics.md#queryset-annotations) gives the same advice for ordering.
 
 ### Total Over a Transform
 

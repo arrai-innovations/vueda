@@ -1649,6 +1649,40 @@ class TestQuerysetOrderingChecks:
 
         assert check_ordering_configuration(app_configs=None) == []
 
+    def test_get_queryset_transform_on_an_annotation_passes_system_check(self):
+        """ProductReleaseGetQuerysetAnnotationTransformViewSet orders by `-launched__year`, a transform
+        on an annotation that its `get_queryset()` adds, with no declared default. The transform names
+        the annotation, so rule 2 exempts it, and no default makes a claim for it to contradict."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer,
+            product_viewsets.ProductReleaseGetQuerysetAnnotationTransformViewSet,
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_get_queryset_transform_on_a_field_system_check_error(self):
+        """ProductReleaseGetQuerysetTransformViewSet orders by `released__year`, a transform on a model
+        field, with no declared default. A field with a transform can be declared as the viewset's
+        `ordering`, so rule 2 reports it under its `__`-joined path."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseGetQuerysetTransformViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "ProductReleaseGetQuerysetTransformViewSet.get_queryset() orders by 'released__year', which neither "
+            "ProductReleaseGetQuerysetTransformViewSet.ordering nor ProductRelease.Meta.ordering declares."
+        )
+        assert "`ordering = ['released__year']`" in errors[0].hint
+
     def test_grouped_list_queryset_that_drops_meta_ordering_system_check_error(self):
         """GroupedGetQuerysetOrderingViewSet annotates an aggregate, which groups the query. Django leaves
         `Meta.ordering` out of a grouped query, so the rows arrive unordered while
@@ -2062,6 +2096,25 @@ class TestDefaultManagerOrderingChecks:
                 id="vueda_info.E015",
             )
         ]
+
+    def test_manager_ordering_by_a_transform_on_formatted_name_passes_system_check(self):
+        """LowerFormattedNameManagerOrdering's default manager orders by `formatted_name__lower`.
+        `Meta.ordering` can name the bare `formatted_name` only, so E015 doesn't ask for this ordering
+        to move there, and treats it like an ordering by an annotation that the manager adds."""
+        from django.db.models import CharField
+        from django.db.models.functions import Lower
+        from django.test.utils import register_lookup
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.LowerFormattedNameManagerOrderingSerializer,
+            err_viewsets.LowerFormattedNameManagerOrderingViewSet,
+        )
+
+        with register_lookup(CharField, Lower):
+            assert check_ordering_configuration(app_configs=None) == []
 
     def test_aggregate_written_into_the_managers_order_by_system_check_error(self):
         """InlineAggregateManagerOrdering's default manager passes `Count(...)` straight to `order_by()`,

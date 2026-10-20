@@ -829,6 +829,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``default`` is reported whole or not at all (see ``get_default_ordering_data``). It is empty
         when any term resolves to no field or annotation, or reads more than one column or none. Each
         column that a multi-column term reads still appears in ``fields``, without ``ascending``.
+
+        The queryset is built from the viewset class with no request. A ``get_queryset`` that reads
+        ``self.request`` raises here, so the model-info request fails. The ``vueda_info.E006`` system
+        check skips that viewset for the same reason.
         """
         ordering_data = {
             "default": [],

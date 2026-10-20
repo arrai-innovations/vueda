@@ -680,6 +680,18 @@ class DefaultManagerNameOrderingViewSet(VuedaViewSet):
     serializer_class = my_serializers.DefaultManagerNameOrderingSerializer
 
 
+class LowerFormattedNameManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by `formatted_name__lower`.
+
+    `Lower` is a transform only while a test registers it, so this viewset builds its queryset in
+    `get_queryset()`. A class-level `queryset` would fail when this module is imported."""
+
+    serializer_class = my_serializers.LowerFormattedNameManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.LowerFormattedNameManagerOrdering.objects.all()
+
+
 class MatchingMetaManagerOrderingViewSet(VuedaViewSet):
     """Serves a model whose default manager orders the same way as its `Meta.ordering`, and declares no
     `ordering` of its own."""

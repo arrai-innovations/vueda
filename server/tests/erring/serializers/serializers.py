@@ -100,6 +100,14 @@ class InlineAggregateManagerOrderingSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class LowerFormattedNameManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.LowerFormattedNameManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class MatchingMetaManagerOrderingSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.MatchingMetaManagerOrdering

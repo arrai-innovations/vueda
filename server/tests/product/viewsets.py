@@ -328,6 +328,32 @@ class ProductReleaseAnnotationTransformViewSet(VuedaViewSet):
         return super().get_queryset().annotate(launched=F("released"))
 
 
+class ProductReleaseGetQuerysetAnnotationTransformViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` by a transform on an annotation that it adds, `-launched__year`,
+    and declares no `ordering`. The model declares no `Meta.ordering` either.
+
+    A transform on an annotation names the annotation, so `vueda_info.E010` exempts it from rule 2,
+    the same way it exempts the annotation itself."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(launched=F("released")).order_by("-launched__year")
+
+
+class ProductReleaseGetQuerysetTransformViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` by a transform on a model field, `released__year`, and declares
+    no `ordering`. A field with a transform is still a field, so `vueda_info.E010` applies rule 2 and
+    asks for the ordering to be declared."""
+
+    queryset = ProductRelease.objects.all()
+    serializer_class = ProductReleaseSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("released__year")
+
+
 class ProductReleaseAnnotationDefaultViewSet(VuedaViewSet):
     """Declares a default `ordering` of `-launched__year` and `name_length`, where both `launched` and
     `name_length` are annotations that `get_queryset` adds, and an empty `ordering_fields`.

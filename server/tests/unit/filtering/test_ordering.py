@@ -1821,6 +1821,47 @@ class TestOrderingParamOnTransformPaths:
 
 
 @pytest.mark.django_db
+class TestOrderingParamOnADottedJSONKey:
+    """ProductReleaseDottedJSONKeyViewSet offers `specs__v1.2`, a `JSONField` key whose name contains a
+    dot. Its dotted `?o=` name reads back as `specs__v1__2`, a different key, so no request can name
+    it, and the ordering backend leaves it out of the names that it accepts."""
+
+    def test_ordering_param_on_a_dotted_json_key_is_rejected(self, product_release_ordering_data, api_client, settings):
+        """Without the rejection, `?o=specs.v1.2` would return 200 with the rows sorted by
+        `specs__v1__2`, a key that the viewset doesn't offer."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_dotted_json_key"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "specs.v1.2"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+    def test_ordering_param_on_a_plain_field_of_the_same_viewset_is_accepted(
+        self, product_release_ordering_data, api_client, settings
+    ):
+        """`name` is offered beside the two keys and has a public name, so it still sorts."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_dotted_json_key"
+
+        user = product_release_ordering_data.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.REST_FRAMEWORK["ORDERING_PARAM"]: "name"},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [x["name"] for x in response.data["results"]] == ["Apple", "Banana", "Cherry"]
+
+
+@pytest.mark.django_db
 class TestOrderingParamOnAnnotationTransform:
     """ProductReleaseAnnotationTransformViewSet offers `launched__year`, where `launched` is an
     annotation that `get_queryset` adds. Django applies the transform to the annotation."""

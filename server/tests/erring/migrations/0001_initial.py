@@ -587,6 +587,28 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name="LowerFormattedNameManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Lower formatted name manager ordering",
+                "verbose_name_plural": "Lower formatted name manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
             name="MatchingMetaManagerOrdering",
             fields=[
                 (

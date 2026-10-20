@@ -22,6 +22,7 @@ from tests.erring.serializers.serializers import ExpandableFieldsValidStringSeri
 from tests.erring.serializers.serializers import FalseyFormattedNamesLookupSerializer  # noqa: F401
 from tests.erring.serializers.serializers import FormattedNameExpressionNotStringSerializer  # noqa: F401
 from tests.erring.serializers.serializers import InlineAggregateManagerOrderingSerializer  # noqa: F401
+from tests.erring.serializers.serializers import LowerFormattedNameManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import MatchingMetaManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import MisspelledFManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import MisspelledNameManagerOrderingSerializer  # noqa: F401

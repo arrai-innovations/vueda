@@ -329,7 +329,7 @@ def _queryset_query(viewset):
     ``self.request`` raises here, and without knowing its annotations a term can't be judged.
     """
     try:
-        return viewset().get_queryset().query
+        return _as_queryset(viewset().get_queryset()).query
     except Exception:
         # Any failure here means the annotations are simply unknown, which is not the check's business.
         return None
@@ -1063,7 +1063,7 @@ def _has_ordering_backend(viewset):
     return any(isinstance(backend, type) and issubclass(backend, OrderingFilter) for backend in filter_backends)
 
 
-def _orders_by_own_annotation(queryset, ordering):
+def _orders_by_own_annotation(queryset, ordering, *, for_meta_ordering=False):
     """
     Whether an ordering names an annotation that the queryset itself adds.
 
@@ -1077,17 +1077,26 @@ def _orders_by_own_annotation(queryset, ordering):
     to name the annotation instead (``Query.add_ordering``).
 
     ``formatted_name`` doesn't count. ``FormattedNameManager`` adds it to every queryset of a model
-    that reaches the name through a lookup expression, and ``Meta.ordering`` can name it, so an
-    ordering by it is not one that only a queryset can hold.
+    that reaches the name through a lookup expression, and both ``Meta.ordering`` and a viewset's
+    ``ordering`` can name it, so an ordering by it is not one that only a queryset can hold.
 
     A path that applies transforms to such an annotation, such as ``launched__year``, names it too.
+    With ``for_meta_ordering``, a transform on the annotated ``formatted_name``, such as
+    ``formatted_name__lower``, counts as well. VUEDA lets ``Meta.ordering`` name the bare
+    ``formatted_name`` only, so Django's ``models.E015`` rejects the transform there. A viewset's
+    ``ordering`` can hold it, because ``VuedaOrderingFilter`` resolves it.
     """
-    annotation_names = set(queryset.query.annotations) - {FORMATTED_NAME}
-    return any(
-        path_annotation_name(annotation_names, name) is not None
-        for term in ordering
-        for name in ordering_term_field_names(term)
-    )
+    annotations = queryset.query.annotations
+
+    def names_own_annotation(name):
+        annotation_name = path_annotation_name(annotations, name)
+        if annotation_name is None:
+            return False
+        if annotation_name != FORMATTED_NAME:
+            return True
+        return for_meta_ordering and name != FORMATTED_NAME
+
+    return any(names_own_annotation(name) for term in ordering for name in ordering_term_field_names(term))
 
 
 def _ordering_state(queryset):
@@ -1482,7 +1491,9 @@ def _validate_queryset_ordering(model, viewset):
         # Nothing there that can be compared.
         return []
 
-    uses_annotation = _orders_by_own_annotation(queryset, explicit_ordering)
+    # A default manager's ordering is judged against `Meta.ordering`, as E015 judges it, so a transform
+    # on the annotated `formatted_name` counts as an annotation there.
+    uses_annotation = _orders_by_own_annotation(queryset, explicit_ordering, for_meta_ordering=from_default_manager)
     formatted_queryset_terms = _format_ordering_terms(queryset_terms)
     viewset_ordering = getattr(viewset, "ordering", None)
     # A `.reverse()` that gets here is on a viewset that can't be sorted. Declaring its order isn't
@@ -1642,7 +1653,7 @@ def _validate_default_manager_ordering(model):
         # nothing about whether the ordering names resolve. The ordering is still checked below.
         pass
 
-    if _orders_by_own_annotation(queryset, ordering):
+    if _orders_by_own_annotation(queryset, ordering, for_meta_ordering=True):
         return []
 
     terms = _comparable_ordering(model, ordering)

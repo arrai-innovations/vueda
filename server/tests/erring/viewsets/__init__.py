@@ -41,6 +41,7 @@ from tests.erring.viewsets.viewsets import GroupedExtraOrderingViewSet  # noqa: 
 from tests.erring.viewsets.viewsets import GroupedGetQuerysetOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import InlineAggregateManagerOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import LabelledOrderingFieldsViewSet  # noqa: F401
+from tests.erring.viewsets.viewsets import LowerFormattedNameManagerOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import LowerGetQuerysetOrderingViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import ManagerQuerysetAttributeViewSet  # noqa: F401
 from tests.erring.viewsets.viewsets import MatchingMetaManagerOrderingViewSet  # noqa: F401

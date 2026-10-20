@@ -327,6 +327,37 @@ class RandomManagerOrdering(VuedaModel):
         return self.the_name_field
 
 
+class LowerFormattedNameOrderingManager(FormattedNameManager):
+    """Orders by `Lower` applied to the `formatted_name` that the manager annotates. `Lower` is a
+    transform only while a test registers it on `CharField`."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("formatted_name__lower")
+
+
+class LowerFormattedNameManagerOrdering(VuedaModel):
+    """Reaches `formatted_name` through a lookup expression, and orders through a default manager by a
+    transform on it.
+
+    VUEDA lets `Meta.ordering` name the bare `formatted_name` only, so Django's `models.E015` would
+    reject `formatted_name__lower` there, and the manager is the only place this ordering can live."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "the_name_field"
+
+    objects = LowerFormattedNameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Lower formatted name manager ordering"
+        verbose_name_plural = "Lower formatted name manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
 class MatchingMetaManagerOrdering(VuedaModel):
     """Orders through its default manager by `the_name_field`, and declares the same ordering as
     `Meta.ordering`.

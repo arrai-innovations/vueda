@@ -23,7 +23,7 @@ A serializer field is filterable only when the viewset's filterset declares a fi
 
 [`model_ordering`]{@api rest:schema:ModelInfoOrdering} has two keys:
 
-- `default` lists the names of the fields or queryset annotations that the rows are sorted by when a request sends no `o`. It comes from the viewset's `ordering` when that is declared, and from the model's `Meta.ordering` otherwise. The two are never merged.
+- `default` lists the names of the fields or queryset annotations that the rows are sorted by when a request sends no `o`. A path that ends in a transform is listed under its dotted name, such as `created.year`. It comes from the viewset's `ordering` when that is declared, and from the model's `Meta.ordering` otherwise. The two are never merged.
 - `fields` lists every field that a request may name in `o`, each with a `name` and a semantic `type`. A field that the default ordering names also carries `ascending`.
 
 `fields` follows the viewset's `ordering_fields`. An explicit list reports its entries, and `"__all__"` reports the model's fields and the annotations that `get_queryset` adds. With no `ordering_fields`, `fields` reports the serializer's readable fields by `source`. Every field that the default ordering reads also appears in `fields`. [`VuedaOrderingFilter`]{@api py:class:vueda.core.filters.VuedaOrderingFilter} accepts an explicit `o` for each of them.
@@ -47,7 +47,7 @@ An `ordering_fields` entry that names no field is left out of `fields`, and the 
 
 An annotation that the viewset's `get_queryset` adds is orderable. It appears in `fields` when `ordering_fields` names it or is `"__all__"`, or when the default ordering names it. Its `type` comes from the annotation's `output_field`. The `type` is `alpha` when Django cannot resolve one.
 
-A default ordering that names an annotation is reported under the annotation's name, in `default` and in `fields`. A transform on an annotation, such as `launched__year`, is reported the same way, under its dotted name `launched.year`, and typed from the transform's output. An annotation stays unreported when `get_queryset` needs the request, because the metadata builds the queryset without one. A multi-column function becomes reportable once it is annotated and the ordering names the annotation, or once a {@api ext:django:django.db.models.GeneratedField} or a database view column holds it. [Declare List Ordering](../guides/declare-list-ordering.md#make-a-function-default-visible) shows each option.
+A default ordering that names an annotation is reported under the annotation's name, in `default` and in `fields`. A transform on an annotation, such as `launched__year`, is reported the same way, under its dotted name `launched.year`, and typed from the transform's output. The metadata builds the viewset's queryset without a request, so a `get_queryset` that reads `self.request` fails the model-info request with a server error. A multi-column function becomes reportable once it is annotated and the ordering names the annotation, or once a {@api ext:django:django.db.models.GeneratedField} or a database view column holds it. [Declare List Ordering](../guides/declare-list-ordering.md#make-a-function-default-visible) shows each option.
 
 ### Database Functions in a Default Ordering
 
@@ -93,7 +93,7 @@ class CartFilterSet(VuedaFilterSet):
     )
 ```
 
-Whether a transform also applies to the value a client sends depends on the transform:
+Whether a transform also applies to the value that a client sends depends on the transform:
 
 | `field_name`                         | Lookup      | Applied to                        | Client sends | Matches "José Smith" |
 | ------------------------------------ | ----------- | --------------------------------- | ------------ | -------------------- |
@@ -252,7 +252,7 @@ A key that ends in the `"pk"` alias and a key that names the field behind it are
 
 A composite primary key needs a placement on each of its columns. `model_ordering` advertises the key one column at a time, so a client sorts by one column, and a key on the `pk` applies only when the list is sorted by the whole key. Declare the placement on each column as well. Django allows a relation to reach a composite primary key model only from the reverse side. For example, an order list whose `order_items` reverse relation leads to a model with `pk = models.CompositePrimaryKey("order_id", "product_id")` declares `{"order_items__pk": "first", "order_items__order": "first", "order_items__product": "first"}`. An order with no items has nulls in those columns, so the placement decides where it sorts.
 
-A value other than `"first"` or `"last"` is ignored at request time, and the rows use the database's default placement. The `vueda_info.E007` system check reports such a value. It also reports a `nulls_ordering` that is not a dict, and a `nulls_ordering_flip` entry that has no placement to flip. It reports a key or entry that names no field a list request can sort by, and its hint gives the `__`-joined spelling of a dotted key. It reports a composite `pk` key when the same attribute leaves out any of the key's columns. It reports every problem in both attributes in one run.
+A value other than `"first"` or `"last"` is ignored at request time, and the rows use the database's default placement. The `vueda_info.E007` system check reports such a value. It also reports a `nulls_ordering` that is not a dict, and a `nulls_ordering_flip` entry that has no placement to flip. It reports a key or entry that names no field a list request can sort by, and its hint gives the `__`-joined spelling of a dotted key. A key that resolves as written but contains a `.` or a `,`, such as a `JSONField` key `specs__v1.2`, has no `o` name, so the hint says to annotate the value under a plain name instead. It reports a composite `pk` key when the same attribute leaves out any of the key's columns. It reports every problem in both attributes in one run.
 
 To read the names a list request can sort by, the check builds the viewset without a request. When the viewset's `get_queryset`, or the serializer that DRF reads default ordering fields from, needs the request, the check skips the keys that no request can sort by.
 
@@ -285,18 +285,18 @@ A misspelled transform, such as `created__yaer`, names nothing. `vueda_info.E006
 
 A key on a `JSONField` can contain any character, including a `.` or a `,`. That is a limitation, described under [Names that contain a dot or a comma](#names-that-contain-a-dot-or-a-comma).
 
-`model_ordering` reports the path under its dotted name, which is the name a client sends back in `?o=`. The `type` comes from the transform's output, not from the column. `created.year` is `numeric`, because the database sorts the year as a number. A key on a `JSONField` is `alpha`, the same as the `JSONField` itself.
+`model_ordering` reports the path under its dotted name, which is the name that a client sends back in `?o=`. The `type` comes from the transform's output, not from the column. `created.year` is `numeric`, because the database sorts the year as a number. A key on a `JSONField` is `alpha`, the same as the `JSONField` itself.
 
 This differs from a database function. `ExtractYear("created")` sorts by the same value as `created__year`, but it is an expression around the column. So it is reported under the column's own name, `created`, and typed from the column (see [Database Functions in a Default Ordering](#database-functions-in-a-default-ordering)). Write the path form when a client should be able to name the transformed value in `?o=`.
 
 A path does not have to start with a model field. Two other starting points accept transforms too:
 
 - **A queryset annotation.** `ordering_fields = ["launched__year"]` works when `get_queryset` adds a `launched` annotation. Django applies the transform to the annotation, and `model_ordering.fields` reports `launched.year`, typed from the transform's output. The annotation may come from `.annotate()` or `.alias()`. A plain string in Django's `order_by()` can't apply a transform to an `.alias()` name, so `VuedaOrderingFilter` orders by such a path through an `F()` expression, which can. A default ordering that names such a path is reported in `model_ordering.default` as well (see [Queryset annotations](#queryset-annotations)).
-- **`formatted_name`.** `formatted_name__unaccent` and `customer__formatted_name__unaccent` both work, including on a model that reaches `formatted_name` through `formatted_name_lookup_expression`. `VuedaOrderingFilter` rewrites the part up to `formatted_name` to the lookup expression behind it and keeps the transforms, so the database applies them to the column the lookup expression lands on. The model's own `formatted_name` is left on its annotation, and Django applies the transforms there.
+- **`formatted_name`.** `formatted_name__unaccent` and `customer__formatted_name__unaccent` both work, including on a model that reaches `formatted_name` through `formatted_name_lookup_expression`. `VuedaOrderingFilter` rewrites the part up to `formatted_name` to the lookup expression behind it and keeps the transforms, so the database applies them to the column that the lookup expression lands on. The model's own `formatted_name` is left on its annotation, and Django applies the transforms there.
 
 Some transforms are not built in. `Lower` and `Ceil`, for example, are database functions. A path such as `name__lower` works only after a project registers the function as a transform, with `CharField.register_lookup(Lower)`. Until then, `vueda_info.E006` reports the path as naming nothing, because Django would refuse it too.
 
-A `column_totals` path may end in a transform as well. See [Totals Over a Transform](../guides/list-column-totals#totals-over-a-transform).
+A `column_totals` path may end in a transform as well. See [Total Over a Transform](../guides/list-column-totals#total-over-a-transform).
 
 ### Names that contain a dot or a comma
 
