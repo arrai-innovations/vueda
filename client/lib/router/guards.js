@@ -310,9 +310,11 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * The route's action is allowed when model info lists it (narrowed by the model config's `routeActions`) or
  * when it is a workflow transition code the user may take. When the server denies workflow discovery for the
  * model with a 403, the model's CRUD actions still follow model info, and only transition routes are refused.
+ * When the server denies model info itself with a 403, the guard shows a "Permission Denied" toast instead of
+ * "Model Not Found". The toast only reports the refusal. The server enforces it.
  *
- * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info not found, the
- *  action is not allowed, or the route is a transition and workflow discovery is denied.
+ * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info is not found or
+ *  is denied, the action is not allowed, or the route is a transition and workflow discovery is denied.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
@@ -374,6 +376,15 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
             // application is left on when the principal changes, so that recheck decides where the
             // application goes, and there is nothing to tell the user about here.
             return false;
+        }
+        if (e instanceof ModelInfoError && e.response?.status === 403) {
+            // The server refused model info to this user. Say so, rather than report the model as missing,
+            // so a permission gap is not mistaken for a model that the server does not register.
+            toast.error("Permission Denied", {
+                description: e.responseData?.detail ?? "You do not have permission to perform this action.",
+                duration: 15000,
+            });
+            return resolveRedirect(redirectTo, router);
         }
         if (e instanceof ModelInfoError) {
             toast.error("Model Not Found");
