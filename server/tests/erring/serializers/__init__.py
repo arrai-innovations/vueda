@@ -5,6 +5,7 @@ from tests.erring.serializers.exclude_fields import ExcludeFieldsSerializer  # n
 from tests.erring.serializers.serializers import BothFormattedNameConfiguredSerializer  # noqa: F401
 from tests.erring.serializers.serializers import BothFormattedNameSelectRelatedConfiguredSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsBadTupleLengthSerializer  # noqa: F401
+from tests.erring.serializers.serializers import ExpandableFieldsClientNamespaceSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsEmptyTupleSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsListSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsNestedInvalidSerializer  # noqa: F401
