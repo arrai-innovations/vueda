@@ -67,9 +67,7 @@ The default views send canonical field names in the `f` query parameter and cano
 
 A `list` request accepts no expand until the viewset sets `permit_list_expands`. [Use Expand and Sparse Field Controls](./expand-and-fields-controls.md) gives the steps.
 
-**Writes.** A create or update save sends the view's `fetchFields` and the pk in `f`. Writes do not check `f`. A field that the write serializer lacks is missing from the save response, and no error reports it ([#395](https://github.com/arrai-innovations/vueda/issues/395)). Declare every fetched field on the write serializer, or narrow the view's `fetchFields`.
-
-A save also sends in `e` each configured expand whose form value is set. The write action rejects an expand that its serializer does not declare or that its permit list leaves out. It answers `400` before it validates the body.
+**Writes.** A create or update save sends the view's `fetchFields` and the pk in `f`. A save also sends in `e` each configured expand whose form value is set. The write action checks both against the write serializer, with the same rules as a read. A field or expand that the write serializer lacks, or an expand that the action's permit list leaves out, fails the save with `400`. The write action answers before it validates the body, so it saves nothing. Declare every fetched field and every configured expand on the write serializer, or narrow the view's `fetchFields`.
 
 **The pk.** {@api vue:component:ViewCreate} redirects to the update view by default. That redirect, and a redirect to the read view, take the pk from the save response. Include the pk in the write serializer's `Meta.fields`.
 
@@ -80,5 +78,5 @@ To narrow what one view requests, set its `fetchFields` prop, such as [`fetchFie
 1. Request the model's model info, and confirm that its fields and expands match the canonical serializer.
 2. Open the list, read, and update views. Each loads with no `400`.
 3. Create an object. The save redirects to the update view.
-4. In the browser's network panel, check that each save response holds every field named in its `f` parameter.
+4. Save the update view. The save succeeds with no `400`.
 5. Send a PUT and a PATCH for one object. Both run the write serializer's validation.

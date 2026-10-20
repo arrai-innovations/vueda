@@ -129,6 +129,7 @@ The VUEDA client handles these changes. Update any other client or integration t
 - Ordering terms and filter names that cross a relation use dots: `?o=-customer.name`, not `customer__name`. An invalid ordering term answers `400`. [Public Filter Names](../core-concepts/filtering-and-ordering-semantics.md#public-filter-names) describes the names.
 - An unrecognized query parameter answers `400` on `list` and `retrieve`. Server v2 answered `500` on a filtered `list` and ignored the parameter elsewhere. `retrieve` accepts only `e`, `f`, and `om`.
 - `f` and `om` shape only the response on writes. A `POST` or `PUT` must include every required field. [Sparse Fields and Expand on Writes](../core-concepts/field-and-expand-semantics.md#sparse-fields-and-expand-on-writes) states the rule.
+- `POST`, `PUT`, and `PATCH` check the names in `f` and `e` the same way that `retrieve` does. An unknown `f` name, or an unknown or unpermitted `e` name, answers `400`, and the write saves nothing. Server v2 saved the write and left the unknown `f` name out of the response.
 - An `e` path deeper than 4 levels answers `400`.
 - Bulk activate and deactivate answer `400` for a key in `pks` that names no row, as bulk delete does. A row that the user may not change counts as missing. Server v2 skipped such keys and counted them in its success message.
 - Object responses include `available_actions` only when `f` names it.

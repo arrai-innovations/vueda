@@ -54,7 +54,6 @@ The server requires:
 - `updateworkflowmigrations` cannot rewrite workflow migrations that v2 generated. The reverse code of those migrations deletes the object states of every workflow ([#510](https://github.com/arrai-innovations/vueda/issues/510)).
 - Ordering and column total paths that end in a transform, such as `created__year`, fail the system checks ([#494](https://github.com/arrai-innovations/vueda/issues/494)).
 - A write can link any related row whose primary key the user knows. The link ignores row-level rules on the related model ([#466](https://github.com/arrai-innovations/vueda/issues/466)).
-- Write actions do not validate the names in `f`. A misspelled name returns a partial object without an error ([#395](https://github.com/arrai-innovations/vueda/issues/395)).
 - A nested row drops an unknown key without an error ([#424](https://github.com/arrai-innovations/vueda/issues/424)).
 - Choice endpoints return the first 200 rows and have no search ([#381](https://github.com/arrai-innovations/vueda/issues/381)).
 - The checks for `formatted_name` managers cover only the default manager of registered models ([#259](https://github.com/arrai-innovations/vueda/issues/259), [#496](https://github.com/arrai-innovations/vueda/issues/496)). A missed manager fails at query time.
