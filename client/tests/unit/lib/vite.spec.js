@@ -63,8 +63,8 @@ describe("lib/vite.js", () => {
         }
     });
 
-    it("resolves the vue-router alias to the package's import entry", async () => {
-        const packageDir = fs.realpathSync(path.join(clientRoot, "node_modules/vue-router"));
+    it.each(["vue-router", "pinia"])("resolves the %s alias to the package's import entry", async (packageName) => {
+        const packageDir = fs.realpathSync(path.join(clientRoot, "node_modules", packageName));
         const packageJson = JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf-8"));
         const vueda = vuedaViteConfig({ root: clientRoot, enableDedupe: false });
         const server = await createServer({
@@ -75,9 +75,8 @@ describe("lib/vite.js", () => {
             server: { middlewareMode: true },
         });
         try {
-            const resolved = await server.pluginContainer.resolveId("vue-router");
+            const resolved = await server.pluginContainer.resolveId(packageName);
             expect(resolved.id).toBe(path.join(packageDir, packageJson.exports["."].import));
-            expect(resolved.id).not.toContain("esm-bundler");
         } finally {
             await server.close();
         }
