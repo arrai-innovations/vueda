@@ -46,6 +46,7 @@ DATABASES["db_logging"]["ATOMIC_REQUESTS"] = False
 DATABASES["db_logging"]["CONN_MAX_AGE"] = 0
 
 LOCAL_APPS = [
+    "tests.bulk_actions.apps.BulkActionsConfig",
     "tests.confirmation.apps.ConfirmationConfig",
     "tests.employee.apps.EmployeeConfig",
     "tests.erring.apps.ErringConfig",

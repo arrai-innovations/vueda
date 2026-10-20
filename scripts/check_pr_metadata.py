@@ -14,6 +14,8 @@ them against the configuration on the base branch.
 - Changelog: the pull request must change a fragment under `changelog.d/` or
   carry `changelog:none`, not both. A fragment filename that towncrier would
   reject fails the check.
+- Breaking label: a title marked breaking with `!`, such as `fix(checks)!: ...`,
+  gets `impact:breaking`. The label on a title without `!` fails the check.
 
 CONTRIBUTING.md ("Pull request labels" and "Changelog entries") states the
 rules. Run it locally with `--dry-run` and a pull request number to see what it
@@ -36,6 +38,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CHANGELOG_DIR = "changelog.d"
 PACKAGES = ("client", "server")
 SKIP_LABEL = "changelog:none"
+BREAKING_LABEL = "impact:breaking"
+# A Conventional Commit header marked breaking: `<type>(<scope>)!:` or `<type>!:`.
+BREAKING_TITLE = re.compile(r"\w+(?:\([^)]*\))?!:")
 TOPIC_PREFIX = "topic:"
 # changelog.d/<package>/<topic>/<name>
 FRAGMENT_PATH_PARTS = 4
@@ -168,6 +173,15 @@ def main() -> int:
         errors.append(
             f"The pull request changes no changelog fragment. Add one under {CHANGELOG_DIR}/ (see CONTRIBUTING.md), "
             f"or add the `{SKIP_LABEL}` label."
+        )
+
+    breaking_title = BREAKING_TITLE.match(pull["title"]) is not None
+    if breaking_title and BREAKING_LABEL not in labels:
+        to_add.add(BREAKING_LABEL)
+    elif not breaking_title and BREAKING_LABEL in labels:
+        errors.append(
+            f"The pull request carries `{BREAKING_LABEL}`, but its title has no `!` before the colon. "
+            f"Mark the title breaking, such as `fix(scope)!: ...`, or remove the label."
         )
 
     if to_add:

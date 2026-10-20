@@ -67,7 +67,7 @@ describe("lib/form/form-model/FormModel.vue", () => {
 
     scopedIt("calls useTheme and useFormModel", () => {
         mount(FormModel, { props: { app: "a", model: "m" } });
-        expect(mockedUseTheme).toHaveBeenCalledWith("FormModel", expect.any(Object));
+        expect(mockedUseTheme).toHaveBeenCalledWith("FormModel", expect.any(Object), { variant: "default" });
         expect(mockedUseFormModel).toHaveBeenCalledWith(expect.any(Object));
     });
 
@@ -83,6 +83,26 @@ describe("lib/form/form-model/FormModel.vue", () => {
         const wrapper = mount(FormModel, { props: { app: "a", model: "m" } });
         expect(wrapper.get('[data-qa="loading-spinner-block"]').exists()).toBe(true);
         expect(wrapper.text()).toContain("Loading model information.");
+    });
+
+    scopedIt("leaves its fieldProps to the form model rather than passing them to each renderer again", () => {
+        mockedUseFormModel.mockReturnValueOnce(
+            reactive({
+                fields: ["name"],
+                baseFieldNames: ["name"],
+                fieldComponents: {},
+                fieldProps: { name: { label: "From form model" } },
+                fieldDetails: {},
+                widgetComponents: {},
+                widgetProps: {},
+            }),
+        );
+        const fieldProps = { name: { label: "Override", themeOverride: { root: { class: ["x"] } } } };
+        const wrapper = mount(FormModel, { props: { app: "a", model: "m", fieldProps } });
+        expect(mockedUseFormModel.mock.calls.at(-1)[0].fieldProps).toEqual(fieldProps);
+        const field = wrapper.getComponent(FieldRendererStub);
+        expect(field.props("formModel").fieldProps.name).toEqual({ label: "From form model" });
+        expect(field.props("fieldProps")).toBeUndefined();
     });
 
     scopedIt("renders fields and slots", () => {

@@ -360,7 +360,10 @@ const clientPathNamespaces = new Set(["related", "calculated"]);
  * - A declared expand must also be in `expand`. Without it, the response carries the relation as a
  *   primary key, the entry has no field details, and the cell or field renders blank.
  * - A model field passes, since the entry reads into that field's nested value, such as `address.city`.
- * - `related` and `calculated` pass, since the client resolves them itself.
+ * - `related` and `calculated` pass, since the client resolves them itself. A model that declares a
+ *   field or expand by either name fails instead: `unifiedGet` would read the entry from the related or
+ *   calculated object, and the cell or field would render blank. A single-segment entry of either name
+ *   reads from the row and passes.
  * - Anything else names nothing the model provides.
  *
  * A model info response without expand metadata builds a minimal config, which this does not check.
@@ -391,7 +394,12 @@ const validateExpandConfig = (builtConfig, defaultGenericConfig, args) => {
                 continue;
             }
             const prefix = fieldName.slice(0, dotIndex);
-            if (declaredExpands.has(prefix)) {
+            if (clientPathNamespaces.has(prefix) && (declaredExpands.has(prefix) || declaredFields.has(prefix))) {
+                problems.push(
+                    `${listKey} names ${fieldName}, but the model declares ${prefix}, a name that the VUEDA client ` +
+                        `reserves for related and calculated paths. Rename the serializer field or expand named ${prefix}`,
+                );
+            } else if (declaredExpands.has(prefix)) {
                 if (!requested.has(prefix)) {
                     problems.push(`${listKey} names ${fieldName}, but expand does not name ${prefix}`);
                 }

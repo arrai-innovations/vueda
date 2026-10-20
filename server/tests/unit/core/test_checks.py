@@ -167,6 +167,32 @@ class TestExpandableFieldsChecks:
 
         assert errors == []
 
+    def test_client_namespace_expand_name_system_check_error(self, settings):
+        """Expands named related and calculated collide with the client's path namespaces; check must flag E022."""
+        from django.core.checks import Error
+
+        from vueda.core.checks import check_expandable_fields_configuration
+
+        settings.ROOT_URLCONF = "tests.unit.core.urls_client_namespace_expand"
+
+        errors = check_expandable_fields_configuration(app_configs=None)
+
+        hint = (
+            'The VUEDA client reads a path that starts with "related." or "calculated." from the row\'s related or '
+            "calculated object, so the fields of this expand render blank. Rename the expand and the serializer "
+            "field that it replaces. Set source= on the renamed field to keep reading the model field."
+        )
+        assert errors == [
+            Error(
+                f"ExpandableFieldsClientNamespaceSerializer.Meta.expandable_fields[{name!r}] uses a name that the "
+                "VUEDA client reserves.",
+                hint=hint,
+                obj=err_serializers.ExpandableFieldsClientNamespaceSerializer,
+                id="vueda_core.E022",
+            )
+            for name in ("related", "calculated")
+        ]
+
     def test_unregistered_serializer_reached_via_expandable_fields_is_checked(self, settings):
         """A serializer that is never routed through a viewset must still be walked and validated when it is
         only reachable through another (routed) serializer's expandable_fields.

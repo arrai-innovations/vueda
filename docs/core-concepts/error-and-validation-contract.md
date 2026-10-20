@@ -62,9 +62,9 @@ A `400` that is not a validation error carries a `detail` string: `{"detail": ".
 
 {@api py:class:vueda.core.serializers.NoExtraFieldsSerializerMixin}, part of {@api py:class:vueda.core.serializers.VuedaSerializer}, rejects a write body key that the view's serializer does not declare. Each unknown key gets its own entry with the message `Invalid field.  Valid fields are ...`. The mixin checks a key such as `items[0]quantity` or `items.quantity` by its base name, `items`. It does not check keys inside a nested serializer's payload. It always accepts `formatted_name` on a model that has one.
 
-A write action also rejects an `e` value that it does not permit, in the same shape and before it validates the body. [Field and Expand Semantics](./field-and-expand-semantics.md) describes which expands each action permits.
+On `list` and `retrieve`, the server rejects unknown query parameters, as [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes ({@term Query Parameter Validation}).
 
-On `list` and `retrieve`, the server rejects unknown query parameters, as [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes ({@term Query Parameter Validation}). An invalid `f` or `e` name on a read returns the same shape with `serverStack`. Each invalid name is its own key, such as `"amount": ["Invalid field.  Valid fields are ..."]`. One response reports the invalid names from both parameters.
+An invalid `f` or `e` name returns the same shape with `serverStack`, on a read and on a write. Each invalid name is its own key, such as `"amount": ["Invalid field.  Valid fields are ..."]`. One response reports the invalid names from both parameters. A write checks the names before it validates the body, so it saves nothing. [Field and Expand Semantics](./field-and-expand-semantics.md#validation-of-f-and-e) describes which names each action accepts.
 
 ### Other error statuses
 

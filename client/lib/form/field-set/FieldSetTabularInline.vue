@@ -378,7 +378,6 @@ watch(
                         <field-renderer
                             :hidden="false"
                             hide-label
-                            :field-props="fieldSetTabularInline.state.computedFieldProps"
                             :form-model="fieldSetTabularInline.formModel"
                             :form-model-name="fieldObj.name"
                             :object-grid-field-slot-props="objectGridFieldSlotProps"

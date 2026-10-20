@@ -847,6 +847,44 @@ describe("lib/stores/storeModelConfig.js", () => {
             );
         });
 
+        describe("a model that declares a client path namespace", () => {
+            // The model declares a field named `related` and an expand named `calculated`, so a path through
+            // either one would read from the row's related or calculated object instead of the row.
+            const namespacedModelInfo = () => ({
+                ...dummyModelInfo,
+                fields: { ...dummyModelInfo.fields, related: { ...dummyModelInfo.fields.name, label: "Related" } },
+                expand: [...dummyModelInfo.expand, { ...dummyModelInfo.expand[0], name: "calculated" }],
+            });
+
+            const buildWith = async (config) => {
+                mockedFetchModelInfo.mockResolvedValue(namespacedModelInfo());
+                const store = storeModelConfig();
+                store.builtConfigs = {};
+                store.initialized = {};
+                store.setConfig({ app: "testApp", model: "testModel" }, config);
+                return store.getConfig({ app: "testApp", model: "testModel", view: "list" });
+            };
+
+            scopedIt("rejects a dotted entry through a field of that name", async () => {
+                await expect(buildWith({ displayFields: ["name", "related.label"] })).rejects.toThrow(
+                    /displayFields names related\.label, but the model declares related, a name that the VUEDA client reserves for related and calculated paths\. Rename the serializer field or expand named related/,
+                );
+            });
+
+            scopedIt("rejects a dotted entry through an expand of that name", async () => {
+                await expect(
+                    buildWith({ expand: ["calculated"], displayFields: ["name", "calculated.username"] }),
+                ).rejects.toThrow(
+                    /displayFields names calculated\.username, but the model declares calculated, a name that the VUEDA client reserves/,
+                );
+            });
+
+            scopedIt("accepts the field of that name as a single segment", async () => {
+                const config = await buildWith({ displayFields: ["name", "related"] });
+                expect(config.displayFields).toEqual(["name", "related"]);
+            });
+        });
+
         scopedIt("rejects an expand that model info does not declare", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};

@@ -49,7 +49,7 @@ The request method alone decides which fields the body must contain. A `create` 
 
 `e` also changes how the body is read. A relation named in `e` accepts a nested object, and a relation left out of `e` accepts a primary key. [Nested Write Compatibility](./nested-write-compatibility) describes the nested body and how the serializer handles it.
 
-A write does not check `f` names. `PATCH ?f=bogus` returns `200` with the body `{}` ([#395](https://github.com/arrai-innovations/vueda/issues/395)). A write does check `e` names. Before it validates the body, a `create`, `update`, or `partial_update` checks each name against the action's permitted expands with [`validate_flex_expand_param_for_write`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_param_for_write}. An unknown or unpermitted name returns a `400` keyed by that name, with the same message that a read gets.
+A write checks `f` and `e` names with the same rules and messages as a read, as [Validation of `f` and `e`](#validation-of-f-and-e) describes. The check runs before the body is validated, so a `400` for an invalid name means that the write saved nothing. The valid names come from the serializer that renders the write's response.
 
 ## Field Metadata Contract
 
@@ -109,14 +109,14 @@ Model info does not report which expands each action permits. A list view whose 
 
 ## Validation of `f` and `e`
 
-On `list` and `retrieve`, [`validate_flex_expand_and_field_param`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param} checks each `f` and `e` name against the serializer and the action's permit list. This is part of {@term Query Parameter Validation}. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes how the server rejects unknown query parameter keys.
+On `list`, `retrieve`, `create`, `update`, and `partial_update`, [`validate_flex_expand_and_field_param`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param} checks each `f` and `e` name against the action's serializer and the action's permit list. This is part of {@term Query Parameter Validation}. [Filtering and Ordering Semantics](./filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary) describes how the server rejects unknown query parameter keys.
 
 - An unknown `f` name returns a `400` keyed by that name. The message starts with `Invalid field.` and lists the valid fields and wildcards.
 - An unknown or unpermitted `e` name returns a `400` keyed by that name. The message starts with `Invalid expands.`, then lists the permitted expands or says `No expands are permitted.`
 - `f=pk` returns a `400`, because `pk` is not a serializer field name.
 - The server does not check `om` values.
 
-A request with any invalid name fails as a whole, and one response reports every invalid `f` and `e` name. Each name maps to a list of message strings, so a name that is invalid in both parameters carries both messages. This is the standard validation shape that [Error and Validation Contract](./error-and-validation-contract) describes. On the client, these read errors raise a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError}.
+A request with any invalid name fails as a whole, and one response reports every invalid `f` and `e` name. Each name maps to a list of message strings, so a name that is invalid in both parameters carries both messages. This is the standard validation shape that [Error and Validation Contract](./error-and-validation-contract) describes. On the client, a read error raises a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError}, and a save error raises a {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}.
 
 ## Query Cost of List and Retrieve Expansion
 
