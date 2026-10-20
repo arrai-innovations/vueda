@@ -20,6 +20,7 @@ from django.contrib.admin.utils import get_fields_from_path
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
+from django.db.models.expressions import OrderBy
 
 from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.formatted_name import split_alias_path
@@ -128,7 +129,12 @@ def ordering_term_field_names(term):
 
 def queryset_explicit_ordering(queryset):
     """
-    The ordering terms a queryset carries in its own right, as ``order_by()`` received them.
+    The ordering terms that a queryset applies in its own right, with any ``.reverse()`` applied.
+
+    Each term is the one that ``order_by()`` received, unless ``.reverse()`` flipped it. A
+    ``.reverse()`` with no ``order_by()`` gives the model's ``Meta.ordering``, flipped. On a grouped
+    query, such as one that annotates an aggregate, a bare ``.reverse()`` gives nothing, because Django
+    leaves ``Meta.ordering`` out of a query with ``GROUP BY``. The details are below.
 
     Django keeps an explicit ordering on the query itself. ``QuerySet.order_by`` clears whatever
     ordering was there and appends its terms to ``Query.order_by`` (``Query.add_ordering``), and the
@@ -161,9 +167,16 @@ def queryset_explicit_ordering(queryset):
     rows arrive unordered while the metadata still reports the model's declaration. Nothing here
     distinguishes a queryset that never ordered from one that deliberately stopped ordering.
 
+    A ``.reverse()`` is applied to the terms. Django records it as a flag on the query
+    (``Query.standard_ordering``) and flips every term when it compiles the query, so each term here
+    comes back flipped the same way. A ``.reverse()`` with no ``order_by()`` flips the model's
+    ``Meta.ordering``, so that reversed ordering is reported. It is an ordering that the queryset
+    applies in its own right, and it differs from the model's default.
+
     :param queryset: The queryset to inspect.
     :type queryset: django.db.models.QuerySet
-    :return: The explicit ordering terms, or an empty list when the queryset carries none.
+    :return: The ordering terms that the queryset applies, with any ``.reverse()`` applied. The list is
+        empty when the queryset applies none.
     :rtype: List[Union[str, django.db.models.F, django.db.models.expressions.BaseExpression]]
     """
     query = getattr(queryset, "query", None)
@@ -173,7 +186,35 @@ def queryset_explicit_ordering(queryset):
     if getattr(query, "extra_order_by", ()):
         return []
 
-    return list(getattr(query, "order_by", ()) or ())
+    ordering = list(getattr(query, "order_by", ()) or ())
+    if getattr(query, "standard_ordering", True):
+        return ordering
+
+    # Django leaves `Meta.ordering` out of a grouped query, so a bare `.reverse()` there flips nothing.
+    if not ordering and query.default_ordering and query.group_by is None:
+        ordering = list(query.get_meta().ordering)
+
+    return [_reversed_ordering_term(term) for term in ordering]
+
+
+def _reversed_ordering_term(term):
+    """
+    The ordering term that sorts the other way, the way Django's SQL compiler flips a term for a
+    ``.reverse()`` (``SQLCompiler._order_by_pairs``).
+
+    A string swaps its ``-`` prefix, and ``"?"`` stays random. An expression is wrapped in ``.asc()``
+    when it isn't already an ``OrderBy``, then copied and reversed, which also swaps a nulls placement
+    to the other end.
+    """
+    if isinstance(term, str):
+        if term == RANDOM_ORDERING:
+            return term
+
+        return term.removeprefix("-") if term.startswith("-") else f"-{term}"
+
+    term = term.copy() if isinstance(term, OrderBy) else term.asc()
+    term.reverse_ordering()
+    return term
 
 
 def ordering_term_is_ascending(term):

@@ -1,13 +1,15 @@
 """What `queryset_explicit_ordering` reads, and the Django behavior it depends on.
 
-The helper reads two attributes of `django.db.models.sql.Query` — `order_by` and `extra_order_by` —
-and relies on the SQL compiler preferring an explicit `order_by` over the model's `Meta.ordering`
-(`SQLCompiler._order_by_pairs`). Those are internals, so this file pins both halves: what the helper
+The helper reads `order_by`, `extra_order_by`, `standard_ordering` (which `.reverse()` sets),
+`default_ordering`, and `group_by` on `django.db.models.sql.Query`, and the model's `Meta.ordering` for
+a bare `.reverse()`. It relies on the SQL compiler preferring an explicit `order_by` over the model's
+`Meta.ordering` (`SQLCompiler._order_by_pairs`). Those are internals, so this file pins both halves: what the helper
 returns, and the compiled SQL that makes the returned value mean what `vueda_info.E010` takes it to
 mean. A Django version that changed either would fail here rather than in the check's messages.
 """
 
 import pytest
+from django.db.models import Count
 from django.db.models import F
 from django.db.models.functions import Lower
 
@@ -91,3 +93,42 @@ class TestQuerysetExplicitOrdering:
 
         assert queryset_explicit_ordering(queryset) == []
         assert order_by_clause(queryset) is None
+
+    def test_a_reversed_ordering_is_reported_flipped(self):
+        """`.reverse()` sets `Query.standard_ordering` to False, and the compiler flips every term.
+        Each term is reported flipped the same way: a string swaps its `-`, and an expression swaps
+        its direction and moves its nulls placement to the other end."""
+        queryset = ModelOrderingQueryset.objects.order_by("the_name_field", F("id").asc(nulls_first=True)).reverse()
+
+        name_term, id_term = queryset_explicit_ordering(queryset)
+
+        assert name_term == "-the_name_field"
+        assert (id_term.descending, id_term.nulls_first, id_term.nulls_last) == (True, None, True)
+        assert order_by_clause(queryset).endswith(
+            '"the_name_field" DESC, "erring_modelorderingqueryset"."id" DESC NULLS LAST'
+        )
+
+    def test_a_grouped_query_drops_the_model_ordering(self):
+        """Django leaves `Meta.ordering` out of a query that has a `GROUP BY`, such as one that annotates
+        an aggregate. `vueda_info.E010` reports a grouped list queryset with no ordering of its own,
+        because its rows then arrive unordered while `model_ordering.default` reports `Meta.ordering`."""
+        queryset = ModelOrderingQueryset.objects.annotate(row_count=Count("id"))
+
+        assert queryset.query.group_by is not None
+        assert order_by_clause(queryset) is None
+
+    def test_a_bare_reverse_on_a_grouped_query_reports_nothing(self):
+        """A grouped query has no `Meta.ordering` to flip, so a bare `.reverse()` applies no ordering
+        there, and nothing is reported."""
+        queryset = ModelOrderingQueryset.objects.annotate(row_count=Count("id")).reverse()
+
+        assert queryset_explicit_ordering(queryset) == []
+        assert order_by_clause(queryset) is None
+
+    def test_a_bare_reverse_reports_the_flipped_model_ordering(self):
+        """`.reverse()` with no `order_by()` flips the model's `Meta.ordering`. That is an ordering the
+        queryset applies in its own right, so it is reported."""
+        queryset = ModelOrderingQueryset.objects.all().reverse()
+
+        assert queryset_explicit_ordering(queryset) == ["the_name_field"]
+        assert order_by_clause(queryset).endswith("ASC")

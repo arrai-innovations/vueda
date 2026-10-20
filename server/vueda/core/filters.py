@@ -338,16 +338,16 @@ class VuedaOrderingFilter(OrderingFilter):
         """
         The ordering terms with the view's declared nulls placements applied.
 
-        This is the step ``filter_queryset`` applies to every ordering it hands to ``order_by()``,
-        before it rewrites any ``formatted_name`` path. The ``vueda_info.E010`` system check applies
-        it to a viewset's declared ``ordering`` too, so the check compares the order a list request
-        actually gets.
+        This is the step that ``filter_queryset`` applies to every ordering that it hands to
+        ``order_by()``, before it rewrites any ``formatted_name`` path. The ``vueda_info.E010`` system
+        check applies it to a viewset's declared ``ordering`` too, so the check compares the order that
+        a list request actually gets.
 
         :param ordering: The ordering terms, ``__``-joined.
         :type ordering: Iterable[Union[str, django.db.models.expressions.BaseExpression]]
         :param view: The view whose ``nulls_ordering`` and ``nulls_ordering_flip`` apply.
         :type view: Union[rest_framework.views.APIView, Type[rest_framework.views.APIView]]
-        :param model: The model the ordering is declared against.
+        :param model: The model that the ordering is declared against.
         :type model: Type[django.db.models.Model]
         :return: The terms, with each plain field name that has a placement turned into an ``F``
             expression that carries it.

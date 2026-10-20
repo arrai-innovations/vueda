@@ -3,8 +3,11 @@ from tests.erring.models.models import AggregateManagerOrdering  # noqa: F401
 from tests.erring.models.models import BothFormattedNameConfigured  # noqa: F401
 from tests.erring.models.models import BothFormattedNameSelectRelatedConfigured  # noqa: F401
 from tests.erring.models.models import DefaultManagerNameOrdering  # noqa: F401
+from tests.erring.models.models import EmptyFilterManagerOrdering  # noqa: F401
 from tests.erring.models.models import FalseyFormattedNamesLookup  # noqa: F401
 from tests.erring.models.models import FormattedNameExpressionNotString  # noqa: F401
+from tests.erring.models.models import InlineAggregateManagerOrdering  # noqa: F401
+from tests.erring.models.models import MatchingMetaManagerOrdering  # noqa: F401
 from tests.erring.models.models import MisspelledFManagerOrdering  # noqa: F401
 from tests.erring.models.models import MisspelledNameManagerOrdering  # noqa: F401
 from tests.erring.models.models import MisspelledTransformManagerOrdering  # noqa: F401
@@ -15,6 +18,7 @@ from tests.erring.models.models import NoNameField  # noqa: F401
 from tests.erring.models.models import NonVuedaFormattedName  # noqa: F401
 from tests.erring.models.models import OtherNameManagerOrdering  # noqa: F401
 from tests.erring.models.models import PropertyFormattedName  # noqa: F401
+from tests.erring.models.models import RandomManagerOrdering  # noqa: F401
 from tests.erring.models.models import RelatedObjectsAreMissingData  # noqa: F401
 from tests.erring.models.models import SecondaryManagerOrdering  # noqa: F401
 from tests.erring.models.models import SimpleAnnotationManagerOrdering  # noqa: F401

@@ -274,6 +274,90 @@ class DefaultManagerNameOrdering(VuedaModel):
         return self.the_name_field
 
 
+class EmptyFilterNameOrderingManager(FormattedNameManager):
+    """Filters to no rows with `pk__in=[]` and orders by a plain field. Django compiles such a query to
+    `EmptyResultSet` rather than SQL."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(pk__in=[]).order_by("the_name_field")
+
+
+class EmptyFilterManagerOrdering(VuedaModel):
+    """Orders through a default manager whose query can't be compiled to SQL, because it filters to no
+    rows. The ordering is still one that `Meta.ordering` could declare."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = EmptyFilterNameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Empty filter manager ordering"
+        verbose_name_plural = "Empty filter manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class RandomOrderingManager(FormattedNameManager):
+    """Orders every queryset it builds randomly, which names no column."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("?")
+
+
+class RandomManagerOrdering(VuedaModel):
+    """Orders through a default manager that sorts randomly. The checks have no column to compare a
+    random ordering with, so they leave it alone."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = RandomOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Random manager ordering"
+        verbose_name_plural = "Random manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class MatchingMetaManagerOrdering(VuedaModel):
+    """Orders through its default manager by `the_name_field`, and declares the same ordering as
+    `Meta.ordering`.
+
+    `model_ordering.default` reads `Meta.ordering`, so it describes the order the manager applies, and
+    `vueda_info.E015` has nothing to report."""
+
+    the_name_field = models.CharField(max_length=255)
+
+    formatted_name = None
+
+    objects = NameOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        ordering = ("the_name_field",)
+        verbose_name = "Matching meta manager ordering"
+        verbose_name_plural = "Matching meta manager ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class MisspelledSecondOrderingManager(FormattedNameManager):
+    """Misspells a plain string name in `order_by()`, so Django rejects it when the manager builds its
+    queryset. It is only ever a second manager, so `vueda_info.E015` doesn't check it."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_feild")
+
+
 class SecondaryManagerOrdering(VuedaModel):
     """Keeps an unordered default manager built from a custom QuerySet, and adds a second manager that
     orders.
@@ -287,6 +371,7 @@ class SecondaryManagerOrdering(VuedaModel):
 
     objects = FormattedNameManager.from_queryset(NameQuerySet)()
     ordered = NameOrderingManager()
+    misspelled = MisspelledSecondOrderingManager()
 
     class Meta(VuedaModel.Meta):
         managed = False
@@ -352,6 +437,37 @@ class AggregateManagerMetaOrdering(VuedaModel):
         ordering = ("the_name_field",)
         verbose_name = "Aggregate manager meta ordering"
         verbose_name_plural = "Aggregate manager meta ordering"
+
+    def __str__(self):
+        return self.the_name_field
+
+
+class InlineCountOrderingManager(FormattedNameManager):
+    """Orders by an aggregate written inside `order_by()`, without annotating it first, with a
+    plain-field tie-breaker.
+
+    Django rejects this as soon as `order_by()` is called, with a `FieldError` that says the aggregate
+    must also be annotated."""
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(models.Count("the_name_sources").desc(), "the_name_field")
+
+
+class InlineAggregateManagerOrdering(VuedaModel):
+    """Orders through a default manager that sorts by an aggregate written inline, which Django rejects
+    when the manager builds its queryset."""
+
+    the_name_field = models.CharField(max_length=255)
+    the_name_sources = models.ManyToManyField(ValidLookupExpression, blank=True)
+
+    formatted_name = None
+
+    objects = InlineCountOrderingManager()
+
+    class Meta(VuedaModel.Meta):
+        managed = False
+        verbose_name = "Inline aggregate manager ordering"
+        verbose_name_plural = "Inline aggregate manager ordering"
 
     def __str__(self):
         return self.the_name_field

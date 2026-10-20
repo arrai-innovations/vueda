@@ -119,39 +119,72 @@ The check's hint says to rename or remove one of them. It also covers names gene
 
 ## Queryset Ordering
 
-An `order_by()` on the viewset's `queryset` attribute, or inside `get_queryset`, sorts rows that no declaration describes. `OrderingFilter` applies only the viewset's `ordering` or the request's `o`. With neither, it leaves the queryset's order in place. The rows arrive in the queryset's order, while `default` reports the model's `Meta.ordering` or nothing.
+An `order_by()` on the viewset's `queryset` attribute, inside `get_queryset`, or in the model's default manager sorts rows that no declaration describes. `OrderingFilter` applies only the viewset's `ordering` or the request's `o`. With neither, it leaves the queryset's order in place. The rows arrive in the queryset's order, while `default` reports the model's `Meta.ordering` or nothing.
 
 When the viewset declares `ordering`, that ordering replaces the queryset's own on every `list` request. The metadata is then accurate, and the queryset's `order_by()` has no effect.
 
 A model's `Meta.ordering` is applied by Django, and the ordering backend applies nothing when the viewset declares no `ordering`. This matters for nulls placement, described in the next section.
 
-The `vueda_info.E010` system check compares the ordering that the viewset's queryset carries with the default ordering that metadata reports. It builds the viewset without a request and calls `get_queryset()`. When `get_queryset()` raises without a request, the check reads the `queryset` attribute instead. The check reads the terms on the query, not the call that put them there. So an `order_by()` in `get_queryset()`, an `order_by()` on the `queryset` attribute, and a custom QuerySet method that calls `order_by()` are all checked the same way.
+### Three Rules for Queryset Ordering
 
-E010 sends a different message for each case: a viewset `ordering` that disagrees, a `Meta.ordering` that disagrees, and no default at all. The message names where the ordering was written: the `queryset` attribute or `get_queryset()`.
+The `vueda_info.E010` and `vueda_info.E015` system checks hold an ordering in a queryset to three rules. E010 checks each viewset's list queryset. E015 checks each registered model's default manager.
 
-The comparison counts direction and nulls placement. `ordering = ["queued"]` disagrees with a queryset ordered by `-queued`. A queryset ordered by `F("due_date").asc(nulls_first=True)` disagrees with `ordering = ["due_date"]`, because PostgreSQL puts nulls last in an ascending sort. The check applies the viewset's `nulls_ordering` to its `ordering` first, the same way a list request does. So `nulls_ordering = {"due_date": "first"}` makes the two agree. A `"pk"` alias and the field behind it count as the same term. A `formatted_name` and the column that its `formatted_name_lookup_expression` names also count as the same term.
+**Rule 1: the metadata must not lie** (E010, per viewset). Each list arrives in one order, and `model_ordering.default` must not claim a different one:
+
+| Viewset `ordering` declared?             | The rows arrive in                                            | `default` reports                                 |
+| ---------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------- |
+| Yes                                      | The viewset's `ordering`, because DRF applies it              | The viewset's `ordering`, so the two always agree |
+| No, and the queryset carries an ordering | The queryset's ordering, from `get_queryset()` or the manager | `Meta.ordering`, or nothing                       |
+| No, and the queryset carries none        | `Meta.ordering`                                               | `Meta.ordering`, so the two always agree          |
+
+So the metadata can lie in the middle row, when `Meta.ordering` names a different order. An empty `default` makes no claim, so it can't lie. Fix it by declaring the order as the viewset's `ordering`. For an ordering that names an annotation, removing `Meta.ordering` also works.
+
+The third row has one exception. Django leaves `Meta.ordering` out of a query that has a `GROUP BY`, such as a queryset that annotates an aggregate like `Count("items")`. With no viewset `ordering`, the rows of such a list arrive unordered while `default` reports `Meta.ordering`, so E010 reports it too. Declare the order as the viewset's `ordering`. DRF applies it with `order_by()`, and Django keeps an explicit ordering on a grouped query. Removing `Meta.ordering` also clears the error, because an empty `default` makes no claim.
+
+**Rule 2: declare what can be declared** (E015 for a manager, E010 for `get_queryset()` and the `queryset` attribute). An ordering made only of fields belongs in a declaration: `Meta.ordering` for a manager, and the viewset's `ordering` for `get_queryset()` or the `queryset` attribute. An ordering that names an annotation is exempt, because a declaration can't always hold it. `Meta.ordering` can't name an annotation, and an aggregate such as `Count("items")` has to be annotated before anything can sort by it. So a manager or `get_queryset()` may sort by an annotation, however complex it is. A manager ordering that sorts the same way as `Meta.ordering` passes, because `default` already describes it.
+
+**Rule 3: no dead `order_by()`** (E010). When the viewset declares `ordering`, DRF replaces the queryset's ordering on every list request, so an `order_by()` in `get_queryset()` or on the `queryset` attribute does nothing. Remove it, or make it match. An ordering from the default manager is exempt, because it still sorts every other query of the model.
+
+The rules give these results:
+
+- An annotation ordering with no `Meta.ordering` passes, in a manager or in `get_queryset()`, as long as the viewset declares no `ordering` that it contradicts (rule 3).
+- An annotation ordering with a different `Meta.ordering` and no viewset `ordering` breaks rule 1. E010 reports each viewset that starts from it.
+- A fields-only ordering in a manager, in `get_queryset()`, or on the `queryset` attribute breaks rule 2, unless it matches the declared default: `Meta.ordering` for a manager, and the default that `model_ordering.default` reports for a viewset. E015 reports a manager once for the model, so E010 doesn't repeat it for each viewset.
+- Any ordering in `get_queryset()` that differs from a declared viewset `ordering` breaks rule 3.
+
+### A `.reverse()` in a Sortable List
+
+One case falls outside the three rules, because it breaks the sorts that a client asks for, not only the default. Django keeps a `.reverse()` on the query through a later `order_by()`. DRF's ordering backend calls `order_by()` with the viewset's `ordering` or the request's `o`, so on a reversed list queryset every sort comes back in the opposite order. A client that asks for `name` ascending gets it descending. E010 reports a `.reverse()` in a viewset's list queryset, from `get_queryset()`, the `queryset` attribute, or the default manager, whenever the viewset has an order to get backwards: it declares `ordering`, or a list request can sort by at least one name. Without `ordering_fields`, DRF lets `o` sort by any readable serializer field, so a viewset can't be sorted only when it sets `ordering_fields = []` and no default ordering applies. A `.reverse()` on such a viewset gives a list in one fixed order, and the three rules judge it like any other ordering.
+
+### How the Checks Read an Ordering
+
+E010 builds the viewset without a request and calls `get_queryset()`. When `get_queryset()` raises without a request, the check reads the `queryset` attribute instead. E015 builds a queryset from the default manager. Both read the terms on the query, not the call that put them there. So an `order_by()` in `get_queryset()`, an `order_by()` on the `queryset` attribute, and a custom QuerySet method that calls `order_by()` are all read the same way. On a viewset that can't be sorted, a `.reverse()` is read as part of the ordering: each term is flipped, and a `.reverse()` with no `order_by()` reads as the reversed `Meta.ordering`, because that is the order that Django runs.
+
+A query that Django rejects is reported with Django's own `FieldError` message, because every query of it would raise the same error. That covers a misspelled field, `F()` name, or transform. It also covers an aggregate written straight into `order_by()`, which Django rejects with a message to annotate it first. E015 compiles a manager's query only when the manager orders, because the check is about ordering. E010 doesn't repeat a rejected default manager query for each viewset.
+
+Two orderings agree when they sort by the same terms, in the same order. Direction counts: `ordering = ["queued"]` disagrees with a queryset ordered by `-queued`. Nulls placement counts too. A queryset ordered by `F("due_date").asc(nulls_first=True)` disagrees with `ordering = ["due_date"]`, because PostgreSQL puts nulls last in an ascending sort. The check applies the viewset's `nulls_ordering` to its `ordering` first, the same way a list request does, so `nulls_ordering = {"due_date": "first"}` makes the two agree. A function over a column counts as its own term, so `Lower("name")` disagrees with `"name"`. Two function terms agree when Django compiles them to the same SQL, so `Collate("name", "C")` disagrees with `Collate("name", "de")`, although a message quotes both as `Collate(F(name))`. A `"pk"` alias and the field behind it count as the same term. A `formatted_name` and the column that its `formatted_name_lookup_expression` names also count as the same term.
+
+A message about an ordering, a `.reverse()`, or a grouping names where it was written: the `queryset` attribute, `get_queryset()`, or the default manager. A message about a query that Django rejects while it compiles names the viewset's list queryset as a whole.
 
 ### Manager Ordering
 
-A model's default manager can also order its queryset. That ordering applies to every query that names no other manager, such as the admin, related lookups, and the expanded children that a `VuedaViewSet` loads. It is a model-wide default, and `Meta.ordering` is where Django, DRF, and `model_ordering.default` read the model-wide default. The default manager is the one that `Meta.default_manager_name` names. Without that setting, it is the first manager declared on the model or its bases.
+A model's default manager sorts every query that names no other manager, such as the admin, related lookups, and the expanded children that a `VuedaViewSet` loads. That makes its ordering a model-wide default, and `Meta.ordering` is where Django, DRF, and `model_ordering.default` read the model-wide default. The default manager is the one that `Meta.default_manager_name` names. Without that setting, it is the first manager declared on the model or its bases.
 
-The `vueda_info.E015` system check reports a registered model whose default manager orders by something that `Meta.ordering` could hold: fields, transforms such as `created__year`, or expressions over columns. Move that ordering to `Meta.ordering`. The check also reports a default manager whose query names something that it cannot resolve, such as a misspelled field, `F()` name, or transform. Django resolves those names only when a query runs, so the check builds the manager's queryset and compiles it without running it.
+A manager other than the default orders only the code that names it, such as `Order.unfulfilled.all()`. E015 does not check it. A viewset whose queryset starts from that manager carries its ordering, and E010 applies the three rules to it like any other.
 
-A default manager may order by an annotation that it adds. An ordering by an aggregate, such as the number of items in an order, needs that, because `Meta.ordering = [Count("items")]` fails every query with a `GROUP BY` error. Field tie-breakers after the annotation are allowed too, because a manager's `order_by()` replaces `Meta.ordering`.
-
-A manager other than the default orders only the code that names it, such as `Order.unfulfilled.all()`. E015 does not check it. A viewset whose queryset starts from that manager carries its ordering, and E010 compares that ordering like any other.
-
-E010 does not report an ordering that matches the default manager's, because E015 covers it. The exception is a default manager that orders by an annotation on a model whose `Meta.ordering` names a different order. A viewset that starts from that manager and declares no `ordering` returns rows in the annotation's order, while `default` reports `Meta.ordering`. E010 reports that viewset. Declare the annotation ordering as the viewset's `ordering` to fix it. `Meta.ordering` is still correct, because it applies wherever code goes around the default manager.
+A `Meta.ordering` that differs from a default manager's annotation ordering is still correct for the model. It applies wherever code goes around the default manager, such as a second manager or the base manager that Django uses internally. Rule 1 judges only the viewsets that report it as their default.
 
 ### What the Checks Cannot See
 
 E010 and E015 do not see these cases:
 
 - An ordering that varies by request. When `get_queryset()` needs the request, E010 reads only the `queryset` attribute.
-- A viewset whose `filter_backends` leaves out the ordering backend. The queryset's order then always wins.
+- An ordering that depends on `self.action`, such as an `order_by()` that `get_queryset()` applies only when `self.action == "list"`. E010 calls `get_queryset()` with no action set, so it never sees that ordering. Setting the action first does not help, because `VuedaViewSet.get_queryset` then builds the list serializer, and that serializer needs the request.
+- A viewset whose `filter_backends` leaves out the ordering backend. Nothing applies its `ordering` or a client's `o`, so E010 applies none of the ordering rules to it. It still reports a query that Django rejects.
 - A bare `order_by()`, which clears the model's default ordering. [`queryset_explicit_ordering`]{@api py:function:vueda.core.ordering.queryset_explicit_ordering} describes this gap.
+- An ordering that names no single column, such as `"?"` or `Concat("first_name", "last_name")`. The checks have nothing to compare it with.
 
-The checks show only that the ordering a viewset's queryset carries without a request agrees with the declared default. They do not show the order that any request returns.
+The checks show only that the ordering that a viewset's queryset carries, when it is built without a request, follows the three rules. They do not show the order that any request returns.
 
 ## Nulls Placement for Client-Requested Ordering
 

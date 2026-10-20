@@ -76,6 +76,38 @@ class DefaultManagerNameOrderingSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class EmptyFilterManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.EmptyFilterManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class RandomManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.RandomManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class InlineAggregateManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.InlineAggregateManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MatchingMetaManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MatchingMetaManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class SecondaryManagerOrderingSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.SecondaryManagerOrdering

@@ -1,4 +1,9 @@
+from django.db.models import Count
 from django.db.models import F
+from django.db.models.functions import Collate
+from django.db.models.functions import Length
+from django.db.models.functions import Lower
+from rest_framework.filters import OrderingFilter
 from rest_framework.viewsets import ModelViewSet
 
 import tests.erring.filtersets as my_filtersets
@@ -460,6 +465,180 @@ class QuerySetMethodOrderingViewSet(VuedaViewSet):
         return super().get_queryset().by_name()
 
 
+class GetQuerysetAnnotationOrderingViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` by an annotation it adds, on a model that declares no
+    `Meta.ordering`, and declares no `ordering` of its own.
+
+    An ordering that names an annotation may stay in `get_queryset()`, and with no declared default
+    there is nothing for it to contradict."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(name_length=Length("the_name_field")).order_by("-name_length")
+
+
+class GetQuerysetInlineAggregateOrderingViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` by an aggregate written inline, without annotating it first.
+
+    Django rejects this as soon as `order_by()` is called. `aggregatemanagerordering` is the reverse
+    of `AggregateManagerOrdering.the_name_sources`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(Count("aggregatemanagerordering"))
+
+
+class ReversedGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Calls `.reverse()` in `get_queryset()` on a model whose `Meta.ordering` is descending, and
+    declares no `ordering` of its own, so the rows arrive ascending."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().reverse()
+
+
+class ManagerQuerysetAttributeViewSet(VuedaViewSet):
+    """Sets its class-level `queryset` to a manager rather than a queryset, and has a `get_queryset()`
+    that needs the request.
+
+    The check falls back to the class-level `queryset`. DRF's `GenericAPIView.get_queryset` returns a
+    manager unchanged, and a manager has no `.query` of its own, so the check calls `.all()` on it."""
+
+    queryset = my_models.ValidLookupExpression.objects
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(the_name_field=self.request.user.username)
+
+
+class GroupedGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Annotates an aggregate in `get_queryset()` on a model whose `Meta.ordering` is descending, and
+    declares no `ordering` of its own.
+
+    The aggregate adds a `GROUP BY`, and Django leaves `Meta.ordering` out of a grouped query, so the
+    rows arrive unordered while `model_ordering.default` reports `Meta.ordering`."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(row_count=Count("id"))
+
+
+class GroupedDeclaredOrderingViewSet(VuedaViewSet):
+    """Annotates an aggregate in `get_queryset()`, the same way as `GroupedGetQuerysetOrderingViewSet`,
+    but declares `ordering`. DRF applies it with `order_by()`, which Django keeps on a grouped query."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+    ordering = ["-the_name_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(row_count=Count("id"))
+
+
+class CollateGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Declares an `ordering` with one collation while `get_queryset()` orders by another. Both render
+    as `Collate(F(the_name_field))`, but they compile to different SQL and sort differently."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = [Collate("the_name_field", "C")]
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(Collate("the_name_field", "und-x-icu"))
+
+
+class ReversedWithoutOrderingBackendViewSet(VuedaViewSet):
+    """Calls `.reverse()` in `get_queryset()` on a viewset whose `filter_backends` has no ordering
+    backend. Nothing applies a declared `ordering` or a client's `?o=` to its list, so the ordering
+    rules have nothing to judge."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    filter_backends = []
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field").reverse()
+
+
+class ReversedClassQuerysetViewSet(VuedaViewSet):
+    """Calls `.reverse()` on its class-level `queryset`, and its `get_queryset()` adds an `order_by()` of
+    its own. Django keeps the `.reverse()` through that `order_by()`, so the class-level `queryset` is
+    where the reverse was written."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.reverse()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field")
+
+
+class GroupedExtraOrderingViewSet(VuedaViewSet):
+    """Annotates an aggregate in `get_queryset()`, and orders with `extra(order_by=...)`. The grouped
+    query still has an order, so dropping `Meta.ordering` doesn't leave the rows unordered."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(row_count=Count("id")).extra(order_by=["-the_name_field"])
+
+
+class ReversedUnsortableGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Calls `.reverse()` in `get_queryset()` on a viewset that a list request can't sort.
+
+    `ordering_fields = []`, no viewset `ordering`, and no `Meta.ordering` leave no name for `?o=`, so
+    the rows always arrive in one fixed order, and a client has nothing to get backwards."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = []
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field").reverse()
+
+
+class MisspelledPathGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Misspells a relation inside an `F()` in `get_queryset()`. Django resolves an `F()` only when a
+    query runs, so `get_queryset()` itself succeeds."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(F("custmer__pk").desc())
+
+
+class MisspelledNameGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Misspells a plain string name in `order_by()` inside `get_queryset()`. Django checks a string
+    name as soon as `order_by()` is called, so `get_queryset()` raises `FieldError`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_feild")
+
+
+class LowerGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Declares `ordering = ["the_name_field"]` while `get_queryset()` orders by `Lower` of the same
+    field. The two read one column but sort differently, and DRF applies the declaration."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(Lower("the_name_field"))
+
+
 class SecondaryManagerQuerysetOrderingViewSet(VuedaViewSet):
     """Starts from a second manager that orders, on a model whose default manager doesn't.
 
@@ -491,6 +670,14 @@ class DefaultManagerNameOrderingViewSet(VuedaViewSet):
     serializer_class = my_serializers.DefaultManagerNameOrderingSerializer
 
 
+class MatchingMetaManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders the same way as its `Meta.ordering`, and declares no
+    `ordering` of its own."""
+
+    queryset = my_models.MatchingMetaManagerOrdering.objects.all()
+    serializer_class = my_serializers.MatchingMetaManagerOrderingSerializer
+
+
 class AggregateManagerOrderingViewSet(VuedaViewSet):
     """Serves a model whose default manager orders by an aggregate annotation it adds."""
 
@@ -504,6 +691,73 @@ class AggregateManagerMetaOrderingViewSet(VuedaViewSet):
 
     queryset = my_models.AggregateManagerMetaOrdering.objects.all()
     serializer_class = my_serializers.AggregateManagerMetaOrderingSerializer
+
+
+class EmptyFilterManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager filters to no rows and orders by a plain field."""
+
+    queryset = my_models.EmptyFilterManagerOrdering.objects.all()
+    serializer_class = my_serializers.EmptyFilterManagerOrderingSerializer
+
+
+class RandomManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders randomly."""
+
+    queryset = my_models.RandomManagerOrdering.objects.all()
+    serializer_class = my_serializers.RandomManagerOrderingSerializer
+
+
+class MisspelledFManagerOwnErrorViewSet(VuedaViewSet):
+    """Starts from a default manager whose query Django rejects, and misspells a different name in its
+    own `get_queryset()`. The manager's error is `vueda_info.E015`'s, and this one is the viewset's."""
+
+    serializer_class = my_serializers.MisspelledFManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.MisspelledFManagerOrdering.objects.order_by("the_name_fiel")
+
+
+class MisspelledSecondManagerQuerysetViewSet(VuedaViewSet):
+    """Sets its class-level `queryset` to a second manager whose query Django rejects."""
+
+    queryset = my_models.SecondaryManagerOrdering.misspelled
+    serializer_class = my_serializers.SecondaryManagerOrderingSerializer
+
+
+class AnnotatedMisspelledFManagerViewSet(VuedaViewSet):
+    """Starts from a default manager whose ordering misspells an `F()` name, and annotates its own
+    list, which adds the annotation to the choices that Django's error message lists."""
+
+    serializer_class = my_serializers.MisspelledFManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.MisspelledFManagerOrdering.objects.annotate(name_length=Length("the_name_field"))
+
+
+class PlainOrderingFilterNullsViewSet(VuedaViewSet):
+    """Uses DRF's own `OrderingFilter`, declares `ordering` with a nulls-first `nulls_ordering`, and
+    orders nulls first in `get_queryset()`. DRF's filter never applies `nulls_ordering`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    filter_backends = [OrderingFilter]
+    ordering = ["the_name_field"]
+    nulls_ordering = {"the_name_field": "first"}
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(F("the_name_field").asc(nulls_first=True))
+
+
+class InlineAggregateManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by an aggregate written inline.
+
+    Building the queryset raises, so this viewset builds it only in `get_queryset()`. A class-level
+    `queryset` would fail when this module is imported."""
+
+    serializer_class = my_serializers.InlineAggregateManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.InlineAggregateManagerOrdering.objects.all()
 
 
 class SimpleAnnotationManagerOrderingViewSet(VuedaViewSet):

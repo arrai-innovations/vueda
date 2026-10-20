@@ -7,6 +7,7 @@ from tests.erring.serializers.serializers import AggregateManagerOrderingSeriali
 from tests.erring.serializers.serializers import BothFormattedNameConfiguredSerializer  # noqa: F401
 from tests.erring.serializers.serializers import BothFormattedNameSelectRelatedConfiguredSerializer  # noqa: F401
 from tests.erring.serializers.serializers import DefaultManagerNameOrderingSerializer  # noqa: F401
+from tests.erring.serializers.serializers import EmptyFilterManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsBadTupleLengthSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsClientNamespaceSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsEmptyTupleSerializer  # noqa: F401
@@ -20,6 +21,8 @@ from tests.erring.serializers.serializers import ExpandableFieldsUnresolvableStr
 from tests.erring.serializers.serializers import ExpandableFieldsValidStringSerializer  # noqa: F401
 from tests.erring.serializers.serializers import FalseyFormattedNamesLookupSerializer  # noqa: F401
 from tests.erring.serializers.serializers import FormattedNameExpressionNotStringSerializer  # noqa: F401
+from tests.erring.serializers.serializers import InlineAggregateManagerOrderingSerializer  # noqa: F401
+from tests.erring.serializers.serializers import MatchingMetaManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import MisspelledFManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import MisspelledNameManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import MisspelledTransformManagerOrderingSerializer  # noqa: F401
@@ -30,6 +33,7 @@ from tests.erring.serializers.serializers import NoNameFieldSerializer  # noqa: 
 from tests.erring.serializers.serializers import NonVuedaFormattedNameSerializer  # noqa: F401
 from tests.erring.serializers.serializers import OtherNameManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import PropertyFormattedNameSerializer  # noqa: F401
+from tests.erring.serializers.serializers import RandomManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import RelatedObjectsAreMissingDataSerializer  # noqa: F401
 from tests.erring.serializers.serializers import SecondaryManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import SimpleAnnotationManagerOrderingSerializer  # noqa: F401

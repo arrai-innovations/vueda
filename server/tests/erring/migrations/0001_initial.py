@@ -543,6 +543,73 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name="EmptyFilterManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Empty filter manager ordering",
+                "verbose_name_plural": "Empty filter manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="InlineAggregateManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Inline aggregate manager ordering",
+                "verbose_name_plural": "Inline aggregate manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
+            name="MatchingMetaManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Matching meta manager ordering",
+                "verbose_name_plural": "Matching meta manager ordering",
+                "ordering": ("the_name_field",),
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
+        migrations.CreateModel(
             name="MisspelledFManagerOrdering",
             fields=[
                 (
@@ -632,6 +699,28 @@ class Migration(migrations.Migration):
             managers=[
                 ("ordered", django.db.models.manager.Manager()),
             ],
+        ),
+        migrations.CreateModel(
+            name="RandomManagerOrdering",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("the_name_field", models.CharField(max_length=255)),
+            ],
+            options={
+                "verbose_name": "Random manager ordering",
+                "verbose_name_plural": "Random manager ordering",
+                "abstract": False,
+                "managed": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
         ),
         migrations.CreateModel(
             name="SecondaryManagerOrdering",
