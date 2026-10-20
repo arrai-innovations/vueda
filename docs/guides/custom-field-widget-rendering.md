@@ -96,7 +96,7 @@ modelConfigStore.setConfig(
 );
 ```
 
-The expanded field itself has a field component ({@api vue:component:FieldSetTabularInline} here) and no widget, so a `widgetComponents` entry for `line_items` has no effect. [Build Nested/Inlined Writes](./nested-writable-inlines) describes the inline setup and how the rows save.
+The expanded field itself has a field component ({@api vue:component:FieldSetTabularInline} here) and no widget, so a `widgetComponents` entry for `line_items` has no effect. [Render a Relation as an Inline](./render-relations-as-inlines) describes the inline setup. [Build Nested/Inlined Writes](./nested-writable-inlines) describes how the rows save.
 
 ## Replace One Field with a Slot
 

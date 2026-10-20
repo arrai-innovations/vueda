@@ -219,7 +219,7 @@ Confirm the setup in the browser's network panel:
 
 **`manage.py check` reports `vueda_core.E022`, or the model config throws for a reserved name.** The serializer names an expand or field `related` or `calculated`. Rename it, as in [Declare expandable fields](#declare-expandable-fields).
 
-**A form shows a select where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Add the relation to that view's `expand`.
+**A form shows a select where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Add the relation to that view's `expand`. [Render a Relation as an Inline](./render-relations-as-inlines) describes the rest of the inline setup.
 
 **A write with a nested object returns a type error on the relation.** The request's `e` omits the relation, so the server reads the relation as a primary key. Add the relation to `e`, and the nested object is accepted. The server answers a misspelled or unpermitted `e` name with a `400` that names it, before it validates the body.
 
