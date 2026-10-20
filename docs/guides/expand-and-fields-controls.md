@@ -207,7 +207,7 @@ Confirm the setup in the browser's network panel:
 
 **Building the model config throws `Model config for <app>.<model> is invalid`.** The message names each problem. A dotted entry such as `category.name` in `displayFields`, `fetchFields`, or `submitFields` needs `category` in the same view's `expand`. An `expand` entry must name an expand that model info declares.
 
-**A form shows a select where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Add the relation to that view's `expand`.
+**A form shows a select or a read-only list where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Without the expand, a foreign key or a many-to-many relation shows a select, and a reverse foreign key shows its rows read-only. Add the relation to that view's `expand`.
 
 **A write with a nested object returns a type error on the relation.** The request's `e` omits the relation, so the server reads the relation as a primary key. Add the relation to `e`, and the nested object is accepted. The server answers a misspelled or unpermitted `e` name with a `400` that names it, before it validates the body.
 

@@ -7,6 +7,7 @@ import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
 import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
+import { isReverseForeignKey } from "@vueda/utils/reverseForeignKey.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
 
@@ -260,7 +261,13 @@ export function useFormModel(props) {
                     }
                 }
                 for (const field of allFields) {
-                    const { fieldName, fieldDetail, baseExpanded, isExpandedField } = field;
+                    const { fieldName, baseExpanded, isExpandedField } = field;
+                    // A reverse foreign key edits its rows only as an inline. Unexpanded, it shows
+                    // the linked rows read-only; see isReverseForeignKey for why it accepts no input.
+                    const fieldDetail =
+                        !baseExpanded && isReverseForeignKey(field.fieldDetail)
+                            ? { ...field.fieldDetail, readOnly: true }
+                            : field.fieldDetail;
                     if (fieldDetail.action === true) {
                         continue;
                     }
