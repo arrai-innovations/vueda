@@ -30,8 +30,10 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { formModelExpand } from "@vueda/use/useFormModelProps.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { omitUnexpandedReverseForeignKeys } from "@vueda/utils/reverseForeignKey.js";
 import { computed, reactive, toRef, unref } from "vue";
 
 /** @type {"update"} */
@@ -117,8 +119,17 @@ export function useViewUpdate(options) {
         formContextProps.initialValues,
     );
 
+    const expand = computed(() => formModelExpand(instance.combinedFormProps, modelConfig.config?.expand));
+    // Forms show an unexpanded reverse foreign key read-only, so the default leaves it out; see
+    // isReverseForeignKey. A submitFields option is sent as given.
     const submitFields = computed(() =>
-        options.submitFields?.length ? options.submitFields : modelConfig.config?.submitFields,
+        options.submitFields?.length
+            ? options.submitFields
+            : omitUnexpandedReverseForeignKeys(
+                  modelConfig.config?.submitFields,
+                  modelConfig.config?.fieldDetails,
+                  expand.value,
+              ),
     );
     const fetchFields = computed(() =>
         options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
@@ -141,8 +152,7 @@ export function useViewUpdate(options) {
                 return fields;
             }),
             [EXPAND_PARAM]: computed(() => {
-                const expand = modelConfig.config?.expand || [];
-                return expand.filter(
+                return expand.value.filter(
                     (e) => formContext.state?.values[e] !== undefined && formContext.state.values[e] !== null,
                 );
             }),

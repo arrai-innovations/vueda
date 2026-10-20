@@ -63,13 +63,14 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
-import { pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
+import { formModelExpand, pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { omitUnexpandedReverseForeignKeys } from "@vueda/utils/reverseForeignKey.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef, unref } from "vue";
 
@@ -160,8 +161,26 @@ export function useViewCreate(options) {
     const formContextProps = reactive({ initialValues: modelInitialValues });
     const formContext = useForm(formContextProps);
 
+    const combinedFormProps = useFormModelProps({
+        app: () => options.app,
+        model: () => options.model,
+        view: VIEW_NAME,
+        configFormProps: () => modelConfig.config.formProps,
+        formProps: () => options.formProps,
+        viewProps: () => pickViewFormModelProps(options),
+    });
+
+    const expand = computed(() => formModelExpand(combinedFormProps.value, modelConfig.config?.expand));
+    // Forms show an unexpanded reverse foreign key read-only, so the default leaves it out; see
+    // isReverseForeignKey. A submitFields option is sent as given.
     const submitFields = computed(() =>
-        options.submitFields?.length ? options.submitFields : modelConfig.config?.submitFields,
+        options.submitFields?.length
+            ? options.submitFields
+            : omitUnexpandedReverseForeignKeys(
+                  modelConfig.config?.submitFields,
+                  modelConfig.config?.fieldDetails,
+                  expand.value,
+              ),
     );
     const fetchFields = computed(() =>
         options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
@@ -184,8 +203,7 @@ export function useViewCreate(options) {
                 return fields;
             }),
             [EXPAND_PARAM]: computed(() => {
-                const expand = modelConfig.config?.expand || [];
-                return expand.filter(
+                return expand.value.filter(
                     (e) => formContext.state?.values[e] !== undefined && formContext.state.values[e] !== null,
                 );
             }),
@@ -231,15 +249,6 @@ export function useViewCreate(options) {
                 ? "submitting form"
                 : "",
     );
-    const combinedFormProps = useFormModelProps({
-        app: () => options.app,
-        model: () => options.model,
-        view: VIEW_NAME,
-        configFormProps: () => modelConfig.config.formProps,
-        formProps: () => options.formProps,
-        viewProps: () => pickViewFormModelProps(options),
-    });
-
     const pageLoading = computed(() => modelConfig.loading);
     const formId = computed(() => `form-${options.app}-${options.model}-${VIEW_NAME}`);
 

@@ -4,7 +4,7 @@ import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useViewCreate } from "@vueda/use/useViewCreate.js";
-import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { FormValidationError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -65,7 +65,7 @@ describe("lib/use/useViewCreate.js", () => {
         /**
          * Wires the real useViewCreate(), useObjectForm(), useForm(), and useObject(). The seeded
          * initial values stand in for useModelInitialValues(), which seeds one value per displayed
-         * field. The server stub records each save's body and `f` parameter and computes `total`.
+         * field. The server stub records each save's body and its `f` and `e` parameters, and computes `total`.
          */
         const buildSelectionViewCreate = async (initialValues, createImpl) => {
             useModelConfig.mockReturnValue(mockModelConfig);
@@ -77,7 +77,11 @@ describe("lib/use/useViewCreate.js", () => {
             const create = vi.fn(
                 createImpl ??
                     (({ object, params }) => {
-                        saves.push({ body: cloneDeep(object), fields: [...params[FIELDS_PARAM]] });
+                        saves.push({
+                            body: cloneDeep(object),
+                            fields: [...params[FIELDS_PARAM]],
+                            expand: params[EXPAND_PARAM],
+                        });
                         return Promise.resolve({ id: 7, ...object, unit_price: 5, total: 5 * object.quantity });
                     }),
             );
@@ -156,6 +160,63 @@ describe("lib/use/useViewCreate.js", () => {
             await editAndSubmit(result, "quantity", 0);
 
             expect(saves[0].body).toEqual({ quantity: 0, active: false, note: null, tags: [] });
+        });
+
+        describe("reverse foreign key submission", () => {
+            const items = [{ sku: "A-1", count: 2 }];
+
+            beforeEach(() => {
+                Object.assign(mockModelConfig.config, {
+                    displayFields: ["quantity", "items"],
+                    submitFields: ["quantity", "items"],
+                    fieldDetails: {
+                        quantity: { label: "Quantity", many: false },
+                        items: {
+                            label: "Items",
+                            many: true,
+                            readOnly: false,
+                            typeSerializer: "ManyRelatedField",
+                            typeModel: "ForeignKey",
+                        },
+                    },
+                });
+            });
+
+            scopedIt("leaves an unexpanded reverse foreign key out of the default body", async () => {
+                const { result, saves } = await buildSelectionViewCreate({ quantity: 1, items: [] });
+
+                await editAndSubmit(result, "quantity", 2);
+
+                expect(saves[0].body).toEqual({ quantity: 2 });
+                expect(saves[0].expand).toEqual([]);
+            });
+
+            for (const [source, setUp] of [
+                ["the expand option", () => (props.expand = ["items"])],
+                ["the formProps option", () => (props.formProps = { expand: ["items"] })],
+                ["the model config's formProps", () => (mockModelConfig.config.formProps = { expand: ["items"] })],
+                ["the model config's expand", () => (mockModelConfig.config.expand = ["items"])],
+            ]) {
+                scopedIt(`submits and saves with an expand that ${source} names`, async () => {
+                    setUp();
+                    const { result, saves } = await buildSelectionViewCreate({ quantity: 1, items: cloneDeep(items) });
+
+                    await editAndSubmit(result, "quantity", 2);
+
+                    expect(saves[0].body).toEqual({ quantity: 2, items });
+                    expect(saves[0].expand).toEqual(["items"]);
+                });
+            }
+
+            scopedIt("sends a reverse foreign key that the submitFields option names", async () => {
+                props.submitFields = ["quantity", "items"];
+                const { result, saves } = await buildSelectionViewCreate({ quantity: 1, items: [] });
+
+                await editAndSubmit(result, "quantity", 2);
+
+                expect(saves[0].body).toEqual({ quantity: 2, items: [] });
+                expect(saves[0].expand).toEqual([]);
+            });
         });
     });
 });

@@ -60,7 +60,7 @@
  */
 import { assignReactiveObject, loadingCombine, useObject } from "@arrai-innovations/reactive-helpers";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
-import { pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
+import { formModelExpand, pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
@@ -189,6 +189,15 @@ export function useDetailView(options, formInitialValue) {
     );
     const hasValidTransitions = computed(() => !!modelConfig.info?.fields?.valid_transitions);
 
+    const formModelProps = useFormModelProps({
+        app: () => options.app,
+        model: () => options.model,
+        view: () => options.viewName,
+        configFormProps: () => modelConfig.config.formProps,
+        formProps: () => options.formProps,
+        viewProps: () => pickViewFormModelProps(options),
+    });
+
     const instanceObjectProps = reactive({
         target: {
             app: toRef(options, "app"),
@@ -205,7 +214,7 @@ export function useDetailView(options, formInitialValue) {
                     hasValidTransitions.value ? "valid_transitions" : null,
                 ].filter(Boolean),
             ),
-            [EXPAND_PARAM]: computed(() => modelConfig.config?.expand),
+            [EXPAND_PARAM]: computed(() => formModelExpand(formModelProps.value, modelConfig.config?.expand)),
         },
         intendToRetrieve,
         relatedObjectRules: toRef(options, "relatedObjectRules"),
@@ -249,15 +258,6 @@ export function useDetailView(options, formInitialValue) {
 
     const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
     const formId = computed(() => `${options.app}-${options.model}-${options.pk}-${options.viewName}`);
-
-    const formModelProps = useFormModelProps({
-        app: () => options.app,
-        model: () => options.model,
-        view: () => options.viewName,
-        configFormProps: () => modelConfig.config.formProps,
-        formProps: () => options.formProps,
-        viewProps: () => pickViewFormModelProps(options),
-    });
 
     // Calculated values join the widgetProps map that the merge picked, so they never change which map applies.
     const combinedFormProps = computed(() => {

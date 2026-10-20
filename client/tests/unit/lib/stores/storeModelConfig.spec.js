@@ -1095,56 +1095,6 @@ describe("lib/stores/storeModelConfig.js", () => {
         });
     });
 
-    describe("reverse foreign key submit defaults", () => {
-        const field = (label, extra = {}) => ({ label, many: false, readOnly: false, required: false, ...extra });
-        const orderModelInfo = {
-            ...dummyModelInfo,
-            fields: {
-                id: field("ID", { readOnly: true, pk: true }),
-                status: field("Status"),
-                customer: field("Customer", { typeSerializer: "PrimaryKeyRelatedField", typeModel: "ForeignKey" }),
-                tags: field("Tags", { typeSerializer: "ManyRelatedField", typeModel: "ManyToManyField", many: true }),
-                items: field("Items", { typeSerializer: "ManyRelatedField", typeModel: "ForeignKey", many: true }),
-            },
-            expand: [{ name: "items", readOnly: false, many: true, appLabel: "shop", model: "orderitem", f: {} }],
-        };
-
-        beforeEach(() => {
-            mockedFetchModelInfo.mockResolvedValue(orderModelInfo);
-        });
-
-        const getConfig = (view, genericConfig, specificConfigs) => {
-            const store = storeModelConfig();
-            if (genericConfig || specificConfigs) {
-                store.setConfig({ app: "testApp", model: "testModel" }, genericConfig || {}, specificConfigs);
-            }
-            return store.getConfig({ app: "testApp", model: "testModel", view });
-        };
-
-        scopedIt("leaves an unexpanded reverse foreign key out of the default submitFields", async () => {
-            for (const view of ["create", "update"]) {
-                const config = await getConfig(view);
-                expect(config.displayFields).toContain("items");
-                expect(config.submitFields).toEqual(["status", "customer", "tags"]);
-            }
-        });
-
-        scopedIt("leaves an unexpanded reverse foreign key out of submitFields derived from fields", async () => {
-            const config = await getConfig("update", { fields: ["status", "items"] });
-            expect(config.submitFields).toEqual(["status"]);
-        });
-
-        scopedIt("submits a reverse foreign key that the view expands", async () => {
-            const config = await getConfig("update", {}, { update: { expand: ["items"] } });
-            expect(config.submitFields).toEqual(["status", "customer", "tags", "items"]);
-        });
-
-        scopedIt("keeps a reverse foreign key that an explicit submitFields names", async () => {
-            const config = await getConfig("update", { submitFields: ["status", "items"] });
-            expect(config.submitFields).toEqual(["status", "items"]);
-        });
-    });
-
     describe("Caching and concurrency", () => {
         scopedIt("caches the built configuration", async () => {
             const store = storeModelConfig();

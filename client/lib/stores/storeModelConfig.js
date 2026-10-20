@@ -7,7 +7,6 @@ import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getAppModelDotName, getAppModelViewDotName } from "@vueda/utils/case.js";
 import { AuthScopeInvalidatedError } from "@vueda/utils/errors.js";
-import { isReverseForeignKey } from "@vueda/utils/reverseForeignKey.js";
 import { formatSortField } from "@vueda/utils/sortedFields.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import merge from "lodash-es/merge.js";
@@ -49,7 +48,7 @@ import { defineStore } from "pinia";
  * @property {string[]} displayFields - field names to display by default
  * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key. The default leaves out a reverse foreign key that `expand` does not name, because forms show that field read-only.
+ * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key. Create and update views leave out a reverse foreign key that the form's `expand` does not name, because forms show that field read-only.
  * @property {string[]} expand - field names to expand; empty unless the model config names some
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
@@ -295,15 +294,6 @@ const mergeSimpleProperties = (
                 mergedConfig[fieldKey] = defaultSpecificConfig[fieldKey];
             } else if (defaultGenericConfig[fieldKey]) {
                 mergedConfig[fieldKey] = defaultGenericConfig[fieldKey];
-            }
-            // Forms show an unexpanded reverse foreign key read-only, so a derived list leaves it
-            // out; see isReverseForeignKey. An explicitly declared `submitFields` keeps it.
-            if (fieldKey === "submitFields" && mergedConfig.submitFields) {
-                mergedConfig.submitFields = mergedConfig.submitFields.filter(
-                    (fieldName) =>
-                        expandNames.has(fieldName) ||
-                        !isReverseForeignKey(defaultGenericConfig.fieldDetails?.[fieldName]),
-                );
             }
         }
     }

@@ -49,6 +49,21 @@ export function pickViewFormModelProps(options) {
     return picked;
 }
 
+/**
+ * Returns the relations that a view's `FormModel` renders as inline fieldsets.
+ *
+ * `FormModel` uses the `expand` prop when it receives one, and the model config's `expand` otherwise. A view
+ * calls this to send the same list as the request's expand parameter, so a fetch or save expands exactly the
+ * relations that the form shows inline.
+ *
+ * @param {object} formModelProps - The merged props from {@link useFormModelProps}.
+ * @param {string[]|undefined} configExpand - The model config's `expand`.
+ * @returns {string[]} The relation names. The array is empty when neither source names any.
+ */
+export function formModelExpand(formModelProps, configExpand) {
+    return formModelProps?.expand || configExpand || [];
+}
+
 const hyphenate = (key) => key.replace(/\B([A-Z])/g, "-$1").toLowerCase();
 
 const warnedSelectorKeys = new Set();
