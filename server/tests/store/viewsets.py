@@ -1,8 +1,10 @@
 from dateutil.relativedelta import relativedelta
 from django.db.models import Count
 from django.db.models import F
+from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.functions import Lower
+from django.db.models.functions import Upper
 from django.http import Http404
 from django.utils.timezone import now
 from rest_framework import permissions
@@ -481,6 +483,54 @@ class CustomerWithCartsViewSet(VuedaViewSet):
     serializer_class = my_serializers.CustomerWithCartsSerializer
     permit_list_expands = ["cart_set"]
     permit_retrieve_expands = ["cart_set"]
+
+
+class CustomerOrderAnnotatedCustomerViewSet(VuedaViewSet):
+    """Serves CustomerOrderAnnotatedCustomerSerializer, expanding `customer` -- a to-one relation onto
+    Customer, whose `formatted_name` is an annotation -- and `customer.user` under it. Nothing else on
+    the queryset joins `customer`."""
+
+    queryset = my_models.CustomerOrder.objects.all()
+    serializer_class = my_serializers.CustomerOrderAnnotatedCustomerSerializer
+    ordering = ["id"]
+    permit_list_expands = ["customer", "customer.user"]
+    permit_retrieve_expands = ["customer", "customer.user"]
+
+
+class CustomerWithAnnotatedCartsViewSet(VuedaViewSet):
+    """Serves CustomerWithAnnotatedCartsSerializer. The `cart_set` Prefetch queryset comes from
+    Cart's manager, which joins `customer__user`, and `cart_set.customer` prefetches `customer` on
+    that same queryset."""
+
+    queryset = my_models.Customer.objects.all()
+    serializer_class = my_serializers.CustomerWithAnnotatedCartsSerializer
+    permit_list_expands = ["cart_set", "cart_set.customer"]
+    permit_retrieve_expands = ["cart_set", "cart_set.customer"]
+
+
+class CustomerOrderPrefetchedOrderStateViewSet(VuedaViewSet):
+    """Prefetches the to-one `order_state` with an annotated queryset of its own, which provides
+    `code_upper` for OrderStateAnnotatedCodeSerializer. OrderState stores `formatted_name` as a
+    column, so an `order_state` expand plans a `select_related` join."""
+
+    queryset = my_models.CustomerOrder.objects.prefetch_related(
+        Prefetch("order_state", queryset=my_models.OrderState.objects.annotate(code_upper=Upper("code")))
+    )
+    serializer_class = my_serializers.CustomerOrderAnnotatedOrderStateSerializer
+    ordering = ["id"]
+    permit_list_expands = ["order_state"]
+    permit_retrieve_expands = ["order_state"]
+
+
+class CartAnnotatedCustomerViewSet(VuedaViewSet):
+    """Serves CartAnnotatedCustomerSerializer, expanding `customer` -- a to-one relation onto
+    Customer, whose `formatted_name` is an annotation. Cart's `formatted_name_select_related` joins
+    `customer__user` onto the same queryset."""
+
+    queryset = my_models.Cart.objects.all()
+    serializer_class = my_serializers.CartAnnotatedCustomerSerializer
+    permit_list_expands = ["customer"]
+    permit_retrieve_expands = ["customer"]
 
 
 class CartItemCartBaseManagerViewSet(VuedaViewSet):

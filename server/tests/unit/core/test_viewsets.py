@@ -41,6 +41,7 @@ from tests.unit.info.utils import create_test_data
 from tests.utils import object_revision_of
 from vueda import info
 from vueda.core.exceptions import VuedaValidationError
+from vueda.core.models import FormattedNameManager
 from vueda.core.serializers import VuedaListSerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
@@ -48,6 +49,7 @@ from vueda.core.utils import implemented_builtin_actions
 from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import apply_prefetch_plan
 from vueda.core.viewsets import build_prefetch_plan
 from vueda.core.viewsets import filter_new_prefetch_lookups
 from vueda.user.serializers import UserSerializer
@@ -119,8 +121,18 @@ def test_vueda_viewset_warns_when_combined_with_read_only_viewset():
     assert InvalidCombinedViewSet is not None
 
 
-def test_filter_new_prefetch_lookups_drops_a_bare_string_duplicate():
+def test_filter_new_prefetch_lookups_keeps_a_prefetch_object_over_a_bare_string():
+    # The bare string has no queryset, so the plan's Prefetch queryset loads the relation.
     queryset = Timesheet.objects.prefetch_related("timesheet_entries")
+    plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
+
+    assert filter_new_prefetch_lookups(queryset, plan) == plan
+
+
+def test_filter_new_prefetch_lookups_drops_a_prefetch_object_that_an_existing_queryset_claims():
+    queryset = Timesheet.objects.prefetch_related(
+        Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.filter(hours__gt=0))
+    )
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
     assert filter_new_prefetch_lookups(queryset, plan) == []
@@ -140,15 +152,20 @@ def test_filter_new_prefetch_lookups_keeps_a_non_overlapping_lookup():
     assert filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
 
 
-def test_filter_new_prefetch_lookups_drops_a_plan_entry_the_existing_lookup_passes_through():
-    # "timesheet_entries__timesheet" registers "timesheet_entries" as its own cache key while
-    # Django walks it one level at a time, even though "timesheet_entries" never appears as a
-    # standalone lookup here -- the plan entry must be dropped by that cache key, not by comparing
-    # whole lookup paths.
+def test_filter_new_prefetch_lookups_keeps_a_prefetch_object_the_existing_lookup_passes_through():
+    # "timesheet_entries__timesheet" registers "timesheet_entries" as a cache key with no queryset
+    # while Django walks it one level at a time. The plan's Prefetch queryset loads that level.
     queryset = Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
-    assert filter_new_prefetch_lookups(queryset, plan) == []
+    assert filter_new_prefetch_lookups(queryset, plan) == plan
+
+
+def test_filter_new_prefetch_lookups_drops_a_bare_string_the_existing_lookup_passes_through():
+    # The cache key is "timesheet_entries", not the whole lookup path.
+    queryset = Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
+
+    assert filter_new_prefetch_lookups(queryset, ["timesheet_entries"]) == []
 
 
 def test_filter_new_prefetch_lookups_drops_a_second_plan_entry_for_the_same_path():
@@ -250,6 +267,75 @@ def test_build_prefetch_plan_applies_select_related_for_a_get_formatted_name_to_
     select_related = find_prefetch_for_or_fail(prefetch_related, "cart_set").queryset.query.select_related
 
     assert select_related == {"customer": {"user": {}}}
+
+
+def test_build_prefetch_plan_joins_formatted_name_select_related_for_a_to_one_expand():
+    # Cart resolves formatted_name through get_formatted_name() (self.customer.user.email) and
+    # declares formatted_name_select_related = ("customer__user",). A to-one `cart` expand joins
+    # those relations too, so resolving each cart's name costs no query per row.
+    serializer = expanded_serializer(store_serializers.CartItemSerializer, "cart")
+
+    select_related, _ = build_prefetch_plan(serializer, store_models.CartItem)
+
+    assert select_related == ["cart", "cart__customer__user"]
+
+
+def test_apply_prefetch_plan_moves_a_join_through_a_planned_prefetch_onto_its_queryset():
+    plan_prefetch = Prefetch("cart__customer", queryset=store_models.Customer.objects.all())
+
+    queryset = apply_prefetch_plan(
+        store_models.CartItem.objects.all(), ["cart", "cart__customer__user"], [plan_prefetch]
+    )
+
+    assert queryset.query.select_related == {"cart": {}}
+    prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "cart__customer")
+    assert prefetch.queryset.query.select_related == {"user": {}}
+
+
+def test_apply_prefetch_plan_loads_a_join_through_the_querysets_own_prefetch_with_a_string_lookup():
+    # Cart's manager joins customer__user. The queryset's own Prefetch for `customer` stays as
+    # declared, and `user` loads through a string lookup after it.
+    own_prefetch = Prefetch("customer", queryset=store_models.Customer.objects.all())
+
+    queryset = apply_prefetch_plan(store_models.Cart.objects.prefetch_related(own_prefetch), [], [])
+
+    assert not queryset.query.select_related
+    assert queryset._prefetch_related_lookups == (own_prefetch, "customer__user")
+
+
+def test_apply_prefetch_plan_keeps_a_join_alongside_a_to_attr_prefetch():
+    # A Prefetch with to_attr stores its rows under its own attribute, so the join on the same
+    # relation leaves it unaffected.
+    own_prefetch = Prefetch("customer", queryset=store_models.Customer.objects.all(), to_attr="prefetched_customer")
+
+    queryset = apply_prefetch_plan(store_models.Cart.objects.prefetch_related(own_prefetch), [], [])
+
+    assert queryset.query.select_related == {"customer": {"user": {}}}
+    assert queryset._prefetch_related_lookups == (own_prefetch,)
+
+
+def test_apply_prefetch_plan_runs_a_planned_prefetch_before_the_bare_string_that_reuses_it():
+    # Django raises ValueError when a lookup with a queryset reaches a level that an earlier lookup
+    # already fetched, so the planned Prefetch has to run before the bare string.
+    plan_prefetch = Prefetch("customer", queryset=store_models.Customer.objects.all())
+
+    queryset = apply_prefetch_plan(
+        store_models.CustomerOrder.objects.prefetch_related("customer__user"), [], [plan_prefetch]
+    )
+
+    assert queryset._prefetch_related_lookups == (plan_prefetch, "customer__user")
+
+
+def test_build_prefetch_plan_joins_the_to_one_relations_before_a_prefetched_to_one_relation():
+    # The source "cart.customer" crosses the to-one `cart` before it reaches Customer, whose
+    # formatted_name is an annotation. `cart` loads through a join rather than a query of its own.
+    serializer = expanded_serializer(store_serializers.CartItemCartCustomerSerializer, "customer")
+
+    select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CartItem)
+
+    assert select_related == ["cart"]
+    prefetch = find_prefetch_for_or_fail(prefetch_related, "cart__customer")
+    assert prefetch.queryset.query.annotations.keys() >= {"formatted_name"}
 
 
 class CartFormattedNameSelectRelatedTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -421,6 +507,358 @@ def test_list_serializer_applies_select_related_for_an_unfetched_manager_relatio
         counts[row_count] = len(captured)
 
     assert len(set(counts.values())) == 1, f"list serializer query count grows with row count: {counts}"
+
+
+@pytest.mark.django_db
+class TestToOneExpandAnnotatedFormattedName:
+    """A to-one expand onto Customer, whose `formatted_name` is the annotation that its
+    `formatted_name_lookup_expression` ("data__formatted_name") produces. The customer's name is its
+    user's email, through the `customer_data` view.
+
+    A join cannot carry an annotation for the joined model, so build_prefetch_plan loads the relation
+    through a Prefetch queryset that annotates it. The tests render the expanded `formatted_name` on
+    list and retrieve requests, under nested expands, and next to the viewset's own prefetches. Most
+    of them also check that the query count holds flat as the row count grows. The tests that read
+    Cart's name, which comes from get_formatted_name(), check that the relations that the method
+    reads load through a join.
+    """
+
+    @pytest.fixture(autouse=True)
+    def authenticated_client(self, api_client, cart_formatted_name_select_related_data):
+        user = cart_formatted_name_select_related_data.users["test_super_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @staticmethod
+    def create_customer(email):
+        user = get_user_model().objects.create(email=email, name="Customer", is_active=True)
+        return store_models.Customer.objects.create(user=user)
+
+    def create_orders(self, row_count):
+        """Replace every CustomerOrder with `row_count` orders, each for its own customer. Returns
+        each order's customer email, keyed by the order's primary key."""
+        store_models.CustomerOrder.objects.all().delete()
+        store_models.Customer.objects.all().delete()
+        order_state, _ = store_models.OrderState.objects.get_or_create(code="new", defaults={"name": "New"})
+        expected = {}
+        for i in range(row_count):
+            email = f"order-customer-{row_count}-{i}@domain.invalid"
+            order = store_models.CustomerOrder.objects.create(
+                order_number=i + 1,
+                customer=self.create_customer(email),
+                order_state=order_state,
+            )
+            expected[order.pk] = email
+        return expected
+
+    def create_cart_items(self, row_count):
+        """Replace every CartItem with `row_count` items, each in its own cart for its own customer.
+        Returns each item's customer email, keyed by the item's primary key."""
+        store_models.CartItem.objects.all().delete()
+        store_models.Cart.objects.all().delete()
+        store_models.Customer.objects.all().delete()
+        distributor = store_models.Distributor.objects.create(name=f"Distributor {row_count}", description="")
+        tangible_type, _ = store_models.TangibleType.objects.get_or_create(
+            code="to-one-expand", defaults={"name": "To-one expand"}
+        )
+        product = store_models.Product.objects.create(
+            distributor=distributor, name="Product", tangible_type=tangible_type, order_between=(1, 10)
+        )
+        product_option = store_models.ProductOption.objects.create(
+            product=product, name="Option", sku=f"sku-{row_count}", gtin=f"gtin-{row_count}"
+        )
+        expected = {}
+        for i in range(row_count):
+            email = f"cart-item-customer-{row_count}-{i}@domain.invalid"
+            cart = store_models.Cart.objects.create(customer=self.create_customer(email))
+            item = store_models.CartItem.objects.create(cart=cart, product_option=product_option, quantity=1)
+            expected[item.pk] = email
+        return expected
+
+    def test_list_returns_expanded_formatted_name(self, authenticated_client, settings):
+        """No other path on the CustomerOrder queryset joins `customer`."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_order_annotated_customer"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "customer"}
+
+        counts = {}
+        for row_count in (2, 10):
+            expected = self.create_orders(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.customerorder-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {row["id"]: row["customer"]["formatted_name"] for row in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to-one expand query count grows with row count: {counts}"
+
+    def test_list_returns_expanded_formatted_name_when_queryset_joins_the_relation(
+        self, authenticated_client, settings
+    ):
+        """Cart's `formatted_name_select_related` joins `customer__user` onto the Cart queryset, so
+        the queryset caches `customer` before the Prefetch for `customer` runs."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_cart_annotated_customer"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "customer"}
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = {}
+            for i in range(row_count):
+                email = f"cart-customer-{row_count}-{i}@domain.invalid"
+                cart = store_models.Cart.objects.create(customer=self.create_customer(email))
+                expected[cart.pk] = email
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.cart-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {row["id"]: row["customer"]["formatted_name"] for row in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"to-one expand query count grows with row count: {counts}"
+
+    def test_list_returns_expanded_formatted_name_under_a_to_many_expand(self, authenticated_client, settings):
+        """The `cart_set` Prefetch queryset comes from Cart's manager, which joins `customer__user`,
+        and `cart_set.customer` prefetches `customer` on that same queryset."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_with_annotated_carts"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_set,cart_set.customer"}
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.Cart.objects.all().delete()
+            store_models.Customer.objects.all().delete()
+            expected = {}
+            for i in range(row_count):
+                email = f"carts-customer-{row_count}-{i}@domain.invalid"
+                customer = self.create_customer(email)
+                store_models.Cart.objects.create(customer=customer)
+                expected[customer.pk] = email
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.customer-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {row["id"]: row["cart_set"][0]["customer"]["formatted_name"] for row in response.data["results"]}
+            assert actual == expected
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested to-one expand query count grows with row count: {counts}"
+
+    def test_list_returns_a_nested_expand_under_the_expanded_relation(self, authenticated_client, settings):
+        """`customer.user` loads through a join on the `customer` Prefetch queryset."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_order_annotated_customer"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "customer,customer.user"}
+
+        counts = {}
+        for row_count in (2, 10):
+            expected = self.create_orders(row_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.customerorder-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {
+                row["id"]: (row["customer"]["formatted_name"], row["customer"]["user"]["email"])
+                for row in response.data["results"]
+            }
+            assert actual == {pk: (email, email) for pk, email in expected.items()}
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested expand query count grows with row count: {counts}"
+
+    def test_retrieve_returns_expanded_formatted_name(self, authenticated_client, settings):
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_order_annotated_customer"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "customer"}
+        ((order_pk, email),) = self.create_orders(1).items()
+
+        response = authenticated_client.get(
+            reverse("store.customerorder-detail", args=[order_pk]), data=query, format="json"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["customer"]["formatted_name"] == email
+
+    def test_list_returns_a_customer_that_the_default_manager_hides(self, authenticated_client, settings, monkeypatch):
+        """Django loads a related object through the base manager, so a default manager that filters
+        rows leaves the expanded customer in the response."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_order_annotated_customer"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "customer"}
+        expected = self.create_orders(2)
+        hidden_customer_pk = store_models.CustomerOrder.objects.get(pk=next(iter(expected))).customer_id
+
+        class HidingManager(FormattedNameManager):
+            def get_queryset(self):
+                return super().get_queryset().exclude(pk=hidden_customer_pk)
+
+        hiding_manager = HidingManager()
+        hiding_manager.name = "objects"
+        hiding_manager.model = store_models.Customer
+        monkeypatch.setitem(store_models.Customer._meta.__dict__, "default_manager", hiding_manager)
+
+        response = authenticated_client.get(reverse("store.customerorder-list"), data=query, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        actual = {row["id"]: (row["customer"] or {}).get("formatted_name") for row in response.data["results"]}
+        assert actual == expected
+
+    @pytest.mark.parametrize("own_lookup", ["customer", "customer__user"])
+    def test_a_bare_string_prefetch_loads_through_the_plans_prefetch(self, own_lookup):
+        """A viewset's own string lookup has no queryset to annotate `formatted_name`, so the plan's
+        Prefetch loads `customer`, and the string lookup reuses its rows."""
+        expected = self.create_orders(2)
+        serializer = expanded_serializer(store_serializers.CustomerOrderAnnotatedCustomerSerializer, "customer")
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+
+        queryset = apply_prefetch_plan(
+            store_models.CustomerOrder.objects.prefetch_related(own_lookup), select_related, prefetch_related
+        )
+
+        assert {order.pk: order.customer.formatted_name for order in queryset} == expected
+
+    def test_nested_expand_loads_after_the_viewsets_own_prefetch(self):
+        """A viewset's own Prefetch for `customer` replaces the plan's Prefetch. The nested
+        `customer.user` expand loads after the viewset's Prefetch, at one query for the request
+        rather than one query per row."""
+        serializer = expanded_serializer(
+            store_serializers.CustomerOrderAnnotatedCustomerSerializer, "customer,customer.user"
+        )
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+        own_prefetch = Prefetch("customer", queryset=store_models.Customer.objects.all())
+
+        counts = {}
+        for row_count in (2, 10):
+            expected = self.create_orders(row_count)
+            queryset = apply_prefetch_plan(
+                store_models.CustomerOrder.objects.prefetch_related(own_prefetch), select_related, prefetch_related
+            )
+
+            with CaptureQueriesContext(connection) as captured:
+                actual = {order.pk: (order.customer.formatted_name, order.customer.user.email) for order in queryset}
+
+            assert actual == {pk: (email, email) for pk, email in expected.items()}
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested expand query count grows with row count: {counts}"
+
+    @pytest.mark.parametrize("own_prefetch", [False, True])
+    def test_to_many_expand_under_the_expanded_relation(self, own_prefetch):
+        """`customer.cart_set` loads through a Prefetch that runs after the one that loads `customer`,
+        whether the plan's Prefetch or a viewset's own Prefetch loads `customer`."""
+        serializer = expanded_serializer(
+            store_serializers.CustomerOrderAnnotatedCustomerCartsSerializer, "customer,customer.cart_set"
+        )
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+        viewset_queryset = store_models.CustomerOrder.objects.all()
+        if own_prefetch:
+            viewset_queryset = viewset_queryset.prefetch_related(
+                Prefetch("customer", queryset=store_models.Customer.objects.all())
+            )
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.CartItem.objects.all().delete()
+            store_models.Cart.objects.all().delete()
+            expected = self.create_orders(row_count)
+            for order in store_models.CustomerOrder.objects.all():
+                store_models.Cart.objects.create(customer_id=order.customer_id)
+            queryset = apply_prefetch_plan(viewset_queryset.all(), select_related, prefetch_related)
+
+            with CaptureQueriesContext(connection) as captured:
+                actual = {
+                    order.pk: (order.customer.formatted_name, len(order.customer.cart_set.all())) for order in queryset
+                }
+
+            assert actual == {pk: (email, 1) for pk, email in expected.items()}
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested to-many expand query count grows with row count: {counts}"
+
+    def test_join_through_a_plain_prefetch_stays_a_join(self):
+        """Cart's manager joins `customer__user`. A plain `prefetch_related("customer")` loads the same
+        objects that the join loads, so the join stays, and the Cart query alone resolves every
+        cart's get_formatted_name()."""
+        store_models.CartItem.objects.all().delete()
+        store_models.Cart.objects.all().delete()
+        store_models.Customer.objects.all().delete()
+        expected = {}
+        for i in range(3):
+            email = f"plain-prefetch-customer-{i}@domain.invalid"
+            cart = store_models.Cart.objects.create(customer=self.create_customer(email))
+            expected[cart.pk] = email
+        queryset = apply_prefetch_plan(store_models.Cart.objects.prefetch_related("customer"), [], [])
+
+        with CaptureQueriesContext(connection) as captured:
+            actual = {cart.pk: cart.get_formatted_name() for cart in queryset}
+
+        assert actual == expected
+        assert len(captured) == 1, [query["sql"] for query in captured]
+
+    def test_to_one_source_through_a_to_one_relation_joins_the_first_relation(self):
+        """The source "cart.customer" crosses `cart` first. `cart` loads through the join on the
+        CartItem query, and only the customers cost a query of their own."""
+        expected = self.create_cart_items(3)
+        serializer = expanded_serializer(store_serializers.CartItemCartCustomerSerializer, "customer")
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CartItem)
+        queryset = apply_prefetch_plan(store_models.CartItem.objects.all(), select_related, prefetch_related)
+
+        cart_item_query_and_customer_query = 2
+
+        with CaptureQueriesContext(connection) as captured:
+            actual = {item.pk: item.cart.customer.formatted_name for item in queryset}
+
+        assert actual == expected
+        assert len(captured) == cart_item_query_and_customer_query, [query["sql"] for query in captured]
+
+    def test_to_one_join_resolves_get_formatted_name_without_a_query_per_row(self):
+        """Cart stores no `formatted_name` annotation, so a `cart` expand joins `cart`, together with
+        the `customer__user` path that Cart's `formatted_name_select_related` declares for its
+        get_formatted_name()."""
+        expected = self.create_cart_items(3)
+        serializer = expanded_serializer(store_serializers.CartItemSerializer, "cart")
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CartItem)
+        queryset = apply_prefetch_plan(store_models.CartItem.objects.all(), select_related, prefetch_related)
+
+        with CaptureQueriesContext(connection) as captured:
+            actual = {item.pk: item.cart.get_formatted_name() for item in queryset}
+
+        assert actual == expected
+        assert len(captured) == 1, [query["sql"] for query in captured]
+
+
+@pytest.mark.django_db
+def test_to_one_expand_keeps_the_viewsets_own_prefetch(api_client, cart_formatted_name_select_related_data, settings):
+    """A viewset that prefetches a to-one relation with an annotated queryset of its own keeps that
+    annotation when a request expands the relation. OrderState stores `formatted_name` as a column,
+    so the plan for an `order_state` expand is a `select_related` join, and no `formatted_name`
+    annotation is involved."""
+    user = cart_formatted_name_select_related_data.users["test_super_user@domain.invalid"]
+    api_client.force_authenticate(user=user)
+    settings.ROOT_URLCONF = "tests.unit.core.urls_customer_order_prefetched_order_state"
+    query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "order_state"}
+
+    user = get_user_model().objects.create(email="order-state-customer@domain.invalid", name="Customer", is_active=True)
+    customer = store_models.Customer.objects.create(user=user)
+    expected = {}
+    for code in ("prefetch-new", "prefetch-shipped"):
+        order_state = store_models.OrderState.objects.create(code=code, name=code)
+        order = store_models.CustomerOrder.objects.create(
+            order_number=len(expected) + 1, customer=customer, order_state=order_state
+        )
+        expected[order.pk] = code.upper()
+
+    viewset_queryset = store_viewsets.CustomerOrderPrefetchedOrderStateViewSet.queryset.all()
+    assert {order.pk: order.order_state.code_upper for order in viewset_queryset} == expected
+
+    response = api_client.get(reverse("store.customerorder-list"), data=query, format="json")
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    actual = {row["id"]: row["order_state"].get("code_upper") for row in response.data["results"]}
+    assert actual == expected
 
 
 @pytest.mark.django_db
@@ -1274,11 +1712,13 @@ class TestTimesheetWithAliasedSupervisorViewSet(BaseTestAssertResponseMixin, Bas
 @pytest.mark.django_db
 class TestTimesheetWithPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
     """
-    ``TimesheetWithPrefetchedEntriesViewSet.queryset`` hand-declares its own
-    ``prefetch_related("timesheet_entries")``, the exact relation "entries" also expands. Before
-    ``filter_new_prefetch_lookups``, ``VuedaViewSet.get_queryset()`` would add a second, different
-    ``Prefetch`` for the same lookup on top of it, and Django raises ``ValueError`` the moment such
-    a queryset is evaluated -- this covers that it no longer does.
+    ``TimesheetWithPrefetchedEntriesViewSet.queryset`` declares its own
+    ``prefetch_related("timesheet_entries")``, the relation that "entries" also expands. The string
+    has no queryset, so the plan's ``Prefetch`` loads the entries. Django raises ``ValueError`` when a
+    lookup with a queryset reaches a relation that an earlier lookup already fetched, so
+    ``apply_prefetch_plan`` runs the plan's ``Prefetch`` first, and the string reuses its rows. The
+    plan's ``Prefetch`` annotates each entry's ``object_revision``, so a revision on each entry shows
+    that the plan's ``Prefetch`` served the response.
     """
 
     users_to_create: ClassVar[dict] = {
@@ -1312,15 +1752,14 @@ class TestTimesheetWithPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, Bas
         assert len(response.data["results"]) == 1
         entries = response.data["results"][0]["entries"]
         assert [e["id"] for e in entries] == [entry.id]
+        assert [e["object_revision"] for e in entries] == [object_revision_of(entry)]
 
 
 @pytest.mark.django_db
 class TestTimesheetWithAliasedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
     """
-    ``TimesheetWithAliasedEntriesViewSet.queryset`` is plain ``Timesheet.objects.all()``, so the
-    response is served entirely by the plan ``build_prefetch_plan`` derives -- unlike
-    ``TestTimesheetWithPrefetchedEntriesViewSet``, whose viewset's own hand-declared prefetch serves
-    the response and never exercises the plan's own ``Prefetch``. This covers the to-many branch's
+    ``TimesheetWithAliasedEntriesViewSet.queryset`` is plain ``Timesheet.objects.all()``, so the plan
+    that ``build_prefetch_plan`` derives serves the whole response. This covers the to-many branch's
     query count and its ``formatted_name`` pre-annotation, plus the plan colliding with itself when
     "entries" and "entries_again" both expand the same "timesheet_entries" relation.
     """
@@ -1387,13 +1826,13 @@ class TestTimesheetWithAliasedEntriesViewSet(BaseTestAssertResponseMixin, BaseTe
 @pytest.mark.django_db
 class TestTimesheetWithDeeperPrefetchedEntriesViewSet(BaseTestAssertResponseMixin, BaseTestUserMixin):
     """
-    ``TimesheetWithDeeperPrefetchedEntriesViewSet.queryset`` hand-declares
+    ``TimesheetWithDeeperPrefetchedEntriesViewSet.queryset`` declares
     ``prefetch_related("timesheet_entries__timesheet")``, a lookup that passes through -- but never
-    equals -- the "entries" expand's own "timesheet_entries" path. Before
-    ``filter_new_prefetch_lookups`` compared lookups by cache key rather than by lookup path, this
-    combination still raised ``ValueError`` at evaluation time, because Django registers
-    "timesheet_entries" as its own cache key while walking the deeper lookup one level at a time --
-    this covers that it no longer does.
+    equals -- the "entries" expand's own "timesheet_entries" path. Django fetches
+    "timesheet_entries" as an intermediate level of that lookup, with no queryset. The plan's
+    ``Prefetch`` loads that level instead: ``apply_prefetch_plan`` runs it first, and the deeper
+    lookup reuses its rows. A revision on each entry shows that the plan's ``Prefetch`` served the
+    response.
     """
 
     users_to_create: ClassVar[dict] = {
@@ -1426,6 +1865,7 @@ class TestTimesheetWithDeeperPrefetchedEntriesViewSet(BaseTestAssertResponseMixi
         assert response.status_code == HTTPStatus.OK, response_body(response)
         entries = response.data["results"][0]["entries"]
         assert [e["id"] for e in entries] == [entry.id]
+        assert [e["object_revision"] for e in entries] == [object_revision_of(entry)]
 
 
 @pytest.mark.django_db

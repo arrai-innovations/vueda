@@ -329,6 +329,113 @@ class CustomerWithCartsSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
+class CustomerAnnotatedNameSerializer(VuedaSerializer):
+    """Customer with VuedaSerializer's own `formatted_name` field, which reads the `formatted_name`
+    annotation that Customer's `formatted_name_lookup_expression` produces. CustomerSerializer
+    sources `formatted_name` from "data.formatted_name" instead, so it renders the name without the
+    annotation."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Customer
+        fields = ["id", "user"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "user": (UserSerializer, {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["id", "email"]}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CustomerOrderAnnotatedCustomerSerializer(VuedaSerializer):
+    """CustomerOrder expanding its to-one `customer` onto CustomerAnnotatedNameSerializer. Nothing
+    else on a CustomerOrder queryset joins `customer`."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CustomerOrder
+        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+        workflow_fields = False
+        expandable_fields = {
+            "customer": (CustomerAnnotatedNameSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CustomerWithAnnotatedCartsSerializer(VuedaSerializer):
+    """Customer expanding its reverse `cart_set` onto CartAnnotatedCustomerSerializer, which expands
+    each cart's to-one `customer` in turn."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Customer
+        fields = ["id", "cart_set"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "cart_set": ("tests.store.serializers.CartAnnotatedCustomerSerializer", {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CustomerOrderAnnotatedCustomerCartsSerializer(VuedaSerializer):
+    """CustomerOrder expanding its to-one `customer` onto CustomerWithAnnotatedCartsSerializer, which
+    expands the customer's reverse `cart_set` in turn."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CustomerOrder
+        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+        workflow_fields = False
+        expandable_fields = {
+            "customer": (CustomerWithAnnotatedCartsSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class OrderStateAnnotatedCodeSerializer(VuedaSerializer):
+    """OrderState with `code_upper`, a value that only an annotation on the OrderState queryset
+    provides."""
+
+    code_upper = serializers.CharField(read_only=True)
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.OrderState
+        fields = ["id", "code", "code_upper"] + VuedaSerializer.Meta.fields
+
+
+class CustomerOrderAnnotatedOrderStateSerializer(VuedaSerializer):
+    """CustomerOrder expanding its to-one `order_state` onto OrderStateAnnotatedCodeSerializer."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CustomerOrder
+        fields = ["id", "order_state"] + VuedaSerializer.Meta.fields
+        workflow_fields = False
+        expandable_fields = {
+            "order_state": (OrderStateAnnotatedCodeSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CartAnnotatedCustomerSerializer(VuedaSerializer):
+    """Cart expanding its to-one `customer` onto CustomerAnnotatedNameSerializer. Cart declares
+    `formatted_name_select_related = ("customer__user",)`, so a Cart queryset also joins
+    `customer`."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Cart
+        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "customer": (CustomerAnnotatedNameSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CartItemCartCustomerSerializer(VuedaSerializer):
+    """CartItem expanding `customer` from the source "cart.customer", which crosses the to-one `cart`
+    before it reaches Customer, whose `formatted_name` is an annotation."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CartItem
+        fields = ["id"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "customer": (CustomerAnnotatedNameSerializer, {"source": "cart.customer"}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
 class CartItemCartBaseManagerSerializer(VuedaSerializer):
     """`cart`'s queryset is built from `Cart._base_manager` rather than `Cart.objects`
     (`FormattedNameManager`), so a query-count test against this field's choices isolates

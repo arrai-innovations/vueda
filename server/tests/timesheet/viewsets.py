@@ -44,8 +44,9 @@ class TimesheetWithAliasedSupervisorViewSet(viewsets.VuedaViewSet):
 
 
 class TimesheetWithPrefetchedEntriesViewSet(viewsets.VuedaViewSet):
-    # Hand-declares its own prefetch for "timesheet_entries", the same relation "entries" (below)
-    # also expands -- reproducing the crash filter_new_prefetch_lookups exists to prevent.
+    # Declares its own string prefetch for "timesheet_entries", the relation that "entries" (below)
+    # also expands. The plan's Prefetch loads the entries and runs before the string, which reuses
+    # its rows.
     queryset = models.Timesheet.objects.prefetch_related("timesheet_entries")
     serializer_class = serializers.TimesheetWithPrefetchedEntriesSerializer
     permission_classes = [IsAuthenticated]
@@ -64,9 +65,9 @@ class TimesheetWithAliasedEntriesViewSet(viewsets.VuedaViewSet):
 
 
 class TimesheetWithDeeperPrefetchedEntriesViewSet(viewsets.VuedaViewSet):
-    # Hand-declares a prefetch that passes through -- but does not equal -- "entries"'s own
-    # "timesheet_entries" path, reproducing the crash a lookup-path comparison misses because
-    # Django registers "timesheet_entries" as its own cache key while walking the deeper lookup.
+    # Declares a string prefetch that passes through -- but does not equal -- "entries"'s own
+    # "timesheet_entries" path. Django fetches "timesheet_entries" as an intermediate level of that
+    # lookup, so the plan's Prefetch runs first, and the deeper lookup reuses its rows.
     queryset = models.Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
     serializer_class = serializers.TimesheetWithPrefetchedEntriesSerializer
     permission_classes = [IsAuthenticated]
