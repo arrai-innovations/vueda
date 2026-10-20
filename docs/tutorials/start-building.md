@@ -39,9 +39,9 @@ This guide assumes access to a [bash](https://www.gnu.org/software/bash/)-like s
 
 ### Package Registry Access
 
-VUEDA is available from [public PyPI](https://pypi.org/project/vueda/) and [public npm](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha). No registry credentials are needed.
+VUEDA is available from [public PyPI](https://pypi.org/project/vueda/) and [public npm](https://www.npmjs.com/package/@arrai-innovations/vueda). No registry credentials are needed.
 
-The v3 series is currently a prerelease. The templates select the v3 packages. When adding VUEDA to an existing project, use `uv add --prerelease allow vueda` for the server and `pnpm add @arrai-innovations/vueda@alpha` for the client. npm's `latest` tag still points to v1, so select `alpha` explicitly for v3.
+The v3 series is a prerelease, and the templates select it with version ranges. To add VUEDA to an existing project, use the same ranges. For the server, run `uv add "vueda[redis]>=3.0.0a5,<4"`. For the client, run `pnpm add "@arrai-innovations/vueda@^3.0.0-alpha.7"`. A range names the release series directly, so it does not depend on which version a registry tag such as `latest` points to.
 
 ## Scaffold a New Project
 
@@ -174,9 +174,9 @@ Now verify the server is responding:
 curl -i http://localhost:8000/routes/vueda.user/who-is/
 ```
 
-You should get a 200 response with an empty JSON object, indicating that the server is up and running but you are not authenticated.
+You should get a 200 response with the body `{"auth_pending_flow":null}`. The server is running, and you are not signed in.
 
-For the client, open your browser and navigate to `http://localhost:5173`. You should see VUEDA's Not Found page without console errors. No route matches `/` yet since we have not added any routes or components.
+For the client, open your browser and navigate to `http://localhost:5173`. The template's router redirects `/` to the `welcome` route. That route requires a signed-in user, so it sends you to the Sign In form at `/sign-in/`. The browser console should show no errors. You create a user to sign in with in [Verify the New API Endpoints](#verify-the-new-api-endpoints).
 
 ::: tip
 If you want your local environment to match production security settings (secure session and CSRF cookies, HTTPS-only), see [Local HTTPS Development](../guides/local-https-setup.md).
@@ -237,12 +237,8 @@ class OptionType(Lookup):
 
 
 class ProductOption(VuedaModel):
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="options"
-    )
-    option_type = models.ForeignKey(
-        OptionType, on_delete=models.PROTECT, related_name="product_options"
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="options")
+    option_type = models.ForeignKey(OptionType, on_delete=models.PROTECT, related_name="product_options")
     name = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
     sort_order = models.PositiveIntegerField(default=0)
@@ -488,16 +484,28 @@ uv run python manage.py migrate
 
 VUEDA enforces {@term CRUDL} permissions by default. Each model gets five permissions: `inventory.create_product`, `inventory.read_product`, `inventory.update_product`, `inventory.delete_product`, and `inventory.list_product`, and the same five for `optiontype` and `productoption`.
 
-Create a group with those 15 permissions and a user in that group:
+The `inventory` app has more permissions than these 15. VUEDA records each model's history in an event model (`productevent`, `optiontypeevent`, and `productoptionevent`), and each event model gets its own five permissions. Reading a product's history needs only `inventory.read_product`, so the group below leaves the event model permissions out.
+
+The group also needs `contenttypes.read_contenttype` and `contenttypes.list_contenttype`. The client reads each model's metadata ({@term Model Info}) before it opens the model, and those two permissions gate that metadata. [Model Info Access](../core-concepts/permission-model.md#model-info-access) explains this gate.
+
+Create a group with the 15 model permissions and the two model info permissions, and a user in that group:
 
 ```console
 uv run python manage.py shell -c '
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 
+model_permissions = Permission.objects.filter(
+    content_type__app_label="inventory",
+    content_type__model__in=["product", "optiontype", "productoption"],
+)
+model_info_permissions = Permission.objects.filter(
+    content_type__app_label="contenttypes",
+    codename__in=["read_contenttype", "list_contenttype"],
+)
 group, _ = Group.objects.get_or_create(name="Inventory Editors")
-group.permissions.set(Permission.objects.filter(content_type__app_label="inventory"))
-user = get_user_model().objects.create_user(email="you@domain.invalid", password="your-password", name="You")
+group.permissions.set([*model_permissions, *model_info_permissions])
+user = get_user_model().objects.create_user(email="you@example.com", password="your-password", name="You")
 user.groups.add(group)
 '
 ```
@@ -516,7 +524,7 @@ CSRF_COOKIE=your-project-csrf-token
 curl -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
   -X POST http://localhost:8000/routes/vueda.user/login/ \
-  -d '{"email":"you@domain.invalid","password":"your-password"}'
+  -d '{"email":"you@example.com","password":"your-password"}'
 
 # Extract the CSRF token for subsequent requests
 CSRF_TOKEN=$(awk -v name="$CSRF_COOKIE" '$6 == name {print $7}' $COOKIE_JAR)
@@ -569,7 +577,7 @@ curl -b $COOKIE_JAR -c $COOKIE_JAR \
 
 ## VUEDA Client
 
-The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, check the server connection and client setup, then add a sign-in route, a welcome view, and {@term CRUDL View Resolution}.
+The scaffolded client has Vue, Pinia, vue-router, and VUEDA's action router wired up. Next, check the server connection and client setup, then fill in {@term CRUDL View Resolution}.
 
 ### Connect to the Server
 
@@ -583,112 +591,31 @@ The scaffolded `client/src/index.css` and `client/src/main.js` already set up th
 For per-family or per-component loading and the order required for project patches, see [How the theme is registered](/core-concepts/theming-and-customization#how-the-theme-is-registered).
 :::
 
-### Add a Sign-In Route
+### Check the Sign-In and Welcome Routes
 
-The scaffolded router's `authRedirect` points to a `sign-in` route that does not exist yet. VUEDA ships {@api vue:component:ViewSignIn}, a ready-made sign-in form. The router step below routes `sign-in` to it, and it redirects to the `welcome` route after sign-in. To build your own form, see [Build Auth Views](../guides/build-auth-views.md).
+The scaffolded `client/src/router/index.js` already routes `sign-in` to {@api vue:component:ViewSignIn}, VUEDA's ready-made sign-in form. After sign-in, the form sends the user to the `welcome` route, which shows the scaffolded `client/src/views/ViewWelcome.vue`. Replace that view with your application's own home page when you have one. The router also has routes for the password reset, two-factor, and reauthentication pages. To build your own forms, see [Build Auth Views](../guides/build-auth-views.md).
 
-### Add a Welcome View
+### Configure CRUDL View Resolution
 
-After sign-in, `ViewSignIn` redirects to the route named `welcome`. Create `client/src/views/ViewWelcome.vue`:
-
-```vue
-<script setup>
-import { storeUser } from "@vueda/stores/storeUser.js";
-import { computed } from "vue";
-
-const userStore = storeUser();
-const displayName = computed(() => userStore.loggedInUser?.name || userStore.loggedInUser?.email || "there");
-</script>
-
-<template>
-    <div style="padding: 2rem">
-        <h1>Welcome, {{ displayName }}</h1>
-        <p>
-            You are signed in. Try navigating to
-            <RouterLink to="/inventory/product/list/">Products</RouterLink>
-            to see the inventory list.
-        </p>
-    </div>
-</template>
-```
-
-### Configure CRUDL View Resolution and Routes
-
-The scaffolded router calls {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} with an empty object and has no routes for `sign-in` or `welcome`. Replace `client/src/router/index.js` with:
+The scaffolded router passes an empty `crudComponents` object to {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}, so no {@term CRUDL} route has a view yet. In `client/src/router/index.js`, replace this line:
 
 ```javascript
-import { requireCurrentUser } from "@vueda/router/guards.js";
-import { makeCRUDRoutes } from "@vueda/router/makeCrud.js";
-import { setCrudComponents } from "@vueda/router/routerComponent.js";
-import { createRouter, createWebHistory } from "vue-router";
-
-export function getRouter(app, pinia) {
-    const crudComponents = {
-        list: async () => (await import("@vueda/views/ViewList.vue")).default,
-        create: async () => (await import("@vueda/views/ViewCreate.vue")).default,
-        read: async () => (await import("@vueda/views/ViewRead.vue")).default,
-        update: async () => (await import("@vueda/views/ViewUpdate.vue")).default,
-        destroy: async () => (await import("@vueda/views/ViewDestroy.vue")).default,
-    };
-    setCrudComponents(crudComponents);
-
-    const router = createRouter({
-        history: createWebHistory(import.meta.env.BASE_URL),
-        routes: [],
-    });
-
-    const routes = [
-        {
-            path: "/sign-in/",
-            name: "sign-in",
-            component: () => import("@vueda/views/ViewSignIn.vue"),
-            meta: { title: "Sign In" },
-        },
-        {
-            path: "/welcome/",
-            name: "welcome",
-            component: () => import("@/views/ViewWelcome.vue"),
-            meta: { title: "Welcome" },
-            beforeEnter: () => requireCurrentUser(router, pinia),
-        },
-        ...makeCRUDRoutes({
-            component: async () => (await import("@vueda/views/ViewActionRouter.vue")).default,
-            authRedirect: { name: "sign-in" },
-            groupsRedirect: { name: "welcome" },
-            actionRedirect: { name: "not-found" },
-            groups: [],
-            vueApp: app,
-            router,
-            pinia,
-        }),
-        {
-            path: "/:pathMatch(.*)*",
-            name: "not-found",
-            component: async () => (await import("@vueda/views/ViewNotFound.vue")).default,
-            meta: {
-                title: "Not Found",
-                titles: {
-                    view: "Not Found",
-                },
-            },
-            beforeEnter: () => requireCurrentUser(router, pinia),
-            props: (route) => {
-                return {
-                    ...(route.params || {}),
-                    ...(route.query || {}),
-                    title: route.meta.title,
-                };
-            },
-        },
-    ];
-
-    for (const route of routes) {
-        router.addRoute(route);
-    }
-
-    return router;
-}
+const crudComponents = {};
 ```
+
+with this map:
+
+```javascript
+const crudComponents = {
+    list: async () => (await import("@vueda/views/ViewList.vue")).default,
+    create: async () => (await import("@vueda/views/ViewCreate.vue")).default,
+    read: async () => (await import("@vueda/views/ViewRead.vue")).default,
+    update: async () => (await import("@vueda/views/ViewUpdate.vue")).default,
+    destroy: async () => (await import("@vueda/views/ViewDestroy.vue")).default,
+};
+```
+
+Keep the rest of the router as it is.
 
 `crudComponents` maps each {@term CRUDL} action to a built-in view ({@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, {@api vue:component:ViewDestroy}). {@api vue:component:ViewActionRouter} uses this map to resolve which component to render. These views auto-discover fields, filters, and permissions from {@term Model Info}, so no per-model client code is needed for a working baseline. See [Routing and View Resolution](/core-concepts/routing-and-view-resolution-model) for the full resolution chain.
 
@@ -724,9 +651,9 @@ cd client && pnpm dev
 Open `http://localhost:5173/sign-in/` in your browser.
 
 1. You should see the Sign In form.
-2. Sign in as `you@domain.invalid` with the password you set earlier.
+2. Sign in as `you@example.com` with the password you set earlier.
 3. After login you should land on `/welcome/`.
-4. Click the "Products" link (or navigate to `http://localhost:5173/inventory/product/list/`). The Starter Kit product you created with curl appears here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. The server router registers each model under the same name (see [Router and URLs](#router-and-urls)).
+4. Navigate to `http://localhost:5173/inventory/product/list/`. The Starter Kit product you created with curl appears here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. The server router registers each model under the same name (see [Router and URLs](#router-and-urls)).
 5. Use the "Create" action to add a product and verify it appears in the list.
 6. Open `http://localhost:5173/inventory/product/read/1` to see the Starter Kit read view, then try update and destroy from there. The next section links list rows to this view.
 

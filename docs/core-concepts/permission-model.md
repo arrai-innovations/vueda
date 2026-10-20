@@ -45,6 +45,14 @@ On a workflow-enabled model, `ObjectPermissions` can defer its own model-scope d
 
 {@term State Permission} rules grant or deny the same CRUD codenames that baseline permissions use, so the {@term Workflow Overlay} adds no separate permission namespace. They form layer 2 of an object check, and [`filter_rows_for_user`]{@api py:function:vueda.core.permissions.filter_rows_for_user} applies them to `list` rows even when the model defines no `RowLevelPermissions`. Executing a transition is a separate check: the user needs every {@term Workflow Permission} and {@term Transition Permission} that the permission rows name, and the transition must leave the object's current state. A workflow or transition with no permission rows denies every user. [Workflow as a Permission Overlay](./workflow-permission-overlay) describes state rule evaluation, the transition gates, and the gate that each workflow endpoint applies.
 
+## Model Info Access
+
+{@term Model Info} has its own permission gate. The gate is separate from the permissions of the model that the metadata describes. Each model info entry is a {@term Content Type}, so `ObjectPermissions` checks content type codenames on [`ModelInfoViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoViewSet}.
+
+Model info for one model requires `contenttypes.read_contenttype`. The list of registered models requires `contenttypes.list_contenttype`. A user without them gets `403` from model info, even when the user holds every permission on the model itself. The client loads model info before it opens a model's route, so that user cannot open any model in the client. Grant both permissions to every group whose users work in the client.
+
+These two permissions grant access to metadata only. Each request to the model's own endpoints still needs the model's own codename.
+
 ## Server Authority and UI Visibility
 
 Every decision on this page is server enforcement. The client reads permission results to choose which routes, buttons, and actions to show, and that choice is UI behavior only. An object's {@term Available Actions} are the actions that the server allows on it; [Action Contract and Availability](./action-contract-and-availability) describes how the server computes them. [Authorization vs UI Semantics](./authorization-vs-ui-semantics) describes where server enforcement ends and UI visibility begins.
