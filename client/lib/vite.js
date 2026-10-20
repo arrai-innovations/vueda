@@ -204,7 +204,11 @@ export const vuedaViteConfig = (options = {}) => {
             ? {
                   vue: path.resolve(topNodeModulesPath, "vue/dist/vue.runtime.esm-bundler.js"),
                   pinia: path.resolve(topNodeModulesPath, "pinia/dist/pinia.esm-browser.js"),
-                  "vue-router": path.resolve(topNodeModulesPath, "vue-router/dist/vue-router.esm-bundler.js"),
+                  // The package directory, not a dist file: Vite resolves its entry through the package's
+                  // `exports`. vue-router renames its bundler build between releases, 4.6.0 ships no
+                  // `vue-router.esm-bundler.js`, and later 4.6 releases keep that file only as a shim that logs
+                  // a deprecation warning on every page load.
+                  "vue-router": path.resolve(topNodeModulesPath, "vue-router"),
               }
             : {}),
         ...extraAliases,

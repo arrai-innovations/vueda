@@ -63,6 +63,26 @@ describe("lib/vite.js", () => {
         }
     });
 
+    it("resolves the vue-router alias to the package's import entry", async () => {
+        const packageDir = fs.realpathSync(path.join(clientRoot, "node_modules/vue-router"));
+        const packageJson = JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf-8"));
+        const vueda = vuedaViteConfig({ root: clientRoot, enableDedupe: false });
+        const server = await createServer({
+            root: clientRoot,
+            configFile: false,
+            ...vueda,
+            optimizeDeps: { noDiscovery: true },
+            server: { middlewareMode: true },
+        });
+        try {
+            const resolved = await server.pluginContainer.resolveId("vue-router");
+            expect(resolved.id).toBe(path.join(packageDir, packageJson.exports["."].import));
+            expect(resolved.id).not.toContain("esm-bundler");
+        } finally {
+            await server.close();
+        }
+    });
+
     it("leaves the router excluded when the consumer has no action view alias", () => {
         const config = vuedaViteConfig({ enableDedupe: false });
         expect(config.build).toBeUndefined();
