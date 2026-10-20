@@ -10,10 +10,14 @@ _exclude:
     - ".DS_Store"
     - ".svn"
     - "{% if js_package_manager == 'pnpm' %}.copier-exclude-nothing{% else %}pnpm-workspace.yaml{% endif %}"
-_tasks:
-    - "# VUEDA DX monorepo template is now in place."
-    - "# Next: run `just bootstrap`"
-    - "# Then create server/config.local.toml (at minimum: SECRET_KEY)"
+_message_after_copy: |
+    Next steps:
+
+    cd {{ _copier_conf.dst_path }}
+    git init
+    just bootstrap
+
+    Then set SECRET_KEY, DATABASE_URL, and CACHE_URL in server/config.local.toml.
 
 project_name:
     type: str
