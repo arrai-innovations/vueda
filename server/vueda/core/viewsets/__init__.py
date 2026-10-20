@@ -1035,11 +1035,15 @@ class NoExtraFieldsForViewSetMixin:
         """
         Reject each ``f`` and ``e`` value the serializer cannot render or expand.
 
+        ``list``, ``retrieve``, ``create``, and ``update`` (which ``partial_update`` calls) run this
+        check. A write runs it before the body is validated, so a rejected request saves nothing.
+
         Every invalid name in both parameters goes into one error, keyed by the name. A name invalid
         in both parameters carries both messages.
 
         :param request: The request whose ``f`` and ``e`` query values are checked.
-        :param serializer: The action's serializer, built with the action's serializer context.
+        :param serializer: The action's serializer, built with the action's serializer context. It
+            is the serializer that renders the response.
         :raises VuedaValidationError: When an ``f`` value is not a valid field or wildcard, or an ``e``
             value is not a permitted expand or wildcard.
         """
@@ -1093,38 +1097,6 @@ class NoExtraFieldsForViewSetMixin:
 
         if errors:
             raise VuedaValidationError(errors)
-
-    @staticmethod
-    def validate_flex_expand_param_for_write(request, serializer):
-        """
-        Reject each ``e`` value a write action does not permit, before the body is validated.
-
-        drf-flex-fields2 keeps only the permitted expands and drops the rest without an error, so a
-        write action with a ``permit_<action>_expands`` list would accept an unknown or unpermitted
-        expand and read the relation as a primary key. This applies the same rules and messages as
-        :meth:`validate_flex_expand_and_field_param`, and raises in the standard validation shape.
-        ``f`` and ``om`` are not checked here.
-
-        :param request: The request whose ``e`` query values are checked.
-        :param serializer: The action's serializer, built with the action's serializer context.
-        :raises VuedaValidationError: When an ``e`` value is not a permitted expand or wildcard.
-        """
-        if settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] not in request.query_params:
-            return
-        submitted_expand_fields = frozenset(
-            serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
-        )
-        if not submitted_expand_fields:
-            return
-        max_depth = (
-            max([field.count(".") for field in submitted_expand_fields] + permitted_expand_depths(serializer)) + 1
-        )
-        valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
-            serializer, 0, max_depth
-        )
-        messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
-        if messages:
-            raise VuedaValidationError({key: [message] for key, message in messages.items()})
 
     def retrieve(self, request, *args, **kwargs):
         self.reject_unrecognized_query_params(request, self.get_retrieve_allowed_fields())
@@ -1200,6 +1172,11 @@ class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
 
+    A bulk request names its rows in a ``pks`` body. ``VuedaViewSet.get_bulk_queryset`` converts
+    the keys and applies the row-level and object permission checks for ``update``, the checks that
+    a single-object request makes. A key that names no row, or a row that the request may not
+    change, answers 400 before anything changes.
+
     Both actions consult ``get_warnings_for_object``/``get_warnings`` (provided by
     ``WarningConfirmationMixin``, so any ``VuedaViewSet``) after validation and before the write,
     gating the write behind a 409 confirmation when warnings are reported.
@@ -1224,12 +1201,7 @@ class DeactivateActionViewSetMixin:
                 status=status.HTTP_200_OK,
             )
 
-        serializer = PrimaryKeyListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pks = serializer.validated_data["pks"]
-
-        queryset = self.get_queryset()
-        queryset = queryset.filter(pk__in=pks)
+        queryset, requested_pks = self.get_bulk_queryset(request, perm_type="update")
 
         already_deactivated = []
         for instance in queryset:
@@ -1240,7 +1212,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             elif not instance.is_active:
-                already_deactivated.append(instance.pk)
+                already_deactivated.append(requested_pks[instance.pk])
 
         if already_deactivated:
             errors = {}
@@ -1250,8 +1222,8 @@ class DeactivateActionViewSetMixin:
 
         gate_warnings(request, self.get_warnings("deactivate", queryset))
         # Perform bulk deactivation in a single query
-        queryset.update(is_active=False)
-        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=status.HTTP_200_OK)
+        updated = queryset.update(is_active=False)
+        return Response({"detail": f"Successfully deactivated {updated} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
     def activate(self, request, pk=None):
@@ -1274,12 +1246,7 @@ class DeactivateActionViewSetMixin:
                 status=status.HTTP_200_OK,
             )
 
-        serializer = PrimaryKeyListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pks = serializer.validated_data["pks"]
-
-        queryset = self.get_queryset()
-        queryset = queryset.filter(pk__in=pks)
+        queryset, requested_pks = self.get_bulk_queryset(request, perm_type="update")
 
         already_activated = []
         for instance in queryset:
@@ -1290,7 +1257,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             elif instance.is_active:
-                already_activated.append(instance.pk)
+                already_activated.append(requested_pks[instance.pk])
         if already_activated:
             errors = {}
             for pk in already_activated:
@@ -1298,9 +1265,9 @@ class DeactivateActionViewSetMixin:
             raise VuedaValidationError(errors)
         gate_warnings(request, self.get_warnings("activate", queryset))
         # Perform bulk deactivation in a single query
-        queryset.update(is_active=True)
+        updated = queryset.update(is_active=True)
 
-        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=status.HTTP_200_OK)
+        return Response({"detail": f"Successfully activated {updated} objects."}, status=status.HTTP_200_OK)
 
 
 class VuedaViewSet(
@@ -1410,12 +1377,12 @@ class VuedaViewSet(
             )
 
     def create(self, request, *args, **kwargs):
-        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        self.validate_flex_expand_and_field_param(request, self.get_serializer())
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         # `partial_update` calls this too.
-        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        self.validate_flex_expand_and_field_param(request, self.get_serializer())
         return super().update(request, *args, **kwargs)
 
     def destroy_validation(self, objs) -> None:
@@ -1443,6 +1410,39 @@ class VuedaViewSet(
             allowed_ids.append(instance.pk)
         return queryset.filter(pk__in=allowed_ids)
 
+    def get_bulk_queryset(self, request, perm_type):
+        """
+        Return the rows that a bulk request's ``pks`` body names, after permission filtering.
+
+        Each entry converts through the model's primary key field, as
+        :class:`~vueda.core.serializers.PrimaryKeyListSerializer` describes. The rows then pass
+        through :meth:`apply_row_level_filter` for ``perm_type`` and through
+        :meth:`apply_object_permission_filter`, the checks that a single-object request makes.
+
+        A key that names no row raises :class:`~vueda.core.exceptions.VuedaValidationError` with
+        "Object with pk=... does not exist." for that key. A key that names a row that the request
+        may not change raises the same error, so the response does not reveal that the row exists.
+
+        Returns the queryset and a dict that maps each converted key to the value that the request
+        sent. Key errors use the sent value, because a composite key converts to a tuple, which
+        cannot be a JSON object key.
+        """
+        model = self.get_queryset().model
+        serializer = PrimaryKeyListSerializer(data=request.data, model=model)
+        serializer.is_valid(raise_exception=True)
+        requested_pks = dict(zip(serializer.validated_data["pks"], serializer.initial_data["pks"], strict=True))
+
+        queryset = self.get_queryset().filter(pk__in=list(requested_pks))
+        queryset = self.apply_row_level_filter(queryset, perm_type=perm_type)
+        queryset = self.apply_object_permission_filter(queryset)
+        found_pks = set(queryset.values_list("pk", flat=True))
+        missing_pks = [sent for key, sent in requested_pks.items() if key not in found_pks]
+        if missing_pks:
+            raise VuedaValidationError(
+                {missing_pk: [f"Object with pk={missing_pk} does not exist."] for missing_pk in missing_pks}
+            )
+        return queryset, requested_pks
+
     def destroy(self, request, **kwargs):
         """Delete one or more objects."""
         pk = kwargs.get("pk")
@@ -1456,21 +1456,7 @@ class VuedaViewSet(
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        serializer = PrimaryKeyListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pks = serializer.validated_data["pks"]
-
-        queryset = self.get_queryset()
-        queryset = queryset.filter(pk__in=pks)
-        queryset = self.apply_row_level_filter(queryset, perm_type="delete")
-        queryset = self.apply_object_permission_filter(queryset)
-        if len(pks) != queryset.count():
-            found_pks = set(queryset.values_list("pk", flat=True))
-            missing_pks = set(pks) - found_pks
-            errors = {}
-            for missing_pk in missing_pks:
-                errors[missing_pk] = [f"Object with pk={missing_pk} does not exist."]
-            raise VuedaValidationError(errors)
+        queryset, _requested_pks = self.get_bulk_queryset(request, perm_type="delete")
 
         self.destroy_validation(queryset)
         gate_warnings(request, self.get_warnings("destroy", queryset))

@@ -15,7 +15,7 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The reactive form model instance.
  * @property {{ [key: string]: unknown }} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when rendering inline.
  * @property {{ [key: string]: unknown }} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
- * @property {{ [key: string]: unknown }} [fieldProps] - Additional field-level props.
+ * @property {{ [key: string]: unknown }} [fieldProps] - Field props that win over `formModel.fieldProps[formModelName]` and attrs. Their `themeOverride` merges with the form model's instead of replacing it. Their `readOnly` is ignored.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
  * @property {boolean} [hideLabel] - Overrides label visibility on the field component while retaining messages.
  * @property {boolean} isFilter - Whether to this was used with a filter model.
@@ -147,10 +147,14 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             }
             return !!fieldSetContext;
         });
+        // The renderer's own `fieldProps` prop is the most specific source, so it wins over the form
+        // model's entry and attrs. It cannot set `readOnly`, which the form model resolves from every
+        // configuration layer. The keys that the renderer computes below still win over all of them.
         const fieldProps = computed(() => ({
             ...omit(props.objectGridFieldSlotProps, ["value"]),
             ...omit(props.formModel.fieldProps[props.formModelName], ["themeOverride"]),
             ...omit(attrs, ["class"]),
+            ...omit(props.fieldProps, ["themeOverride", "readOnly"]),
             name: unref(fieldValuePath),
             formModelName: props.formModelName,
             modelValue: props.objectGridFieldSlotProps?.value,
@@ -158,6 +162,7 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             ...(props.hideLabel !== undefined ? { hideLabel: props.hideLabel } : {}),
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
+                props.fieldProps?.themeOverride,
                 props.themeOverride,
             ),
         }));
@@ -168,6 +173,7 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             ...props.widgetProps,
             themeOverride: mergeTheme(
                 props.formModel.fieldProps[props.formModelName]?.themeOverride,
+                props.fieldProps?.themeOverride,
                 props.formModel.widgetProps[props.formModelName]?.themeOverride,
                 props.themeOverride,
             ),

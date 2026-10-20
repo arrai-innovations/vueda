@@ -23,6 +23,7 @@ This guide shows how to replace the component that VUEDA renders for a form or f
 | One field in every view of a model, or in one view | [Model config](#set-an-override-in-model-config) |
 | One field in a view or form you render yourself    | [View or form props](#pass-overrides-as-props)   |
 | The markup around one field in one rendered form   | [A slot](#replace-one-field-with-a-slot)         |
+| The layout of all fields in one rendered form      | [A `fields` slot](#lay-out-the-fields-yourself)  |
 | Every field of one type, in every model            | [A type mapping](#map-a-field-type-to-a-widget)  |
 
 ## Set an Override in Model Config
@@ -96,7 +97,7 @@ modelConfigStore.setConfig(
 );
 ```
 
-The expanded field itself has a field component ({@api vue:component:FieldSetTabularInline} here) and no widget, so a `widgetComponents` entry for `line_items` has no effect. [Build Nested/Inlined Writes](./nested-writable-inlines) describes the inline setup and how the rows save.
+The expanded field itself has a field component ({@api vue:component:FieldSetTabularInline} here) and no widget, so a `widgetComponents` entry for `line_items` has no effect. [Render a Relation as an Inline](./render-relations-as-inlines) describes the inline setup. [Build Nested/Inlined Writes](./nested-writable-inlines) describes how the rows save.
 
 ## Replace One Field with a Slot
 
@@ -127,9 +128,30 @@ This slot wraps the default widget in extra markup:
 
 `slotProps.slots` holds the other slots that you passed to the form, as `[name, renderer]` pairs. Pass them through, as above, when you render the default component yourself. Without the passthrough, your label, help, message, and named widget slots do not reach the component.
 
-A slot name must match exactly, including the dotted name and the `filter-` prefix. A misspelled slot name is ignored, and the field renders its default.
+A slot name must match exactly, including the dotted name and the `filter-` prefix. `FormModel` checks the first segment of each `field(<path>)` and `widget(<path>)` slot against its fields. A slot whose path starts with no field of the form throws in development and logs a console warning in production. The form ignores any other misspelling, such as a misspelled `label` suffix or a wrong subfield inside a fieldset. The field then renders its default.
 
-`FormModel`'s [`fields`]{@api vue:component:FormModel:slot:fields} slot replaces the loop that renders a `FieldRenderer` for each field, and with it the forwarding of the per-field slots above. A per-field slot applies inside a custom `fields` layout only when that layout renders a `FieldRenderer` for the field and forwards the slot to it.
+## Lay Out the Fields Yourself
+
+`FormModel`'s [`fields`]{@api vue:component:FormModel:slot:fields} slot replaces the loop that renders each field. Use it to group fields into sections or grids. Render each field with {@api vue:component:FormModelField}, which receives the per-field slots that you pass to `FormModel` or to a view:
+
+```vue
+<FormModel app="shop" model="purchaseorder">
+    <template #fields="{ fieldNames, formModel }">
+        <FormSection v-for="name in fieldNames" :key="name">
+            <FormModelField :form-model="formModel" :form-model-name="name" />
+        </FormSection>
+    </template>
+    <template #widget(sku)="slotProps">
+        <SkuPicker v-bind="slotProps.widgetProps" />
+    </template>
+</FormModel>
+```
+
+`FormModelField` accepts every `FieldRenderer` prop. A slot that you pass to `FormModelField` directly wins over the form's slot with the same name.
+
+A plain `FieldRenderer` does not receive the form's per-field slots. When a `fields` layout renders no `FormModelField` and the form has per-field slots, `FormModel` throws in development and logs a console warning in production. To use a plain `FieldRenderer`, declare the per-field slots on it instead of on the form.
+
+The `fields` slot also binds `allFieldProps`, the merged field props for every field, and `allWidgetProps`, the same for widgets. `FormModelField` already applies both. Do not pass an `allFieldProps` entry to its `fieldProps` prop, because that prop wins over the merged entry and applies it a second time.
 
 ## Write a Custom Widget
 
@@ -244,5 +266,9 @@ The outer key is the `typeSerializer`, and the inner key is the `typeModel`. The
 **`WidgetUnmapped` renders for a field.** The field's type maps to it. Map the type to a widget, as in [Map a Field Type to a Widget](#map-a-field-type-to-a-widget).
 
 **A slot override loses your label, help, or message slots.** The slot renders the default component without passing `slotProps.slots` through. Add the passthrough shown in [Replace One Field with a Slot](#replace-one-field-with-a-slot).
+
+**A form with a `fields` slot throws `renders no FormModelField`.** The layout renders a plain `FieldRenderer`, so the form's per-field slots cannot reach the fields. Render each field with `FormModelField`, as in [Lay Out the Fields Yourself](#lay-out-the-fields-yourself).
+
+**A form throws `is not a field of the form`.** A `field(<path>)` or `widget(<path>)` slot names a field that the form does not render. Check the slot name against the form's `fields`.
 
 **The override works in the update view but not the read view.** The read view renders every field read-only, and a read-only field uses the read-only widget. Replace the field component, fill the `widget(<name>)` slot, or give the type a `readOnlyWidget`.

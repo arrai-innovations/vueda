@@ -51,6 +51,16 @@ expandable_fields = {
 
 The value must be a tuple. A list such as `[TagSerializer, {}]` fails the system check `vueda_core.E001`. The check [`check_expandable_fields_configuration`]{@api py:function:vueda.core.checks.check_expandable_fields_configuration} runs with Django's system checks, for example on `manage.py check`. It covers each routed viewset's `serializer_class`, each registered serializer, and every serializer they reach through nested fields and `expandable_fields`.
 
+Do not name an expand `related` or `calculated`. The client reads a path that starts with `related.` or `calculated.` from the row's related or calculated object. The fields of an expand with either name would render blank. The system check `vueda_core.E022` reports such an expand. Give the expand another name, and set `source` in its options to read the model field:
+
+```python
+expandable_fields = {
+    "related_widget": (WidgetSerializer, {"source": "related"}),
+}
+```
+
+The same holds for a dotted path through a serializer field named `related` or `calculated`, such as a JSON field. Building the model config throws when `displayFields`, `fetchFields`, or `submitFields` names such a path. A field of either name still works as a single segment, such as `related` in `displayFields`.
+
 Each expanded relation adds one join or prefetch query per request and adds its data to every row. [Field and Expand Semantics](../core-concepts/field-and-expand-semantics) describes the query plan.
 
 ## Expand a generic foreign key
@@ -186,9 +196,9 @@ An expanded object never carries {@term Available Actions}, and `f=category.avai
 
 ## Check the requests
 
-`list` and `retrieve` requests reject an `f` or `e` name that the endpoint does not offer. Each invalid name is a key in the `400` body, and its message lists the valid names. The body has the standard validation shape: each key maps to a list of message strings. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes how unknown query keys are rejected, and [Error and Validation Contract](../core-concepts/error-and-validation-contract) describes error bodies.
+`list`, `retrieve`, `create`, `update`, and `partial_update` requests reject an `f` or `e` name that the endpoint does not offer. Each invalid name is a key in the `400` body, and its message lists the valid names. The body has the standard validation shape: each key maps to a list of message strings. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes how unknown query keys are rejected, and [Error and Validation Contract](../core-concepts/error-and-validation-contract) describes error bodies.
 
-Create and update requests do not check `f`. An unknown name there is ignored, and the response carries only the known fields.
+A write checks the names before it validates the body, so a write that gets this `400` saves nothing.
 
 Confirm the setup in the browser's network panel:
 
@@ -207,7 +217,9 @@ Confirm the setup in the browser's network panel:
 
 **Building the model config throws `Model config for <app>.<model> is invalid`.** The message names each problem. A dotted entry such as `category.name` in `displayFields`, `fetchFields`, or `submitFields` needs `category` in the same view's `expand`. An `expand` entry must name an expand that model info declares.
 
-**A form shows a select where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Add the relation to that view's `expand`.
+**`manage.py check` reports `vueda_core.E022`, or the model config throws for a reserved name.** The serializer names an expand or field `related` or `calculated`. Rename it, as in [Declare expandable fields](#declare-expandable-fields).
+
+**A form shows a select where an inline fieldset was expected.** A form renders a relation as an inline fieldset only when the view's `expand` names it. Add the relation to that view's `expand`. [Render a Relation as an Inline](./render-relations-as-inlines) describes the rest of the inline setup.
 
 **A write with a nested object returns a type error on the relation.** The request's `e` omits the relation, so the server reads the relation as a primary key. Add the relation to `e`, and the nested object is accepted. The server answers a misspelled or unpermitted `e` name with a `400` that names it, before it validates the body.
 
