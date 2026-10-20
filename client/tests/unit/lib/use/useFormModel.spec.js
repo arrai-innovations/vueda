@@ -501,6 +501,82 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.fieldComponents.department).toBe(availableFields.FieldSetSingularStackedInline);
         });
     });
+    describe("reverse foreign key", () => {
+        const relationDetail = (typeModel, extra = {}) => ({
+            name: "items",
+            typeSerializer: "ManyRelatedField",
+            typeModel,
+            many: true,
+            choices: true,
+            readOnly: false,
+            ...extra,
+        });
+
+        /**
+         * Build form state for a form with one relation field, configured the way a view leaves it.
+         *
+         * @param {string} view - The form's view.
+         * @param {object} detail - The relation's field details.
+         * @param {string[]} configExpand - The model config's `expand`.
+         * @returns {Promise<object>} The form state.
+         */
+        async function buildRelationForm(view, detail, configExpand = []) {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            modelConfig.config = {
+                fieldDetails: { items: detail },
+                expandDetails: { items: { many: true, f: {} } },
+                expand: configExpand,
+            };
+            const props = makeBaseProps({
+                view,
+                fields: ["items"],
+                expand: undefined,
+                fieldDetails: undefined,
+                expandDetails: undefined,
+            });
+            const state = await withSetup(() => useFormModel(props));
+            await flushPromises();
+            return state;
+        }
+
+        for (const view of ["create", "update"]) {
+            scopedIt(`renders a writable unexpanded reverse foreign key read-only on the ${view} form`, async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildRelationForm(view, relationDetail("ForeignKey"));
+
+                expect(state.widgetComponents.items).toBe(availableWidgets.WidgetReadOnly);
+                expect(state.fieldProps.items.readOnly).toBe(true);
+            });
+
+            scopedIt(`renders a read-only unexpanded reverse foreign key read-only on the ${view} form`, async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildRelationForm(view, relationDetail("ForeignKey", { readOnly: true }));
+
+                expect(state.widgetComponents.items).toBe(availableWidgets.WidgetReadOnly);
+            });
+
+            scopedIt(`renders an expanded reverse foreign key as an inline on the ${view} form`, async () => {
+                const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildRelationForm(view, relationDetail("ForeignKey"), ["items"]);
+
+                expect(state.fieldComponents.items).toBe(availableFields.FieldSetStackedInline);
+                expect(state.widgetComponents.items).toBeNull();
+                expect(state.fieldProps.items.readOnly).toBe(false);
+            });
+
+            scopedIt(`keeps the multi-select widget for a many-to-many relation on the ${view} form`, async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildRelationForm(view, relationDetail("ManyToManyField"));
+
+                expect(state.widgetComponents.items).toBe(availableWidgets.WidgetCombobox);
+                expect(state.fieldProps.items.readOnly).toBe(false);
+            });
+        }
+    });
     describe("field detail fallback behavior", () => {
         scopedIt("prefers explicit prop readOnly over config defaults", async () => {
             // mock model-config to declare name readOnly=true
