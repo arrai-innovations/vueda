@@ -306,13 +306,13 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
 /**
  * Require model info to be loaded before accessing the route.
  *
- * @param {import('vue').App} instance - The Vue app instance.
  * The route's action is allowed when model info lists it (narrowed by the model config's `routeActions`) or
  * when it is a workflow transition code the user may take. When the server denies workflow discovery for the
  * model with a 403, the model's CRUD actions still follow model info, and only transition routes are refused.
  * When the server denies model info itself with a 403, the guard shows a "Permission Denied" toast instead of
  * "Model Not Found". The toast only reports the refusal. The server enforces it.
  *
+ * @param {import('vue').App} instance - The Vue app instance.
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info is not found or
  *  is denied, the action is not allowed, or the route is a transition and workflow discovery is denied.
  * @param {import('vue-router').RouteLocationNormalizedLoaded} to - The target route.
