@@ -1,9 +1,13 @@
 _min_copier_version: "9.0.0"
 _templates_suffix: ".jinja"
-_tasks:
-    - "# VUEDA minimal monorepo template is now in place."
-    - "# Next: run `uv sync --all-packages` then `pnpm install`"
-    - "# Then create server/config.local.toml (at minimum: SECRET_KEY)"
+_message_after_copy: |
+    Next steps:
+
+    cd {{ _copier_conf.dst_path }}
+    uv sync --all-packages
+    pnpm install
+
+    Then set SECRET_KEY, DATABASE_URL, and CACHE_URL in server/config.local.toml.
 
 project_name:
     type: str
