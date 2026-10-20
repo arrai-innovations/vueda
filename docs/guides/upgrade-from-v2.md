@@ -130,6 +130,7 @@ The VUEDA client handles these changes. Update any other client or integration t
 - An unrecognized query parameter answers `400` on `list` and `retrieve`. Server v2 answered `500` on a filtered `list` and ignored the parameter elsewhere. `retrieve` accepts only `e`, `f`, and `om`.
 - `f` and `om` shape only the response on writes. A `POST` or `PUT` must include every required field. [Sparse Fields and Expand on Writes](../core-concepts/field-and-expand-semantics.md#sparse-fields-and-expand-on-writes) states the rule.
 - An `e` path deeper than 4 levels answers `400`.
+- Bulk activate and deactivate answer `400` for a key in `pks` that names no row, as bulk delete does. A row that the user may not change counts as missing. Server v2 skipped such keys and counted them in its success message.
 - Object responses include `available_actions` only when `f` names it.
 - `model_ordering` is an object with `default` and `fields`. `model_filtering` reports dotted names. Filter choices have no empty option, and their values are strings.
 - Invalid `f` and `e` names come back as plain strings in the error list.
@@ -301,6 +302,7 @@ v3 fixes these v2 defects. Each one may need a review of data or accounts that v
 - **Password hashes in history.** `AbstractVUEDAUserWithHistory` recorded password hashes, and the v2 history endpoints and `history` expand could return them to anyone who could read the user.
 - **Forgot-password enumeration.** Server v2 answered "Email not found" for unknown addresses.
 - **`HEAD` requests** skipped read permission, so the status code revealed which primary keys exist.
+- **Bulk delete, activate, and deactivate** checked only the model permission. They skipped the row-level and object permission checks that a single-object request makes. A user could therefore delete, activate, or deactivate rows that their row-level rules kept them from changing one at a time. Review deletions and `is_active` changes on models that define `RowLevelPermissions` or use object permissions.
 - **Choices.** Serializer-only field choices had no permission check, and filter choices came from every row.
 - **Two-factor changes** accepted a password-only reauthentication.
 - **Two-factor device deletion.** A bulk delete of a user's own devices compared the number of devices deleted with the number of keys sent. A repeated or unknown key could turn off two-factor authentication while the user still had devices. It could also leave two-factor authentication on with no device left. Only the user's own recent session could send such a request. Review accounts whose two-factor state does not match their devices.

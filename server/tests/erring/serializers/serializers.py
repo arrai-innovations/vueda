@@ -84,14 +84,6 @@ class ValidLookupExpressionSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
-class PlainManagerLookupExpressionSerializer(VuedaSerializer):
-    class Meta(VuedaSerializer.Meta):
-        model = my_models.PlainManagerLookupExpression
-        fields = [
-            "id",
-        ] + VuedaSerializer.Meta.fields
-
-
 class MultiValuedLookupExpressionSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.MultiValuedLookupExpression
@@ -200,6 +192,21 @@ class ExpandableFieldsListSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "no_name": [NoNameFieldSerializer, {}],
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class ExpandableFieldsClientNamespaceSerializer(VuedaSerializer):
+    """Names two expands after the client's path namespaces, which the client reads from other objects."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NoExpandableFieldsData
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "related": (NoNameFieldSerializer, {}),
+            "calculated": (NoNameFieldSerializer, {}),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 

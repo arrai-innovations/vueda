@@ -33,8 +33,11 @@
  * ```
  *
  * @example Wiring the page title
- * ```html
- * <h1>{{ instance.titleStr }}</h1>
+ * ```js
+ * import { usePageTitle } from "@vueda/use/usePageTitle.js";
+ *
+ * // The layout's PageTitle shows a skeleton while the title is empty.
+ * usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
  * ```
  *
  * @example Wiring the form
@@ -98,7 +101,7 @@ const VIEW_NAME = "create";
 
 /**
  * @typedef {object} ViewCreateInstanceGroup
- * @property {string} titleStr - Page title derived from the model verbose name (e.g. "Create Widget").
+ * @property {string} titleStr - Page title derived from the model verbose name (e.g. "Create Widget"). Empty until the verbose name is known.
  * @property {boolean} pageLoading - True while model configuration is loading.
  * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit buttons.
  * @property {Error|null} combinedError - The first active error across model config, instance, and form submission; null when none.
@@ -141,7 +144,12 @@ export function useViewCreate(options) {
 
     const filteredActions = useFilteredActions({ modelConfigInstance: modelConfig });
 
-    const titleStr = computed(() => `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item");
+    // Empty until the model's verbose name is known, so PageTitle shows a skeleton instead of a
+    // guessed label. A skeleton that never resolves points at the missing model config.
+    const titleStr = computed(() => {
+        const verboseName = memoizedStartCase(modelConfig.config?.verboseName);
+        return verboseName ? `Create ${verboseName}` : "";
+    });
 
     const modelInitialValues = useModelInitialValues(
         toRef(options, "app"),

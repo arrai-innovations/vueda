@@ -128,6 +128,30 @@ def _validate_expandable_field(serializer_class, field_name, field_data):
     return errors, field_serializer
 
 
+# First path segments that the VUEDA client reads from a row's related or calculated object instead of the row.
+# The client's `unifiedGet` and `storeModelConfig` hold the same pair.
+CLIENT_PATH_NAMESPACES = ("related", "calculated")
+
+
+def _validate_expandable_field_name(serializer_class, field_name):
+    """Report an expand named after a client path namespace, whose fields the client reads from another object."""
+    if field_name not in CLIENT_PATH_NAMESPACES:
+        return []
+    return [
+        Error(
+            f"{serializer_class.__name__}.Meta.expandable_fields[{field_name!r}] uses a name that the VUEDA client "
+            "reserves.",
+            hint=(
+                'The VUEDA client reads a path that starts with "related." or "calculated." from the row\'s related '
+                "or calculated object, so the fields of this expand render blank. Rename the expand and the "
+                "serializer field that it replaces. Set source= on the renamed field to keep reading the model field."
+            ),
+            obj=serializer_class,
+            id="vueda_core.E022",
+        )
+    ]
+
+
 def _iter_expandable_fields(serializer_class):
     """Yield ``(field_name, field_data)`` for each ``Meta.expandable_fields`` entry of ``serializer_class``."""
     meta = getattr(serializer_class, "Meta", None)
@@ -261,11 +285,17 @@ def _iter_serializer_graph():
 
 
 def check_expandable_fields_configuration(app_configs, **kwargs):
-    """Validate every ``Meta.expandable_fields`` entry in the discovered serializer graph."""
+    """Validate every ``Meta.expandable_fields`` entry in the discovered serializer graph.
+
+    Each entry must have a valid shape and resolve to a serializer or field class. Its name must not be
+    ``related`` or ``calculated``, because the VUEDA client reads a path that starts with either name from the
+    row's related or calculated object.
+    """
     errors = []
 
     for serializer_class in _iter_serializer_graph():
         for field_name, field_data in _iter_expandable_fields(serializer_class):
+            errors.extend(_validate_expandable_field_name(serializer_class, field_name))
             field_errors, _resolved_serializer = _validate_expandable_field(serializer_class, field_name, field_data)
             errors.extend(field_errors)
 

@@ -269,7 +269,7 @@ After a successful save the view stays on the page unless [`redirectAfter`]{@api
 - A list shows each selected record, fetched by pk, with its {@term Formatted Name} and pk.
 - An optional type-to-confirm phrase, set by [`confirmText`]{@api vue:component:ViewDestroy:prop:confirmText}, keeps the confirm button disabled until the reader types it.
 
-The page title reads "Delete" followed by the model name, with the count for a bulk destroy. The confirm button reads "Yes, continue" and takes the destructive tone; the cancel button reads "Cancel, go back".
+The page title reads "Delete" followed by the model's verbose name. A bulk destroy reads "Delete", the record count, and the plural verbose name. The confirm button reads "Yes, continue" and takes the destructive tone; the cancel button reads "Cancel, go back".
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">

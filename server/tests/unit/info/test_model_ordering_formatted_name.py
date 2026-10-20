@@ -4,6 +4,7 @@ from typing import ClassVar
 import pytest
 from django.db import models
 from django.db.models.functions import Lower
+from django.test.utils import isolate_apps
 from django.urls import reverse
 
 from tests.conftest import BaseTestGroupMixin
@@ -11,6 +12,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.conftest import use_plain_base_manager
 from tests.product.models import ProductCascadeOrderedByFormattedName
+from tests.product.models import ProductCascadeOwner
 from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.product.serializers import ProductModelOrderingFormattedNameSerializer
@@ -33,6 +35,9 @@ from tests.store.viewsets import CustomerViewSet
 from vueda import info
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.models import FormattedNameManager
+from vueda.core.models import VuedaModel
+from vueda.core.serializers import VuedaSerializer
+from vueda.info.checks import check_formatted_name_configuration
 
 
 class ModelOrderingFormattedNameTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -464,8 +469,8 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         trade a startup error for a `FieldError` on every query — including in a management command,
         a data migration, or the admin, none of which go near `VuedaViewSet.get_queryset`.
 
-        `vueda_info.E009` reports the manager too, but only for a registered model, so it can't be
-        what makes this safe.
+        `vueda_core.E019` reports the manager too. The term is still Django's to report, because the
+        two errors name different things to fix.
         """
         use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
 
@@ -489,6 +494,52 @@ class TestDeclaredFormattedNameOrderingSystemChecks:
         errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
+
+    def test_the_term_is_withheld_for_a_manager_that_annotates_without_inheriting(self, monkeypatch):
+        """The requirement is the annotation, not the class. A manager of the project's own that
+        annotates the path builds querysets the term resolves on, so reporting the term would send a
+        developer to fix working code."""
+
+        class IndependentlyAnnotatingManager(models.Manager):
+            def get_queryset(self):
+                return super().get_queryset().annotate(**{FORMATTED_NAME: models.F("label")})
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, IndependentlyAnnotatingManager(), monkeypatch)
+
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_the_term_is_withheld_for_a_subclass_whose_queryset_needs_a_request(self, monkeypatch):
+        """A manager that narrows `super()`'s queryset by request state can't build one at startup,
+        so its queryset has no answer to give. Its class still says it annotates, and reporting the
+        term would block `migrate` over an ordering that works on every request."""
+
+        class RequestScopedManager(FormattedNameManager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert errors == []
+
+    def test_the_term_is_reported_for_a_plain_manager_whose_queryset_needs_a_request(self, monkeypatch):
+        """With no queryset to read, the class is the only evidence, and a plain `models.Manager`
+        subclass gives no reason to think the term resolves."""
+
+        class RequestScopedManager(models.Manager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+
+        errors = e015_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
+
+        assert [error.msg for error in errors] == [
+            "'ordering' refers to the nonexistent field, related field, or lookup 'formatted_name'."
+        ]
 
     def test_a_stale_term_is_still_reported_when_the_default_manager_does_not_annotate(self, monkeypatch):
         """Nothing is withheld in this state, so the rest of the declaration is judged exactly as
@@ -624,10 +675,10 @@ class TestFormattedNameBaseManagerSystemChecks:
         assert errors == []
 
     def test_an_unregistered_model_is_reported(self, monkeypatch):
-        """Why this lives on the model rather than beside `vueda_info.E009`. `Meta.ordering` applies to
-        every queryset of a model whether or not anything registered it, and a cascade delete reaches
-        a model no serializer or viewset has ever named. `ProductCascadeOrderedByFormattedName` is one
-        of those.
+        """Why this lives on the model rather than among the registry checks in `vueda.info.checks`.
+        `Meta.ordering` applies to every queryset of a model whether or not anything registered it,
+        and a cascade delete reaches a model no serializer or viewset has ever named.
+        `ProductCascadeOrderedByFormattedName` is one of those.
         """
         from vueda.info.registration import get_all_registrations
 
@@ -712,6 +763,703 @@ class TestFormattedNameBaseManagerSystemChecks:
         errors = e017_errors_with_ordering(ProductModelOrderingLookupFormattedName, ["formatted_name"], monkeypatch)
 
         assert errors == []
+
+
+class TestFormattedNameDefaultManagerSystemChecks:
+    """`vueda_core.E019` reports a model that reaches `formatted_name` through
+    `formatted_name_lookup_expression` while its default manager does not annotate it.
+
+    Nothing fails at import time in that state. `formatted_name` resolves only on the querysets
+    `VuedaViewSet.get_queryset` builds, so filtering or ordering by it anywhere else raises
+    `FieldError`. The check is a model check, so Django runs it once on every installed model whether
+    or not a serializer or viewset names it.
+
+    The models declared here live under `isolate_apps`, so a manager is declared the way a project
+    would declare it, and no model in the installed apps reports the error on every `manage.py check`.
+    """
+
+    @pytest.fixture(autouse=True)
+    def empty_registry(self):
+        info.registration.get_empty_registry()
+        yield
+        info.registration.get_empty_registry()
+
+    def test_a_declared_plain_manager_is_reported(self):
+        """Declaring `objects` shadows the `FormattedNameManager` that `FormattedNameBaseModel`
+        provides. Nothing registers this model, so the error has to come from the model check."""
+        with isolate_apps("tests.features"):
+
+            class PlainManagerLookupExpression(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = models.Manager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = PlainManagerLookupExpression.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert errors[0].msg == (
+            "PlainManagerLookupExpression reaches formatted_name through formatted_name_lookup_expression, "
+            "but its default manager (objects, a Manager) does not annotate it."
+        )
+        assert "Subclass it instead of `models.Manager`" in errors[0].hint
+        assert "as_manager()" not in errors[0].hint
+        assert "Meta.default_manager_name" in errors[0].hint
+        assert errors[0].obj is PlainManagerLookupExpression
+
+    def test_formatted_name_none_inherited_from_an_abstract_base_is_reported(self):
+        """`vueda_info.E009` only inspected a model that set `formatted_name = None` on its own class,
+        so a model that inherited it was never checked. The model check reads the model's fields, so
+        where the declaration lives makes no difference."""
+        with isolate_apps("tests.features"):
+
+            class NamedByLabel(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                class Meta:
+                    abstract = True
+
+            class InheritsLookupExpression(NamedByLabel):
+                objects = models.Manager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = InheritsLookupExpression.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert errors[0].obj is InheritsLookupExpression
+
+    @pytest.mark.parametrize(
+        ("ordering", "expected_ids"),
+        [
+            # Ordinary queries work. Filtering or ordering by formatted_name raises.
+            pytest.param(["label"], ["vueda_core.E019"], id="ordering-names-something-else"),
+            # Every query raises, and Django's own check skips a non-string term.
+            pytest.param([models.F("formatted_name").asc()], ["vueda_core.E019"], id="ordering-expression"),
+            # Django reports the term. The manager is a separate fault, so it is reported as well.
+            pytest.param(["formatted_name"], ["models.E015", "vueda_core.E019"], id="plain-string-term"),
+        ],
+    )
+    def test_every_ordering_is_reported(self, ordering, expected_ids, monkeypatch):
+        use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ordering)
+
+        errors = ProductModelOrderingLookupFormattedName.check()
+
+        assert [error.id for error in errors] == expected_ids
+
+    def test_a_model_registered_with_a_serializer_alone_is_reported_once(self, monkeypatch):
+        """The registry checks used to report this model as `vueda_info.E009` too. The model check is
+        now the only report, so the registry check has to stay quiet about the manager."""
+        use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+        info.register_serializer(ProductModelOrderingLookupFormattedNameSerializer)
+
+        errors = ProductModelOrderingLookupFormattedName.check() + check_formatted_name_configuration(None)
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+
+    def test_a_model_reached_as_an_expandable_child_is_reported_once(self, monkeypatch):
+        """The registry checks also walked each `expandable_fields` child of a registered serializer,
+        which was the second way the same model could be reported twice."""
+
+        class OwnerExpandsLookupSerializer(VuedaSerializer):
+            class Meta(VuedaSerializer.Meta):
+                model = ProductCascadeOwner
+                fields = ["id", *VuedaSerializer.Meta.fields]
+                expandable_fields = {"lookup_row": (ProductModelOrderingLookupFormattedNameSerializer, {})}
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, models.Manager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+        info.register_serializer(OwnerExpandsLookupSerializer)
+
+        errors = ProductModelOrderingLookupFormattedName.check() + check_formatted_name_configuration(None)
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+
+    def test_a_manager_subclass_passes(self, monkeypatch):
+        """The documented way to add manager behaviour of a project's own."""
+
+        class ArchivedAwareManager(FormattedNameManager):
+            pass
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, ArchivedAwareManager(), monkeypatch)
+
+        assert ProductModelOrderingLookupFormattedName.check() == []
+
+    def test_a_manager_that_annotates_without_inheriting_passes(self, monkeypatch):
+        """The requirement is the annotation, not the class. `vueda_info.E009` reported this manager
+        because it read the class."""
+
+        class IndependentlyAnnotatingManager(models.Manager):
+            def get_queryset(self):
+                return super().get_queryset().annotate(**{FORMATTED_NAME: models.F("label")})
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, IndependentlyAnnotatingManager(), monkeypatch)
+
+        assert ProductModelOrderingLookupFormattedName.check() == []
+
+    def test_a_subclass_that_drops_the_annotation_is_reported(self, monkeypatch):
+        """Inheriting `FormattedNameManager` proves nothing on its own. A `get_queryset` that builds a
+        fresh queryset rather than narrowing `super()`'s loses the annotation."""
+
+        class LosesTheAnnotationManager(FormattedNameManager):
+            def get_queryset(self):
+                return models.Manager.get_queryset(self)
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, LosesTheAnnotationManager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+
+        errors = ProductModelOrderingLookupFormattedName.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "LosesTheAnnotationManager already subclasses FormattedNameManager" in errors[0].hint
+        assert "Build on `super().get_queryset()`" in errors[0].hint
+        assert "Subclass it instead of `models.Manager`" not in errors[0].hint
+
+    def test_default_manager_name_moves_the_check_to_the_manager_it_replaced(self):
+        """The model declares a plain `objects`, which would be its default without
+        `Meta.default_manager_name`. Pointing that option at an annotating manager fixes the default
+        manager, which the hint names. `objects` still builds querysets of its own, so it is then
+        reported as a second manager, and that hint does not suggest `Meta.default_manager_name`
+        again."""
+        with isolate_apps("tests.features"):
+
+            class SelectsAnnotatingManager(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = models.Manager()
+                annotating = FormattedNameManager()
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "annotating"
+
+            errors = SelectsAnnotatingManager.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert errors[0].msg == (
+            "SelectsAnnotatingManager reaches formatted_name through formatted_name_lookup_expression, "
+            "but its manager objects (a Manager) does not annotate it."
+        )
+        assert "Meta.default_manager_name" not in errors[0].hint
+
+    def test_default_manager_name_selecting_an_annotating_manager_passes(self):
+        """With the replaced manager opted out, nothing is left to report."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class SelectsAnnotatingManagerWithExport(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = ExportManager()
+                annotating = FormattedNameManager()
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "annotating"
+
+            errors = SelectsAnnotatingManagerWithExport.check()
+
+        assert errors == []
+
+    def test_a_plain_manager_whose_queryset_needs_a_request_is_reported(self, monkeypatch):
+        """A queryset that can't be built at startup has no annotations to read, so the class answers.
+        A plain `models.Manager` subclass gives no reason to think `formatted_name` resolves, and
+        filtering by it raises on every request."""
+
+        class RequestScopedManager(models.Manager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+
+        errors = ProductModelOrderingLookupFormattedName.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+
+    def test_a_subclass_whose_queryset_needs_a_request_passes(self, monkeypatch):
+        """The same unanswerable queryset on a `FormattedNameManager` subclass. Its class says it
+        annotates, so the model is not reported."""
+
+        class RequestScopedManager(FormattedNameManager):
+            def get_queryset(self):
+                raise RuntimeError("no request outside a request cycle")
+
+        use_default_manager(ProductModelOrderingLookupFormattedName, RequestScopedManager(), monkeypatch)
+        monkeypatch.setattr(ProductModelOrderingLookupFormattedName._meta, "ordering", ["label"])
+
+        assert ProductModelOrderingLookupFormattedName.check() == []
+
+    def test_a_misspelled_default_manager_name_does_not_crash_the_check(self):
+        """`_meta.default_manager` raises `ValueError` when `Meta.default_manager_name` names a manager
+        the model doesn't have. Model checks run on every installed model, so letting it escape would
+        stop `manage.py check` with a traceback instead of a message."""
+        with isolate_apps("tests.features"):
+
+            class MisspelledDefaultManager(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "objcts"
+                    ordering = ["formatted_name"]
+
+            errors = MisspelledDefaultManager.check()
+
+        assert "vueda_core.E019" not in [error.id for error in errors]
+
+    def test_a_misspelled_default_manager_name_does_not_crash_the_base_manager_check(self):
+        """Django's `models.E015` skips an expression term, so this ordering reaches the base-manager
+        check, which compiles the ordering on the default manager too. With no default manager to
+        read, it blames nothing on the base manager."""
+        with isolate_apps("tests.features"):
+
+            class MisspelledDefaultManagerExpressionOrdering(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "objcts"
+                    ordering = [models.F("formatted_name").asc()]
+
+            errors = MisspelledDefaultManagerExpressionOrdering.check()
+
+        assert "vueda_core.E017" not in [error.id for error in errors]
+
+    def test_a_model_with_a_formatted_name_column_is_not_reported(self, monkeypatch):
+        """A `GeneratedField` column is a real field, so there is no annotation for a manager to be
+        missing."""
+        use_default_manager(ProductModelOrderingFormattedName, models.Manager(), monkeypatch)
+
+        assert ProductModelOrderingFormattedName.check() == []
+
+
+class TestFormattedNameOtherManagerSystemChecks:
+    """`vueda_core.E019` reports every manager of a model that drops the `formatted_name`
+    annotation, not only the default one.
+
+    A second manager builds querysets of its own, so ordering or filtering them by `formatted_name`
+    raises `FieldError` unless that manager annotates it too. Each model here declares `objects`
+    first, because Django makes the first manager the model itself declares its default.
+    """
+
+    def test_a_plain_second_manager_is_reported_by_name(self):
+        with isolate_apps("tests.features"):
+
+            class PlainSecondManager(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                unfulfilled = models.Manager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = PlainSecondManager.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert errors[0].msg == (
+            "PlainSecondManager reaches formatted_name through formatted_name_lookup_expression, "
+            "but its manager unfulfilled (a Manager) does not annotate it."
+        )
+        assert "`PlainSecondManager.unfulfilled`" in errors[0].hint
+        assert "set `used_without_formatted_name = True`" in errors[0].hint
+        # Pointing the option elsewhere does not fix a second manager.
+        assert "Meta.default_manager_name" not in errors[0].hint
+        assert errors[0].obj is PlainSecondManager
+
+    def test_two_failing_managers_are_reported_once_each(self):
+        """One `manage.py check` run lists every manager to fix."""
+        with isolate_apps("tests.features"):
+
+            class TwoPlainManagers(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = models.Manager()
+                archived = models.Manager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = TwoPlainManagers.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019", "vueda_core.E019"]
+        assert "its default manager (objects, a Manager)" in errors[0].msg
+        assert "its manager archived (a Manager)" in errors[1].msg
+
+    def test_managers_that_all_inherit_formatted_name_manager_pass(self):
+        """A subclass and a manager built with `FormattedNameManager.from_queryset()` both annotate."""
+        with isolate_apps("tests.features"):
+
+            class LabelQuerySet(models.QuerySet):
+                pass
+
+            class ActiveManager(FormattedNameManager):
+                pass
+
+            class AllManagersAnnotate(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = ActiveManager()
+                by_queryset = FormattedNameManager.from_queryset(LabelQuerySet)()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = AllManagersAnnotate.check()
+
+        assert errors == []
+
+    def test_a_manager_built_with_as_manager_gets_the_from_queryset_replacement(self):
+        """`as_manager()` has no base to pass, so the hint names the replacement, built from the
+        model's own queryset class."""
+        with isolate_apps("tests.features"):
+
+            class LabelQuerySet(models.QuerySet):
+                pass
+
+            class AsManagerSecond(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                labelled = LabelQuerySet.as_manager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = AsManagerSecond.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "its manager labelled" in errors[0].msg
+        assert "`LabelQuerySet.as_manager()` has no base to pass" in errors[0].hint
+        assert "`FormattedNameManager.from_queryset(LabelQuerySet)()`" in errors[0].hint
+        assert "Subclass it instead of `models.Manager`" not in errors[0].hint
+
+    def test_an_opted_out_second_manager_passes(self):
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class OptedOutSecond(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+                    ordering = ["label"]
+
+            errors = OptedOutSecond.check()
+
+        assert errors == []
+
+    def test_a_subclass_that_sets_the_attribute_back_to_false_is_checked_again(self):
+        """The attribute is inherited, so the parent stays opted out while the subclass is reported."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class ReportManager(ExportManager):
+                used_without_formatted_name = False
+
+            class ResetsTheOptOut(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = ExportManager()
+                report = ReportManager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = ResetsTheOptOut.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "its manager report (a ReportManager)" in errors[0].msg
+
+    @pytest.mark.parametrize("value", [1, "yes"])
+    def test_a_value_other_than_true_does_not_opt_out(self, value):
+        """A typo must not switch the check off, so only `True` counts."""
+        with isolate_apps("tests.features"):
+
+            class AlmostOptedOutManager(models.Manager):
+                used_without_formatted_name = value
+
+            class AlmostOptedOut(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = AlmostOptedOutManager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = AlmostOptedOut.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "its manager export" in errors[0].msg
+
+    def test_the_default_manager_cannot_opt_out(self):
+        """Related managers, the admin, and `dumpdata` build querysets from the default manager, so
+        the attribute changes nothing there. The message says so."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class OptedOutDefault(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = OptedOutDefault.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert errors[0].msg == (
+            "OptedOutDefault reaches formatted_name through formatted_name_lookup_expression, but its "
+            "default manager (objects, an ExportManager) does not annotate it. used_without_formatted_name "
+            "does not apply to a default manager."
+        )
+        # A second `objects` declared above this one would replace it, so the manager needs a new name.
+        assert "Rename the opted-out manager" in errors[0].hint
+
+    def test_an_opted_out_manager_declared_first_is_told_to_move_below_objects(self):
+        """Django makes the first manager a model declares its default, ahead of the `objects` that
+        `VuedaModel` provides."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class ExportDeclaredFirst(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                export = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+
+            errors = ExportDeclaredFirst.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "its default manager (export, an ExportManager)" in errors[0].msg
+        assert "Declare `objects = FormattedNameManager()` above export" in errors[0].hint
+
+    def test_an_opted_out_manager_selected_by_default_manager_name_is_told_to_change_the_option(self):
+        """`Meta.default_manager_name` overrides declaration order, so moving `objects` above the
+        opted-out manager would change nothing."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class ExportSelectedByName(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+                    default_manager_name = "export"
+
+            errors = ExportSelectedByName.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E019"]
+        assert "its default manager (export, an ExportManager)" in errors[0].msg
+        assert "`Meta.default_manager_name` selects export" in errors[0].hint
+        assert "Declare `objects = FormattedNameManager()`" not in errors[0].hint
+
+
+class TestFormattedNameOptedOutManagerOrderingSystemChecks:
+    """`vueda_core.E020` reports an opted-out manager whose querysets cannot compile the model's
+    `Meta.ordering`.
+
+    Django applies `Meta.ordering` to the querysets of every manager. When it names `formatted_name`,
+    every query from a manager that adds no annotation raises `FieldError`, even a plain `all()`.
+
+    Each model selects `objects` as its base manager, so `vueda_core.E017` stays quiet about the same
+    ordering.
+    """
+
+    @pytest.mark.parametrize(
+        "ordering",
+        [
+            pytest.param(["formatted_name"], id="plain-string-term"),
+            pytest.param([models.F("formatted_name").desc()], id="ordering-expression"),
+        ],
+    )
+    def test_an_opted_out_manager_that_keeps_the_ordering_is_reported(self, ordering):
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class OrderedByFormattedName(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+                    base_manager_name = "objects"
+
+            OrderedByFormattedName._meta.ordering = ordering
+
+            errors = OrderedByFormattedName.check()
+
+        assert [error.id for error in errors] == ["vueda_core.E020"]
+        assert errors[0].msg == (
+            "OrderedByFormattedName.Meta.ordering needs the formatted_name annotation to compile, but its "
+            "manager export (an ExportManager) sets used_without_formatted_name and adds none."
+        )
+        assert "`OrderedByFormattedName.export`" in errors[0].hint
+        assert errors[0].obj is OrderedByFormattedName
+
+    def test_an_opted_out_manager_with_its_own_order_by_passes(self):
+        """An `order_by()` in the manager replaces `Meta.ordering` on its querysets."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+                def get_queryset(self):
+                    return super().get_queryset().order_by("pk")
+
+            class ExportOrdersItself(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+                    base_manager_name = "objects"
+                    ordering = ["formatted_name"]
+
+            errors = ExportOrdersItself.check()
+
+        assert errors == []
+
+    def test_an_opted_out_manager_that_annotates_anyway_passes(self):
+        """The attribute says the annotation is not needed. A manager that adds it regardless still
+        compiles the ordering."""
+        with isolate_apps("tests.features"):
+
+            class AnnotatingExportManager(FormattedNameManager):
+                used_without_formatted_name = True
+
+            class ExportAnnotates(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = FormattedNameManager()
+                export = AnnotatingExportManager()
+
+                class Meta:
+                    app_label = "features"
+                    base_manager_name = "objects"
+                    ordering = ["formatted_name"]
+
+            errors = ExportAnnotates.check()
+
+        assert errors == []
+
+    def test_an_ordering_the_default_manager_cannot_compile_is_left_to_the_other_checks(self):
+        """With a plain default manager, the ordering fails for every manager. `models.E015` reports
+        the term and `vueda_core.E019` reports the default manager. Naming the opted-out manager too
+        would send a developer to the wrong place first."""
+        with isolate_apps("tests.features"):
+
+            class ExportManager(models.Manager):
+                used_without_formatted_name = True
+
+            class NothingAnnotates(VuedaModel):
+                label = models.CharField(max_length=255)
+
+                formatted_name = None
+                formatted_name_lookup_expression = "label"
+
+                objects = models.Manager()
+                export = ExportManager()
+
+                class Meta:
+                    app_label = "features"
+                    ordering = ["formatted_name"]
+
+            errors = NothingAnnotates.check()
+
+        assert [error.id for error in errors] == ["models.E015", "vueda_core.E019"]
 
 
 @pytest.mark.django_db

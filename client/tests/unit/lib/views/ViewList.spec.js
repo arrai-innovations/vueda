@@ -502,6 +502,19 @@ describe("lib/views/ViewList.vue", () => {
         expect(wrapper.vm.list.listState.params).toMatchObject({ category: "new", [SEARCH_PARAM]: "destination" });
     });
 
+    describe("Page title", () => {
+        scopedIt("is empty until the model plural verbose name is known", async () => {
+            modelConfig.config.verboseNamePlural = "";
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.vm.list.titleStr).toBe("");
+
+            modelConfig.config.verboseNamePlural = "widgets";
+            await vue.nextTick();
+            expect(wrapper.vm.list.titleStr).toBe("List Widgets");
+        });
+    });
+
     describe("Lookup context", () => {
         scopedIt("calls useLookupContext if lookup context is missing", () => {
             mockedInject.mockReturnValueOnce(null);

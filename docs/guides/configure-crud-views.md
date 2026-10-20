@@ -77,6 +77,8 @@ A save uses all three lists:
 - `submitFields` selects the values that the request body carries. A value outside `submitFields` stays out of the body, even when the form shows it.
 - `fetchFields` selects the fields that the save response returns, through {@term Sparse Fields}. Both views add the pk.
 
+An update body also carries the pk of the object that the view edits. The update saves to that object, even when `submitFields` names the pk.
+
 A top-level `submitFields` name, such as `lines`, sends that field's whole value, including nested inline rows. A dotted path, such as `address.city`, sends only that nested value. Do not name a subfield of an expanded relation: the view's config then fails to build, with an error that names the path.
 
 For example, an order form can render and submit `quantity` while a summary reads the server-calculated `unit_price` and `total`:
@@ -119,7 +121,7 @@ The demo below runs that configuration against an offline server. Change the qua
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>form: <code>displayFields</code> renders only <code>quantity</code></span>
     <span>summary: an <code>after-fields</code> slot reads <code>unit_price</code> and <code>total</code> from the form context, which holds every fetched field</span>
-    <span>save: the <code>PUT</code> body carries only <code>submitFields</code>, and its <code>f</code> requests <code>fetchFields</code>, so the response includes the recalculated total</span>
+    <span>save: the <code>PUT</code> body carries the pk and the <code>submitFields</code> values, and its <code>f</code> requests <code>fetchFields</code>, so the response includes the recalculated total</span>
     <span>after the save, the view retrieves the order again and the summary shows the stored values</span>
   </footer>
 </VuedaDemo>
@@ -244,7 +246,7 @@ Then check each view in the browser:
 
 - The list renders a column for each `displayFields` entry, and its request's `f` carries the `fetchFields` plus the pk.
 - The read view renders the expected fields, including expanded subfields when `expand` names the relation.
-- The create and update forms render the view's `displayFields`, and each save's body carries only `submitFields`.
+- The create and update forms render the view's `displayFields`. A create body carries only the `submitFields` values. An update body carries the `submitFields` values and the pk, and its URL names the edited object.
 - After a save, create and update go where their `redirectAfter` sends them.
 - Each view shows the action buttons that `actions` and `actionDetails` allow.
 - A route for an action outside `routeActions` shows "Action Not Found" and redirects.
