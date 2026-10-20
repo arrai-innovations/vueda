@@ -1035,11 +1035,15 @@ class NoExtraFieldsForViewSetMixin:
         """
         Reject each ``f`` and ``e`` value the serializer cannot render or expand.
 
+        ``list``, ``retrieve``, ``create``, and ``update`` (which ``partial_update`` calls) run this
+        check. A write runs it before the body is validated, so a rejected request saves nothing.
+
         Every invalid name in both parameters goes into one error, keyed by the name. A name invalid
         in both parameters carries both messages.
 
         :param request: The request whose ``f`` and ``e`` query values are checked.
-        :param serializer: The action's serializer, built with the action's serializer context.
+        :param serializer: The action's serializer, built with the action's serializer context. It
+            is the serializer that renders the response.
         :raises VuedaValidationError: When an ``f`` value is not a valid field or wildcard, or an ``e``
             value is not a permitted expand or wildcard.
         """
@@ -1093,38 +1097,6 @@ class NoExtraFieldsForViewSetMixin:
 
         if errors:
             raise VuedaValidationError(errors)
-
-    @staticmethod
-    def validate_flex_expand_param_for_write(request, serializer):
-        """
-        Reject each ``e`` value a write action does not permit, before the body is validated.
-
-        drf-flex-fields2 keeps only the permitted expands and drops the rest without an error, so a
-        write action with a ``permit_<action>_expands`` list would accept an unknown or unpermitted
-        expand and read the relation as a primary key. This applies the same rules and messages as
-        :meth:`validate_flex_expand_and_field_param`, and raises in the standard validation shape.
-        ``f`` and ``om`` are not checked here.
-
-        :param request: The request whose ``e`` query values are checked.
-        :param serializer: The action's serializer, built with the action's serializer context.
-        :raises VuedaValidationError: When an ``e`` value is not a permitted expand or wildcard.
-        """
-        if settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] not in request.query_params:
-            return
-        submitted_expand_fields = frozenset(
-            serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
-        )
-        if not submitted_expand_fields:
-            return
-        max_depth = (
-            max([field.count(".") for field in submitted_expand_fields] + permitted_expand_depths(serializer)) + 1
-        )
-        valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
-            serializer, 0, max_depth
-        )
-        messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
-        if messages:
-            raise VuedaValidationError({key: [message] for key, message in messages.items()})
 
     def retrieve(self, request, *args, **kwargs):
         self.reject_unrecognized_query_params(request, self.get_retrieve_allowed_fields())
@@ -1410,12 +1382,12 @@ class VuedaViewSet(
             )
 
     def create(self, request, *args, **kwargs):
-        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        self.validate_flex_expand_and_field_param(request, self.get_serializer())
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         # `partial_update` calls this too.
-        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        self.validate_flex_expand_and_field_param(request, self.get_serializer())
         return super().update(request, *args, **kwargs)
 
     def destroy_validation(self, objs) -> None:

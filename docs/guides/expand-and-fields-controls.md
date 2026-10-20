@@ -186,9 +186,9 @@ An expanded object never carries {@term Available Actions}, and `f=category.avai
 
 ## Check the requests
 
-`list` and `retrieve` requests reject an `f` or `e` name that the endpoint does not offer. Each invalid name is a key in the `400` body, and its message lists the valid names. The body has the standard validation shape: each key maps to a list of message strings. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes how unknown query keys are rejected, and [Error and Validation Contract](../core-concepts/error-and-validation-contract) describes error bodies.
+`list`, `retrieve`, `create`, `update`, and `partial_update` requests reject an `f` or `e` name that the endpoint does not offer. Each invalid name is a key in the `400` body, and its message lists the valid names. The body has the standard validation shape: each key maps to a list of message strings. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes how unknown query keys are rejected, and [Error and Validation Contract](../core-concepts/error-and-validation-contract) describes error bodies.
 
-Create and update requests do not check `f`. An unknown name there is ignored, and the response carries only the known fields.
+A write checks the names before it validates the body, so a write that gets this `400` saves nothing.
 
 Confirm the setup in the browser's network panel:
 
