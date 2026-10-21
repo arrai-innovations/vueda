@@ -881,13 +881,20 @@ def build_prefetch_plan(serializer, model):
     object. When the relation's ``source`` crosses other to-one relations first, those relations load
     through a join.
 
-    The child serializer's own paths under a to-one relation join the plan, prefixed with the
-    relation's path. :func:`apply_prefetch_plan` places each one. A join under a prefetched relation
-    goes onto that relation's ``Prefetch`` queryset. When a viewset's own ``Prefetch`` loads the
-    relation instead, the child's paths load after it, at one query per relation for each request.
-
     A to-many relation always loads through a ``Prefetch`` whose queryset starts from the related
-    model's default manager. The child serializer's own paths go onto that queryset.
+    model's default manager and annotates ``formatted_name`` and ``object_revision``.
+
+    The child serializer's own paths join the plan prefixed with the relation's path, for a to-one
+    and a to-many relation alike. A nested ``Prefetch`` keeps its queryset under the prefixed path.
+    The plan holds each path as its own entry, so the child's paths stay in the plan when a different
+    ``Prefetch`` loads the relation itself. That ``Prefetch`` can be the viewset's own or the one that
+    a second expand of the same relation builds. :func:`apply_prefetch_plan` places each path on
+    whichever ``Prefetch`` loads the relation:
+
+    - A join under a ``Prefetch`` that the plan built goes onto that ``Prefetch`` queryset.
+    - A join under a viewset's own ``Prefetch`` loads after it, at one query per relation for each
+      request.
+    - A nested prefetch runs after the ``Prefetch`` that loads the relation.
 
     Returns ``(select_related, prefetch_related)``: the plan's join paths and its prefetch lookups.
     Pass them to :func:`apply_prefetch_plan`, which keeps a join from replacing the objects that a
@@ -914,11 +921,8 @@ def build_prefetch_plan(serializer, model):
             # prefetched relation clones it, discarding the cached prefetch result and forcing one
             # fresh query per row -- the exact regression this plan exists to prevent.
             related_queryset = annotate_object_revision(annotate_formatted_name(related_model._default_manager.all()))
-            related_queryset = apply_prefetch_plan(related_queryset, child_select_related, child_prefetch_related)
             prefetch_related.append(Prefetch(orm_path, queryset=related_queryset))
-            continue
-
-        if formatted_name_annotation_path(related_model) is None:
+        elif formatted_name_annotation_path(related_model) is None:
             # The related model's formatted_name_select_related joins the relations its
             # get_formatted_name() reads, as annotate_formatted_name does for its own querysets.
             name_select_related = getattr(related_model, FORMATTED_NAME_SELECT_RELATED, None) or ()
@@ -935,9 +939,9 @@ def build_prefetch_plan(serializer, model):
             if parent_path:
                 select_related.append(parent_path)
 
-        # The child's paths continue from the to-one relation. apply_prefetch_plan moves each join
-        # that passes through a prefetched relation onto that relation's prefetch, whether the plan's
-        # Prefetch or a viewset's own Prefetch loads it.
+        # The child's paths continue from the relation. apply_prefetch_plan moves each join that
+        # passes through a prefetched relation onto that relation's prefetch, whichever Prefetch
+        # loads it: the plan's own, a second expand's for the same relation, or the viewset's.
         select_related.extend(f"{orm_path}__{nested}" for nested in child_select_related)
         prefetch_related.extend(
             Prefetch(f"{orm_path}__{nested_prefetch.prefetch_through}", queryset=nested_prefetch.queryset)
@@ -996,6 +1000,10 @@ def _filter_new_prefetch_lookups(queryset, prefetch_related):
     cache key is the lookup's own ``prefetch_to``, not its full path, so a lookup that sets
     ``to_attr`` registers under that alias and never collides with a plan entry for the same path
     under its default attribute name.
+
+    Dropping an entry drops only that entry's own queryset. :func:`build_prefetch_plan` lists the
+    joins and prefetches nested under a relation as separate entries, so they stay in the plan.
+    :func:`apply_prefetch_plan` places them on whichever ``Prefetch`` survives for the relation.
 
     Reads ``queryset._prefetch_related_lookups``, a private Django attribute with no public
     equivalent; it is a plain tuple of ``str``/``Prefetch`` entries across the Django versions this
@@ -1097,12 +1105,15 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     - A part after a prefetched relation is loaded with that relation's prefetch. When the plan built
       that prefetch, the part becomes a join on the ``Prefetch`` queryset, which costs no query. When
       ``queryset`` already carried the prefetch, the part becomes a string lookup after it, so the
-      viewset's own ``Prefetch`` queryset stays as declared. Each relation that such a lookup
+      viewset's own ``Prefetch`` queryset keeps its own joins only. Each relation that such a lookup
       reaches costs one query per request.
 
-    The joins inside the queryset of a ``Prefetch`` that ``queryset`` already carried stay as
-    declared. Such a join caches the relations on its path, so Django skips a plan prefetch for a
-    relation under it.
+    Each surviving ``Prefetch`` queryset gets the same split, whether the plan built it or
+    ``queryset`` already carried it, and whether its relation is to-one or to-many. Its joins are split at each relation that a lookup prefetches
+    under its relation, such as ``customer`` for a ``cart_set`` queryset when the plan also
+    prefetches ``cart_set__customer``. The split applies at every depth. A viewset's own ``Prefetch``
+    is rebuilt with the split queryset only when one of its joins passes through such a relation.
+    Its filters, annotations, and ordering stay as declared.
 
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
@@ -1133,47 +1144,95 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     :return: ``queryset`` with the plan applied.
     :rtype: django.db.models.QuerySet
     """
-    new_lookups = _filter_new_prefetch_lookups(queryset, prefetch_related)
+    queryset, _ = _place_prefetch_plan(queryset, select_related, prefetch_related, frozenset())
+    return queryset
 
-    prefetched_paths = set()
-    for lookup in (*queryset._prefetch_related_lookups, *new_lookups):
-        prefetch = lookup if isinstance(lookup, Prefetch) else Prefetch(lookup)
-        if prefetch.queryset is not None and prefetch.prefetch_to == prefetch.prefetch_through:
-            prefetched_paths.add(prefetch.prefetch_through)
+
+def _loads_relation_through_queryset(lookup):
+    """Whether ``lookup`` is a ``Prefetch`` that stores the rows of its own queryset under the relation's attribute."""
+    return (
+        isinstance(lookup, Prefetch) and lookup.queryset is not None and lookup.prefetch_to == lookup.prefetch_through
+    )
+
+
+def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefetched_paths):
+    """
+    Apply a plan to ``queryset`` as :func:`apply_prefetch_plan` describes, and also split the
+    queryset's joins at each path in ``outer_prefetched_paths``.
+
+    ``outer_prefetched_paths`` names relations, relative to ``queryset``, that lookups outside
+    ``queryset`` prefetch onto its rows. For a ``Prefetch`` queryset, these are the lookups that
+    continue under the ``Prefetch`` relation. They run on the queryset's rows after it loads them.
+
+    Returns ``(queryset, outer_joins)``. ``outer_joins`` maps each outer path that a join passes
+    through to the parts of the joins after it. A relation that ``queryset`` prefetches itself keeps
+    the parts under it, because its rows load while ``queryset`` is evaluated and the outer lookup
+    reuses them. ``queryset`` is returned as it was when the plan changes nothing on it.
+    """
+    new_lookups = _filter_new_prefetch_lookups(queryset, prefetch_related)
+    lookups = sorted(
+        [(lookup, False) for lookup in queryset._prefetch_related_lookups] + [(lookup, True) for lookup in new_lookups],
+        key=lambda entry: _prefetch_order(entry[0]),
+    )
+
+    prefetched_paths = {
+        lookup.prefetch_through for lookup, _from_plan in lookups if _loads_relation_through_queryset(lookup)
+    }
+    split_paths = prefetched_paths | outer_prefetched_paths
+
+    queryset_joins = {}
+    prefetch_joins = {}
+    outer_joins = {}
+
+    def place(owner, join):
+        if not owner:
+            target = queryset_joins
+        elif owner in prefetched_paths:
+            target = prefetch_joins.setdefault(owner, {})
+        else:
+            target = outer_joins.setdefault(owner, {})
+        target[join] = None
 
     existing_select_related = queryset.query.select_related
     joins = _select_related_paths(existing_select_related) if isinstance(existing_select_related, dict) else []
     joins.extend(select_related)
-
-    queryset_joins = {}
-    prefetch_joins = {}
     for path in joins:
-        for owner, join in _split_join_at_prefetches(path, prefetched_paths):
-            target = prefetch_joins.setdefault(owner, {}) if owner else queryset_joins
-            target[join] = None
+        for owner, join in _split_join_at_prefetches(path, split_paths):
+            place(owner, join)
 
-    lookups = []
-    for lookup in new_lookups:
-        if (
-            isinstance(lookup, Prefetch)
-            and lookup.queryset is not None
-            and lookup.prefetch_to == lookup.prefetch_through
-            and lookup.prefetch_through in prefetch_joins
-        ):
-            joins_under = list(prefetch_joins.pop(lookup.prefetch_through))
-            lookup = Prefetch(lookup.prefetch_through, queryset=apply_prefetch_plan(lookup.queryset, joins_under, []))
-        lookups.append(lookup)
-    for owner, joins_under in prefetch_joins.items():
-        lookups.extend(f"{owner}__{join}" for join in joins_under)
+    changed = bool(select_related or new_lookups or prefetch_joins or outer_joins)
+
+    # Shallower lookups come first, so a join that a Prefetch queryset hands to a relation under it
+    # is placed before that relation's own Prefetch is processed.
+    placed_lookups = []
+    for lookup, from_plan in lookups:
+        if _loads_relation_through_queryset(lookup):
+            path = lookup.prefetch_through
+            prefix = f"{path}__"
+            # A join under the plan's Prefetch goes onto its queryset. A join under the viewset's own
+            # Prefetch stays in prefetch_joins and becomes a string lookup after it.
+            joins_under = list(prefetch_joins.pop(path, {})) if from_plan else []
+            nested_paths = frozenset(p.removeprefix(prefix) for p in split_paths if p.startswith(prefix))
+            nested_queryset, handed_out = _place_prefetch_plan(lookup.queryset, joins_under, [], nested_paths)
+            for owner, joins_after in handed_out.items():
+                for join in joins_after:
+                    place(f"{prefix}{owner}", join)
+            if nested_queryset is not lookup.queryset:
+                lookup = Prefetch(path, queryset=nested_queryset)
+                changed = True
+        placed_lookups.append(lookup)
+
+    if not changed:
+        return queryset, outer_joins
+
+    placed_lookups.extend(f"{owner}__{join}" for owner, joins_under in prefetch_joins.items() for join in joins_under)
 
     if isinstance(existing_select_related, dict):
         queryset = queryset.select_related(None)
     if queryset_joins:
         queryset = queryset.select_related(*queryset_joins)
-    if lookups:
-        ordered_lookups = sorted((*queryset._prefetch_related_lookups, *lookups), key=_prefetch_order)
-        queryset = queryset.prefetch_related(None).prefetch_related(*ordered_lookups)
-    return queryset
+    queryset = queryset.prefetch_related(None).prefetch_related(*sorted(placed_lookups, key=_prefetch_order))
+    return queryset, outer_joins
 
 
 class NoExtraFieldsForViewSetMixin:
@@ -1764,6 +1823,11 @@ class VuedaViewSet(
         ``queryset``/``get_queryset()`` hand-optimized) keeps the viewset's ``Prefetch`` when a
         request expands it. A relation that this queryset prefetches without a queryset loads through
         the plan's ``Prefetch``. No join replaces the objects that a ``Prefetch`` queryset loads.
+
+        The expands nested under a relation keep their plan whichever ``Prefetch`` loads the
+        relation, to-one or to-many. They load after the viewset's ``Prefetch`` at one query per relation for each
+        request. The viewset's ``Prefetch`` queryset is rebuilt without the joins that pass through a
+        relation that a nested expand prefetches, and keeps its filters, annotations, and ordering.
         """
         queryset = super().get_queryset()
 

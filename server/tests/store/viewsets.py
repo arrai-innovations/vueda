@@ -533,6 +533,47 @@ class CartAnnotatedCustomerViewSet(VuedaViewSet):
     permit_retrieve_expands = ["customer"]
 
 
+class CartItemPrefetchedAnnotatedCartViewSet(VuedaViewSet):
+    """Serves CartItemAnnotatedCartSerializer. Prefetches the to-one `cart` with a queryset from
+    Cart's manager, which joins `customer__user`."""
+
+    queryset = my_models.CartItem.objects.prefetch_related(Prefetch("cart", queryset=my_models.Cart.objects.all()))
+    serializer_class = my_serializers.CartItemAnnotatedCartSerializer
+    ordering = ["id"]
+    permit_list_expands = ["cart", "cart.customer"]
+    permit_retrieve_expands = ["cart", "cart.customer"]
+
+
+class CartWithAliasedItemsViewSet(VuedaViewSet):
+    """Serves CartWithAliasedItemsSerializer with no prefetch of its own."""
+
+    queryset = my_models.Cart.objects.all()
+    serializer_class = my_serializers.CartWithAliasedItemsSerializer
+    ordering = ["id"]
+    permit_list_expands = ["cart_items", "cart_items.product_option", "items", "items.product_option"]
+    permit_retrieve_expands = permit_list_expands
+
+
+class CartPrefetchedItemsViewSet(CartWithAliasedItemsViewSet):
+    """Prefetches `cart_items` with a queryset of its own. The queryset keeps only items with a
+    positive quantity, orders them by descending quantity, and annotates `quantity_doubled`."""
+
+    queryset = my_models.Cart.objects.prefetch_related(
+        Prefetch(
+            "cart_items",
+            queryset=my_models.CartItem.objects.filter(quantity__gt=0)
+            .annotate(quantity_doubled=F("quantity") * 2)
+            .order_by("-quantity"),
+        )
+    )
+
+
+class CustomerPrefetchedAnnotatedCartsViewSet(CustomerWithAnnotatedCartsViewSet):
+    """Prefetches `cart_set` with a queryset from Cart's manager, which joins `customer__user`."""
+
+    queryset = my_models.Customer.objects.prefetch_related(Prefetch("cart_set", queryset=my_models.Cart.objects.all()))
+
+
 class CartItemCartBaseManagerViewSet(VuedaViewSet):
     """Serves CartItemCartBaseManagerSerializer -- see that serializer for why its `cart` field's
     queryset is built from `Cart._base_manager`."""
