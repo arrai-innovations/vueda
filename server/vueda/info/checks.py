@@ -9,9 +9,16 @@ from django.contrib.admin.utils import get_fields_from_path
 from django.core.checks import Error
 from django.core.checks import Warning as CheckWarning
 from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldError
+from django.db import DEFAULT_DB_ALIAS
+from django.db.models import F
+from django.db.models import QuerySet
 from django.db.models.constants import LOOKUP_SEP
+from django.db.models.expressions import OrderBy
+from django.db.models.manager import BaseManager
 from django.db.models.sql.query import Query
 from rest_flex_fields2.config import WILDCARD_VALUES
+from rest_framework.filters import OrderingFilter
 
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import FORMATTED_NAME_LOOKUP_EXPRESSION
@@ -27,6 +34,7 @@ from vueda.core.ordering import ordering_fields_from_path
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
 from vueda.core.ordering import queryset_explicit_ordering
+from vueda.core.ordering import rewrite_ordering_term_field_names
 from vueda.core.paths import PUBLIC_PATH_SEP
 from vueda.core.paths import public_ordering_path_to_orm
 
@@ -733,25 +741,79 @@ def _validate_nulls_ordering(model, viewset):
     return errors
 
 
+def _effective_nulls_placement(term, ascending):
+    """
+    The nulls placement that an ordering term states.
+
+    The result is ``None`` when the term sorts nulls where PostgreSQL does by default.
+
+    PostgreSQL puts nulls last in an ascending sort and first in a descending one. A term that states
+    the default placement sorts exactly like one that states none, so both read as ``None`` and compare
+    equal. Only a term that moves nulls to the other end has a placement worth comparing.
+    """
+    if getattr(term, "nulls_first", None):
+        placement = "first"
+    elif getattr(term, "nulls_last", None):
+        placement = "last"
+    else:
+        return None
+
+    default_placement = "last" if ascending else "first"
+    return None if placement == default_placement else placement
+
+
+def _ordering_term_expression(term):
+    """
+    The expression that an ordering term sorts by, without its direction or nulls placement.
+
+    A string becomes an ``F()`` of its path, an ``OrderBy`` gives up the expression it wraps, and
+    anything else is already the expression.
+    """
+    if isinstance(term, str):
+        return F(term.removeprefix("-"))
+
+    if isinstance(term, OrderBy):
+        return term.expression
+
+    return term
+
+
 def _comparable_ordering(model, ordering):
     """
-    An ordering rendered as directional field paths that can be compared with another ordering's, or
-    ``None`` when a term in it has no single path to compare.
+    An ordering rendered as terms that can be compared with another ordering's.
 
-    Two orderings sort the same way when they name the same paths, in the same sequence, each in the
-    same direction — so each term becomes its path with a ``-`` for descending, and the sequence is
-    compared as a whole. A path is resolved through ``formatted_name_lookup_expression`` first, since
-    a ``formatted_name`` and the column behind it are one sort under two names, and a declaration is
-    free to use either.
+    The result is ``None`` when a term in the ordering has no single column to compare.
+
+    Each term becomes a ``(label, nulls placement, plain, sql)`` tuple, and two orderings sort the same
+    way when their tuples are equal, in the same sequence. The label is the term as a check message
+    quotes it: the resolved path for a plain column, or Django's own rendering of the expression for a
+    term that wraps its column in a function, each with a ``-`` for descending. ``plain`` says which of
+    the two it is. ``sql`` is the SQL that Django compiles the expression to (see
+    ``_ordering_expression_sql``), which tells apart two terms whose rendering is the same, such as a
+    ``Cast`` to two different types or a ``Collate`` with two different collations. So ``"name"`` and
+    ``F("name").asc()`` compare equal, and ``Lower("name")`` and ``"name"`` don't. Django's own
+    expression equality isn't used, because it reads the constructor arguments, so ``Lower("name")``
+    and ``Lower(F("name"))`` would differ although they compile to the same SQL.
+
+    Three spellings of one sort compare equal. A ``"pk"`` alias is expanded to the field or fields
+    behind it. A ``formatted_name`` is resolved through ``formatted_name_lookup_expression`` to the
+    column behind it. A plain name and an ``F()`` of the same name are the same expression. The nulls
+    placement is the one that moves away from PostgreSQL's default (see ``_effective_nulls_placement``).
 
     ``None`` is the answer for an ordering this can say nothing about, so a caller stays quiet rather
     than guessing. A term reads no column at all (``"?"``, ``Now()``) or more than one
     (``Concat("first_name", "last_name")``), and neither has a path that stands for the sort it
-    performs — the same terms ``model_ordering.default`` withholds, for the same reason.
+    performs — the same terms that ``model_ordering.default`` withholds, for the same reason. A path
+    whose part before ``"pk"`` doesn't resolve gets ``None`` too, because the alias can't be expanded.
+    Any other path is compared as written. A stale path in a viewset's ``ordering`` is
+    ``vueda_info.E006``'s to report, and one in ``Meta.ordering`` is Django's ``models.E015``'s. A list
+    queryset is compiled before its ordering gets here, so a path in it that Django rejects is reported
+    as that rejection instead (see ``_validate_queryset_ordering``).
 
     Direction is part of the comparison because reversing it is the one difference that shows up in
     every row of a response while looking like agreement in a diff: ``queued`` and ``-queued`` name
-    the same field and sort the opposite way.
+    the same field and sort the opposite way. Nulls placement is part of it for the same reason, on
+    the rows whose value is null.
     """
     if not ordering:
         return []
@@ -763,128 +825,782 @@ def _comparable_ordering(model, ordering):
 
     comparable = []
     for term in ordering:
-        for expanded in expand_ordering_pk(model, term):
+        try:
+            expanded_terms = expand_ordering_pk(model, term)
+        except (FieldDoesNotExist, NotRelationField):
+            return None
+
+        for expanded in expanded_terms:
             field_names = ordering_term_field_names(expanded)
             if len(field_names) != 1:
                 return None
 
             field_name = field_names[0]
             path = resolve_formatted_name_path(model, field_name) or field_name
-            prefix = "" if ordering_term_is_ascending(expanded) else "-"
-            comparable.append(f"{prefix}{path}")
+            expression = _ordering_term_expression(expanded)
+            if isinstance(expression, F):
+                expression = F(path)
+            else:
+                expression = rewrite_ordering_term_field_names(expression, lambda _name, path=path: path)
+
+            ascending = ordering_term_is_ascending(expanded)
+            prefix = "" if ascending else "-"
+            plain = isinstance(expression, F)
+            label = f"{prefix}{path}" if plain else f"{prefix}{expression}"
+            sql = None if plain else _ordering_expression_sql(model, expression)
+            comparable.append((label, _effective_nulls_placement(expanded, ascending), plain, sql))
 
     return comparable
 
 
-def _format_ordering_terms(names):
-    """The comparable paths of an ordering, quoted for a check message."""
-    return ", ".join(f"'{name}'" for name in names)
+def _ordering_expression_sql(model, expression):
+    """
+    The SQL and parameters that Django compiles an ordering expression to, on a query of the model.
+
+    The result is ``None`` when the expression can't be compiled on its own. That is the case for an
+    expression over an annotation, which only the queryset that adds the annotation can resolve.
+    Compiling resolves names and renders SQL without touching the database.
+    """
+    query = Query(model)
+    try:
+        resolved = expression.resolve_expression(query)
+        sql, params = query.get_compiler(DEFAULT_DB_ALIAS).compile(resolved)
+    except Exception:
+        return None
+
+    return sql, tuple(params)
+
+
+def _format_ordering_terms(terms):
+    """The comparable terms of an ordering, quoted for a check message, each with any nulls placement."""
+    return ", ".join(
+        f"'{label}' (nulls {placement})" if placement else f"'{label}'" for label, placement, _plain, _sql in terms
+    )
+
+
+def _ordering_declaration(terms):
+    """
+    The viewset declaration that sorts the way the comparable ``terms`` do, as source to quote in a
+    hint.
+
+    A term with a nulls placement goes into ``nulls_ordering`` rather than into an expression in
+    ``ordering``, since ``nulls_ordering`` keeps the placement on a client's ``?o=`` request too. A
+    term that wraps its column in a function has no string spelling, so the declaration is then
+    described rather than quoted.
+    """
+    if not all(plain for _label, _placement, plain, _sql in terms):
+        return "an `ordering` with the same terms"
+
+    declaration = f"`ordering = [{', '.join(repr(label) for label, _placement, _plain, _sql in terms)}]`"
+    placements = {label.removeprefix("-"): placement for label, placement, _plain, _sql in terms if placement}
+    if placements:
+        declaration += f" with `nulls_ordering = {placements!r}`"
+
+    return declaration
+
+
+def _list_queryset(viewset):
+    """
+    The queryset that a list request on the viewset starts from, as far as a check can build it.
+
+    That is what ``get_queryset()`` returns, called on a view built without a request, the same way
+    ``_queryset_annotation_names`` builds it. A ``get_queryset()`` that needs the request raises here,
+    and the class-level ``queryset`` is used instead. ``None`` when neither is available.
+
+    A ``FieldError`` is raised to the caller instead. ``order_by()`` checks a plain string name as soon
+    as it is called, so a misspelled name in ``get_queryset()`` raises here, and every list request
+    would raise it too.
+    """
+    try:
+        return _as_queryset(viewset().get_queryset())
+    except FieldError:
+        raise
+    except Exception:
+        # Any other failure here means only that the method needs a request, which is not the check's
+        # business. The class attribute is still a declaration the check can read.
+        return _as_queryset(getattr(viewset, "queryset", None))
+
+
+def _as_queryset(value):
+    """
+    A queryset that a viewset gives as a manager, such as ``queryset = Order.objects``, as a queryset.
+
+    A manager has no query of its own to read, so this calls ``.all()`` on it, the way any query of the
+    manager starts. DRF's ``GenericAPIView.get_queryset`` returns a manager unchanged, so a check has to
+    do this itself. A ``FieldError`` from the manager is raised to the caller, because every query of
+    the manager would raise it. The result is ``None`` when the manager fails in any other way, such as
+    needing a request.
+    """
+    if not isinstance(value, BaseManager):
+        return value
+
+    try:
+        return value.all()
+    except FieldError:
+        raise
+    except Exception:
+        return None
+
+
+def _class_queryset(viewset):
+    """
+    The viewset's class-level ``queryset``, as a queryset (see ``_as_queryset``).
+
+    The result is ``None`` when the viewset declares none, or when it can't be built at check time.
+    This is only read to name where an ordering or a grouping was written, so a failure here is never
+    reported.
+    """
+    try:
+        return _as_queryset(getattr(viewset, "queryset", None))
+    except Exception:
+        return None
+
+
+def _default_manager_queryset(model):
+    """
+    The queryset that the model's default manager builds.
+
+    The result is ``None`` when the manager can't build one at check time. ``vueda_info.E015`` reports a
+    manager whose query Django rejects.
+    """
+    try:
+        return model._default_manager.all()
+    except Exception:
+        return None
+
+
+def _has_ordering_backend(viewset):
+    """
+    Whether the viewset's ``filter_backends`` include an ordering backend, which is what applies the
+    viewset's ``ordering`` and a client's ``?o=`` to a list request.
+
+    A viewset without one never calls ``order_by()`` for a list request. Its declared ``ordering`` does
+    nothing, so the three ordering rules can't judge it.
+    """
+    filter_backends = getattr(viewset, "filter_backends", ())
+    return any(isinstance(backend, type) and issubclass(backend, OrderingFilter) for backend in filter_backends)
+
+
+def _orders_by_own_annotation(queryset, ordering):
+    """
+    Whether an ordering names an annotation that the queryset itself adds.
+
+    These are the orderings that a declaration can't always hold. ``Meta.ordering`` can't name an
+    annotation, and an aggregate such as ``Count("items")`` in ``Meta.ordering`` fails with a
+    ``GROUP BY`` error. So ``vueda_info.E010`` and ``vueda_info.E015`` let such an ordering stay in a
+    manager or in ``get_queryset()``.
+
+    An aggregate always reaches an ordering through an annotation. Django's ``order_by()`` rejects a
+    term that contains an aggregate with a ``FieldError`` that says to annotate it, so the ordering has
+    to name the annotation instead (``Query.add_ordering``).
+
+    ``formatted_name`` doesn't count. ``FormattedNameManager`` adds it to every queryset of a model
+    that reaches the name through a lookup expression, and ``Meta.ordering`` can name it, so an
+    ordering by it is not one that only a queryset can hold.
+    """
+    annotation_names = set(queryset.query.annotations) - {FORMATTED_NAME}
+    return any(name in annotation_names for term in ordering for name in ordering_term_field_names(term))
+
+
+def _ordering_state(queryset):
+    """
+    The ordering that a queryset's query holds, as ``order_by()`` received its terms, together with
+    whether ``.reverse()`` flipped it.
+
+    Two querysets whose states are equal sort the same way because they hold the same ordering, not
+    merely because their orderings match. The terms are compared as they were received, and the
+    ``.reverse()`` flag (``Query.standard_ordering``) is compared alongside them. Comparing flipped
+    terms instead would not work. A reversed copy of an expression such as ``F("name").asc()``
+    compares equal to the original, because Django's expression equality reads the arguments that
+    the expression was built with, and ``reverse_ordering()`` changes the copy in place.
+    """
+    query = queryset.query
+    return tuple(query.order_by), query.standard_ordering
+
+
+def _default_manager_ordering_state(model):
+    """
+    The ordering state (see ``_ordering_state``) of the queryset that the model's default manager
+    builds.
+
+    The result is ``None`` when the manager applies no ordering and no ``.reverse()`` of its own. It is
+    also ``None`` when the manager can't build a queryset at check time.
+    """
+    try:
+        queryset = model._default_manager.all()
+    except Exception:
+        # A manager that can't build a queryset without a request has no ordering to read here, and a
+        # `FieldError` from it is `vueda_info.E015`'s to report.
+        return None
+
+    if not queryset_explicit_ordering(queryset) and queryset.query.standard_ordering:
+        return None
+
+    return _ordering_state(queryset)
+
+
+def _rejection_key(error):
+    """
+    The part of a ``FieldError`` message that two reports of the same mistake share.
+
+    Django ends a "Cannot resolve keyword" message with the names that the query could have used
+    ("Choices are: ..."). A queryset that adds annotations lists more names there, so that list is left
+    out.
+    """
+    return str(error).split(" Choices are:")[0]
+
+
+def _default_manager_rejection(model):
+    """
+    The message of the ``FieldError`` that ``vueda_info.E015`` reports for the model's default manager,
+    as ``_rejection_key`` reduces it.
+
+    That is a ``FieldError`` while the manager builds its queryset, or while an ordered queryset is
+    compiled. An unordered manager isn't compiled, the same way ``_validate_default_manager_ordering``
+    doesn't compile it. The result is ``None`` when E015 reports no such error.
+    """
+    try:
+        queryset = model._default_manager.all()
+    except FieldError as error:
+        return _rejection_key(error)
+    except Exception:
+        return None
+
+    if not queryset_explicit_ordering(queryset):
+        return None
+
+    try:
+        queryset.query.sql_with_params()
+    except FieldError as error:
+        return _rejection_key(error)
+    except Exception:
+        return None
+
+    return None
+
+
+def _queryset_ordering_source(model, viewset, queryset, from_default_manager):
+    """
+    Where a list queryset's ordering was written, as ``(source, location)``: the subject of a
+    ``vueda_info.E010`` message, and the place its hint points at.
+
+    The default manager is the source when the queryset holds exactly the manager's ordering.
+    Otherwise it is the class-level ``queryset``, unless ``get_queryset()`` changed the ordering that
+    the class-level ``queryset`` holds.
+    """
+    if from_default_manager:
+        manager_name = model._default_manager.name
+        return (
+            f"{model.__name__}.{manager_name}, the default manager that {viewset.__name__} starts from,",
+            f"{model.__name__}.{manager_name}",
+        )
+
+    class_queryset = _class_queryset(viewset)
+    if class_queryset is None or _ordering_state(queryset) != _ordering_state(class_queryset):
+        return f"{viewset.__name__}.get_queryset()", "`get_queryset()`"
+
+    return f"{viewset.__name__}.queryset", "the queryset"
+
+
+def _queryset_layer_source(model, viewset, applies):
+    """
+    The layer of a list queryset that applies something, as ``(source, location)``.
+
+    ``applies`` is called with a queryset and says whether that queryset has the thing being reported,
+    such as a ``.reverse()`` or a ``GROUP BY``. Each layer starts from the one below it, so the lowest
+    layer that has it is where it was written: the model's default manager, then the class-level
+    ``queryset``, then ``get_queryset()``.
+    """
+    manager_queryset = _default_manager_queryset(model)
+    class_queryset = _class_queryset(viewset)
+    if (
+        manager_queryset is not None
+        and applies(manager_queryset)
+        and (class_queryset is None or applies(class_queryset))
+    ):
+        manager_name = model._default_manager.name
+        return (
+            f"{model.__name__}.{manager_name}, the default manager that {viewset.__name__} starts from,",
+            f"{model.__name__}.{manager_name}",
+        )
+
+    if class_queryset is not None and applies(class_queryset):
+        return f"{viewset.__name__}.queryset", "the queryset"
+
+    return f"{viewset.__name__}.get_queryset()", "`get_queryset()`"
+
+
+def _reversed_list_queryset_error(model, viewset, queryset):
+    """
+    The ``vueda_info.E010`` error for a list queryset that ``.reverse()`` flipped.
+
+    The result is ``None`` when the flip can't change the order that a client asks for.
+
+    Django keeps a ``.reverse()`` on the query through a later ``order_by()``, because
+    ``QuerySet.order_by`` never resets ``Query.standard_ordering``. DRF's ordering backend calls
+    ``order_by()`` with the viewset's ``ordering`` or a client's ``?o=``, so on a reversed list queryset
+    each of those comes back in the opposite order. A client that asks for a column ascending gets it
+    descending, and ``model_ordering.default`` describes the opposite of the rows.
+
+    That matters only when a client has an order to get backwards: the viewset declares ``ordering``,
+    or a list request can sort by at least one name. A viewset with neither always lists its rows in
+    one fixed order, so a ``.reverse()`` there is left to the three rules, like any other ordering.
+    When the names can't be read at check time, the viewset counts as sortable when its
+    ``ordering_fields`` are missing or not empty, or when its model declares ``Meta.ordering``. DRF sorts by the
+    serializer's fields when ``ordering_fields`` is missing, and ``VuedaOrderingFilter`` accepts every
+    field that the default ordering names.
+
+    The message names the lowest layer of the list queryset that is reversed (see
+    ``_queryset_layer_source``).
+    """
+    if queryset.query.standard_ordering:
+        return None
+
+    if not getattr(viewset, "ordering", None):
+        requestable_names = _requestable_ordering_names(viewset)
+        if requestable_names is None:
+            ordering_fields = getattr(viewset, "ordering_fields", None)
+            sortable = ordering_fields is None or bool(ordering_fields) or bool(model._meta.ordering)
+        else:
+            sortable = bool(requestable_names)
+        if not sortable:
+            return None
+
+    source, location = _queryset_layer_source(model, viewset, lambda layer: not layer.query.standard_ordering)
+
+    return Error(
+        f"{source} calls `.reverse()`, which stays on the query when DRF sorts it, so every list request on "
+        f"{viewset.__name__} returns the opposite of the order that it asks for.",
+        hint=(
+            f"Remove the `.reverse()` from {location}, and declare the order that you want as "
+            f"{viewset.__name__}.ordering. DRF's ordering backend calls `order_by()` with "
+            f"{viewset.__name__}.ordering or a client's `?o=`, and Django keeps a `.reverse()` through that "
+            "call, so a client that sorts by a column gets the rows in the opposite order."
+        ),
+        obj=viewset,
+        id="vueda_info.E010",
+    )
+
+
+def _grouped_list_queryset_error(model, viewset, queryset):
+    """
+    The ``vueda_info.E010`` error for a grouped list queryset that drops ``Meta.ordering``.
+
+    The result is ``None`` when the rows still arrive in the order that ``model_ordering.default``
+    reports.
+
+    Django leaves ``Meta.ordering`` out of a query that has a ``GROUP BY``, such as one that annotates
+    an aggregate (``SQLCompiler.as_sql``). With no ``ordering`` on the viewset, DRF applies no ordering
+    either, so the rows arrive unordered while ``model_ordering.default`` reports ``Meta.ordering``.
+    That breaks rule 1, the metadata must not lie. A declared ``ordering`` fixes it, because DRF calls
+    ``order_by()`` with it, and Django applies an explicit ordering to a grouped query.
+
+    A grouped queryset ordered by ``extra(order_by=...)`` still has an order, so it isn't reported.
+
+    The message names the lowest layer of the list queryset that is grouped (see
+    ``_queryset_layer_source``), because the grouping is what this reports, not an ordering.
+    """
+    query = queryset.query
+    if query.group_by is None or query.extra_order_by or getattr(viewset, "ordering", None):
+        return None
+
+    source, _location = _queryset_layer_source(model, viewset, lambda layer: layer.query.group_by is not None)
+
+    meta_terms = _comparable_ordering(model, model._meta.ordering)
+    if not meta_terms:
+        return None
+
+    return Error(
+        f"{source} groups its rows, so Django leaves out {model.__name__}.Meta.ordering "
+        f"({_format_ordering_terms(meta_terms)}) and the rows arrive unordered, but "
+        f"`model_ordering.default` reports that ordering for {viewset.__name__}.",
+        hint=(
+            f"Declare {_ordering_declaration(meta_terms)} on {viewset.__name__}, so DRF applies it to every "
+            "list request and `model_ordering.default` reports it. Django doesn't use `Meta.ordering` in a "
+            "query with `GROUP BY`, such as one that annotates an aggregate."
+        ),
+        obj=viewset,
+        id="vueda_info.E010",
+    )
+
+
+def _unsortable_reverse_note(model, viewset, queryset):
+    """
+    A sentence for a hint about a reversed list queryset on a viewset that can't be sorted, naming the
+    layer that holds the ``.reverse()`` (see ``_queryset_layer_source``).
+
+    Declaring the order isn't enough while the ``.reverse()`` stays, because DRF's ``order_by()`` keeps
+    it and would flip the declaration. The result is empty when the queryset isn't reversed.
+    """
+    if queryset.query.standard_ordering:
+        return ""
+
+    _source, location = _queryset_layer_source(model, viewset, lambda layer: not layer.query.standard_ordering)
+    return f" Remove the `.reverse()` from {location} as well, because DRF's `order_by()` keeps it."
+
+
+def _applied_viewset_ordering(model, viewset, ordering):
+    """
+    The viewset's declared ``ordering`` as a list request gets it.
+
+    ``VuedaOrderingFilter`` applies the viewset's ``nulls_ordering`` to it first. DRF's own
+    ``OrderingFilter`` doesn't, so the ordering is used as declared on a viewset without the VUEDA
+    backend.
+    """
+    from vueda.core.filters import VuedaOrderingFilter
+
+    filter_backends = getattr(viewset, "filter_backends", ())
+    if any(isinstance(backend, type) and issubclass(backend, VuedaOrderingFilter) for backend in filter_backends):
+        return VuedaOrderingFilter.apply_nulls_ordering(ordering, viewset, model)
+
+    return ordering
+
+
+def _checked_list_queryset(model, viewset):
+    """
+    The viewset's list queryset (see ``_list_queryset``), checked for a query that Django rejects, as
+    ``(queryset, errors)``.
+
+    A ``FieldError`` while ``get_queryset()`` builds the queryset, or while an ordered queryset is
+    compiled, is reported with Django's own message, and the queryset is then ``None``. The queryset is
+    also ``None``, with no errors, when it can't be built at check time. The default manager's own
+    rejected query is ``vueda_info.E015``'s to report, once for the model, so it isn't repeated here
+    for every viewset that starts from it. A different error is the viewset's own.
+    """
+
+    def rejected_query_errors(source, error):
+        if _rejection_key(error) == _default_manager_rejection(model):
+            return []
+
+        return [
+            Error(
+                f"{source} builds a query that Django rejects: {error}",
+                hint=(
+                    f"Fix the query that {viewset.__name__} lists from. Django raises this `FieldError` when it "
+                    "builds or runs the query, so the check reports it at startup."
+                ),
+                obj=viewset,
+                id="vueda_info.E010",
+            )
+        ]
+
+    try:
+        queryset = _list_queryset(viewset)
+    except FieldError as error:
+        # The class-level `queryset` raises the same error when the failure is in it, such as a manager
+        # whose own query Django rejects. `get_queryset()` is the source otherwise.
+        try:
+            _as_queryset(getattr(viewset, "queryset", None))
+        except FieldError as class_error:
+            if _rejection_key(class_error) == _rejection_key(error):
+                return None, rejected_query_errors(f"{viewset.__name__}.queryset", error)
+        except Exception:
+            pass
+        return None, rejected_query_errors(f"{viewset.__name__}.get_queryset()", error)
+
+    if not isinstance(queryset, QuerySet):
+        # Nothing to read, such as a `RawQuerySet`, whose raw SQL has no ordering terms or flags.
+        return None, []
+
+    if not queryset_explicit_ordering(queryset):
+        return queryset, []
+
+    try:
+        queryset.query.sql_with_params()
+    except FieldError as error:
+        return None, rejected_query_errors(f"The list queryset of {viewset.__name__}", error)
+    except Exception:
+        # A query that can't be compiled for another reason, such as an empty `none()` queryset, says
+        # nothing about whether its ordering resolves.
+        pass
+
+    return queryset, []
 
 
 def _validate_queryset_ordering(model, viewset):
     """
-    Report a viewset whose class-level ``queryset`` orders by something its declarations don't.
+    Report a viewset whose list queryset orders the rows in a way that breaks one of three rules.
 
-    DRF's ``OrderingFilter`` reads a view's ``ordering`` and nothing else. When that isn't declared it
-    applies no ordering at all, so an ``order_by()`` on the viewset's queryset survives the filter
-    backends and orders the response — while ``model_ordering.default``, which reports ``ordering``
-    falling back to the model's ``Meta.ordering``, describes an ordering that request never applied.
-    The rows and the metadata disagree, and nothing in a passing test suite has to notice.
+    The list queryset is what ``get_queryset()`` returns, built without a request (see
+    ``_list_queryset``). Its ordering may come from ``get_queryset()``, from the class-level
+    ``queryset``, from a custom QuerySet method, or from the model's default manager. This reads the
+    ordering that the queryset carries, not the call that put it there. A ``get_queryset()`` that
+    needs the request falls back to the class-level ``queryset``. An ordering that varies by request
+    is out of reach of any startup check, and the documentation says so (see the "Queryset Ordering"
+    section of ``docs/core-concepts/filtering-and-ordering-semantics.md``).
 
-    This reads the ``queryset`` class attribute only, never ``get_queryset()``. A class attribute is
-    a declaration, which is the kind of thing a check can hold to account: it is the same object on
-    every request, so what it orders by either matches the declared default or doesn't. An ordering
-    applied inside ``get_queryset()``, in a manager, or in a helper is deliberately out of scope —
-    calling ``get_queryset()`` here would run application code with no request behind it, and its
-    result can vary per request anyway, so a check could confirm nothing about it. What this cannot
-    see is left to the documentation (see the "Queryset Ordering" section of
-    ``docs/core-concepts/filtering-and-ordering-semantics.md``).
+    1. **The metadata must not lie.** With no ``ordering`` on the viewset, DRF applies no ordering,
+       so the rows arrive in the queryset's order while ``model_ordering.default`` reports the model's
+       ``Meta.ordering``. A ``Meta.ordering`` that names a different order is reported. An empty
+       default makes no claim, so it can't lie.
+    2. **Declare what can be declared.** An ordering made only of fields belongs in the viewset's
+       ``ordering``, where ``model_ordering.default`` can report it. An ordering that names an
+       annotation is exempt, because a declaration can't always hold it: ``Meta.ordering`` can't name
+       an annotation, and an aggregate has to be annotated before any ordering can sort by it. A
+       fields-only ordering from the default manager is ``vueda_info.E015``'s to report, once for the
+       model, so it isn't repeated here for every viewset.
+    3. **No dead ``order_by()``.** With an ``ordering`` on the viewset, DRF replaces the queryset's
+       ordering on every list request. A queryset ordering that differs reaches no response, and it
+       reads as if it were the list's order. An ordering from the default manager is exempt, because
+       it still sorts every other query of the model.
 
-    Three shapes get three messages, because the fix differs:
+    A list queryset that Django rejects is reported first, with Django's own ``FieldError`` message.
+    That is a ``FieldError`` while ``get_queryset()`` builds it, or while an ordered queryset is
+    compiled.
 
-    - ``ordering`` is declared and disagrees. The declaration wins on every list request, so the
-      metadata is accurate and the queryset's ordering is dead weight that reads as if it were in
-      force.
-    - ``ordering`` is absent and the model's ``Meta.ordering`` disagrees. The queryset's ordering is
-      what arrives and the model's is what gets reported.
-    - Neither is declared. The queryset's ordering is what arrives and the metadata reports no
-      default ordering at all.
+    A viewset without an ordering backend in ``filter_backends`` is judged no further (see
+    ``_has_ordering_backend``). Nothing applies its declared ``ordering``, so the rules can't judge it.
 
-    An ordering either side of the comparison has no single path for — ``"?"``, a multi-column
+    A ``.reverse()`` on a viewset that a client can sort is reported next (see
+    ``_reversed_list_queryset_error``). It falls outside the three rules, because it flips every sort
+    that a client asks for, not only the default. A grouped list queryset that drops ``Meta.ordering``
+    is reported under rule 1 (see ``_grouped_list_queryset_error``).
+
+    The comparison includes nulls placement. A declared ``ordering`` has the viewset's
+    ``nulls_ordering`` applied first, the same way ``VuedaOrderingFilter`` applies it on a list
+    request. ``Meta.ordering`` does not, because the filter never sees it.
+
+    An ordering that either side of the comparison has no single path for — ``"?"``, a multi-column
     expression — is not judged, since there is nothing to compare it against with any confidence.
     """
+
     if viewset is None:
         return []
 
-    queryset = getattr(viewset, "queryset", None)
+    queryset, rejected_errors = _checked_list_queryset(model, viewset)
     if queryset is None:
+        return rejected_errors
+
+    explicit_ordering = queryset_explicit_ordering(queryset)
+
+    if not _has_ordering_backend(viewset):
         return []
 
-    queryset_names = _comparable_ordering(model, queryset_explicit_ordering(queryset))
-    if not queryset_names:
-        # Nothing declared on the queryset, or nothing there that can be compared.
+    reversed_error = _reversed_list_queryset_error(model, viewset, queryset)
+    if reversed_error is not None:
+        return [reversed_error]
+
+    if not explicit_ordering:
+        # Nothing on the queryset to compare, unless grouping drops `Meta.ordering` (rule 1).
+        grouped_error = _grouped_list_queryset_error(model, viewset, queryset)
+        return [grouped_error] if grouped_error is not None else []
+
+    manager_state = _default_manager_ordering_state(model)
+    from_default_manager = manager_state is not None and manager_state == _ordering_state(queryset)
+    source, location = _queryset_ordering_source(model, viewset, queryset, from_default_manager)
+
+    queryset_terms = _comparable_ordering(model, explicit_ordering)
+    if not queryset_terms:
+        # Nothing there that can be compared.
         return []
 
+    uses_annotation = _orders_by_own_annotation(queryset, explicit_ordering)
+    formatted_queryset_terms = _format_ordering_terms(queryset_terms)
     viewset_ordering = getattr(viewset, "ordering", None)
-    declared_ordering = viewset_ordering if viewset_ordering else model._meta.ordering
-    declared_names = _comparable_ordering(model, declared_ordering)
-    if declared_names is None or declared_names == queryset_names:
-        return []
+    # A `.reverse()` that gets here is on a viewset that can't be sorted. Declaring its order isn't
+    # enough while it stays, because DRF's `order_by()` keeps it and would flip the declaration.
+    reverse_note = _unsortable_reverse_note(model, viewset, queryset)
 
-    queryset_terms = _format_ordering_terms(queryset_names)
-    declared_terms = _format_ordering_terms(declared_names)
-    move_it = (
-        f"Declare it as `ordering = [{queryset_terms}]` on {viewset.__name__} instead, so the "
-        "ordering DRF applies is the one `model_ordering.default` reports"
-    )
-
+    # Rule 3: a declared `ordering` replaces the queryset's on every list request.
     if viewset_ordering:
+        if from_default_manager:
+            return []
+
+        if isinstance(viewset_ordering, str):
+            viewset_ordering = (viewset_ordering,)
+        declared_terms = _comparable_ordering(model, _applied_viewset_ordering(model, viewset, viewset_ordering))
+        if declared_terms is None or declared_terms == queryset_terms:
+            return []
+
         message = (
-            f"{viewset.__name__}.queryset orders by {queryset_terms}, which "
-            f"{viewset.__name__}.ordering ({declared_terms}) replaces on every list request."
+            f"{source} orders by {formatted_queryset_terms}, which "
+            f"{viewset.__name__}.ordering ({_format_ordering_terms(declared_terms)}) replaces on every list request."
         )
         hint = (
-            f"Remove the `order_by()` from the queryset, or make the two agree. DRF's ordering "
+            f"Remove the `order_by()` from {location}, or make the two agree. DRF's ordering "
             f"backend applies {viewset.__name__}.ordering, so the queryset's ordering reaches no "
             "response and no metadata; leaving it in place reads as if it were the default order."
         )
-    elif model._meta.ordering:
+        return [Error(message, hint=hint, obj=viewset, id="vueda_info.E010")]
+
+    meta_terms = _comparable_ordering(model, model._meta.ordering)
+    if meta_terms is None or meta_terms == queryset_terms:
+        return []
+
+    if uses_annotation:
+        # Rule 2 exempts this ordering, so only rule 1 applies: it may stay unless it contradicts a
+        # declared `Meta.ordering`.
+        if not meta_terms:
+            return []
+
         message = (
-            f"{viewset.__name__}.queryset orders by {queryset_terms}, but the default ordering "
-            f"reported for it comes from {model.__name__}.Meta.ordering ({declared_terms}), which "
-            "no list request here applies."
+            f"{source} orders by {formatted_queryset_terms}, but the default ordering reported for "
+            f"{viewset.__name__} comes from {model.__name__}.Meta.ordering ({_format_ordering_terms(meta_terms)}), "
+            "which no list request here applies."
+        )
+        hint = (
+            f"Declare {_ordering_declaration(queryset_terms)} on {viewset.__name__}, so the ordering DRF "
+            "applies is the one `model_ordering.default` reports. Or "
+            f"remove {model.__name__}.Meta.ordering, so that `model_ordering.default` makes no claim about the "
+            "order. An ordering that names an annotation may stay in "
+            f"{location} when no default ordering is declared."
+        )
+        return [Error(message, hint=hint, obj=viewset, id="vueda_info.E010")]
+
+    if from_default_manager:
+        # A fields-only ordering in the default manager: `vueda_info.E015` reports it once for the model.
+        return []
+
+    move_it = (
+        f"Declare it as {_ordering_declaration(queryset_terms)} on {viewset.__name__} instead, so the "
+        "ordering DRF applies is the one `model_ordering.default` reports"
+    )
+
+    if meta_terms:
+        message = (
+            f"{source} orders by {formatted_queryset_terms}, but the default ordering "
+            f"reported for it comes from {model.__name__}.Meta.ordering ({_format_ordering_terms(meta_terms)}), "
+            "which no list request here applies."
         )
         hint = (
             f"{move_it}. DRF's ordering backend reads a view's `ordering` and nothing else, so with "
             "none declared it applies no ordering and the queryset's own survives to the response — "
             f"while `model_ordering.default` falls back to {model.__name__}.Meta.ordering and "
-            "describes a different order to every client. Dropping the `order_by()` is the other "
-            "answer, and reverses the list."
+            "describes a different order to every client. Dropping the `order_by()` is the other answer, "
+            "and changes the list's order."
         )
     else:
         message = (
-            f"{viewset.__name__}.queryset orders by {queryset_terms}, which neither "
+            f"{source} orders by {formatted_queryset_terms}, which neither "
             f"{viewset.__name__}.ordering nor {model.__name__}.Meta.ordering declares."
         )
         hint = (
             f"{move_it}. A list request arrives in the queryset's order, and DRF's ordering backend "
             "never sees that ordering, so `model_ordering.default` reports no default ordering at "
-            "all and a client can't show which column the rows are sorted by."
+            f"all and a client can't show which column the rows are sorted by.{reverse_note}"
         )
 
     return [Error(message, hint=hint, obj=viewset, id="vueda_info.E010")]
 
 
+def _validate_default_manager_ordering(model):
+    """
+    Report a default manager that orders every query of its model by fields alone, unless
+    ``Meta.ordering`` already declares that order, or whose query Django can't compile.
+
+    A model's default manager sorts every query that names no other manager: the admin, related
+    lookups, and the expanded children that ``VuedaViewSet`` loads through ``_default_manager``. Django's
+    declaration for that model-wide order is ``Meta.ordering``, which is what ``model_ordering.default``
+    reads. So an ordering made only of fields belongs in ``Meta.ordering``, which is rule 2 of the
+    ordering checks: declare what can be declared. A manager ordering that sorts the same way as
+    ``Meta.ordering`` passes, compared the way ``vueda_info.E010`` compares orderings.
+    ``model_ordering.default`` then describes the order that the manager applies.
+
+    The manager is ``model._default_manager``, which Django resolves from ``Meta.default_manager_name``
+    or else from the first manager declared on the model or its bases. Its attribute name doesn't
+    matter, and any other manager is left alone: it orders only the code that names it, the same as
+    a QuerySet method, and a viewset that starts from it is compared by ``vueda_info.E010``.
+
+    An ordering that names an annotation that the manager adds is allowed, however simple or complex the
+    annotation is. ``Meta.ordering`` cannot name an annotation, and an aggregate such as
+    ``Count("items")`` there fails every query with a ``GROUP BY`` error, so the manager is the only
+    place such an ordering can live. Django rejects an aggregate written straight into the manager's
+    ``order_by()``, with a ``FieldError`` that says to annotate it, and that error is reported below.
+    Plain-field tie-breakers alongside the annotation are allowed too, because a manager's
+    ``order_by()`` replaces ``Meta.ordering`` entirely and the tie-breakers can't move there on their
+    own. ``formatted_name`` doesn't count as such an annotation:
+    ``FormattedNameManager`` adds it, and ``Meta.ordering`` can name it. Rule 1, that the metadata must
+    not lie, is ``vueda_info.E010``'s to apply, for each viewset that falls back to ``Meta.ordering``.
+
+    A manager that orders is also compiled with ``sql_with_params()``, which resolves every name in its
+    query without touching the database. A manager builds its queryset only when code first uses it,
+    and Django resolves an ``F()`` name or a transform only when a query runs, so nothing fails when
+    the model is imported. A ``FieldError`` from building or compiling the query is reported with
+    Django's own message, so a misspelling is a startup error rather than a failure on the first
+    query. An unordered manager isn't compiled, because this check is about ordering.
+    """
+    manager = model._default_manager
+
+    def rejected_query_error(error):
+        return Error(
+            f"{model.__name__}.{manager.name}, the default manager, builds a query that Django rejects: {error}",
+            hint=(
+                "Fix the manager's `get_queryset()`. A manager builds its queryset only when code first uses "
+                f"it, so nothing fails when {model.__name__} is imported, and the first query of "
+                f"{model.__name__} would raise this `FieldError`."
+            ),
+            obj=model,
+            id="vueda_info.E015",
+        )
+
+    try:
+        queryset = manager.all()
+    except FieldError as error:
+        return [rejected_query_error(error)]
+    except Exception:
+        # A manager that can't build a queryset without a request has nothing to read here.
+        return []
+
+    ordering = queryset_explicit_ordering(queryset)
+    if not ordering:
+        return []
+
+    try:
+        queryset.query.sql_with_params()
+    except FieldError as error:
+        return [rejected_query_error(error)]
+    except Exception:
+        # A query that can't be compiled for another reason, such as an empty `none()` queryset, says
+        # nothing about whether the ordering names resolve. The ordering is still checked below.
+        pass
+
+    if _orders_by_own_annotation(queryset, ordering):
+        return []
+
+    terms = _comparable_ordering(model, ordering)
+    if not terms:
+        # An ordering with no single column per term, such as `"?"`, has nothing to compare.
+        return []
+
+    if terms == _comparable_ordering(model, model._meta.ordering):
+        # `model_ordering.default` reads `Meta.ordering`, so it already describes this order.
+        return []
+
+    return [
+        Error(
+            f"{model.__name__}.{manager.name}, the default manager, orders every query of {model.__name__} "
+            f"by {_format_ordering_terms(terms)}, which `model_ordering.default` never reports.",
+            hint=(
+                f"Declare the ordering as {model.__name__}.Meta.ordering and remove the `order_by()` or "
+                "`.reverse()` from the manager. `Meta.ordering` is the model-wide default that Django, DRF, and "
+                "`model_ordering.default` all read. A default manager may keep an ordering that names "
+                "an annotation that it adds, since `Meta.ordering` can't name one."
+            ),
+            obj=model,
+            id="vueda_info.E015",
+        )
+    ]
+
+
 def check_ordering_configuration(app_configs, **kwargs):
-    """Report viewset and model ordering that model info cannot describe (``vueda_info.E006``, ``E007``, ``E010``)."""
+    """
+    Report viewset and model ordering that model info cannot describe (``vueda_info.E006``, ``E007``,
+    ``E010``, ``E015``).
+    """
     from vueda.info.registration import get_all_registrations
 
     errors = []
+    models_with_manager_checked = set()
 
     # Per registration rather than per model: the declarations being checked live on the viewset, and
-    # two viewsets on the same model can declare different orderings.
+    # two viewsets on the same model can declare different orderings. Only the default manager belongs
+    # to the model, so it is checked once however many viewsets the model has.
     for _key, registration in get_all_registrations().items():
         model = registration["serializer"].Meta.model
+        if model not in models_with_manager_checked:
+            models_with_manager_checked.add(model)
+            errors.extend(_validate_default_manager_ordering(model))
+
         errors.extend(_validate_ordering_declarations(model, registration["viewset"]))
         errors.extend(_validate_queryset_ordering(model, registration["viewset"]))
         errors.extend(_validate_nulls_ordering(model, registration["viewset"]))
