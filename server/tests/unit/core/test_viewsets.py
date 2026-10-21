@@ -967,14 +967,20 @@ class TestNestedExpandUnderAnotherPrefetch:
             ("tests.unit.core.urls_cart_prefetched_items", True),
         ],
     )
+    @pytest.mark.parametrize("nested_name", ["items", "cart_items"])
     def test_both_names_of_one_relation_render_their_nested_expands(
-        self, authenticated_client, settings, urlconf, viewset_prefetch
+        self, authenticated_client, settings, urlconf, viewset_prefetch, nested_name
     ):
-        """`cart_items` and `items` both expand the reverse `cart_items`, and only `items` expands
-        `product_option`. One Prefetch loads the relation for both names, the expand's own or the
-        viewset's, and `items.product_option` loads after it."""
+        """`cart_items` and `items` both expand the reverse `cart_items`, and only `nested_name`
+        expands `product_option`. One Prefetch loads the relation for both names, the expand's own or
+        the viewset's, and `product_option` loads after it.
+
+        The order of the two names in the serializer's fields follows string hashing, because
+        rest_flex_fields2 intersects the expand names with the permit list as sets. Running the test
+        with each name as the nested one covers both orders under every hash seed."""
         settings.ROOT_URLCONF = urlconf
-        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_items,items,items.product_option"}
+        plain_name = "cart_items" if nested_name == "items" else "items"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: f"{plain_name},{nested_name},{nested_name}.product_option"}
 
         counts = {}
         for cart_count in (2, 10):
@@ -986,8 +992,8 @@ class TestNestedExpandUnderAnotherPrefetch:
             assert response.status_code == HTTPStatus.OK, response_body(response)
             actual = {
                 row["id"]: (
-                    sorted(item["id"] for item in row["cart_items"]),
-                    sorted((item["id"], item["product_option"]["name"]) for item in row["items"]),
+                    sorted(item["id"] for item in row[plain_name]),
+                    sorted((item["id"], item["product_option"]["name"]) for item in row[nested_name]),
                 )
                 for row in response.data["results"]
             }
