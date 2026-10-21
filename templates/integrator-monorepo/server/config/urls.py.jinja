@@ -1,8 +1,9 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
 
 from vueda.info.urls import urlpatterns as vueda_info_urls
 from vueda.user.urls import urlpatterns as vueda_user_urls
-
 
 urlpatterns = [
     path(
@@ -19,3 +20,6 @@ urlpatterns = [
     ),
 ]
 
+# Serve uploaded files from MEDIA_ROOT while DEBUG is on. static() adds no route when DEBUG is off,
+# so a deployment serves MEDIA_URL from its web server or storage backend.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

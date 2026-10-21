@@ -7,12 +7,12 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [  # noqa: RUF012
+    dependencies = [
         ("pghistory", "0007_auto_20250421_0444"),
         ("users", "0001_initial"),
     ]
 
-    operations = [  # noqa: RUF012
+    operations = [
         migrations.CreateModel(
             name="UserEvent",
             fields=[
