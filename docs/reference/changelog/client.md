@@ -13,13 +13,13 @@ Use this page for changes that affect client package consumers: public Vue compo
 
 <!-- towncrier release notes start -->
 
-## v3.0.0-beta.1 (unreleased)
+## v3.0.0-beta.1 (2026-10-21)
 
 This is the first public beta of the VUEDA v3 client. It builds list, detail, form, action, and workflow screens from the metadata that the VUEDA server publishes. A project on client v2.0.4 upgrades with [Upgrade from VUEDA v2](../../guides/upgrade-from-v2.md), which also covers the matching server upgrade.
 
 ### Installation and Requirements
 
-Install the beta from the public npm registry. The `latest` tag points to an older alpha, so name the `beta` tag:
+Install the beta from the public npm registry by its `beta` tag:
 
 ```bash
 pnpm add @arrai-innovations/vueda@beta

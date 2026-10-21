@@ -4,7 +4,7 @@
     <img src="https://vueda.dev/v3/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
 </a>
 
-[![npm alpha](https://img.shields.io/npm/v/@arrai-innovations/vueda/alpha)](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha)
+[![npm beta](https://img.shields.io/npm/v/@arrai-innovations/vueda/beta)](https://www.npmjs.com/package/@arrai-innovations/vueda/v/beta)
 
 [vueda.dev](https://vueda.dev) · [Documentation](https://vueda.dev/v3/) · [Start building](https://vueda.dev/v3/tutorials/start-building.html) · [Client changelog](https://vueda.dev/v3/reference/changelog/client.html)
 
@@ -14,7 +14,7 @@ business applications with Django and Vue. It turns metadata from
 forms, lists, detail screens, and routes. Metadata describes the models' fields,
 actions, and permissions.
 
-The npm package is [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha).
+The npm package is [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/beta).
 
 <!-- prettier-ignore-start -->
 <!--TOC-->
@@ -51,11 +51,11 @@ For a new application, follow
 [Start Building](https://vueda.dev/v3/tutorials/start-building.html). It scaffolds
 both packages and walks through a working inventory application.
 
-To add the client to an existing project, install the alpha from public npm.
+To add the client to an existing project, install the beta from public npm.
 No registry credentials are needed:
 
 ```console
-npm install @arrai-innovations/vueda@alpha --registry=https://registry.npmjs.org/
+npm install @arrai-innovations/vueda@beta --registry=https://registry.npmjs.org/
 ```
 
 The v3 series is currently a prerelease. Use the documentation for the major
