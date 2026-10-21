@@ -63,6 +63,25 @@ describe("lib/vite.js", () => {
         }
     });
 
+    it.each(["vue-router", "pinia"])("resolves the %s alias to the package's import entry", async (packageName) => {
+        const packageDir = fs.realpathSync(path.join(clientRoot, "node_modules", packageName));
+        const packageJson = JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf-8"));
+        const vueda = vuedaViteConfig({ root: clientRoot, enableDedupe: false });
+        const server = await createServer({
+            root: clientRoot,
+            configFile: false,
+            ...vueda,
+            optimizeDeps: { noDiscovery: true },
+            server: { middlewareMode: true },
+        });
+        try {
+            const resolved = await server.pluginContainer.resolveId(packageName);
+            expect(resolved.id).toBe(path.join(packageDir, packageJson.exports["."].import));
+        } finally {
+            await server.close();
+        }
+    });
+
     it("leaves the router excluded when the consumer has no action view alias", () => {
         const config = vuedaViteConfig({ enableDedupe: false });
         expect(config.build).toBeUndefined();
