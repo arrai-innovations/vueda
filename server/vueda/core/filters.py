@@ -46,7 +46,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
 
 from vueda.core.fields.form import BaseArrayField
-from vueda.core.formatted_name import resolve_formatted_name_path
+from vueda.core.formatted_name import resolve_formatted_name_transform_path
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import PK_ALIAS
@@ -54,9 +54,11 @@ from vueda.core.ordering import ordering_field_key
 from vueda.core.ordering import ordering_pk_field_names
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
+from vueda.core.paths import has_public_ordering_name
 from vueda.core.paths import join_ordering_direction
 from vueda.core.paths import orm_filter_path_to_public
 from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.paths import path_annotation_name
 from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import reject_wildcard
 from vueda.core.paths import split_ordering_direction
@@ -126,6 +128,8 @@ class FormattedNamePathFilterSetMixin:
     ``formatted_name_lookup_expression``: the annotation ``VuedaViewSet.get_queryset`` adds belongs to
     the queryset being filtered, not to the tables it joins. So the declared path is rewritten to the
     one behind it — ``customer__data__formatted_name`` — on this filterset's own copy of the filters.
+    A transform after ``formatted_name`` stays on the rewritten path, so a filter declared against
+    ``customer__formatted_name__lower`` queries ``customer__data__formatted_name__lower``.
 
     The class-level declaration is untouched, and so is everything client-facing. The query parameter
     a client sends is the filter's name on the filterset, not its ``field_name``, and the label a
@@ -140,12 +144,16 @@ class FormattedNamePathFilterSetMixin:
         for filter_ in self.filters.values():
             declared_field_name = filter_.field_name
 
-            # A path the queryset already carries an annotation for needs no rewriting: that is how a
-            # model's own `formatted_name` is filtered, and the annotation is what metadata describes.
-            if declared_field_name in self.queryset.query.annotations:
+            # A path that starts with an annotation the queryset already carries needs no rewriting:
+            # that is how a model's own `formatted_name` is filtered, and the annotation is what
+            # metadata describes. Django applies any transforms after it, as in
+            # `formatted_name__unaccent`, to the annotation itself.
+            if path_annotation_name(self.queryset.query.annotations, declared_field_name) is not None:
                 continue
 
-            resolved = resolve_formatted_name_path(self.queryset.model, declared_field_name)
+            # A transform after a related `formatted_name` is kept on the rewritten path, so
+            # `customer__formatted_name__unaccent` becomes `customer__data__formatted_name__unaccent`.
+            resolved = resolve_formatted_name_transform_path(self.queryset.model, declared_field_name)
             if resolved is None or resolved == declared_field_name:
                 continue
 
@@ -331,6 +339,7 @@ class VuedaOrderingFilter(OrderingFilter):
         # any term is rewritten to the path behind that name.
         ordering = self.apply_nulls_ordering(ordering, view, queryset.model)
         ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
+        ordering = [self._resolve_alias_transform(term, queryset) for term in ordering]
         return queryset.order_by(*ordering)
 
     @classmethod
@@ -400,7 +409,16 @@ class VuedaOrderingFilter(OrderingFilter):
             for field_name, _label in self.get_valid_fields(queryset, view, {"request": request})
             if isinstance(field_name, str)
         }
-        valid_public_fields = {orm_ordering_path_to_public(field_name) for field_name in valid_orm_fields}
+        # A path with no public name that reads back as itself (a `JSONField` key or an annotation name
+        # containing `.` or `,`, see `has_public_ordering_name`) is left out. That keeps every valid
+        # public name a faithful round trip, which the translation below relies on.
+        # `vueda_info.E006` reports such a name in `ordering` or an explicit `ordering_fields`. An
+        # annotation that `ordering_fields = "__all__"` brings in is left out without a report.
+        valid_public_fields = {
+            orm_ordering_path_to_public(field_name)
+            for field_name in valid_orm_fields
+            if has_public_ordering_name(field_name)
+        }
 
         translated = []
         invalid_terms = []
@@ -520,18 +538,46 @@ class VuedaOrderingFilter(OrderingFilter):
         The ordering term with every ``formatted_name`` path in it rewritten to the path behind it.
 
         A path the queryset already carries an annotation for is left alone: that is how a model's own
-        `formatted_name` is ordered, and the annotation is what `model_ordering` describes. Anything
-        else with no lookup expression behind it is left alone too, and fails or sorts on its own
-        merits the way it always has.
+        `formatted_name` is ordered, and the annotation is what `model_ordering` describes. A path
+        that starts with an annotation and continues with transforms, such as
+        `formatted_name__unaccent`, is left alone for the same reason. Django applies the transforms
+        to the annotation. Anything else with no lookup expression behind it is left alone too, and
+        fails or sorts on its own merits the way it always has.
+
+        A related `formatted_name` path keeps any transforms after it, so
+        `customer__formatted_name__unaccent` becomes `customer__data__formatted_name__unaccent`.
         """
 
         def rewrite(field_name):
-            if field_name in queryset.query.annotations:
+            if path_annotation_name(queryset.query.annotations, field_name) is not None:
                 return None
 
-            return resolve_formatted_name_path(queryset.model, field_name)
+            return resolve_formatted_name_transform_path(queryset.model, field_name)
 
         return rewrite_ordering_term_field_names(term, rewrite)
+
+    @staticmethod
+    def _resolve_alias_transform(term, queryset):
+        """
+        The ordering term as an ``F`` expression when it is a string that applies transforms to an
+        annotation that ``.alias()`` added, such as ``launched__year``. Any other term is returned
+        unchanged.
+
+        A plain string in ``order_by()`` is resolved against the annotations that the query selects,
+        and an ``.alias()`` name isn't one of them, so Django raises ``FieldError`` for the string.
+        The same path inside an ``F`` expression is resolved against every annotation, aliases
+        included. The ``F`` expression keeps the term's direction.
+        """
+        if not isinstance(term, str):
+            return term
+
+        descending, path = split_ordering_direction(term)
+        query = queryset.query
+        name = path_annotation_name(query.annotations, path)
+        if name is None or name == path or name in query.annotation_select:
+            return term
+
+        return F(path).desc() if descending else F(path).asc()
 
     @staticmethod
     def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, model):

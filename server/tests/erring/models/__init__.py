@@ -7,6 +7,7 @@ from tests.erring.models.models import EmptyFilterManagerOrdering  # noqa: F401
 from tests.erring.models.models import FalseyFormattedNamesLookup  # noqa: F401
 from tests.erring.models.models import FormattedNameExpressionNotString  # noqa: F401
 from tests.erring.models.models import InlineAggregateManagerOrdering  # noqa: F401
+from tests.erring.models.models import LowerFormattedNameManagerOrdering  # noqa: F401
 from tests.erring.models.models import MatchingMetaManagerOrdering  # noqa: F401
 from tests.erring.models.models import MisspelledFManagerOrdering  # noqa: F401
 from tests.erring.models.models import MisspelledNameManagerOrdering  # noqa: F401

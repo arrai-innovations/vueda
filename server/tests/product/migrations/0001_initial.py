@@ -142,6 +142,25 @@ class Migration(migrations.Migration):
                 "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
+        migrations.CreateModel(
+            name="ProductRelease",
+            fields=[
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("released", models.DateTimeField()),
+                ("specs", models.JSONField(default=dict)),
+            ],
+            options={
+                "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
+            },
+        ),
         migrations.AddField(
             model_name="productcascadeorderednote",
             name="ordered_row",

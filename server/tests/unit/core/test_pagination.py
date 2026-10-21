@@ -1,5 +1,7 @@
 import json
+from datetime import UTC
 from datetime import date
+from datetime import datetime
 from decimal import Decimal
 from http import HTTPStatus
 from typing import ClassVar
@@ -7,9 +9,12 @@ from unittest.mock import patch
 
 import pytest
 from django.db import connection
+from django.db import models
 from django.db.models import F
 from django.db.models import Sum
+from django.db.models.functions import Ceil
 from django.test.utils import CaptureQueriesContext
+from django.test.utils import register_lookup
 from django.urls import reverse
 from rest_framework import status
 
@@ -17,6 +22,7 @@ from tests.conftest import BaseTestCommonModelViewSet
 from tests.conftest import response_body
 from tests.employee.models import Employee
 from tests.product.models import Product
+from tests.product.models import ProductRelease
 from tests.store.models import Cart
 from tests.store.models import CartItem
 from tests.store.models import Customer
@@ -339,6 +345,180 @@ class TestColumnTotals(BaseTestCommonModelViewSet):
         response = authenticated_client.get(url, data={"ct": "hours"}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         assert "ct" in response.data
+
+
+@pytest.mark.django_db
+class TestTransformColumnTotals(BaseTestCommonModelViewSet):
+    """A total whose path ends in a transform that the project registers.
+
+    `tests.timesheet.viewsets.TimesheetEntryBillableHoursViewSet` declares
+    `{"billable_hours": "hours__ceil"}`, which rounds each entry up to a whole hour before the sum.
+    Django has no `ceil` transform until a project registers one, so each request runs with `Ceil`
+    registered on `DecimalField`.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Timesheet Lister": [
+            ("timesheet", "Timesheet", "list"),
+            ("timesheet", "TimesheetEntry", "list"),
+            ("timesheet", "TimesheetEntry", "read"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Timesheet Lister"],
+        },
+    }
+
+    def test_total_sums_each_row_after_the_transform(self, settings, api_client):
+        """1.25 hours rounds up to 2, and 0.5 hours rounds up to 1, so the total is 3. Summing first
+        and rounding after would give 2, so the total proves that the transform ran per row."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_timesheet_entry_billable_hours"
+
+        user = self.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        employee = Employee.objects.create(user=user, employee_number="E001")
+        timesheet = Timesheet.objects.create(
+            period_start=date(2024, 1, 1),
+            period_end=date(2024, 1, 7),
+            employee=employee,
+            supervisor=None,
+        )
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 1), hours=Decimal("1.25"))
+        TimesheetEntry.objects.create(timesheet=timesheet, date=date(2024, 1, 2), hours=Decimal("0.5"))
+
+        with register_lookup(models.DecimalField, Ceil):
+            response = api_client.get(
+                reverse("timesheet.timesheetentry-list"),
+                data={settings.COLUMN_TOTALS_PARAM: "billable_hours"},
+                format="json",
+            )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["columnTotals"] == {"billable_hours": Decimal(3)}, response_body(response)
+
+
+@pytest.mark.django_db
+class TestAggregateAnnotationTransformColumnTotals(BaseTestCommonModelViewSet):
+    """A total that applies a transform to an aggregate annotation.
+
+    `tests.timesheet.viewsets.TimesheetLastEntryYearTotalViewSet` annotates `last_entry` as the `Max`
+    of each timesheet's entry dates, and totals `last_entry__year`. Summing the path directly would
+    nest the `Max` inside the `Sum`, which the database refuses.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Timesheet Lister": [
+            ("timesheet", "Timesheet", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Timesheet Lister"],
+        },
+    }
+
+    def test_total_sums_the_transform_of_each_aggregate_value(self, settings, api_client):
+        """Each timesheet has two entries in the same year, so a total that counted joined entry rows
+        instead of timesheets would double each year."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_timesheet_last_entry_year_total"
+
+        user = self.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        employee = Employee.objects.create(user=user, employee_number="E001")
+        for year in (2024, 2025):
+            timesheet = Timesheet.objects.create(
+                period_start=date(year, 1, 1),
+                period_end=date(year, 1, 7),
+                employee=employee,
+                supervisor=None,
+            )
+            TimesheetEntry.objects.create(timesheet=timesheet, date=date(year, 1, 1), hours=1)
+            TimesheetEntry.objects.create(timesheet=timesheet, date=date(year, 1, 2), hours=1)
+
+        response = api_client.get(
+            reverse("timesheet.timesheet-list"),
+            data={settings.COLUMN_TOTALS_PARAM: "last_entry_year"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["columnTotals"] == {"last_entry_year": 2024 + 2025}, response_body(response)
+
+
+@pytest.mark.django_db
+class TestAnnotationTransformColumnTotals(BaseTestCommonModelViewSet):
+    """A total that applies a transform to an annotation that `get_queryset` adds.
+
+    `tests.product.viewsets.ProductReleaseAnnotationTransformTotalViewSet` declares
+    `{"launch_year": "launched__year"}`, where `launched` annotates the release's date/time. The total
+    annotates `launched__year` under a generated name, selects it once per row, and sums it. That only
+    works when the total is routed by the annotation that the path starts with.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Release Lister": [
+            ("product", "ProductRelease", "list"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "test_admin@domain.invalid": {
+            "name": "Test Admin",
+            "password": "testpass",
+            "groups": ["Release Lister"],
+        },
+    }
+
+    def test_total_sums_the_transform_of_each_annotated_value(self, settings, api_client):
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_annotation_transform_total"
+
+        user = self.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        ProductRelease.objects.create(name="Cherry", released=datetime(2024, 6, 15, 12, tzinfo=UTC))
+        ProductRelease.objects.create(name="Apple", released=datetime(2025, 6, 15, 12, tzinfo=UTC))
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.COLUMN_TOTALS_PARAM: "launch_year"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["columnTotals"] == {"launch_year": 2024 + 2025}, response_body(response)
+
+    def test_totals_sum_alias_values_with_and_without_a_transform(self, settings, api_client):
+        """ProductReleaseAliasTransformTotalViewSet adds `launched` and `name_length` with `.alias()`
+        rather than `.annotate()`. `values()` refuses to select an alias, so both totals pass only
+        because each is summed through a generated `F()` annotation."""
+        settings.ROOT_URLCONF = "tests.unit.filtering.urls_product_release_alias_transform_total"
+
+        user = self.users["test_admin@domain.invalid"]
+        api_client.force_authenticate(user=user)
+
+        ProductRelease.objects.create(name="Cherry", released=datetime(2024, 6, 15, 12, tzinfo=UTC))
+        ProductRelease.objects.create(name="Apple", released=datetime(2025, 6, 15, 12, tzinfo=UTC))
+
+        response = api_client.get(
+            reverse("product.productrelease-list"),
+            data={settings.COLUMN_TOTALS_PARAM: "launch_year,name_length"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["columnTotals"] == {
+            "launch_year": 2024 + 2025,
+            "name_length": len("Cherry") + len("Apple"),
+        }, response_body(response)
 
 
 @pytest.mark.django_db

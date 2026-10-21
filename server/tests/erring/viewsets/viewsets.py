@@ -106,6 +106,16 @@ class ValidGetFormattedNameOrderingFieldsViewSet(VuedaViewSet):
     ordering_fields = ["formatted_name"]
 
 
+class ValidGetFormattedNameTransformOrderingViewSet(VuedaViewSet):
+    """Offers `formatted_name__unaccent` on a model that computes formatted_name with a
+    get_formatted_name() method. A transform doesn't give the database anything to sort by either, so
+    `vueda_info.E005` reports it, and `vueda_info.E006` doesn't report it a second time."""
+
+    queryset = my_models.ValidGetFormattedName.objects.all()
+    serializer_class = my_serializers.ValidGetFormattedNameSerializer
+    ordering_fields = ["formatted_name__unaccent"]
+
+
 class ValidLookupExpressionOrderingViewSet(VuedaViewSet):
     """Default-orders by formatted_name on a model that reaches it through
     `formatted_name_lookup_expression`, which the database can sort by. A valid configuration, so the
@@ -668,6 +678,18 @@ class DefaultManagerNameOrderingViewSet(VuedaViewSet):
 
     queryset = my_models.DefaultManagerNameOrdering.ordered.all()
     serializer_class = my_serializers.DefaultManagerNameOrderingSerializer
+
+
+class LowerFormattedNameManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by `formatted_name__lower`.
+
+    `Lower` is a transform only while a test registers it, so this viewset builds its queryset in
+    `get_queryset()`. A class-level `queryset` would fail when this module is imported."""
+
+    serializer_class = my_serializers.LowerFormattedNameManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.LowerFormattedNameManagerOrdering.objects.all()
 
 
 class MatchingMetaManagerOrderingViewSet(VuedaViewSet):
