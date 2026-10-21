@@ -64,10 +64,6 @@ const onFileSelected = (file) => {
 const onRemoveFile = () => {
     widgetContext.state.combinedValue = null;
 };
-const onDownload = () => {
-    console.log("download: ", widgetContext.state.combinedValue);
-};
-
 const fileName = computed(() => {
     if (widgetContext.state.combinedValue) {
         return widgetContext.state.combinedValue.name ?? widgetContext.state.combinedValue;
@@ -83,14 +79,17 @@ const isUnsavedFile = computed(() => widgetContext.state.combinedValue instanceo
 // {name, url} object would otherwise reach URL.createObjectURL and throw.
 const objectURL = useObjectUrl(() => (isUnsavedFile.value ? widgetContext.state.combinedValue : undefined));
 
+// URL precedence: the local object URL for a new File, the persisted {name, url} url, then a bare
+// string (legacy or already-resolved url) as-is. An object with no url has nothing to link to.
 const fileURL = computed(() => {
+    const value = widgetContext.state.combinedValue;
     if (isUnsavedFile.value) {
         return objectURL.value;
     }
-    if (widgetContext.state.combinedValue) {
-        return widgetContext.state.combinedValue.url ?? widgetContext.state.combinedValue;
+    if (typeof value === "string") {
+        return value || null;
     }
-    return null;
+    return value?.url || null;
 });
 </script>
 
@@ -119,7 +118,20 @@ const fileURL = computed(() => {
                         />
                         <span class="sr-only">Remove file</span>
                     </Button>
-                    <Button emphasis="ghost" size="icon-sm" data-qa="file-download" @click="onDownload">
+                    <!-- A new tab keeps the form open when the browser ignores `download`, as it does for a
+                    cross-origin url. The empty `download` keeps the server's filename; a local File
+                    passes its own name, because an object URL carries none. -->
+                    <Button
+                        v-if="fileURL"
+                        as="a"
+                        emphasis="ghost"
+                        size="icon-sm"
+                        data-qa="file-download"
+                        :download="isUnsavedFile ? fileName : ''"
+                        :href="fileURL"
+                        rel="noopener"
+                        target="_blank"
+                    >
                         <component
                             :is="icon('download').component"
                             v-if="icon('download')"
