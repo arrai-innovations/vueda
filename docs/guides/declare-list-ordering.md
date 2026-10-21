@@ -58,7 +58,9 @@ class InvoiceViewSet(VuedaViewSet):
 
 Write each key as a `__`-joined path, the same way as in `ordering`. Write `ordering` terms as strings for the placement to apply to them. A term such as `F("due_date").asc(nulls_first=True)` states its own placement for the default only, and an explicit `o=due_date` loses it.
 
-`vueda_info.E007` reports a `nulls_ordering` value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip.
+Each key must name a field that a client can sort by: one in `ordering_fields` or in the default ordering. For a composite primary key, declare the placement on each column as well as on `pk`, because a client sorts by one column at a time.
+
+`vueda_info.E007` reports a `nulls_ordering` value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip. It also reports a key that no client can sort by, such as a dotted key, and a composite `pk` key whose columns are left out.
 
 ## Make a Function Default Visible
 

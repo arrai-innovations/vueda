@@ -50,6 +50,7 @@ from vueda.core.formatted_name import resolve_formatted_name_path
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import PK_ALIAS
+from vueda.core.ordering import ordering_field_key
 from vueda.core.ordering import ordering_pk_field_names
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
@@ -268,7 +269,8 @@ class VuedaOrderingFilter(OrderingFilter):
        is, so their field names stay `__`-joined like every other view-declared ordering term — never
        the dotted `?o=` grammar. `filter_queryset` applies a placement after `get_ordering` has
        already translated a client's dotted term to its `__`-joined `order_by()` form, so a dotted key
-       here matches nothing a request could ever name.
+       here matches nothing a request could ever name. The `vueda_info.E007` system check reports a
+       key, dotted or not, that names no field a request can sort by.
 
        The placement applies wherever that field is sorted by name — an explicit `?o=` request, and
        equally a default `ordering` written as plain strings (`ordering = ["due_date"]`), since DRF
@@ -344,7 +346,9 @@ class VuedaOrderingFilter(OrderingFilter):
 
         # Nulls placement is declared against the client-facing name, so it has to be applied before
         # any term is rewritten to the path behind that name.
-        ordering = [self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip) for term in ordering]
+        ordering = [
+            self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, queryset.model) for term in ordering
+        ]
         ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
         return queryset.order_by(*ordering)
 
@@ -510,7 +514,7 @@ class VuedaOrderingFilter(OrderingFilter):
         return rewrite_ordering_term_field_names(term, rewrite)
 
     @staticmethod
-    def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip):
+    def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, model):
         """
         The ordering term with the field's declared nulls placement applied, if it has one.
 
@@ -522,6 +526,12 @@ class VuedaOrderingFilter(OrderingFilter):
         Both a `?o=` request and a default `ordering` written as plain strings reach this, so a
         placement declared for a field applies wherever that field is sorted by name. That is the
         point: the placement belongs to the field, not to one route to sorting on it.
+
+        A ``"pk"`` alias and the field behind it name one field, so a placement declared under either
+        spelling applies to a term in either (see ``ordering_field_key``). ``model_ordering`` advertises
+        ``customer.id`` for a ``customer__pk`` entry, so without this a placement keyed ``customer__pk``
+        would miss the term a metadata-driven client sends. A placement declared under the term's exact spelling wins
+        when the two spellings declare different placements.
         """
         if not isinstance(term, str):
             return term
@@ -530,6 +540,13 @@ class VuedaOrderingFilter(OrderingFilter):
         field_name = term.removeprefix("-")
         placement = nulls_ordering.get(field_name)
 
+        field_key = ordering_field_key(model, field_name)
+        if placement is None:
+            for declared_name, declared_placement in nulls_ordering.items():
+                if isinstance(declared_name, str) and ordering_field_key(model, declared_name) == field_key:
+                    placement = declared_placement
+                    break
+
         # An unknown placement is ignored rather than allowed to fail the request: there is no
         # `nulls_<placement>` keyword to pass, and a list endpoint returning rows in the database's
         # default nulls order is a far better outcome than a 500. `vueda_info.E007` reports the
@@ -537,7 +554,11 @@ class VuedaOrderingFilter(OrderingFilter):
         if placement not in NULLS_PLACEMENTS:
             return term
 
-        if descending and field_name in nulls_ordering_flip:
+        if descending and any(
+            flip_name == field_name
+            or (isinstance(flip_name, str) and ordering_field_key(model, flip_name) == field_key)
+            for flip_name in nulls_ordering_flip
+        ):
             placement = NULLS_PLACEMENTS[placement]
 
         expression = F(field_name).desc if descending else F(field_name).asc

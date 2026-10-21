@@ -142,9 +142,17 @@ Stock DRF passes an explicit `o` to the database as a plain field name. The data
 
 The placement applies wherever the field is sorted by name: an explicit `o`, and a viewset `ordering` written as strings. A term written as an expression, such as `F("due_date").asc(nulls_first=True)`, keeps its own placement. A model's `Meta.ordering` gets no placement when the viewset declares no `ordering`, because the backend applies nothing then.
 
-Keys are `__`-joined paths, as in `ordering`. A dotted key, or a key that names no orderable field, applies nothing, and no check reports it ([#312](https://github.com/arrai-innovations/vueda/issues/312)).
+A `nulls_ordering` key and a `nulls_ordering_flip` entry are `__`-joined paths, as in `ordering`, even though `o` is dotted. The backend translates `o=customer.user.email` to `customer__user__email` before it looks up a placement. So `{"customer__user__email": "first"}` applies, and `{"customer.user.email": "first"}` matches nothing.
 
-A value other than `"first"` or `"last"` is ignored at request time, and the rows use the database's default placement. The `vueda_info.E007` system check reports such a value. It also reports a `nulls_ordering` that is not a dict, and a `nulls_ordering_flip` entry that has no placement to flip. It reports every problem in both attributes in one run.
+A key must also name a field that a list request can sort by. That is a field that `ordering_fields` offers or that the default ordering names. A placement on any other field is never applied.
+
+A key that ends in the `"pk"` alias and a key that names the field behind it are the same key. `{"customer__pk": "first"}` also applies to `o=customer.id`, which is the spelling that `model_ordering` advertises. This holds for a primary key of one column.
+
+A composite primary key needs a placement on each of its columns. `model_ordering` advertises the key one column at a time, so a client sorts by one column, and a key on the `pk` applies only when the list is sorted by the whole key. Declare the placement on each column as well. Django allows a relation to reach a composite primary key model only from the reverse side. For example, an order list whose `order_items` reverse relation leads to a model with `pk = models.CompositePrimaryKey("order_id", "product_id")` declares `{"order_items__pk": "first", "order_items__order": "first", "order_items__product": "first"}`. An order with no items has nulls in those columns, so the placement decides where it sorts.
+
+A value other than `"first"` or `"last"` is ignored at request time, and the rows use the database's default placement. The `vueda_info.E007` system check reports such a value. It also reports a `nulls_ordering` that is not a dict, and a `nulls_ordering_flip` entry that has no placement to flip. It reports a key or entry that names no field a list request can sort by, and its hint gives the `__`-joined spelling of a dotted key. It reports a composite `pk` key when the same attribute leaves out any of the key's columns. It reports every problem in both attributes in one run.
+
+To read the names a list request can sort by, the check builds the viewset without a request. When the viewset's `get_queryset`, or the serializer that DRF reads default ordering fields from, needs the request, the check skips the keys that no request can sort by.
 
 `model_ordering` does not report nulls placement.
 
