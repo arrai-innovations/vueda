@@ -130,6 +130,8 @@ A viewset can prefetch a relation itself, in its `queryset` or `get_queryset`. W
 - When the viewset's own `Prefetch` loads the relation, the relations after that point load after the viewset's `Prefetch`, at one query per relation for each request.
 - A plain lookup loads the same objects that a join loads, so a join through it stays.
 
+The split applies to the joins on the viewset's queryset and to the joins that the plan adds. The joins inside a viewset's own `Prefetch` queryset stay as declared. Such a join caches the relations on its path, so Django skips the expand's prefetch for a relation under it. For example, a CartItem viewset with `Prefetch("cart", queryset=Cart.objects.all())` returns `null` for each customer's `formatted_name` on `?expand=cart,cart.customer`, because `Cart.objects` joins `customer__user` ([#546](https://github.com/arrai-innovations/vueda/issues/546)).
+
 A bare `select_related()` with no paths cannot be split. When the request expands a relation that loads through a join, the expand's joins replace the bare `select_related()`. Otherwise the bare `select_related()` stays, and its joins can replace a prefetched to-one relation. Avoid it on a queryset that also prefetches a to-one relation.
 
 `f` and `om` do not change the plan, because they cannot remove an expanded relation. A generic foreign key expand is not planned; each related object loads when it is rendered. The payload still grows with the row count and the expansion depth, and a short `permit_list_expands` is what limits it on a `list`.

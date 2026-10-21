@@ -1100,6 +1100,10 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
       viewset's own ``Prefetch`` queryset stays as declared. Each relation that such a lookup
       reaches costs one query per request.
 
+    The joins inside the queryset of a ``Prefetch`` that ``queryset`` already carried stay as
+    declared. Such a join caches the relations on its path, so Django skips a plan prefetch for a
+    relation under it.
+
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
     whose relation the join already cached.
