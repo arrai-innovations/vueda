@@ -83,7 +83,7 @@ def annotate_formatted_name(queryset):
     Shared by ``FormattedNameManager.get_queryset`` (every queryset the model itself builds),
     ``VuedaViewSet.get_queryset`` (the root queryset DRF builds),
     ``VuedaListSerializer.to_representation`` (a "many" expand fetched through a related manager), and
-    the prefetch-plan builder in ``vueda.core.viewsets`` (a "many" expand's ``Prefetch`` queryset), so
+    the prefetch-plan builder in ``vueda.core.viewsets`` (an expand's ``Prefetch`` queryset), so
     all four agree on when ``formatted_name`` needs the annotation or the ``select_related`` rather
     than each re-deriving it.
 

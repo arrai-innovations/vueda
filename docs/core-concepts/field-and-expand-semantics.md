@@ -120,6 +120,18 @@ A request with any invalid name fails as a whole, and one response reports every
 
 ## Query Cost of List and Retrieve Expansion
 
-On `list` and `retrieve`, {@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} adds `select_related` and `prefetch_related` for each relation that the request expands, after the permit list and depth limit apply. {@api py:function:vueda.core.viewsets.build_prefetch_plan} derives these from each field's `source`. An expanded to-one relation costs one join, and a to-many relation costs one prefetch query, whatever the row count.
+On `list` and `retrieve`, {@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} adds `select_related` and `prefetch_related` for each relation that the request expands, after the permit list and depth limit apply. {@api py:function:vueda.core.viewsets.build_prefetch_plan} derives these from each field's `source`. An expanded to-one relation costs one join, and a to-many relation costs one prefetch query, whatever the row count. The join also covers the relations that the related model lists in `formatted_name_select_related`. A to-one relation whose model sets `formatted_name = None` and a `formatted_name_lookup_expression` costs one prefetch query instead of a join. A join cannot carry the `formatted_name` annotation for the related model, and the prefetch query annotates it. The prefetch query reads the related rows the way Django loads any related object, through the model's base manager, so a default manager that filters rows does not hide the related object. When the relation's `source` crosses other to-one relations first, those relations still load through a join.
+
+A viewset can prefetch a relation itself, in its `queryset` or `get_queryset`. When a request expands that relation, a viewset's own `Prefetch` with a queryset loads it, with any annotations that its queryset adds. A plain lookup such as `prefetch_related("customer")` has no queryset, so the expand's own prefetch loads the relation instead, with the `formatted_name` annotation.
+
+{@api py:function:vueda.core.viewsets.apply_prefetch_plan} applies the plan on every `list` and `retrieve`, including a request that expands nothing. It keeps the joins away from each relation that a `Prefetch` queryset loads. A join that passes through such a relation is split there:
+
+- When the expand's own `Prefetch` loads the relation, the rest of the join moves onto that `Prefetch` queryset and costs no query.
+- When the viewset's own `Prefetch` loads the relation, the relations after that point load after the viewset's `Prefetch`, at one query per relation for each request.
+- A plain lookup loads the same objects that a join loads, so a join through it stays.
+
+The split applies to the joins on the viewset's queryset and to the joins that the plan adds. The joins inside a viewset's own `Prefetch` queryset stay as declared. Such a join caches the relations on its path, so Django skips the expand's prefetch for a relation under it. For example, a CartItem viewset with `Prefetch("cart", queryset=Cart.objects.all())` returns `null` for each customer's `formatted_name` on `?expand=cart,cart.customer`, because `Cart.objects` joins `customer__user` ([#546](https://github.com/arrai-innovations/vueda/issues/546)).
+
+A bare `select_related()` with no paths cannot be split. When the request expands a relation that loads through a join, the expand's joins replace the bare `select_related()`. Otherwise the bare `select_related()` stays, and its joins can replace a prefetched to-one relation. Avoid it on a queryset that also prefetches a to-one relation.
 
 `f` and `om` do not change the plan, because they cannot remove an expanded relation. A generic foreign key expand is not planned; each related object loads when it is rendered. The payload still grows with the row count and the expansion depth, and a short `permit_list_expands` is what limits it on a `list`.
