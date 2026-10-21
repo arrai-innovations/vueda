@@ -23,18 +23,16 @@ import datetime
 import warnings
 import weakref
 from collections.abc import Iterable
-from functools import cache
 
 import pghistory
 from django.conf import settings
-from django.contrib.admin.utils import NotRelationField
-from django.contrib.admin.utils import get_fields_from_path
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CompositePrimaryKey
+from django.db.models import F
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
@@ -61,6 +59,8 @@ from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.parsers import NestedMultipartMixin
+from vueda.core.paths import path_annotation_name
+from vueda.core.paths import query_path_field
 from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.serializers import GenericForeignKeySerializer
@@ -82,40 +82,45 @@ from vueda.history.serializers.actions import HistoryActionGroupSerializer
 COLUMN_TOTAL_ZEROES = {"DurationField": datetime.timedelta(0)}
 
 
-@cache
 def _column_total_zero(model, path):
     """
-    The zero to total ``path`` down to when nothing matched, cached per model and path.
+    The zero to total ``path`` down to when nothing matched.
 
-    Resolving the leaf field is `_meta` walking rather than a query, and `column_totals` is declared
-    on the class, so the answer never changes for a given pair and is worked out once per process.
+    Resolving the path builds an empty ``Query`` and walks ``_meta`` without running a query, so it
+    is cheap enough to do on each request that asks for the total. It is not cached, because a path
+    that ends in a transform depends on Django's lookup registry, which ``register_lookup`` can
+    change after the first request.
 
     A path that doesn't resolve gets the numeric zero, which is never used: ``aggregate()`` raises
     ``FieldError`` for it on the same call, and ``vueda_info.E013`` reports it at check time. A path
-    naming a queryset annotation is the exception -- it resolves against the query rather than
-    ``_meta``, so :func:`_column_total_zero_for` handles that one before this is reached.
+    that starts with a queryset annotation resolves against the query rather than ``_meta``, so
+    :func:`_column_total_annotation_zero` handles it instead.
     """
     try:
-        field = get_fields_from_path(model, path)[-1]
-    except (FieldDoesNotExist, NotRelationField):
+        # A path that ends in a transform resolves to the transform's output field, so `hours__ceil`
+        # totals down to the zero of what the transform returns.
+        field = query_path_field(model, path)
+    except FieldDoesNotExist:
         return 0
     return COLUMN_TOTAL_ZEROES.get(field.get_internal_type(), 0)
 
 
-def _column_total_zero_for(model, path, annotation):
+def _column_total_annotation_zero(annotation):
     """
-    The zero for ``path``, reading ``annotation``'s own output field when the path names one.
+    The zero for a total over ``annotation``, read from the annotation's output field.
 
-    A queryset annotation has no entry in ``_meta`` to walk to, so the cached lookup above would
-    fall back to the numeric zero for it -- wrong for an annotation that computes a duration, where
-    the database is handed a plain ``0`` as an interval. The annotation carries the type itself.
+    A queryset annotation has no entry in ``_meta`` to walk to, so the lookup above would fall back
+    to the numeric zero for it -- wrong for an annotation that computes a duration, where
+    the database is handed a plain ``0`` as an interval. The annotation carries the type itself. A
+    total that applies transforms to an annotation, such as ``launched__year``, is summed over a
+    generated annotation of the transformed value, which carries the output field of its last
+    transform.
 
-    Not cached, because the annotation belongs to a queryset rather than to the class. An expression
-    that can't name a single output field (mixed types, which Django refuses to guess at) falls back
-    to the numeric zero, and the aggregate raises for it on the same call the way it always did.
+    ``annotation`` is the expression the query already resolved, so reading its type builds nothing.
+    An expression that can't name a single output field (mixed types, which Django refuses to guess
+    at) falls back to the numeric zero, and the aggregate raises for it on the same call the way it
+    always did.
     """
-    if annotation is None:
-        return _column_total_zero(model, path)
     try:
         internal_type = annotation.output_field.get_internal_type()
     except (FieldError, AttributeError):
@@ -428,8 +433,14 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         declared = self.get_declared_column_totals()
         model = queryset.model
         annotations = queryset.query.annotations
-        column_names = [name for name in requested_column_totals if declared[name] not in annotations]
-        annotation_names = [name for name in requested_column_totals if declared[name] in annotations]
+        # A path that starts with an annotation is an annotation total, whether it names the annotation
+        # itself or applies transforms to it (`launched__year`). Django resolves the first segment
+        # against the annotations, which exist only on this queryset, not on the re-selection below.
+        starts_with_annotation = {
+            name: path_annotation_name(annotations, declared[name]) is not None for name in requested_column_totals
+        }
+        annotation_names = [name for name in requested_column_totals if starts_with_annotation[name]]
+        column_names = [name for name in requested_column_totals if not starts_with_annotation[name]]
         # Every total is aggregated under a generated alias and mapped back to its own name below.
         # A total is normally named after what it sums, so `{"line_total": "line_total"}` is the
         # ordinary spelling, and two totals may sum the same field. Either way a total's own name
@@ -451,7 +462,7 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
         distinct_fields = queryset.query.distinct_fields
         pk_names = {"pk", model._meta.pk.name, model._meta.pk.attname}
         if distinct_fields and pk_names.isdisjoint(distinct_fields):
-            masked = [field for field in distinct_fields if field.split("__")[0] in annotations]
+            masked = [field for field in distinct_fields if path_annotation_name(annotations, field) is not None]
             if masked:
                 raise NotImplementedError(
                     f"{type(self).__name__} cannot compute column totals over a queryset that selects "
@@ -501,15 +512,31 @@ class ListRowLevelViewSetMixin(drf_viewsets.mixins.ListModelMixin, drf_viewsets.
             rows = queryset.order_by().distinct()
             if selects_one_per_group:
                 rows = rows.filter(pk__in=matched_pks)
-            paths = list(dict.fromkeys(declared[name] for name in annotation_names))
+            # A path that applies transforms to an annotation (`launched__year`) is annotated under a
+            # generated name first, and that name is selected and summed. Summing the path itself
+            # would make Django rebuild the annotation's expression in the outer query, which breaks
+            # for an aggregate annotation such as a `Max` over related rows. A plain name that
+            # `.alias()` added goes the same way, because `values()` refuses to select an alias. The
+            # generated name extends the alias of the first total that names the path, whose prefix no
+            # annotation starts with, so neither can shadow the other. Two totals over the same path
+            # share one generated name.
+            selected = queryset.query.annotation_select
+            transformed = {}
+            for name in annotation_names:
+                path = declared[name]
+                if path not in selected and path not in transformed:
+                    transformed[path] = f"{aliases[name]}_value"
+            if transformed:
+                rows = rows.annotate(**{alias: F(path) for path, alias in transformed.items()})
+            summed = {name: transformed.get(declared[name], declared[name]) for name in annotation_names}
             aggregated = (
-                rows.values("pk", *paths)
+                rows.values("pk", *dict.fromkeys(summed.values()))
                 .distinct()
                 .aggregate(
                     **{
                         aliases[name]: Sum(
-                            declared[name],
-                            default=_column_total_zero_for(model, declared[name], annotations[declared[name]]),
+                            summed[name],
+                            default=_column_total_annotation_zero(rows.query.annotations[summed[name]]),
                         )
                         for name in annotation_names
                     }
@@ -1301,11 +1328,15 @@ class NoExtraFieldsForViewSetMixin:
         """
         Reject each ``f`` and ``e`` value the serializer cannot render or expand.
 
+        ``list``, ``retrieve``, ``create``, and ``update`` (which ``partial_update`` calls) run this
+        check. A write runs it before the body is validated, so a rejected request saves nothing.
+
         Every invalid name in both parameters goes into one error, keyed by the name. A name invalid
         in both parameters carries both messages.
 
         :param request: The request whose ``f`` and ``e`` query values are checked.
-        :param serializer: The action's serializer, built with the action's serializer context.
+        :param serializer: The action's serializer, built with the action's serializer context. It
+            is the serializer that renders the response.
         :raises VuedaValidationError: When an ``f`` value is not a valid field or wildcard, or an ``e``
             value is not a permitted expand or wildcard.
         """
@@ -1359,38 +1390,6 @@ class NoExtraFieldsForViewSetMixin:
 
         if errors:
             raise VuedaValidationError(errors)
-
-    @staticmethod
-    def validate_flex_expand_param_for_write(request, serializer):
-        """
-        Reject each ``e`` value a write action does not permit, before the body is validated.
-
-        drf-flex-fields2 keeps only the permitted expands and drops the rest without an error, so a
-        write action with a ``permit_<action>_expands`` list would accept an unknown or unpermitted
-        expand and read the relation as a primary key. This applies the same rules and messages as
-        :meth:`validate_flex_expand_and_field_param`, and raises in the standard validation shape.
-        ``f`` and ``om`` are not checked here.
-
-        :param request: The request whose ``e`` query values are checked.
-        :param serializer: The action's serializer, built with the action's serializer context.
-        :raises VuedaValidationError: When an ``e`` value is not a permitted expand or wildcard.
-        """
-        if settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] not in request.query_params:
-            return
-        submitted_expand_fields = frozenset(
-            serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
-        )
-        if not submitted_expand_fields:
-            return
-        max_depth = (
-            max([field.count(".") for field in submitted_expand_fields] + permitted_expand_depths(serializer)) + 1
-        )
-        valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
-            serializer, 0, max_depth
-        )
-        messages = invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
-        if messages:
-            raise VuedaValidationError({key: [message] for key, message in messages.items()})
 
     def retrieve(self, request, *args, **kwargs):
         self.reject_unrecognized_query_params(request, self.get_retrieve_allowed_fields())
@@ -1466,6 +1465,11 @@ class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
 
+    A bulk request names its rows in a ``pks`` body. ``VuedaViewSet.get_bulk_queryset`` converts
+    the keys and applies the row-level and object permission checks for ``update``, the checks that
+    a single-object request makes. A key that names no row, or a row that the request may not
+    change, answers 400 before anything changes.
+
     Both actions consult ``get_warnings_for_object``/``get_warnings`` (provided by
     ``WarningConfirmationMixin``, so any ``VuedaViewSet``) after validation and before the write,
     gating the write behind a 409 confirmation when warnings are reported.
@@ -1490,12 +1494,7 @@ class DeactivateActionViewSetMixin:
                 status=status.HTTP_200_OK,
             )
 
-        serializer = PrimaryKeyListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pks = serializer.validated_data["pks"]
-
-        queryset = self.get_queryset()
-        queryset = queryset.filter(pk__in=pks)
+        queryset, requested_pks = self.get_bulk_queryset(request, perm_type="update")
 
         already_deactivated = []
         for instance in queryset:
@@ -1506,7 +1505,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             elif not instance.is_active:
-                already_deactivated.append(instance.pk)
+                already_deactivated.append(requested_pks[instance.pk])
 
         if already_deactivated:
             errors = {}
@@ -1516,8 +1515,8 @@ class DeactivateActionViewSetMixin:
 
         gate_warnings(request, self.get_warnings("deactivate", queryset))
         # Perform bulk deactivation in a single query
-        queryset.update(is_active=False)
-        return Response({"detail": f"Successfully deactivated {len(pks)} objects."}, status=status.HTTP_200_OK)
+        updated = queryset.update(is_active=False)
+        return Response({"detail": f"Successfully deactivated {updated} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
     def activate(self, request, pk=None):
@@ -1540,12 +1539,7 @@ class DeactivateActionViewSetMixin:
                 status=status.HTTP_200_OK,
             )
 
-        serializer = PrimaryKeyListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pks = serializer.validated_data["pks"]
-
-        queryset = self.get_queryset()
-        queryset = queryset.filter(pk__in=pks)
+        queryset, requested_pks = self.get_bulk_queryset(request, perm_type="update")
 
         already_activated = []
         for instance in queryset:
@@ -1556,7 +1550,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             elif instance.is_active:
-                already_activated.append(instance.pk)
+                already_activated.append(requested_pks[instance.pk])
         if already_activated:
             errors = {}
             for pk in already_activated:
@@ -1564,9 +1558,9 @@ class DeactivateActionViewSetMixin:
             raise VuedaValidationError(errors)
         gate_warnings(request, self.get_warnings("activate", queryset))
         # Perform bulk deactivation in a single query
-        queryset.update(is_active=True)
+        updated = queryset.update(is_active=True)
 
-        return Response({"detail": f"Successfully activated {len(pks)} objects."}, status=status.HTTP_200_OK)
+        return Response({"detail": f"Successfully activated {updated} objects."}, status=status.HTTP_200_OK)
 
 
 class VuedaViewSet(
@@ -1676,12 +1670,12 @@ class VuedaViewSet(
             )
 
     def create(self, request, *args, **kwargs):
-        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        self.validate_flex_expand_and_field_param(request, self.get_serializer())
         return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         # `partial_update` calls this too.
-        self.validate_flex_expand_param_for_write(request, self.get_serializer())
+        self.validate_flex_expand_and_field_param(request, self.get_serializer())
         return super().update(request, *args, **kwargs)
 
     def destroy_validation(self, objs) -> None:
@@ -1709,6 +1703,39 @@ class VuedaViewSet(
             allowed_ids.append(instance.pk)
         return queryset.filter(pk__in=allowed_ids)
 
+    def get_bulk_queryset(self, request, perm_type):
+        """
+        Return the rows that a bulk request's ``pks`` body names, after permission filtering.
+
+        Each entry converts through the model's primary key field, as
+        :class:`~vueda.core.serializers.PrimaryKeyListSerializer` describes. The rows then pass
+        through :meth:`apply_row_level_filter` for ``perm_type`` and through
+        :meth:`apply_object_permission_filter`, the checks that a single-object request makes.
+
+        A key that names no row raises :class:`~vueda.core.exceptions.VuedaValidationError` with
+        "Object with pk=... does not exist." for that key. A key that names a row that the request
+        may not change raises the same error, so the response does not reveal that the row exists.
+
+        Returns the queryset and a dict that maps each converted key to the value that the request
+        sent. Key errors use the sent value, because a composite key converts to a tuple, which
+        cannot be a JSON object key.
+        """
+        model = self.get_queryset().model
+        serializer = PrimaryKeyListSerializer(data=request.data, model=model)
+        serializer.is_valid(raise_exception=True)
+        requested_pks = dict(zip(serializer.validated_data["pks"], serializer.initial_data["pks"], strict=True))
+
+        queryset = self.get_queryset().filter(pk__in=list(requested_pks))
+        queryset = self.apply_row_level_filter(queryset, perm_type=perm_type)
+        queryset = self.apply_object_permission_filter(queryset)
+        found_pks = set(queryset.values_list("pk", flat=True))
+        missing_pks = [sent for key, sent in requested_pks.items() if key not in found_pks]
+        if missing_pks:
+            raise VuedaValidationError(
+                {missing_pk: [f"Object with pk={missing_pk} does not exist."] for missing_pk in missing_pks}
+            )
+        return queryset, requested_pks
+
     def destroy(self, request, **kwargs):
         """Delete one or more objects."""
         pk = kwargs.get("pk")
@@ -1722,21 +1749,7 @@ class VuedaViewSet(
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        serializer = PrimaryKeyListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pks = serializer.validated_data["pks"]
-
-        queryset = self.get_queryset()
-        queryset = queryset.filter(pk__in=pks)
-        queryset = self.apply_row_level_filter(queryset, perm_type="delete")
-        queryset = self.apply_object_permission_filter(queryset)
-        if len(pks) != queryset.count():
-            found_pks = set(queryset.values_list("pk", flat=True))
-            missing_pks = set(pks) - found_pks
-            errors = {}
-            for missing_pk in missing_pks:
-                errors[missing_pk] = [f"Object with pk={missing_pk} does not exist."]
-            raise VuedaValidationError(errors)
+        queryset, _requested_pks = self.get_bulk_queryset(request, perm_type="delete")
 
         self.destroy_validation(queryset)
         gate_warnings(request, self.get_warnings("destroy", queryset))

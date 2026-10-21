@@ -145,7 +145,7 @@ To render the header yourself (a different layout, extra chrome, your own markup
 
 Read the active title and loading state from [`current`]{@api js:property:@arrai-innovations/vueda/use/usePageTitle#PageTitleContext.current}. Pass the element that should host page actions to [`bindActionZone`]{@api js:property:@arrai-innovations/vueda/use/usePageTitle#PageTitleContext.bindActionZone}.
 
-An empty `title` means the active view has registered but has not resolved its title yet. For example, a detail view's title stays empty until the model's verbose name is known. Render a placeholder in that case. `current` is an empty object only when no view has registered, so check for the `title` key to tell the two cases apart. The built-in `PageTitle` shows a skeleton, which stays until a title arrives:
+An empty `title` means the active view has registered but has not resolved its title yet. Render a placeholder in that case. `DetailView`, `ViewRead`, `ViewUpdate`, `ViewCreate`, `ViewList`, `ViewDestroy`, and `ViewHistoryList` name the model in their title, and each keeps its title empty until the model config supplies the model's verbose name. `current` is an empty object only when no view has registered, so check for the `title` key to tell the two cases apart. The built-in `PageTitle` shows a skeleton, which stays until a title arrives:
 
 ```vue
 <script setup>

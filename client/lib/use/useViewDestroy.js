@@ -6,7 +6,7 @@ import { loadingCombine, useList } from "@arrai-innovations/reactive-helpers";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
-import { getPluralizedTitle, memoizedStartCase } from "@vueda/utils/case.js";
+import { memoizedStartCase } from "@vueda/utils/case.js";
 import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -18,7 +18,7 @@ import { computed, inject, reactive, toRef } from "vue";
  * @property {boolean} validAndActive - Whether the current context has a valid app/model/pk and is active.
  * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
  * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
- * @property {import('vue').ComputedRef<string>} titleStr - Page title for the confirmation, counted and pluralized for a bulk destroy (e.g. "Delete Widget", "Delete 3 Widgets").
+ * @property {import('vue').ComputedRef<string>} titleStr - Page title for the confirmation, counted and pluralized for a bulk destroy (e.g. "Delete Widget", "Delete 3 Widgets"). Empty until the verbose name is known. A bulk destroy reads the verbose plural name.
  * @property {import('vue').ComputedRef<boolean|undefined>} pageLoading - Combined loading state (model config + the fetch of the records being confirmed).
  * @property {(options: { dryRun?: boolean, acknowledgeWarnings?: string }) => Promise<void>} handleDelete - Attempts
  *  to delete the instance(s) through the list's registered `bulkDelete` handler. Throws on failure, including a
@@ -70,13 +70,16 @@ export function useViewDestroy(props) {
     // "Delete", not "Destroy": the route action names the operation, but the page says what the
     // operator is doing, matching the banner below it and the copy convention for actions.
     // Pluralized and counted for a bulk destroy, so the title carries the blast radius too.
+    // Empty until the model's verbose name is known, so PageTitle shows a skeleton instead of a
+    // guessed label.
     const titleStr = computed(() => {
         const count = Array.isArray(props.pk) ? props.pk.length : 1;
         if (count > 1) {
-            const plural = modelConfig.config?.verboseNamePlural || getPluralizedTitle(props.model);
-            return `Delete ${count} ${memoizedStartCase(plural)}`;
+            const verboseNamePlural = memoizedStartCase(modelConfig.config?.verboseNamePlural);
+            return verboseNamePlural ? `Delete ${count} ${verboseNamePlural}` : "";
         }
-        return `Delete ${memoizedStartCase(modelConfig.config?.verboseName || props.model)}`;
+        const verboseName = memoizedStartCase(modelConfig.config?.verboseName);
+        return verboseName ? `Delete ${verboseName}` : "";
     });
     const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceList.state.loading));
 

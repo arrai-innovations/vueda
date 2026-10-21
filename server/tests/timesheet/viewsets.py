@@ -1,4 +1,5 @@
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.db.models import Max
 from django.db.models import Prefetch
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
@@ -93,6 +94,34 @@ class TimesheetEntryViewSet(VuedaViewSet):
     # same name. `tests.store.viewsets.CartItemViewSet` covers the case the mapping exists for,
     # where the two are spelled differently.
     column_totals = {"hours": "hours"}
+
+
+class TimesheetEntryBillableHoursViewSet(VuedaViewSet):
+    """Totals `hours__ceil`, which rounds each entry up to a whole hour before the sum, the way a bill
+    per started hour works.
+
+    Django has no `ceil` transform until a project registers one, so the tests register `Ceil` on
+    `DecimalField` around each request and each check."""
+
+    queryset = models.TimesheetEntry.objects.all()
+    serializer_class = serializers.TimesheetEntrySerializer
+    column_totals = {"billable_hours": "hours__ceil"}
+
+
+class TimesheetLastEntryYearTotalViewSet(VuedaViewSet):
+    """Totals `last_entry__year`, a transform on an aggregate annotation (`Max` over the timesheet's
+    entries).
+
+    Summing `last_entry__year` directly would nest the `Max` inside the `Sum`. The total annotates
+    the transformed path under a generated name instead, so the year of each timesheet's latest
+    entry is worked out once per timesheet and then summed."""
+
+    queryset = models.Timesheet.objects.all()
+    serializer_class = serializers.TimesheetSerializer
+    column_totals = {"last_entry_year": "last_entry__year"}
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(last_entry=Max("timesheet_entries__date"))
 
 
 class TimesheetDataViewSet(viewsets.VuedaReadOnlyViewSet):

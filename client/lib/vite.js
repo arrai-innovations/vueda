@@ -203,8 +203,14 @@ export const vuedaViteConfig = (options = {}) => {
         ...(enableRuntimeAliases
             ? {
                   vue: path.resolve(topNodeModulesPath, "vue/dist/vue.runtime.esm-bundler.js"),
-                  pinia: path.resolve(topNodeModulesPath, "pinia/dist/pinia.esm-browser.js"),
-                  "vue-router": path.resolve(topNodeModulesPath, "vue-router/dist/vue-router.esm-bundler.js"),
+                  // Package directories, not dist files: Vite resolves each entry through the package's
+                  // `exports`. `pinia.esm-browser.js` is pinia's development build, with no
+                  // `process.env.NODE_ENV` guards, so production bundles kept its dev-only code. vue-router
+                  // renames its bundler build between releases, 4.6.0 ships no `vue-router.esm-bundler.js`,
+                  // and later 4.6 releases keep that file only as a shim that logs a deprecation warning on
+                  // every page load.
+                  pinia: path.resolve(topNodeModulesPath, "pinia"),
+                  "vue-router": path.resolve(topNodeModulesPath, "vue-router"),
               }
             : {}),
         ...extraAliases,

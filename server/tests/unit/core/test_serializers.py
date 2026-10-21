@@ -1018,6 +1018,111 @@ class TestVuedaSerializerFieldMapping:
         assert self._lookup(models.ImageField) is VuedaImageField
 
 
+@pytest.fixture
+def document_model():
+    """A throwaway model with an optional file, an optional image, and a required file, plus its table."""
+    from django.db import connection
+    from django.db import models
+    from django.test.utils import isolate_apps
+
+    from vueda.core.models import VuedaModel
+
+    with isolate_apps("tests.features"):
+
+        class Document(VuedaModel):
+            name = models.CharField(max_length=255, blank=True)  # VuedaModel's formatted name reads it.
+            manual = models.FileField(upload_to="manuals/", blank=True)
+            photo = models.ImageField(upload_to="photos/", blank=True)
+            contract = models.FileField(upload_to="contracts/")
+
+            class Vueda:
+                class History:
+                    enabled = False
+                    reason = "A throwaway table that history has no event table for."
+
+            class Meta:
+                app_label = "features"
+
+        with connection.schema_editor() as schema_editor:
+            schema_editor.create_model(Document)
+        yield Document
+
+
+@pytest.fixture
+def document_serializer_class(document_model):
+    from vueda.core.serializers import VuedaSerializer
+
+    class DocumentSerializer(VuedaSerializer):
+        class Meta:
+            model = document_model
+            fields = ["id", "manual", "photo", "contract"]
+
+    return DocumentSerializer
+
+
+@pytest.mark.django_db
+class TestVuedaSerializerOptionalFile:
+    """A ``blank=True`` file or image column accepts ``null``, which saves no file and clears a stored one."""
+
+    @staticmethod
+    def _serializer(serializer_class, method, data, instance=None, **kwargs):
+        request = FakeRequest(data=data, method=method)
+        context = {"request": request, "view": FakeView(request, serializer_class)}
+        return serializer_class(instance, data=data, context=context, **kwargs)
+
+    def test_blank_file_and_image_allow_null(self, document_serializer_class):
+        fields = document_serializer_class().fields
+
+        assert fields["manual"].allow_null is True
+        assert fields["photo"].allow_null is True
+
+    def test_required_file_still_rejects_null(self, document_serializer_class):
+        serializer = self._serializer(
+            document_serializer_class, "POST", {"manual": None, "photo": None, "contract": None}
+        )
+
+        assert not serializer.is_valid()
+        assert set(serializer.errors) == {"contract"}, serializer.errors
+        assert serializer.errors["contract"][0].code == "null"
+
+    def test_create_with_null_saves_no_file(self, document_model, document_serializer_class):
+        serializer = self._serializer(
+            document_serializer_class, "POST", {"manual": None, "photo": None, "contract": None}
+        )
+        serializer.fields["contract"].allow_null = True  # Isolate the optional columns from the required one.
+
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+
+        stored = document_model.objects.values("manual", "photo").get(pk=document.pk)
+        assert stored == {"manual": "", "photo": ""}
+        assert serializer.data["manual"] is None
+        assert serializer.data["photo"] is None
+
+    def test_update_with_null_clears_stored_file(self, document_model, document_serializer_class):
+        document = document_model.objects.create(
+            manual="manuals/guide.pdf", photo="photos/front.png", contract="contracts/signed.pdf"
+        )
+        serializer = self._serializer(
+            document_serializer_class, "PATCH", {"manual": None, "photo": None}, document, partial=True
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        stored = document_model.objects.values("manual", "photo", "contract").get(pk=document.pk)
+        assert stored == {"manual": "", "photo": "", "contract": "contracts/signed.pdf"}
+
+    def test_update_omitting_file_keeps_stored_file(self, document_model, document_serializer_class):
+        document = document_model.objects.create(manual="manuals/guide.pdf", contract="contracts/signed.pdf")
+        serializer = self._serializer(document_serializer_class, "PATCH", {"photo": None}, document, partial=True)
+
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        assert document_model.objects.values_list("manual", flat=True).get(pk=document.pk) == "manuals/guide.pdf"
+
+
 @pytest.mark.django_db
 class TestAvailableActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
     """

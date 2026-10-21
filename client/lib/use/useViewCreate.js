@@ -33,8 +33,11 @@
  * ```
  *
  * @example Wiring the page title
- * ```html
- * <h1>{{ instance.titleStr }}</h1>
+ * ```js
+ * import { usePageTitle } from "@vueda/use/usePageTitle.js";
+ *
+ * // The layout's PageTitle shows a skeleton while the title is empty.
+ * usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
  * ```
  *
  * @example Wiring the form
@@ -60,13 +63,14 @@
 import { useObject } from "@arrai-innovations/reactive-helpers";
 import { useFilteredActions } from "@vueda/use/useFilteredActions.js";
 import { useForm } from "@vueda/use/useForm.js";
-import { pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
+import { formModelExpand, pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { omitUnexpandedReverseForeignKeys } from "@vueda/utils/reverseForeignKey.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef, unref } from "vue";
 
@@ -98,7 +102,7 @@ const VIEW_NAME = "create";
 
 /**
  * @typedef {object} ViewCreateInstanceGroup
- * @property {string} titleStr - Page title derived from the model verbose name (e.g. "Create Widget").
+ * @property {string} titleStr - Page title derived from the model verbose name (e.g. "Create Widget"). Empty until the verbose name is known.
  * @property {boolean} pageLoading - True while model configuration is loading.
  * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit buttons.
  * @property {Error|null} combinedError - The first active error across model config, instance, and form submission; null when none.
@@ -141,7 +145,12 @@ export function useViewCreate(options) {
 
     const filteredActions = useFilteredActions({ modelConfigInstance: modelConfig });
 
-    const titleStr = computed(() => `Create ${memoizedStartCase(modelConfig.config?.verboseName)}` || "Create Item");
+    // Empty until the model's verbose name is known, so PageTitle shows a skeleton instead of a
+    // guessed label. A skeleton that never resolves points at the missing model config.
+    const titleStr = computed(() => {
+        const verboseName = memoizedStartCase(modelConfig.config?.verboseName);
+        return verboseName ? `Create ${verboseName}` : "";
+    });
 
     const modelInitialValues = useModelInitialValues(
         toRef(options, "app"),
@@ -152,8 +161,26 @@ export function useViewCreate(options) {
     const formContextProps = reactive({ initialValues: modelInitialValues });
     const formContext = useForm(formContextProps);
 
+    const combinedFormProps = useFormModelProps({
+        app: () => options.app,
+        model: () => options.model,
+        view: VIEW_NAME,
+        configFormProps: () => modelConfig.config.formProps,
+        formProps: () => options.formProps,
+        viewProps: () => pickViewFormModelProps(options),
+    });
+
+    const expand = computed(() => formModelExpand(combinedFormProps.value, modelConfig.config?.expand));
+    // Forms show an unexpanded reverse foreign key read-only, so the default leaves it out; see
+    // isReverseForeignKey. A submitFields option is sent as given.
     const submitFields = computed(() =>
-        options.submitFields?.length ? options.submitFields : modelConfig.config?.submitFields,
+        options.submitFields?.length
+            ? options.submitFields
+            : omitUnexpandedReverseForeignKeys(
+                  modelConfig.config?.submitFields,
+                  modelConfig.config?.fieldDetails,
+                  expand.value,
+              ),
     );
     const fetchFields = computed(() =>
         options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
@@ -176,8 +203,7 @@ export function useViewCreate(options) {
                 return fields;
             }),
             [EXPAND_PARAM]: computed(() => {
-                const expand = modelConfig.config?.expand || [];
-                return expand.filter(
+                return expand.value.filter(
                     (e) => formContext.state?.values[e] !== undefined && formContext.state.values[e] !== null,
                 );
             }),
@@ -223,15 +249,6 @@ export function useViewCreate(options) {
                 ? "submitting form"
                 : "",
     );
-    const combinedFormProps = useFormModelProps({
-        app: () => options.app,
-        model: () => options.model,
-        view: VIEW_NAME,
-        configFormProps: () => modelConfig.config.formProps,
-        formProps: () => options.formProps,
-        viewProps: () => pickViewFormModelProps(options),
-    });
-
     const pageLoading = computed(() => modelConfig.loading);
     const formId = computed(() => `form-${options.app}-${options.model}-${VIEW_NAME}`);
 

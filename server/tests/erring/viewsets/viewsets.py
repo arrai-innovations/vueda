@@ -1,9 +1,16 @@
+from django.db.models import Count
 from django.db.models import F
+from django.db.models.functions import Collate
+from django.db.models.functions import Length
+from django.db.models.functions import Lower
+from rest_framework.filters import OrderingFilter
 from rest_framework.viewsets import ModelViewSet
 
 import tests.erring.filtersets as my_filtersets
 import tests.erring.models as my_models
 import tests.erring.serializers as my_serializers
+import tests.store.models as store_models
+import tests.store.serializers as store_serializers
 from vueda.core.viewsets import VuedaViewSet
 
 
@@ -22,6 +29,11 @@ class RelatedObjectsAreMissingDataViewSet(VuedaViewSet):
 class ExpandableFieldsListViewSet(VuedaViewSet):
     queryset = my_models.NoExpandableFieldsData.objects.all()
     serializer_class = my_serializers.ExpandableFieldsListSerializer
+
+
+class ExpandableFieldsClientNamespaceViewSet(VuedaViewSet):
+    queryset = my_models.NoExpandableFieldsData.objects.all()
+    serializer_class = my_serializers.ExpandableFieldsClientNamespaceSerializer
 
 
 class ExpandableFieldsBadTupleLengthViewSet(VuedaViewSet):
@@ -92,6 +104,16 @@ class ValidGetFormattedNameOrderingFieldsViewSet(VuedaViewSet):
     queryset = my_models.ValidGetFormattedName.objects.all()
     serializer_class = my_serializers.ValidGetFormattedNameSerializer
     ordering_fields = ["formatted_name"]
+
+
+class ValidGetFormattedNameTransformOrderingViewSet(VuedaViewSet):
+    """Offers `formatted_name__unaccent` on a model that computes formatted_name with a
+    get_formatted_name() method. A transform doesn't give the database anything to sort by either, so
+    `vueda_info.E005` reports it, and `vueda_info.E006` doesn't report it a second time."""
+
+    queryset = my_models.ValidGetFormattedName.objects.all()
+    serializer_class = my_serializers.ValidGetFormattedNameSerializer
+    ordering_fields = ["formatted_name__unaccent"]
 
 
 class ValidLookupExpressionOrderingViewSet(VuedaViewSet):
@@ -167,6 +189,7 @@ class ValidNullsOrderingViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = {"the_name_field": "first"}
     nulls_ordering_flip = ["the_name_field"]
 
@@ -178,6 +201,7 @@ class BadNullsOrderingPlacementViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = {"the_name_field": "First"}
 
 
@@ -197,6 +221,7 @@ class NullsOrderingFlipWithoutPlacementViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering_flip = ["the_name_field"]
 
 
@@ -209,6 +234,7 @@ class NullsOrderingBothAttributesWrongViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field", "id"]
     nulls_ordering = {"the_name_field": "First"}
     nulls_ordering_flip = ["id"]
 
@@ -222,6 +248,7 @@ class NullsOrderingNotADictWithFlipViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = ["the_name_field"]
     nulls_ordering_flip = ["the_name_field"]
 
@@ -235,8 +262,557 @@ class NullsOrderingFlipNotIterableViewSet(VuedaViewSet):
 
     queryset = my_models.ValidLookupExpression.objects.all()
     serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = ["the_name_field"]
     nulls_ordering = {"the_name_field": "first"}
     nulls_ordering_flip = 1
+
+
+class RelationNullsOrderingViewSet(VuedaViewSet):
+    """Declares placements on three relation paths that `ordering_fields` offers: a plain path, a path
+    ending in the "pk" alias, and a related formatted_name reached through a lookup expression.
+
+    Each key is the `__`-joined term the filter orders by, so every placement applies and
+    `vueda_info.E007` must stay quiet."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field", "the_name_source__pk", "the_name_source__formatted_name"]
+    nulls_ordering = {
+        "the_name_source__the_name_field": "first",
+        "the_name_source__pk": "last",
+        "the_name_source__formatted_name": "first",
+    }
+    nulls_ordering_flip = ["the_name_source__the_name_field"]
+
+
+class CrossSpelledPKNullsOrderingViewSet(VuedaViewSet):
+    """Spells one field two ways: `ordering_fields` and the flip entry name `the_name_source__id`, and
+    the `nulls_ordering` key names the "pk" alias in front of it.
+
+    `VuedaOrderingFilter` matches the alias and the field behind it as one field, so the placement
+    applies to `?o=the_name_source.id` and flips when that request is descending. `vueda_info.E007`
+    has to match them the same way and stay quiet."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__id"]
+    nulls_ordering = {"the_name_source__pk": "first"}
+    nulls_ordering_flip = ["the_name_source__id"]
+
+
+class CompositePKNullsOrderingViewSet(VuedaViewSet):
+    """Keys a nulls placement and its flip on the "pk" alias of a model whose primary key is made of
+    two columns.
+
+    `model_ordering` advertises `order` and `product` rather than `pk`, so a metadata-driven client
+    sends one column at a time, and a placement on the whole key matches none of those terms. It
+    applies only when the list is sorted by `pk` itself."""
+
+    queryset = store_models.OrderItemCompositePK.objects.all()
+    serializer_class = store_serializers.OrderItemCompositePKSerializer
+    ordering_fields = ["pk"]
+    nulls_ordering = {"pk": "first"}
+    nulls_ordering_flip = ["pk"]
+
+
+class CompositePKColumnNullsOrderingViewSet(VuedaViewSet):
+    """Keys a nulls placement and its flip on the "pk" of a two-column primary key and on each of its
+    columns.
+
+    The `pk` entry reaches a list sorted by the whole key, and the column entries reach a request for
+    either column, which is the spelling `model_ordering` advertises. Every route is covered, so
+    `vueda_info.E007` must stay quiet."""
+
+    queryset = store_models.OrderItemCompositePK.objects.all()
+    serializer_class = store_serializers.OrderItemCompositePKSerializer
+    ordering_fields = ["pk"]
+    nulls_ordering = {"pk": "first", "order": "first", "product": "first"}
+    nulls_ordering_flip = ["pk", "order", "product"]
+
+
+class DottedNullsOrderingKeyViewSet(VuedaViewSet):
+    """Writes a `nulls_ordering` key in the dotted `?o=` spelling.
+
+    The filter translates `?o=the_name_source.the_name_field` to `the_name_source__the_name_field`
+    before it looks up a placement, so the dotted key matches nothing and the placement is silently
+    dropped."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field"]
+    nulls_ordering = {"the_name_source.the_name_field": "first"}
+
+
+class DottedNullsOrderingFlipViewSet(VuedaViewSet):
+    """Spells the `nulls_ordering` key correctly but writes the matching `nulls_ordering_flip` entry
+    in the dotted `?o=` spelling, so the placement never flips."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field"]
+    nulls_ordering = {"the_name_source__the_name_field": "first"}
+    nulls_ordering_flip = ["the_name_source.the_name_field"]
+
+
+class UnrequestableNullsOrderingViewSet(VuedaViewSet):
+    """Declares placements on two keys that no list request can sort by.
+
+    `the_name_source__the_name_field` is a real path, but neither `ordering_fields` nor the default
+    ordering names it, so no request reaches it. `no_such_field` names nothing on the model at all."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["id"]
+    nulls_ordering = {"the_name_source__the_name_field": "first", "no_such_field": "first"}
+
+
+class RequestOnlyQuerysetNullsOrderingViewSet(VuedaViewSet):
+    """Writes a dotted `nulls_ordering` key on a viewset whose `get_queryset` needs the request.
+
+    The check builds the view without a request, so it can't read the names a request may sort by
+    and has nothing to judge the key against. It stays quiet rather than failing the check run."""
+
+    queryset = my_models.SingleValuedLookupExpression.objects.all()
+    serializer_class = my_serializers.SingleValuedLookupExpressionSerializer
+    ordering_fields = ["the_name_source__the_name_field"]
+    nulls_ordering = {"the_name_source.the_name_field": "first"}
+
+    def get_queryset(self):
+        return super().get_queryset().filter(the_name_source__the_name_field=self.request.user.username)
+
+
+class GetQuerysetConflictingOrderingViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` one way while the model's `Meta.ordering` declares another, and
+    declares no `ordering` of its own.
+
+    The `get_queryset()` counterpart of ConflictingQuerysetOrderingViewSet: the rows arrive in the
+    ascending order that `get_queryset()` applies, while `model_ordering.default` reports the model's
+    descending one."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field")
+
+
+class GetQuerysetUndeclaredOrderingViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` on a model that declares no `Meta.ordering`, and declares no
+    `ordering` of its own, so the metadata reports no default ordering at all."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field")
+
+
+class GetQuerysetOverriddenOrderingViewSet(VuedaViewSet):
+    """Declares an `ordering` that reverses the one `get_queryset()` applies. DRF applies the
+    declaration on every list request, so the `get_queryset()` ordering reaches no response."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("-the_name_field")
+
+
+class RequestOnlyGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Orders its class-level queryset against the model's `Meta.ordering`, and has a `get_queryset()`
+    that needs the request.
+
+    A view built at check time has no request, so the check falls back to the class-level `queryset`
+    and still reports the conflict there."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.order_by("the_name_field")
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(the_name_field=self.request.user.username)
+
+
+class GetQuerysetNullsPlacementViewSet(VuedaViewSet):
+    """Declares `ordering = ["the_name_field"]` while `get_queryset()` orders the same field with nulls
+    first.
+
+    PostgreSQL puts nulls last in an ascending sort, so the two put null rows at opposite ends even
+    though they name the same field in the same direction."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(F("the_name_field").asc(nulls_first=True))
+
+
+class NullsOrderingAgreeingGetQuerysetViewSet(VuedaViewSet):
+    """Declares the same nulls-first placement through `nulls_ordering` that `get_queryset()` states
+    in its expression. A list request applies the declaration to `ordering`, so the two agree."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+    nulls_ordering = {"the_name_field": "first"}
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(F("the_name_field").asc(nulls_first=True))
+
+
+class QuerySetMethodOrderingViewSet(VuedaViewSet):
+    """Orders through a custom QuerySet method in `get_queryset()`, on a model that declares no
+    `Meta.ordering`.
+
+    `by_name()` calls `order_by()`, so the queryset carries the same terms a direct call would leave,
+    and the check reports it the same way."""
+
+    queryset = my_models.SecondaryManagerOrdering.objects.all()
+    serializer_class = my_serializers.SecondaryManagerOrderingSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().by_name()
+
+
+class GetQuerysetAnnotationOrderingViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` by an annotation it adds, on a model that declares no
+    `Meta.ordering`, and declares no `ordering` of its own.
+
+    An ordering that names an annotation may stay in `get_queryset()`, and with no declared default
+    there is nothing for it to contradict."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(name_length=Length("the_name_field")).order_by("-name_length")
+
+
+class GetQuerysetInlineAggregateOrderingViewSet(VuedaViewSet):
+    """Orders inside `get_queryset()` by an aggregate written inline, without annotating it first.
+
+    Django rejects this as soon as `order_by()` is called. `aggregatemanagerordering` is the reverse
+    of `AggregateManagerOrdering.the_name_sources`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(Count("aggregatemanagerordering"))
+
+
+class ReversedGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Calls `.reverse()` in `get_queryset()` on a model whose `Meta.ordering` is descending, and
+    declares no `ordering` of its own, so the rows arrive ascending."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().reverse()
+
+
+class ManagerQuerysetAttributeViewSet(VuedaViewSet):
+    """Sets its class-level `queryset` to a manager rather than a queryset, and has a `get_queryset()`
+    that needs the request.
+
+    The check falls back to the class-level `queryset`. DRF's `GenericAPIView.get_queryset` returns a
+    manager unchanged, and a manager has no `.query` of its own, so the check calls `.all()` on it."""
+
+    queryset = my_models.ValidLookupExpression.objects
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().filter(the_name_field=self.request.user.username)
+
+
+class GroupedGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Annotates an aggregate in `get_queryset()` on a model whose `Meta.ordering` is descending, and
+    declares no `ordering` of its own.
+
+    The aggregate adds a `GROUP BY`, and Django leaves `Meta.ordering` out of a grouped query, so the
+    rows arrive unordered while `model_ordering.default` reports `Meta.ordering`."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(row_count=Count("id"))
+
+
+class GroupedDeclaredOrderingViewSet(VuedaViewSet):
+    """Annotates an aggregate in `get_queryset()`, the same way as `GroupedGetQuerysetOrderingViewSet`,
+    but declares `ordering`. DRF applies it with `order_by()`, which Django keeps on a grouped query."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+    ordering = ["-the_name_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(row_count=Count("id"))
+
+
+class CollateGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Declares an `ordering` with one collation while `get_queryset()` orders by another. Both render
+    as `Collate(F(the_name_field))`, but they compile to different SQL and sort differently."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = [Collate("the_name_field", "C")]
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(Collate("the_name_field", "und-x-icu"))
+
+
+class ReversedWithoutOrderingBackendViewSet(VuedaViewSet):
+    """Calls `.reverse()` in `get_queryset()` on a viewset whose `filter_backends` has no ordering
+    backend. Nothing applies a declared `ordering` or a client's `?o=` to its list, so the ordering
+    rules have nothing to judge."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    filter_backends = []
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field").reverse()
+
+
+class ReversedClassQuerysetViewSet(VuedaViewSet):
+    """Calls `.reverse()` on its class-level `queryset`, and its `get_queryset()` adds an `order_by()` of
+    its own. Django keeps the `.reverse()` through that `order_by()`, so the class-level `queryset` is
+    where the reverse was written."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.reverse()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field")
+
+
+class GroupedExtraOrderingViewSet(VuedaViewSet):
+    """Annotates an aggregate in `get_queryset()`, and orders with `extra(order_by=...)`. The grouped
+    query still has an order, so dropping `Meta.ordering` doesn't leave the rows unordered."""
+
+    queryset = my_models.ModelOrderingQueryset.objects.all()
+    serializer_class = my_serializers.ModelOrderingQuerysetSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(row_count=Count("id")).extra(order_by=["-the_name_field"])
+
+
+class ReversedUnsortableGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Calls `.reverse()` in `get_queryset()` on a viewset that a list request can't sort.
+
+    `ordering_fields = []`, no viewset `ordering`, and no `Meta.ordering` leave no name for `?o=`, so
+    the rows always arrive in one fixed order, and a client has nothing to get backwards."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering_fields = []
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_field").reverse()
+
+
+class MisspelledPathGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Misspells a relation inside an `F()` in `get_queryset()`. Django resolves an `F()` only when a
+    query runs, so `get_queryset()` itself succeeds."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(F("custmer__pk").desc())
+
+
+class MisspelledNameGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Misspells a plain string name in `order_by()` inside `get_queryset()`. Django checks a string
+    name as soon as `order_by()` is called, so `get_queryset()` raises `FieldError`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+
+    def get_queryset(self):
+        return super().get_queryset().order_by("the_name_feild")
+
+
+class LowerGetQuerysetOrderingViewSet(VuedaViewSet):
+    """Declares `ordering = ["the_name_field"]` while `get_queryset()` orders by `Lower` of the same
+    field. The two read one column but sort differently, and DRF applies the declaration."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    ordering = ["the_name_field"]
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(Lower("the_name_field"))
+
+
+class SecondaryManagerQuerysetOrderingViewSet(VuedaViewSet):
+    """Starts from a second manager that orders, on a model whose default manager doesn't.
+
+    The model-wide check leaves that manager alone, since it orders only the code that names it. This
+    viewset names it, so its list arrives in that order and `vueda_info.E010` compares it."""
+
+    queryset = my_models.SecondaryManagerOrdering.ordered.all()
+    serializer_class = my_serializers.SecondaryManagerOrderingSerializer
+
+
+class SecondaryManagerModelViewSet(VuedaViewSet):
+    """Starts from the unordered default manager of a model whose second manager orders."""
+
+    queryset = my_models.SecondaryManagerOrdering.objects.all()
+    serializer_class = my_serializers.SecondaryManagerOrderingSerializer
+
+
+class OtherNameManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose only manager is named `ordered`, and orders by a plain field."""
+
+    queryset = my_models.OtherNameManagerOrdering.ordered.all()
+    serializer_class = my_serializers.OtherNameManagerOrderingSerializer
+
+
+class DefaultManagerNameOrderingViewSet(VuedaViewSet):
+    """Serves a model whose `Meta.default_manager_name` picks an ordering manager."""
+
+    queryset = my_models.DefaultManagerNameOrdering.ordered.all()
+    serializer_class = my_serializers.DefaultManagerNameOrderingSerializer
+
+
+class LowerFormattedNameManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by `formatted_name__lower`.
+
+    `Lower` is a transform only while a test registers it, so this viewset builds its queryset in
+    `get_queryset()`. A class-level `queryset` would fail when this module is imported."""
+
+    serializer_class = my_serializers.LowerFormattedNameManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.LowerFormattedNameManagerOrdering.objects.all()
+
+
+class MatchingMetaManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders the same way as its `Meta.ordering`, and declares no
+    `ordering` of its own."""
+
+    queryset = my_models.MatchingMetaManagerOrdering.objects.all()
+    serializer_class = my_serializers.MatchingMetaManagerOrderingSerializer
+
+
+class AggregateManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by an aggregate annotation it adds."""
+
+    queryset = my_models.AggregateManagerOrdering.objects.all()
+    serializer_class = my_serializers.AggregateManagerOrderingSerializer
+
+
+class AggregateManagerMetaOrderingViewSet(VuedaViewSet):
+    """Starts from a default manager that sorts by an aggregate annotation, on a model whose
+    `Meta.ordering` disagrees, and declares no `ordering` of its own."""
+
+    queryset = my_models.AggregateManagerMetaOrdering.objects.all()
+    serializer_class = my_serializers.AggregateManagerMetaOrderingSerializer
+
+
+class EmptyFilterManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager filters to no rows and orders by a plain field."""
+
+    queryset = my_models.EmptyFilterManagerOrdering.objects.all()
+    serializer_class = my_serializers.EmptyFilterManagerOrderingSerializer
+
+
+class RandomManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders randomly."""
+
+    queryset = my_models.RandomManagerOrdering.objects.all()
+    serializer_class = my_serializers.RandomManagerOrderingSerializer
+
+
+class MisspelledFManagerOwnErrorViewSet(VuedaViewSet):
+    """Starts from a default manager whose query Django rejects, and misspells a different name in its
+    own `get_queryset()`. The manager's error is `vueda_info.E015`'s, and this one is the viewset's."""
+
+    serializer_class = my_serializers.MisspelledFManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.MisspelledFManagerOrdering.objects.order_by("the_name_fiel")
+
+
+class MisspelledSecondManagerQuerysetViewSet(VuedaViewSet):
+    """Sets its class-level `queryset` to a second manager whose query Django rejects."""
+
+    queryset = my_models.SecondaryManagerOrdering.misspelled
+    serializer_class = my_serializers.SecondaryManagerOrderingSerializer
+
+
+class AnnotatedMisspelledFManagerViewSet(VuedaViewSet):
+    """Starts from a default manager whose ordering misspells an `F()` name, and annotates its own
+    list, which adds the annotation to the choices that Django's error message lists."""
+
+    serializer_class = my_serializers.MisspelledFManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.MisspelledFManagerOrdering.objects.annotate(name_length=Length("the_name_field"))
+
+
+class PlainOrderingFilterNullsViewSet(VuedaViewSet):
+    """Uses DRF's own `OrderingFilter`, declares `ordering` with a nulls-first `nulls_ordering`, and
+    orders nulls first in `get_queryset()`. DRF's filter never applies `nulls_ordering`."""
+
+    queryset = my_models.ValidLookupExpression.objects.all()
+    serializer_class = my_serializers.ValidLookupExpressionSerializer
+    filter_backends = [OrderingFilter]
+    ordering = ["the_name_field"]
+    nulls_ordering = {"the_name_field": "first"}
+
+    def get_queryset(self):
+        return super().get_queryset().order_by(F("the_name_field").asc(nulls_first=True))
+
+
+class InlineAggregateManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by an aggregate written inline.
+
+    Building the queryset raises, so this viewset builds it only in `get_queryset()`. A class-level
+    `queryset` would fail when this module is imported."""
+
+    serializer_class = my_serializers.InlineAggregateManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.InlineAggregateManagerOrdering.objects.all()
+
+
+class SimpleAnnotationManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager orders by a single-column annotation it adds."""
+
+    queryset = my_models.SimpleAnnotationManagerOrdering.objects.all()
+    serializer_class = my_serializers.SimpleAnnotationManagerOrderingSerializer
+
+
+class MisspelledFManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager misspells a name inside an `F()`."""
+
+    queryset = my_models.MisspelledFManagerOrdering.objects.all()
+    serializer_class = my_serializers.MisspelledFManagerOrderingSerializer
+
+
+class MisspelledNameManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager misspells a plain string name.
+
+    Building the queryset raises, so this viewset builds it only in `get_queryset()`. A class-level
+    `queryset` would fail when this module is imported."""
+
+    serializer_class = my_serializers.MisspelledNameManagerOrderingSerializer
+
+    def get_queryset(self):
+        return my_models.MisspelledNameManagerOrdering.objects.all()
+
+
+class MisspelledTransformManagerOrderingViewSet(VuedaViewSet):
+    """Serves a model whose default manager misspells a transform."""
+
+    queryset = my_models.MisspelledTransformManagerOrdering.objects.all()
+    serializer_class = my_serializers.MisspelledTransformManagerOrderingSerializer
 
 
 class ConflictingQuerysetOrderingViewSet(VuedaViewSet):

@@ -10,7 +10,14 @@ const fetchModelInfo = vi.fn();
 const getConfig = vi.fn();
 const fetchWorkflowTransition = vi.fn();
 
-class ModelInfoError extends Error {}
+class ModelInfoError extends Error {
+    constructor(message, response, responseData) {
+        super(message);
+        this.name = "ModelInfoError";
+        this.response = response;
+        this.responseData = responseData;
+    }
+}
 class WorkflowError extends Error {
     constructor(message, response, responseData) {
         super(message);
@@ -297,6 +304,52 @@ describe("lib/router/guards.js", () => {
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(toastMock.error).toHaveBeenCalledWith("Model Not Found");
         expect(result).toEqual({ name: "nf" });
+    });
+
+    describe("Model info denial", () => {
+        const denial = (data) => new ModelInfoError("Failed to fetch model info", { status: 403 }, data);
+
+        scopedIt("redirects with a permission toast instead of Model Not Found", async () => {
+            fetchWorkflowTransition.mockResolvedValue([]);
+            fetchModelInfo.mockRejectedValue(denial({ detail: "nope" }));
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+            const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+            expect(toastMock.error).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
+            expect(result).toEqual({ name: "nf" });
+        });
+
+        scopedIt("falls back to a generic description when the denial carries none", async () => {
+            fetchWorkflowTransition.mockResolvedValue([]);
+            fetchModelInfo.mockRejectedValue(denial());
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+            await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+            expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", {
+                description: "You do not have permission to perform this action.",
+                duration: 15000,
+            });
+        });
+
+        scopedIt("keeps Model Not Found for a 404", async () => {
+            fetchWorkflowTransition.mockResolvedValue([]);
+            fetchModelInfo.mockRejectedValue(
+                new ModelInfoError("Failed to fetch model info", { status: 404 }, { detail: "Not found." }),
+            );
+            const router = { resolve: vi.fn((r) => r) };
+            const to = { params: { app: "a", model: "b", action: "list" }, fullPath: "/a/b/list" };
+
+            const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+            expect(toastMock.error).toHaveBeenCalledTimes(1);
+            expect(toastMock.error).toHaveBeenCalledWith("Model Not Found");
+            expect(result).toEqual({ name: "nf" });
+        });
     });
 
     scopedIt("requireModelInfo cancels the navigation when the authenticated user changed", async () => {

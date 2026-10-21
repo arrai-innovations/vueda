@@ -19,6 +19,10 @@ import { useRoute, useRouter } from "vue-router";
  *  action. When `true`, a pending reauthentication flow sends the user to the reauthenticate route, including when
  *  the form is set up. Set it to `false` for a form whose action the server accepts without a recent session, such
  *  as change-password. The user then stays on the form while the flow is pending.
+ * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>|boolean} [onSubmissionErrorHandler] -
+ *  Handles every error that the returned `onSubmissionErrorHandler` does not redirect for, in place of
+ *  `defaultOnSubmissionError`. Its return value is the handled result, so `false` lets `useActionForm` record
+ *  the error and show its error toast.
  */
 
 /**
@@ -26,8 +30,10 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('@vueda/use/useForm.js').FormContext} formContext - The form context.
  * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} onSubmissionErrorHandler -
  *  Handles an `UnauthorizedError` from the refetched `storeUser` state. A signed-out user is sent to the sign-in
- *  route. A pending reauthentication flow sends the user to the reauthenticate route. When the router reports a
- *  failure for either navigation, the error goes to `defaultOnSubmissionError`. Every other error goes there too.
+ *  route. A pending reauthentication flow sends the user to the reauthenticate route. Every other error, including
+ *  an `UnauthorizedError` whose navigation the router reports as failed, goes to the `onSubmissionErrorHandler`
+ *  option. Without that option, it goes to `defaultOnSubmissionError`. The result is the handled result of
+ *  whichever handler ran.
  * @property {() => Promise<boolean>} redirectTo - Pushes to `route.query.returnPath` if
  *  present, otherwise to the `redirect` option. Resolves `false` when neither is set or the router reports a
  *  navigation failure, so `useActionForm` keeps the form usable.
@@ -47,11 +53,15 @@ import { useRoute, useRouter } from "vue-router";
  * current user before they reject with an `UnauthorizedError`. The submission error handler reads that refetched
  * state. A signed-out user goes to the sign-in route. A pending reauthentication flow sends the user to the
  * reauthenticate route. An action that does not refetch leaves the state from before the request, so its
- * `UnauthorizedError` goes to `defaultOnSubmissionError`.
+ * `UnauthorizedError` goes to the fallback handler.
+ *
+ * The fallback handler is the `onSubmissionErrorHandler` option when given, and `defaultOnSubmissionError`
+ * otherwise. It receives every error that the handler does not redirect for, and only those errors. A caller
+ * therefore controls ordinary errors without reimplementing reauthentication.
  *
  * The watch and the handler share one redirect for each pending flow, so the user sees one toast and one
  * navigation even when both react to the same refused request. When the router reports a failure for either
- * navigation, the handler passes the error to `defaultOnSubmissionError`. The next refused submission tries the
+ * navigation, the handler passes the error to the fallback handler. The next refused submission tries the
  * redirect again.
  *
  * With `requireRecentAuth: false`, a pending reauthentication flow does not redirect. A signed-out user still goes
@@ -146,7 +156,8 @@ export function useAuthFlow(options) {
                 return true;
             }
         }
-        return await defaultOnSubmissionError({ error, formContext: ctx, toast: t });
+        const fallback = options.onSubmissionErrorHandler ?? defaultOnSubmissionError;
+        return await fallback({ error, formContext: ctx, toast: t });
     };
 
     const redirectTo = async () => {

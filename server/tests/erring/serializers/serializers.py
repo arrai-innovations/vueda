@@ -60,6 +60,118 @@ class ModelOrderingQuerysetSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class OtherNameManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.OtherNameManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class DefaultManagerNameOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.DefaultManagerNameOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class EmptyFilterManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.EmptyFilterManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class RandomManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.RandomManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class InlineAggregateManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.InlineAggregateManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class LowerFormattedNameManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.LowerFormattedNameManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MatchingMetaManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MatchingMetaManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class SecondaryManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SecondaryManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class AggregateManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.AggregateManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class AggregateManagerMetaOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.AggregateManagerMetaOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class SimpleAnnotationManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.SimpleAnnotationManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MisspelledFManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MisspelledFManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MisspelledNameManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MisspelledNameManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class MisspelledTransformManagerOrderingSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.MisspelledTransformManagerOrdering
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
 class FormattedNameExpressionNotStringSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.FormattedNameExpressionNotString
@@ -79,14 +191,6 @@ class ValidGetFormattedNameSerializer(VuedaSerializer):
 class ValidLookupExpressionSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.ValidLookupExpression
-        fields = [
-            "id",
-        ] + VuedaSerializer.Meta.fields
-
-
-class PlainManagerLookupExpressionSerializer(VuedaSerializer):
-    class Meta(VuedaSerializer.Meta):
-        model = my_models.PlainManagerLookupExpression
         fields = [
             "id",
         ] + VuedaSerializer.Meta.fields
@@ -200,6 +304,21 @@ class ExpandableFieldsListSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "no_name": [NoNameFieldSerializer, {}],
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class ExpandableFieldsClientNamespaceSerializer(VuedaSerializer):
+    """Names two expands after the client's path namespaces, which the client reads from other objects."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.NoExpandableFieldsData
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "related": (NoNameFieldSerializer, {}),
+            "calculated": (NoNameFieldSerializer, {}),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 

@@ -31,6 +31,8 @@ VUEDA picks each column's default adapter in {@api js:property:@arrai-innovation
 | `TimeField`              | `TimeField`                    | `ColumnDateTime`                     | `{ format: "t", showRelative: false, showTooltip: false }` |
 | `DurationField`          | `DurationField`                | {@api vue:component:ColumnDuration}  |                                                            |
 | `DurationSecondsField`   | `DurationField`                | `ColumnDuration`                     |                                                            |
+| `FileField`              | `FileField`                    | {@api vue:component:ColumnFile}      |                                                            |
+| `ImageField`             | `ImageField`                   | `ColumnFile`                         |                                                            |
 | `JSONField`              | `JSONField`                    | {@api vue:component:ColumnJson}      |                                                            |
 | `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | {@api vue:component:ColumnModelLink} | `{ view: "read" }`                                         |
 
@@ -42,10 +44,11 @@ The adapters render as follows:
 - `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No".
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
+- `ColumnFile` renders {@api vue:component:FileDisplay}: a link to the file, labelled with the file name.
 - `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
 - `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}.
 
-`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, and `JsonDisplay` render a dash for an empty value.
+`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value.
 
 ## Choose Where to Override
 
@@ -91,7 +94,7 @@ storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
 A `columnComponents` entry takes one of three values:
 
 - **A function that returns a component**, such as `() => ColumnStatusBadge`. VUEDA calls it with no arguments. Use this form for your own components. The store keeps its values in reactive state and merges plain objects between layers; the function keeps the component out of both.
-- **The name of a built-in adapter** in {@api js:property:@arrai-innovations/vueda/utils/columnLookups#availableColumns}: `"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnJson"`, or `"ColumnModelLink"`. Use a name to give a column a built-in adapter that its type does not map to.
+- **The name of a built-in adapter** in {@api js:property:@arrai-innovations/vueda/utils/columnLookups#availableColumns}: `"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnFile"`, `"ColumnJson"`, or `"ColumnModelLink"`. Use a name to give a column a built-in adapter that its type does not map to.
 - **A component object.** Use this form in the `columnComponents` prop. In model config, wrap the component in a function.
 
 The model-wide layer also applies to the list view. When both layers set `columnComponents`, the list gets the entries of both. For a column that both layers name, the `list` layer wins. `columnProps` merges each column's props across the layers, key by key.

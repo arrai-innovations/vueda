@@ -585,9 +585,10 @@ describe("lib/use/useViewUpdate.js", () => {
         /**
          * Wires the real useViewUpdate() the same way "submission failure visibility" does, but with a
          * model config that fetches more than it submits, and a server stub that records each save's
-         * body and `f` parameter and recomputes `total` from the submitted `quantity`.
+         * body and `f` parameter and recomputes `total` from the submitted `quantity`. Passing `update`
+         * replaces that stub with another update handler.
          */
-        const buildSelectionViewUpdate = async ({ config, retrieved }) => {
+        const buildSelectionViewUpdate = async ({ config, retrieved, update: updateHandler }) => {
             setActivePinia(createPinia());
             const { useDetailView: realUseDetailView } = await vi.importActual("@vueda/use/useDetailView.js");
             const { useObjectForm: realUseObjectForm } = await vi.importActual("@vueda/use/useObjectForm.js");
@@ -606,11 +607,12 @@ describe("lib/use/useViewUpdate.js", () => {
             let serverObject = { ...retrieved };
             const retrieve = vi.fn(() => Promise.resolve({ ...serverObject }));
             const saves = [];
-            const update = vi.fn(({ object, params }) => {
+            const recordingUpdate = vi.fn(({ object, params }) => {
                 saves.push({ body: cloneDeep(object), fields: [...params[FIELDS_PARAM]] });
                 serverObject = { ...serverObject, ...object, total: serverObject.unit_price * object.quantity };
                 return Promise.resolve({ ...serverObject });
             });
+            const update = updateHandler ?? recordingUpdate;
             let callCount = 0;
             useObject.mockImplementation((options) => {
                 callCount += 1;
@@ -640,7 +642,7 @@ describe("lib/use/useViewUpdate.js", () => {
             await flushPromises();
         };
 
-        scopedIt("submits only submitFields, leaving fetched and displayed fields out of the body", async () => {
+        scopedIt("submits the pk and submitFields, leaving fetched and displayed fields out of the body", async () => {
             const { default: flushPromises } = await import("flush-promises");
             const { result, saves } = await buildSelectionViewUpdate({
                 config: orderConfig,
@@ -653,7 +655,7 @@ describe("lib/use/useViewUpdate.js", () => {
             // `total` is displayed and `notes` is fetched but not displayed. Sending `notes` back would
             // overwrite a change another user made after this form loaded.
             expect(saves).toHaveLength(1);
-            expect(saves[0].body).toEqual({ quantity: 2 });
+            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
         });
 
         scopedIt("requests fetchFields in the save response and exposes them on the save result", async () => {
@@ -683,7 +685,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
             await editAndSubmit(result, "quantity", 3);
             expect(saves).toHaveLength(2);
-            expect(saves[1].body).toEqual({ quantity: 3 });
+            expect(saves[1].body).toEqual({ quantity: 3, id: "42" });
             expect(result.instanceObject.state.object.total).toBe(15);
             expect(result.objectForm.state.object.total).toBe(15);
         });
@@ -699,7 +701,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
             await editAndSubmit(result, "quantity", 2);
 
-            expect(saves[0].body).toEqual({ quantity: 2, notes: "packed" });
+            expect(saves[0].body).toEqual({ quantity: 2, notes: "packed", id: "42" });
         });
 
         scopedIt("keeps falsy submitted values and still drops ignored fields", async () => {
@@ -725,7 +727,7 @@ describe("lib/use/useViewUpdate.js", () => {
             result.formContext.ignore("photo");
             await editAndSubmit(result, "quantity", 0);
 
-            expect(saves[0].body).toEqual({ quantity: 0, active: false, note: null, tags: [] });
+            expect(saves[0].body).toEqual({ quantity: 0, active: false, note: null, tags: [], id: "42" });
         });
 
         scopedIt("sends a nested value whole under a top-level entry and narrows a dotted entry", async () => {
@@ -752,7 +754,152 @@ describe("lib/use/useViewUpdate.js", () => {
 
             await editAndSubmit(result, "quantity", 2);
 
-            expect(saves[0].body).toEqual({ quantity: 2, lines, address: { city: "Calgary" } });
+            expect(saves[0].body).toEqual({ quantity: 2, lines, address: { city: "Calgary" }, id: "42" });
+        });
+
+        scopedIt("saves to the edited object's URL through the default update handler", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { defaultObjectUpdate } = await import("@vueda/utils/objectCrud.js");
+            const fetchMock = vi.fn(() =>
+                Promise.resolve(
+                    new Response(JSON.stringify({ ...orderRetrieved, quantity: 2, total: 10 }), {
+                        status: 200,
+                        headers: { "Content-Type": "application/json" },
+                    }),
+                ),
+            );
+            vi.stubGlobal("fetch", fetchMock);
+            try {
+                // The server returns an integer pk while the route pk is the string "42", so the body's
+                // "42" shows that the save takes its pk from the route, not from the retrieved object.
+                const { result } = await buildSelectionViewUpdate({
+                    config: orderConfig,
+                    retrieved: { ...orderRetrieved, id: 42 },
+                    update: defaultObjectUpdate,
+                });
+                await flushPromises();
+
+                // orderConfig.submitFields names only `quantity`, as the default submitFields leave out the pk.
+                await editAndSubmit(result, "quantity", 2);
+
+                expect(fetchMock).toHaveBeenCalledTimes(1);
+                const [url, options] = fetchMock.mock.calls[0];
+                expect(new URL(url, "http://domain.invalid").pathname).toBe("/routes/testapp/test_model/42/");
+                expect(options.method).toBe("PUT");
+                expect(JSON.parse(options.body)).toEqual({ quantity: 2, id: "42" });
+            } finally {
+                vi.unstubAllGlobals();
+            }
+        });
+    });
+
+    describe("real composition: reverse foreign key submission", () => {
+        const itemsDetail = {
+            label: "Items",
+            many: true,
+            readOnly: false,
+            typeSerializer: "ManyRelatedField",
+            typeModel: "ForeignKey",
+        };
+        const items = [{ id: 1, sku: "A-1", count: 2 }];
+
+        /**
+         * Wires the real useDetailView(), useForm(), useObjectForm(), and useObject() for an order whose
+         * `items` is a reverse foreign key. The stubs record the `e` parameter of the retrieve and of each
+         * save, and the save body.
+         */
+        const buildReverseForeignKeyViewUpdate = async (config) => {
+            setActivePinia(createPinia());
+            const { useDetailView: realUseDetailView } = await vi.importActual("@vueda/use/useDetailView.js");
+            const { useObjectForm: realUseObjectForm } = await vi.importActual("@vueda/use/useObjectForm.js");
+            const { useForm: realUseForm } = await vi.importActual("@vueda/use/useForm.js");
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+
+            Object.assign(mockModelConfig.config, {
+                displayFields: ["quantity", "items"],
+                fetchFields: ["quantity", "items"],
+                submitFields: ["quantity", "items"],
+                fieldDetails: { quantity: { label: "Quantity", many: false }, items: itemsDetail },
+                ...config,
+            });
+            useModelConfig.mockReturnValue(mockModelConfig);
+            useIsActive.mockReturnValue(ref(true));
+            useFilteredActions.mockReturnValue(reactive({ actions: [] }));
+            useObject404.mockReturnValue(undefined);
+            useDetailView.mockImplementation(realUseDetailView);
+            useObjectForm.mockImplementation(realUseObjectForm);
+            useForm.mockImplementation(realUseForm);
+
+            const retrieves = [];
+            const retrieve = vi.fn(({ params }) => {
+                retrieves.push({ expand: params[EXPAND_PARAM] });
+                return Promise.resolve({ id: "42", quantity: 1, items: cloneDeep(items) });
+            });
+            const saves = [];
+            const update = vi.fn(({ object, params }) => {
+                saves.push({ body: cloneDeep(object), expand: params[EXPAND_PARAM] });
+                return Promise.resolve({ ...object });
+            });
+            let callCount = 0;
+            useObject.mockImplementation((options) => {
+                callCount += 1;
+                return callCount === 1
+                    ? realUseObject({ ...options, handlers: { retrieve } })
+                    : realUseObject({ ...options, handlers: { update } });
+            });
+
+            const { default: flushPromises } = await import("flush-promises");
+            const result = await withSetup(() => useViewUpdate(props));
+            await flushPromises();
+            result.formContext.registerIsModifiedHook("quantity", () => true);
+            result.formContext.updateValue("quantity", 2);
+            await flushPromises();
+            await result.objectForm.submit();
+            await flushPromises();
+            return { retrieves, saves };
+        };
+
+        scopedIt("leaves an unexpanded reverse foreign key out of the default body", async () => {
+            const { retrieves, saves } = await buildReverseForeignKeyViewUpdate({ expand: [] });
+
+            expect(retrieves[0].expand).toEqual([]);
+            expect(saves).toHaveLength(1);
+            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
+            expect(saves[0].expand).toEqual([]);
+        });
+
+        for (const [source, setUp] of [
+            ["the expand prop", () => (props.expand = ["items"])],
+            ["the formProps prop", () => (props.formProps = { expand: ["items"] })],
+            ["the model config's formProps", () => (mockModelConfig.config.formProps = { expand: ["items"] })],
+            ["the model config's expand", () => (mockModelConfig.config.expand = ["items"])],
+        ]) {
+            scopedIt(`fetches, submits, and saves with an expand that ${source} names`, async () => {
+                setUp();
+                const { retrieves, saves } = await buildReverseForeignKeyViewUpdate({});
+
+                expect(retrieves[0].expand).toEqual(["items"]);
+                expect(saves).toHaveLength(1);
+                expect(saves[0].body).toEqual({ quantity: 2, items, id: "42" });
+                expect(saves[0].expand).toEqual(["items"]);
+            });
+        }
+
+        scopedIt("prefers the expand prop over the model config's expand", async () => {
+            props.expand = [];
+            const { retrieves, saves } = await buildReverseForeignKeyViewUpdate({ expand: ["items"] });
+
+            expect(retrieves[0].expand).toEqual([]);
+            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
+            expect(saves[0].expand).toEqual([]);
+        });
+
+        scopedIt("sends a reverse foreign key that the submitFields prop names", async () => {
+            props.submitFields = ["quantity", "items"];
+            const { saves } = await buildReverseForeignKeyViewUpdate({ expand: [] });
+
+            expect(saves[0].body).toEqual({ quantity: 2, items, id: "42" });
+            expect(saves[0].expand).toEqual([]);
         });
     });
 });

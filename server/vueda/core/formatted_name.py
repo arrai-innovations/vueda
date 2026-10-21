@@ -8,6 +8,7 @@ __all__ = (
     "formatted_name_annotation_path",
     "path_multiplies_rows",
     "resolve_formatted_name_path",
+    "resolve_formatted_name_transform_path",
     "split_alias_path",
 )
 
@@ -130,6 +131,11 @@ def path_multiplies_rows(fields):
     ``resolve_formatted_name_path``, which declines to rewrite a related path reached this way. Both
     read it from here so a path one refuses is a path the other refuses.
 
+    Column totals ask the same question of a path that may end in transforms, so they use
+    ``vueda.core.paths.query_path_multiplies_rows`` instead, which reads the mark that Django's own
+    ``Query.names_to_path`` puts on each multi-valued join. Both count reverse foreign keys,
+    many-to-many fields, and ``GenericRelation`` as multi-valued.
+
     Takes the resolved fields rather than a path, because both callers have already resolved one and
     resolving is what raises for a path that names nothing.
 
@@ -237,3 +243,45 @@ def resolve_formatted_name_path(model, field_name):
         return None
 
     return f"{prefix}{lookup_expression}"
+
+
+def resolve_formatted_name_transform_path(model, field_name):
+    """
+    The database path behind a query path that reaches ``formatted_name`` and may continue with
+    transforms, such as ``customer__formatted_name__unaccent``.
+
+    The part of the path up to its first ``formatted_name`` segment is rewritten by
+    ``resolve_formatted_name_path``, and the rest of the path is appended to the result unchanged.
+    So ``customer__formatted_name__unaccent`` becomes ``customer__data__formatted_name__unaccent``
+    when Customer declares ``formatted_name_lookup_expression = "data__formatted_name"``. A path that
+    ends in ``formatted_name`` is rewritten exactly as ``resolve_formatted_name_path`` rewrites it.
+
+    The ordering backend, the ordering metadata, and ``FormattedNamePathFilterSetMixin`` all use this,
+    so a sort and a filter on the same declared path query the same column.
+
+    The names after ``formatted_name`` are not checked. A name that is not a transform stays in the
+    returned path, and resolving that path fails the same way any other misspelled path fails.
+
+    ``None`` when the path has no ``formatted_name`` segment, or when ``resolve_formatted_name_path``
+    has nothing to rewrite for the part up to it.
+
+    :param model: The model the path starts from.
+    :type model: Type[django.db.models.Model]
+    :param field_name: The query path to resolve, e.g. ``"customer__formatted_name__unaccent"``.
+    :type field_name: str
+    :return: The database path to use in place of ``field_name``. None when there is nothing to
+        rewrite.
+    :rtype: Optional[str]
+    """
+    names = field_name.split(LOOKUP_SEP)
+    if FORMATTED_NAME not in names:
+        return None
+
+    # The first occurrence. `formatted_name` is never a relation, so every name after it has to be a
+    # transform, and a later `formatted_name` segment is one too, such as a key on a `JSONField`.
+    index = names.index(FORMATTED_NAME)
+    resolved = resolve_formatted_name_path(model, LOOKUP_SEP.join(names[: index + 1]))
+    if resolved is None:
+        return None
+
+    return LOOKUP_SEP.join((resolved, *names[index + 1 :]))

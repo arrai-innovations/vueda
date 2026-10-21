@@ -22,8 +22,9 @@ These files or patterns are intentionally DX-specific and do not need syncing:
 
 - `justfile`, `lefthook.yml`, `ruff.toml` (and `.ruff_cache/`)
 - `ruff` in `pyproject.toml.jinja` dev dependencies
-- `noqa` comments required by the DX template's ruff rules (e.g. `RUF012` on
-  mutable class-level lists in migrations)
+- `noqa` comments required by the DX template's ruff rules (e.g. `F403` on the
+  star import and `E402` on the `patch_django` import in
+  `config/settings/local.py`)
 - Import style in generated migrations (DX uses combined imports; minimal uses
   single-line imports matching the vueda server convention)
 - Inline guidance comments in the minimal template (e.g. `# VUEDA core`,

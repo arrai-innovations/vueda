@@ -6,6 +6,7 @@ __all__ = (
     "FlexFieldsWriteableNestedSerializerMixin",
     "GenericForeignKeySerializer",
     "MakeReadonly",
+    "ModelPrimaryKeyValueField",
     "NoExtraFieldsSerializerMixin",
     "PrimaryKeyListSerializer",
     "VuedaExpandableFieldsSerializerMixin",
@@ -62,8 +63,56 @@ from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
 
 
+class ModelPrimaryKeyValueField(serializers.Field):
+    """
+    Converts one primary key value to the value that a ``pk`` filter on ``model`` expects.
+
+    The model's primary key field does the conversion, so a UUID, string, or other key type
+    converts the way the database lookup needs it. A composite key arrives as its JSON array
+    string, such as ``'["1", "42"]'``, the same form that the detail route takes. It converts to a
+    tuple of column values. A value that the key field cannot convert fails as ``invalid``.
+    """
+
+    default_error_messages = {"invalid": "Primary keys must be valid values for this model's primary key."}
+
+    def __init__(self, model, **kwargs):
+        self.model = model
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        pk_field = self.model._meta.pk
+        if isinstance(pk_field, CompositePrimaryKey):
+            if not isinstance(data, str):
+                self.fail("invalid")
+            try:
+                return tuple(pk_field.to_python(data))
+            except (TypeError, ValueError, DjangoValidationError):
+                self.fail("invalid")
+        try:
+            return pk_field.to_python(data)
+        except (TypeError, ValueError, DjangoValidationError):
+            self.fail("invalid")
+
+    def to_representation(self, value):
+        return value
+
+
+def _has_integer_primary_key(model):
+    """Return whether ``model``'s primary key holds an integer, following a key that is a relation."""
+    pk_field = model._meta.pk
+    while pk_field.is_relation:
+        pk_field = pk_field.target_field
+    return isinstance(pk_field, models.IntegerField)
+
+
 class PrimaryKeyListSerializer(serializers.Serializer):
-    """Validates a ``pks`` body field containing a non-empty list of integer primary keys."""
+    """
+    Validates a ``pks`` body field containing a non-empty list of primary keys.
+
+    Without ``model``, each entry must be an integer. With ``model``, each entry converts through
+    that model's primary key field, as :class:`ModelPrimaryKeyValueField` describes. A model with
+    an integer primary key keeps the integer check and its error message.
+    """
 
     pks = serializers.ListField(
         child=serializers.IntegerField(error_messages={"invalid": "Primary keys must be valid integers."}),
@@ -74,8 +123,12 @@ class PrimaryKeyListSerializer(serializers.Serializer):
         },
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, model=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if model is not None and not _has_integer_primary_key(model):
+            pks = self.fields["pks"]
+            pks.child = ModelPrimaryKeyValueField(model)
+            pks.child.bind(field_name="", parent=pks)
 
 
 class NoExtraFieldsSerializerMixin:
@@ -1022,6 +1075,19 @@ class VuedaSerializer(
         ModelFileField: VuedaFileField,
         ModelImageField: VuedaImageField,
     }
+
+    def build_standard_field(self, field_name, model_field):
+        """
+        Accept ``null`` for a file or image column that the model marks ``blank=True``.
+
+        DRF only allows ``null`` for a ``null=True`` column, and Django file columns are rarely nullable,
+        so an optional file had no value that means "no file". Accepting ``null`` lets a form send its empty
+        value, and lets a client clear a stored file. Django saves the cleared file as an empty name.
+        """
+        field_class, field_kwargs = super().build_standard_field(field_name, model_field)
+        if isinstance(model_field, ModelFileField) and model_field.blank:
+            field_kwargs["allow_null"] = True
+        return field_class, field_kwargs
 
     class Meta:
         expandable_fields = {}

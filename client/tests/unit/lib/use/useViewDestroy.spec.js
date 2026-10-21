@@ -211,14 +211,25 @@ describe("lib/use/useViewDestroy.js", () => {
             expect(result.titleStr.value).toBe("Delete Widget");
         });
 
-        // The config arrives with the model info, so the title has to read before it lands.
-        scopedIt("falls back to the model name when no verbose name is configured", async () => {
+        scopedIt("is empty until the model verbose name is known", async () => {
+            mockModelConfig.config = { verboseName: "", verboseNamePlural: "" };
             const result = await withSetup(() => useViewDestroy(props));
-            expect(result.titleStr.value).toBe("Delete Test Model");
+            expect(result.titleStr.value).toBe("");
 
-            props.pk = ["1", "2"];
+            mockModelConfig.config.verboseName = "widget";
             await nextTick();
-            expect(result.titleStr.value).toBe("Delete 2 Test Models");
+            expect(result.titleStr.value).toBe("Delete Widget");
+        });
+
+        scopedIt("is empty for a bulk destroy until the model plural verbose name is known", async () => {
+            mockModelConfig.config = { verboseName: "widget", verboseNamePlural: "" };
+            props.pk = ["1", "2", "3"];
+            const result = await withSetup(() => useViewDestroy(props));
+            expect(result.titleStr.value).toBe("");
+
+            mockModelConfig.config.verboseNamePlural = "widgets";
+            await nextTick();
+            expect(result.titleStr.value).toBe("Delete 3 Widgets");
         });
 
         scopedIt("reports loading while either the config or the records are in flight", async () => {

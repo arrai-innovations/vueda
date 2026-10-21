@@ -115,7 +115,9 @@ The server does not advertise a metadata version, and the client does not reques
 
 ## Failure Modes and Recovery
 
-**Any model-info failure redirects.** A model-info request for an unregistered model returns `404`. The client wraps that response, any other non-2xx response, and any network failure in a [`ModelInfoError`]{@api js:class:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfoError}. The route guard then shows a "Model Not Found" toast and redirects to the configured [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect}.
+**Any model-info failure redirects.** A model-info request for an unregistered model returns `404`. The client wraps that response, any other non-2xx response, and any network failure in a [`ModelInfoError`]{@api js:class:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfoError}. For any of these except a `403`, the route guard shows a "Model Not Found" toast. It then redirects to the configured [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect}.
+
+**A refused model-info request reports a permission denial.** The server answers `403` when the user lacks `contenttypes.read_contenttype`. The route guard shows a "Permission Denied" toast with the server's `detail` instead. It redirects to the same `actionRedirect`.
 
 **Workflow without a definition fails the whole response.** A model that enables `class Vueda.Workflow` but has no [workflow]{@term Workflow} definition makes every model-info request for it fail with [`WorkflowNotConfiguredError`]{@api py:class:vueda.workflow.exceptions.WorkflowNotConfiguredError}, returned as `500`.
 

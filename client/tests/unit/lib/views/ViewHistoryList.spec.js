@@ -180,7 +180,9 @@ beforeEach(async () => {
             expand: [],
             fields: {},
         },
-        config: {},
+        config: {
+            verboseName: "Thing",
+        },
     });
     mockedUseModelConfig.mockReturnValue(modelConfig);
     mockedUseIsActive.mockReturnValue(vue.ref(true));
@@ -263,6 +265,20 @@ describe("lib/views/ViewHistoryList.vue", () => {
             expect(listProps.target.action).toBe("history_list");
             expect(listProps.pkKey).toBe("id");
             expect(listProps.params).not.toHaveProperty("f");
+        });
+    });
+
+    describe("Page title", () => {
+        scopedIt("is empty until the model verbose name is known", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.verboseName = "";
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            expect(wrapper.vm.titleStr).toBe("");
+
+            modelConfig.config.verboseName = "Thing";
+            await vue.nextTick();
+            expect(wrapper.vm.titleStr).toBe("History of Thing");
         });
     });
 

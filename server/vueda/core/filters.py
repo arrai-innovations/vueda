@@ -46,16 +46,19 @@ from rest_framework.filters import SearchFilter
 from rest_framework.settings import api_settings
 
 from vueda.core.fields.form import BaseArrayField
-from vueda.core.formatted_name import resolve_formatted_name_path
+from vueda.core.formatted_name import resolve_formatted_name_transform_path
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.ordering import NULLS_PLACEMENTS
 from vueda.core.ordering import PK_ALIAS
+from vueda.core.ordering import ordering_field_key
 from vueda.core.ordering import ordering_pk_field_names
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import rewrite_ordering_term_field_names
+from vueda.core.paths import has_public_ordering_name
 from vueda.core.paths import join_ordering_direction
 from vueda.core.paths import orm_filter_path_to_public
 from vueda.core.paths import orm_ordering_path_to_public
+from vueda.core.paths import path_annotation_name
 from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import reject_wildcard
 from vueda.core.paths import split_ordering_direction
@@ -125,6 +128,8 @@ class FormattedNamePathFilterSetMixin:
     ``formatted_name_lookup_expression``: the annotation ``VuedaViewSet.get_queryset`` adds belongs to
     the queryset being filtered, not to the tables it joins. So the declared path is rewritten to the
     one behind it — ``customer__data__formatted_name`` — on this filterset's own copy of the filters.
+    A transform after ``formatted_name`` stays on the rewritten path, so a filter declared against
+    ``customer__formatted_name__lower`` queries ``customer__data__formatted_name__lower``.
 
     The class-level declaration is untouched, and so is everything client-facing. The query parameter
     a client sends is the filter's name on the filterset, not its ``field_name``, and the label a
@@ -139,12 +144,16 @@ class FormattedNamePathFilterSetMixin:
         for filter_ in self.filters.values():
             declared_field_name = filter_.field_name
 
-            # A path the queryset already carries an annotation for needs no rewriting: that is how a
-            # model's own `formatted_name` is filtered, and the annotation is what metadata describes.
-            if declared_field_name in self.queryset.query.annotations:
+            # A path that starts with an annotation the queryset already carries needs no rewriting:
+            # that is how a model's own `formatted_name` is filtered, and the annotation is what
+            # metadata describes. Django applies any transforms after it, as in
+            # `formatted_name__unaccent`, to the annotation itself.
+            if path_annotation_name(self.queryset.query.annotations, declared_field_name) is not None:
                 continue
 
-            resolved = resolve_formatted_name_path(self.queryset.model, declared_field_name)
+            # A transform after a related `formatted_name` is kept on the rewritten path, so
+            # `customer__formatted_name__unaccent` becomes `customer__data__formatted_name__unaccent`.
+            resolved = resolve_formatted_name_transform_path(self.queryset.model, declared_field_name)
             if resolved is None or resolved == declared_field_name:
                 continue
 
@@ -268,7 +277,8 @@ class VuedaOrderingFilter(OrderingFilter):
        is, so their field names stay `__`-joined like every other view-declared ordering term — never
        the dotted `?o=` grammar. `filter_queryset` applies a placement after `get_ordering` has
        already translated a client's dotted term to its `__`-joined `order_by()` form, so a dotted key
-       here matches nothing a request could ever name.
+       here matches nothing a request could ever name. The `vueda_info.E007` system check reports a
+       key, dotted or not, that names no field a request can sort by.
 
        The placement applies wherever that field is sorted by name — an explicit `?o=` request, and
        equally a default `ordering` written as plain strings (`ordering = ["due_date"]`), since DRF
@@ -325,6 +335,33 @@ class VuedaOrderingFilter(OrderingFilter):
         if not ordering:
             return queryset
 
+        # Nulls placement is declared against the client-facing name, so it has to be applied before
+        # any term is rewritten to the path behind that name.
+        ordering = self.apply_nulls_ordering(ordering, view, queryset.model)
+        ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
+        ordering = [self._resolve_alias_transform(term, queryset) for term in ordering]
+        return queryset.order_by(*ordering)
+
+    @classmethod
+    def apply_nulls_ordering(cls, ordering, view, model):
+        """
+        The ordering terms with the view's declared nulls placements applied.
+
+        This is the step that ``filter_queryset`` applies to every ordering that it hands to
+        ``order_by()``, before it rewrites any ``formatted_name`` path. The ``vueda_info.E010`` system
+        check applies it to a viewset's declared ``ordering`` too, so the check compares the order that
+        a list request actually gets.
+
+        :param ordering: The ordering terms, ``__``-joined.
+        :type ordering: Iterable[Union[str, django.db.models.expressions.BaseExpression]]
+        :param view: The view whose ``nulls_ordering`` and ``nulls_ordering_flip`` apply.
+        :type view: Union[rest_framework.views.APIView, Type[rest_framework.views.APIView]]
+        :param model: The model that the ordering is declared against.
+        :type model: Type[django.db.models.Model]
+        :return: The terms, with each plain field name that has a placement turned into an ``F``
+            expression that carries it.
+        :rtype: List[Union[str, django.db.models.expressions.BaseExpression]]
+        """
         # A declaration that isn't a mapping has no field-to-placement pairs to read, so it is dropped
         # rather than allowed to raise `AttributeError` from `.get()` and fail the request.
         # `vueda_info.E007` reports it, which is where it can be fixed. An empty declaration of any
@@ -342,11 +379,7 @@ class VuedaOrderingFilter(OrderingFilter):
             # the membership test below would fail the request. `vueda_info.E007` reports it.
             nulls_ordering_flip = ()
 
-        # Nulls placement is declared against the client-facing name, so it has to be applied before
-        # any term is rewritten to the path behind that name.
-        ordering = [self._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip) for term in ordering]
-        ordering = [self._resolve_formatted_name(term, queryset) for term in ordering]
-        return queryset.order_by(*ordering)
+        return [cls._apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, model) for term in ordering]
 
     def remove_invalid_fields(self, queryset, fields, view, request):
         """
@@ -376,7 +409,16 @@ class VuedaOrderingFilter(OrderingFilter):
             for field_name, _label in self.get_valid_fields(queryset, view, {"request": request})
             if isinstance(field_name, str)
         }
-        valid_public_fields = {orm_ordering_path_to_public(field_name) for field_name in valid_orm_fields}
+        # A path with no public name that reads back as itself (a `JSONField` key or an annotation name
+        # containing `.` or `,`, see `has_public_ordering_name`) is left out. That keeps every valid
+        # public name a faithful round trip, which the translation below relies on.
+        # `vueda_info.E006` reports such a name in `ordering` or an explicit `ordering_fields`. An
+        # annotation that `ordering_fields = "__all__"` brings in is left out without a report.
+        valid_public_fields = {
+            orm_ordering_path_to_public(field_name)
+            for field_name in valid_orm_fields
+            if has_public_ordering_name(field_name)
+        }
 
         translated = []
         invalid_terms = []
@@ -496,21 +538,49 @@ class VuedaOrderingFilter(OrderingFilter):
         The ordering term with every ``formatted_name`` path in it rewritten to the path behind it.
 
         A path the queryset already carries an annotation for is left alone: that is how a model's own
-        `formatted_name` is ordered, and the annotation is what `model_ordering` describes. Anything
-        else with no lookup expression behind it is left alone too, and fails or sorts on its own
-        merits the way it always has.
+        `formatted_name` is ordered, and the annotation is what `model_ordering` describes. A path
+        that starts with an annotation and continues with transforms, such as
+        `formatted_name__unaccent`, is left alone for the same reason. Django applies the transforms
+        to the annotation. Anything else with no lookup expression behind it is left alone too, and
+        fails or sorts on its own merits the way it always has.
+
+        A related `formatted_name` path keeps any transforms after it, so
+        `customer__formatted_name__unaccent` becomes `customer__data__formatted_name__unaccent`.
         """
 
         def rewrite(field_name):
-            if field_name in queryset.query.annotations:
+            if path_annotation_name(queryset.query.annotations, field_name) is not None:
                 return None
 
-            return resolve_formatted_name_path(queryset.model, field_name)
+            return resolve_formatted_name_transform_path(queryset.model, field_name)
 
         return rewrite_ordering_term_field_names(term, rewrite)
 
     @staticmethod
-    def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip):
+    def _resolve_alias_transform(term, queryset):
+        """
+        The ordering term as an ``F`` expression when it is a string that applies transforms to an
+        annotation that ``.alias()`` added, such as ``launched__year``. Any other term is returned
+        unchanged.
+
+        A plain string in ``order_by()`` is resolved against the annotations that the query selects,
+        and an ``.alias()`` name isn't one of them, so Django raises ``FieldError`` for the string.
+        The same path inside an ``F`` expression is resolved against every annotation, aliases
+        included. The ``F`` expression keeps the term's direction.
+        """
+        if not isinstance(term, str):
+            return term
+
+        descending, path = split_ordering_direction(term)
+        query = queryset.query
+        name = path_annotation_name(query.annotations, path)
+        if name is None or name == path or name in query.annotation_select:
+            return term
+
+        return F(path).desc() if descending else F(path).asc()
+
+    @staticmethod
+    def _apply_nulls_ordering(term, nulls_ordering, nulls_ordering_flip, model):
         """
         The ordering term with the field's declared nulls placement applied, if it has one.
 
@@ -522,6 +592,12 @@ class VuedaOrderingFilter(OrderingFilter):
         Both a `?o=` request and a default `ordering` written as plain strings reach this, so a
         placement declared for a field applies wherever that field is sorted by name. That is the
         point: the placement belongs to the field, not to one route to sorting on it.
+
+        A ``"pk"`` alias and the field behind it name one field, so a placement declared under either
+        spelling applies to a term in either (see ``ordering_field_key``). ``model_ordering`` advertises
+        ``customer.id`` for a ``customer__pk`` entry, so without this a placement keyed ``customer__pk``
+        would miss the term a metadata-driven client sends. A placement declared under the term's exact spelling wins
+        when the two spellings declare different placements.
         """
         if not isinstance(term, str):
             return term
@@ -530,6 +606,13 @@ class VuedaOrderingFilter(OrderingFilter):
         field_name = term.removeprefix("-")
         placement = nulls_ordering.get(field_name)
 
+        field_key = ordering_field_key(model, field_name)
+        if placement is None:
+            for declared_name, declared_placement in nulls_ordering.items():
+                if isinstance(declared_name, str) and ordering_field_key(model, declared_name) == field_key:
+                    placement = declared_placement
+                    break
+
         # An unknown placement is ignored rather than allowed to fail the request: there is no
         # `nulls_<placement>` keyword to pass, and a list endpoint returning rows in the database's
         # default nulls order is a far better outcome than a 500. `vueda_info.E007` reports the
@@ -537,7 +620,11 @@ class VuedaOrderingFilter(OrderingFilter):
         if placement not in NULLS_PLACEMENTS:
             return term
 
-        if descending and field_name in nulls_ordering_flip:
+        if descending and any(
+            flip_name == field_name
+            or (isinstance(flip_name, str) and ordering_field_key(model, flip_name) == field_key)
+            for flip_name in nulls_ordering_flip
+        ):
             placement = NULLS_PLACEMENTS[placement]
 
         expression = F(field_name).desc if descending else F(field_name).asc

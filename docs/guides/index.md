@@ -30,6 +30,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 
 - [Create a CRUDL Surface for a New Model](create-crudl-surface.md): Minimal server/client pieces for `list`/`read`/`create`/`update`/`delete`/`list`.
 - [Set Up CRUDL for a Composite Primary Key Model](composite-primary-keys.md): Set up serializer, viewset, and filterset for models that use a composite primary key.
+- [Data That VUEDA Does Not Display](data-vueda-does-not-display.md): Use a plain Django model or an opted-out manager for exports, imports, and API data, and see which VUEDA pieces bring `formatted_name` checks.
 - [Expose a Proxy Model as a Separate CRUDL Surface](proxy-models.md): Give a proxy model its own serializer, viewset, permissions, and model-info registration without a separate database table.
 - [Split Read/Write Serializers Safely](split-read-write-serializers.md): Use viewset serializer switching without breaking model-info metadata.
 - [Lock Fields to Specific Write Actions](hide-fields-per-write-action.md): Use `ExcludeFieldsSerializerMixin` to make fields read-only on `create` or `update` without a full serializer split.
@@ -45,6 +46,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Use Expand and Sparse Field Controls](expand-and-fields-controls.md): Control payload shape with `expand` and `fields`.
 - [Customize Model Info Field and Expand Metadata](customize-model-info-metadata.md): Correct generated `model_fields`/`model_expands` metadata for `SerializerMethodField`s with `get_field_model_info` and `get_expand_model_info`.
 - [Build Nested/Inlined Writes](nested-writable-inlines.md): Handle writable nested relations and server validation behavior.
+- [Render a Relation as an Inline](render-relations-as-inlines.md): Show a relation as a stacked or tabular inline on create, update, and read forms, and choose the fields in each row.
 - [Customize Field and Widget Rendering](custom-field-widget-rendering.md): Override field/widget components and props in model config.
 - [Handle Form Validation and Server Errors](form-validation-and-errors.md): Map server validation responses into VUEDA form context.
 

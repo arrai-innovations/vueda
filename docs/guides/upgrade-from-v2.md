@@ -65,7 +65,7 @@ These dependencies changed:
 - **History policy.** Every `VuedaModel` subclass records history unless it opts out. Composite primary key models must opt out. History never records `password`. [History and Workflow](../core-concepts/model-feature-policy.md#history-and-workflow) describes the policy and its options. Run `makemigrations`, review the generated event models and triggers, and exclude noisy fields such as `last_login`.
 - **Writes outside a request.** Wrap writes in management commands and scripts in `audited_action(..., kind="command")` so that `audited_action` groups their history into one action.
 - **Workflow opt-in.** `HasWorkflowModelMixin`, `HasWorkflowSerializerMixin`, `HasWorkflowViewMixin`, `HasWorkflowViewSetMixin`, and `HasWorkflowFilterSetMixin` are removed. Declare `class Vueda.Workflow: enabled = True` on the model instead. VUEDA then adds the workflow fields, the `workflow_state` filter, and the permission overlay. [History and Workflow](../core-concepts/model-feature-policy.md#history-and-workflow) describes the options.
-- **Default manager.** `FormattedNameManager` is the default manager of every VUEDA model. A custom `objects` manager must subclass it or use `FormattedNameManager.from_queryset(...)`. For a model that declares `formatted_name_lookup_expression`, `Model.objects.values()` without arguments now includes `formatted_name`.
+- **Default manager.** `FormattedNameManager` is the default manager of every VUEDA model. A custom `objects` manager must subclass it or use `FormattedNameManager.from_queryset(...)`. On a model that declares `formatted_name_lookup_expression`, every other manager must also annotate `formatted_name`, or opt out with `used_without_formatted_name = True`. [Opting a Manager Out of the Check](create-crudl-surface.md#opting-a-manager-out-of-the-check) describes the opt-out. For a model that declares `formatted_name_lookup_expression`, `Model.objects.values()` without arguments now includes `formatted_name`.
 - **Model info hook.** `get_expandable_fields()` is removed, and VUEDA silently ignores a v2 override. Override `get_expand_model_info(self, expands)` instead. [Correct an Expand Descriptor](customize-model-info-metadata.md#correct-an-expand-descriptor) shows the hook.
 - **Validation warnings.** `VuedaValidationError(..., is_warning=True)` is removed. Return warnings from `VuedaSerializer.get_warnings()`, or from the viewset's `get_warnings_for_object` and `get_warnings`. The client confirms them through a `409` response. [Require Confirmation Before a Write](require-write-confirmation.md) covers each hook.
 - **Column totals.** `column_totals` is a mapping from the client column name to an ORM path. Rewrite each v2 list as a mapping. `get_column_info` takes `(self, queryset, requested_column_totals=())`. The server computes totals only for the names that the request sends in `ct`. [Expose Aggregates in `list` Responses](list-column-totals.md) describes the contract.
@@ -103,12 +103,11 @@ Server v2 registered no system checks. Server v3 registers checks in `vueda_core
 
 - `vueda_core.E018`: an unsupported `PERMISSION_NAMES_MAPPING`.
 - `vueda_info.E006`: a viewset `ordering` or `ordering_fields` entry that names no field.
-- `vueda_info.E009`: a default manager that cannot annotate `formatted_name`.
-- `vueda_info.E010`: a class-level `queryset.order_by()` that disagrees with the declared ordering.
+- `vueda_core.E019`: a manager that does not annotate `formatted_name` on a model that declares `formatted_name_lookup_expression`.
+- `vueda_info.E010`: a `queryset` or `get_queryset()` ordering that disagrees with the declared ordering, that orders by fields alone with no declared ordering, or that calls `.reverse()` on a sortable list. It also reports a grouped list queryset that makes Django drop `Meta.ordering`, and a `get_queryset()` or `queryset` query that Django rejects.
 - `vueda_info.E013`: a column total path that crosses a reverse or many-to-many relation, or that ends on a field that cannot be summed.
 - `vueda_info.E014`: a search annotation that the search queryset lacks.
-
-`vueda_info.E006` and `E013` also reject paths that end in a transform, such as `created__year`. Server v2 accepted those. Until [#494](https://github.com/arrai-innovations/vueda/issues/494) lands, declare an annotation for such a path, or silence the check.
+- `vueda_info.E015`: a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose query Django rejects, such as a misspelled field, `F()` name, or transform.
 
 ### Review Authorization Changes
 
@@ -129,7 +128,9 @@ The VUEDA client handles these changes. Update any other client or integration t
 - Ordering terms and filter names that cross a relation use dots: `?o=-customer.name`, not `customer__name`. An invalid ordering term answers `400`. [Public Filter Names](../core-concepts/filtering-and-ordering-semantics.md#public-filter-names) describes the names.
 - An unrecognized query parameter answers `400` on `list` and `retrieve`. Server v2 answered `500` on a filtered `list` and ignored the parameter elsewhere. `retrieve` accepts only `e`, `f`, and `om`.
 - `f` and `om` shape only the response on writes. A `POST` or `PUT` must include every required field. [Sparse Fields and Expand on Writes](../core-concepts/field-and-expand-semantics.md#sparse-fields-and-expand-on-writes) states the rule.
+- `POST`, `PUT`, and `PATCH` check the names in `f` and `e` the same way that `retrieve` does. An unknown `f` name, or an unknown or unpermitted `e` name, answers `400`, and the write saves nothing. Server v2 saved the write and left the unknown `f` name out of the response.
 - An `e` path deeper than 4 levels answers `400`.
+- Bulk activate and deactivate answer `400` for a key in `pks` that names no row, as bulk delete does. A row that the user may not change counts as missing. Server v2 skipped such keys and counted them in its success message.
 - Object responses include `available_actions` only when `f` names it.
 - `model_ordering` is an object with `default` and `fields`. `model_filtering` reports dotted names. Filter choices have no empty option, and their values are strings.
 - Invalid `f` and `e` names come back as plain strings in the error list.
@@ -247,7 +248,7 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 ### Update Model Config and Metadata Reads
 
 - `storeModelInfo` camelCases top-level keys and expand descriptor keys: `appLabel`, `verboseName`, `verboseNamePlural`. Rename reads, fixtures, and seeded store data. [Client Normalization](../core-concepts/server-client-metadata-contract.md#client-normalization) lists the rules.
-- `expand` defaults to an empty list. Add each relation that a view must embed to that view's `expand`. A list view also needs the relation in the viewset's `permit_list_expands`. A form that must edit a relation inline needs the relation in `expand`. When the viewset sets `permit_<action>_expands` for the form's action, the relation must be in that list too.
+- `expand` defaults to an empty list. Add each relation that a view must embed to that view's `expand`. A list view also needs the relation in the viewset's `permit_list_expands`. A form that must edit a relation inline needs the relation in `expand`. Without it, a create or update form shows a reverse foreign key read-only and leaves it out of the request body. When the viewset sets `permit_<action>_expands` for the form's action, the relation must be in that list too.
 - Model config throws when `expand` names an undeclared expand, or when a dotted field entry needs a relation that `expand` omits.
 - Keys for expanded subfields use dots: `employee.name`, not `employee__name`. This applies to `fieldComponents`, `widgetComponents`, `fieldProps`, `widgetProps`, `columnComponents`, `sortables`, `filterableDetails`, and slot names such as `field(employee.name)`.
 - Default field lists differ per view, and they leave out hidden fields. By default, `submitFields` holds writable fields, and the create view shows writable fields. [Choose Each View's Field Lists](configure-crud-views.md#choose-each-view-s-field-lists) describes the defaults.
@@ -263,6 +264,8 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 - File and image widgets read the `url` of a `{name, url}` value.
 - `WidgetDuration` takes a duration string. With the `seconds` prop, it takes a number of seconds.
 - Read-only fields render formatted values. The `widget(<name>)default` slot receives `rawValue` for code that needs the stored value.
+- On update, read, and detail views, a view's own form props, such as `fieldProps` and `widgetProps`, now win over the same keys in model config `formProps`. Client v2 let model config win on those views. Check each key that both set.
+- `FormModel`'s `fields` slot binds the merged field props map as `allFieldProps`. Render each field in a custom `fields` layout with `FormModelField`, which receives the per-field slots that you pass to the form. [Lay Out the Fields Yourself](custom-field-widget-rendering.md#lay-out-the-fields-yourself) shows the layout.
 - A custom `redirectTo` on `ActionForm` that stays on the form after a success must return or resolve `false`. The form treats any other result as navigation away and keeps its buttons disabled. [What an Action Form Does on Pre-Flight, Submit, and Cancel](transition-ux-and-redirects.md#what-an-action-form-does-on-pre-flight-submit-and-cancel) describes the contract.
 - Save buttons read "Create" and "Update". Update tests that find "Submit".
 - The `escapeHtml` export is removed. Send markup unencoded when it should render.
@@ -301,6 +304,7 @@ v3 fixes these v2 defects. Each one may need a review of data or accounts that v
 - **Password hashes in history.** `AbstractVUEDAUserWithHistory` recorded password hashes, and the v2 history endpoints and `history` expand could return them to anyone who could read the user.
 - **Forgot-password enumeration.** Server v2 answered "Email not found" for unknown addresses.
 - **`HEAD` requests** skipped read permission, so the status code revealed which primary keys exist.
+- **Bulk delete, activate, and deactivate** checked only the model permission. They skipped the row-level and object permission checks that a single-object request makes. A user could therefore delete, activate, or deactivate rows that their row-level rules kept them from changing one at a time. Review deletions and `is_active` changes on models that define `RowLevelPermissions` or use object permissions.
 - **Choices.** Serializer-only field choices had no permission check, and filter choices came from every row.
 - **Two-factor changes** accepted a password-only reauthentication.
 - **Two-factor device deletion.** A bulk delete of a user's own devices compared the number of devices deleted with the number of keys sent. A repeated or unknown key could turn off two-factor authentication while the user still had devices. It could also leave two-factor authentication on with no device left. Only the user's own recent session could send such a request. Review accounts whose two-factor state does not match their devices.

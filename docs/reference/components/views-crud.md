@@ -197,7 +197,7 @@ After a successful create, the view opens the new record's update view. The [`re
 
 ## ViewRead
 
-{@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
+{@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, file, image, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
 
 The sticky bar holds the record's detail actions and its transitions:
 
@@ -269,7 +269,7 @@ After a successful save the view stays on the page unless [`redirectAfter`]{@api
 - A list shows each selected record, fetched by pk, with its {@term Formatted Name} and pk.
 - An optional type-to-confirm phrase, set by [`confirmText`]{@api vue:component:ViewDestroy:prop:confirmText}, keeps the confirm button disabled until the reader types it.
 
-The page title reads "Delete" followed by the model name, with the count for a bulk destroy. The confirm button reads "Yes, continue" and takes the destructive tone; the cancel button reads "Cancel, go back".
+The page title reads "Delete" followed by the model's verbose name. A bulk destroy reads "Delete", the record count, and the plural verbose name. The confirm button reads "Yes, continue" and takes the destructive tone; the cancel button reads "Cancel, go back".
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">

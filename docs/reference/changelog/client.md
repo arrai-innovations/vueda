@@ -13,13 +13,13 @@ Use this page for changes that affect client package consumers: public Vue compo
 
 <!-- towncrier release notes start -->
 
-## v3.0.0-beta.1 (unreleased)
+## v3.0.0-beta.1 (2026-10-21)
 
 This is the first public beta of the VUEDA v3 client. It builds list, detail, form, action, and workflow screens from the metadata that the VUEDA server publishes. A project on client v2.0.4 upgrades with [Upgrade from VUEDA v2](../../guides/upgrade-from-v2.md), which also covers the matching server upgrade.
 
 ### Installation and Requirements
 
-Install the beta from the public npm registry. The `latest` tag points to an older alpha, so name the `beta` tag:
+Install the beta from the public npm registry by its `beta` tag:
 
 ```bash
 pnpm add @arrai-innovations/vueda@beta
@@ -41,20 +41,15 @@ The client requires:
 - **Icons.** Components resolve icons through a registry. A Font Awesome Free preset fills it. [Register the Icons](../../guides/client-plugin-prerequisites.md#register-the-icons) shows the setup.
 - **Layout.** The application layout owns the page title, page actions, and sticky bars, and views contribute to them. [Place the Page Title and Page Actions](../../guides/place-page-title-and-actions.md) shows the setup.
 - **Lists.** List views sort by several fields through chips and keep the sort in the URL. They filter through chips with typed inputs, open scoped lists, and link rows to detail views. Columns render by field type and can show server column totals. [Configure `list`/`read`/`create`/`update` Views](../../guides/configure-crud-views.md) covers the options.
-- **Forms.** Forms confirm server warnings before a write, upload files at any depth of a nested form, and render read-only values formatted by field type. [Require Confirmation Before a Write](../../guides/require-write-confirmation.md) covers the confirmation step.
+- **Forms.** Forms confirm server warnings before a write, upload files at any depth of a nested form, and render read-only values formatted by field type. A read-only file field shows a link to the stored file, and a user can clear an optional file field. [Require Confirmation Before a Write](../../guides/require-write-confirmation.md) covers the confirmation step.
 - **Routing.** `makeCRUDRoutes` opens a route for each workflow transition by its code, rechecks access when the signed-in user changes, and honors the `routeActions` allowlist. [Routing and View Resolution Model](../../core-concepts/routing-and-view-resolution-model.md) describes the guard chain.
-- **Auth views.** Default sign-in, forgot-password, reset-password, and reauthentication views cover two-factor sign-in and code-based reauthentication. [Build Auth Views](../../guides/build-auth-views.md) shows the routes that they expect.
+- **Auth views.** Default sign-in, forgot-password, reset-password, and reauthentication views cover two-factor sign-in and code-based reauthentication. [Build Auth Views](../../guides/build-auth-views.md) shows the routes that they expect. `AuthForm` keeps its reauthentication and sign-in redirects. Pass its `onSubmissionErrorHandler` prop to handle its other submission errors, as [Build a Form for a Signed-In Operation](../../guides/build-auth-views.md#build-a-form-for-a-signed-in-operation) describes.
 - **User changes.** Stores clear metadata, configuration, choices, and workflow data when the signed-in user changes. [When the Signed-In User Changes](../../core-concepts/reactive-data-flow.md#when-the-signed-in-user-changes) lists what clears.
 - **Build integration.** `vuedaViteConfig()` sets up the `@vueda` alias and deduplicates peer packages. When you pass your `src` directory as its `@` alias, it also finds convention-named action views.
 
 ### Known Limitations
 
-- A configured `formProps` entry applies differently on create than on update, read, and detail screens ([#341](https://github.com/arrai-innovations/vueda/issues/341)).
-- `FormModel` ignores its `variant` when it resolves theme entries ([#339](https://github.com/arrai-innovations/vueda/issues/339)).
-- A custom `#fields` layout does not receive per-field slots ([#338](https://github.com/arrai-innovations/vueda/issues/338)). `FieldRenderer` ignores its `fieldProps` prop ([#337](https://github.com/arrai-innovations/vueda/issues/337)).
-- A display field whose path starts with a model field named `related` or `calculated` renders blank ([#310](https://github.com/arrai-innovations/vueda/issues/310)).
 - `useVersion().newClientAvailable` stays false unless the project defines `VITE_PACKAGE_VERSION` itself, because `vuedaViteConfig()` does not define it ([#300](https://github.com/arrai-innovations/vueda/issues/300)).
-- Binding `on-submission-error-handler` on `AuthForm` makes a failed submission throw ([#409](https://github.com/arrai-innovations/vueda/issues/409)).
 - Relation selects built on `WidgetModel` load only the first 200 options and have no search. List filter dropdowns have the same limit ([#381](https://github.com/arrai-innovations/vueda/issues/381)). `WidgetCombobox`, the default relation widget, searches the list endpoint and does not have this limit.
 - A form does not report fields that failed to render. A user can submit a form with a field that they never saw ([#197](https://github.com/arrai-innovations/vueda/issues/197)).
 - The client uses fixed query parameter names. A server that renames `o`, `s`, the page parameters, or `ct` needs a matching client change ([#301](https://github.com/arrai-innovations/vueda/issues/301)).

@@ -22,7 +22,7 @@ class QueueItemViewSet(VuedaViewSet):
 
 A model's `Meta.ordering` also works, and applies to every queryset that the model builds. Declare the order on the viewset when you want [`nulls_ordering`](#place-nulls-in-requested-sorts) to apply to the default.
 
-Do not call `order_by()` on the `queryset` attribute or inside `get_queryset`. Model info reads the declarations, so an ordering applied in code sorts the rows, but model info does not report it. Keep `get_queryset` for filtering, `select_related`, and annotations.
+Do not call `order_by()` with plain fields on the `queryset` attribute, inside `get_queryset`, or in the model's default manager. Model info reads the declarations, so an ordering applied in code sorts the rows, but model info does not report it. An ordering by an annotation, such as a `Count` that you annotate first, may stay in `get_queryset` or the manager, as long as it does not contradict a declared default. [Three Rules for Queryset Ordering](../core-concepts/filtering-and-ordering-semantics.md#three-rules-for-queryset-ordering) gives the full rules.
 
 Run the system checks:
 
@@ -30,13 +30,18 @@ Run the system checks:
 python manage.py check
 ```
 
-`vueda_info.E010` reports an `order_by()` on the `queryset` attribute. Its message names one of three cases:
+`vueda_info.E010` reports a list queryset whose order disagrees with what model info reports. The queryset comes from the `queryset` attribute, `get_queryset()`, a custom QuerySet method, or the model's default manager. Its message names one of these cases:
 
-- **The model's `Meta.ordering` disagrees.** Declare the queryset's order as the viewset's `ordering`, or remove the `order_by()` and accept the model's order.
-- **No default ordering is declared.** Declare the queryset's order as the viewset's `ordering`.
+- **The model's `Meta.ordering` disagrees.** Declare the queryset's order as the viewset's `ordering`. For an annotation ordering, you can remove `Meta.ordering` instead.
+- **A fields-only ordering, and no default ordering is declared.** Declare the queryset's order as the viewset's `ordering`.
 - **The viewset's `ordering` disagrees.** Remove the `order_by()`, or make the two agree. The viewset's `ordering` is the one applied.
+- **Django rejects the query.** The message quotes Django's `FieldError`. Fix the name, or annotate an aggregate before ordering by it.
+- **The queryset calls `.reverse()`.** Django keeps it through the `order_by()` that applies the viewset's `ordering` or a client's `o`, so every sort comes back reversed. Remove the `.reverse()` and declare the order that you want.
+- **The queryset groups its rows.** A queryset that annotates an aggregate, such as `Count("items")`, has a `GROUP BY`, and Django leaves `Meta.ordering` out of it. With no viewset `ordering`, the rows arrive unordered. Declare the order as the viewset's `ordering`.
 
-`vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation that `get_queryset` adds.
+`vueda_info.E015` reports a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose query Django rejects, when the manager builds it or when E015 compiles an ordered one.
+
+`vueda_info.E006` reports a viewset `ordering` or `ordering_fields` entry that names no field. Point it at a model field, a path through relations, or an annotation that `get_queryset` adds. A path may also end in a transform, such as `created__year`. [Transforms in an Ordering Path](../core-concepts/filtering-and-ordering-semantics.md#transforms-in-an-ordering-path) gives the rules.
 
 `vueda_info.E005` reports ordering on a `formatted_name` that `get_formatted_name()` computes. Set `formatted_name_lookup_expression` on that model, or order by another field.
 
@@ -58,7 +63,9 @@ class InvoiceViewSet(VuedaViewSet):
 
 Write each key as a `__`-joined path, the same way as in `ordering`. Write `ordering` terms as strings for the placement to apply to them. A term such as `F("due_date").asc(nulls_first=True)` states its own placement for the default only, and an explicit `o=due_date` loses it.
 
-`vueda_info.E007` reports a `nulls_ordering` value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip.
+Each key must name a field that a client can sort by: one in `ordering_fields` or in the default ordering. For a composite primary key, declare the placement on each column as well as on `pk`, because a client sorts by one column at a time.
+
+`vueda_info.E007` reports a `nulls_ordering` value other than `"first"` or `"last"`, and a `nulls_ordering_flip` entry with no placement to flip. It also reports a key that no client can sort by, such as a dotted key, and a composite `pk` key whose columns are left out.
 
 ## Make a Function Default Visible
 
@@ -149,6 +156,6 @@ class CartFilterSet(FormattedNamePathFilterSetMixin, rest_framework.FilterSet):
 
 ## Check the Result
 
-Run `python manage.py check` and fix any `vueda_info.E005`, `E006`, `E007`, or `E010` that it reports.
+Run `python manage.py check` and fix any `vueda_info.E005`, `E006`, `E007`, `E010`, or `E015` that it reports.
 
 Then request the model's {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} entry. `model_ordering.default` should list your default ordering's fields, and `model_ordering.fields` should list each field that a client may sort by.

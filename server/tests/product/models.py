@@ -19,7 +19,7 @@ class ProductManager(FormattedNameManager):
 
     Inherits `FormattedNameManager` rather than `models.Manager` because a VUEDA model that declares
     its own `objects` shadows the default manager and takes the `formatted_name` annotation with it —
-    the mistake `vueda_info.E009` reports, and the reason the inheritance is documented on
+    the mistake `vueda_core.E019` reports, and the reason the inheritance is documented on
     `FormattedNameManager` itself.
 
     `reverse()` reads one column and needs no join or subquery, so the annotation costs nothing on
@@ -167,6 +167,23 @@ class ProductModelOrderingPK(VuedaModel):
 
     class Meta(VuedaModel.Meta):
         ordering = ["pk"]
+
+    def __str__(self):
+        return self.name
+
+
+class ProductRelease(VuedaModel):
+    """A product release, with a date/time column and a JSON column for ordering paths that end in a
+    transform: `released__year`, `released__date__year`, and the key transform `specs__rank`."""
+
+    name = models.CharField(max_length=255)
+    released = models.DateTimeField()
+    specs = models.JSONField(default=dict)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "An ordering fixture; history would add an event table and triggers it never exercises."
 
     def __str__(self):
         return self.name

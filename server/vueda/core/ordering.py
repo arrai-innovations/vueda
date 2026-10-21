@@ -5,8 +5,9 @@ __all__ = (
     "PK_ALIAS",
     "RANDOM_ORDERING",
     "expand_ordering_pk",
+    "ordering_field_key",
     "ordering_fields_entry_name",
-    "ordering_fields_from_path",
+    "ordering_path_field",
     "ordering_pk_field_names",
     "ordering_term_field_names",
     "ordering_term_is_ascending",
@@ -14,12 +15,15 @@ __all__ = (
     "rewrite_ordering_term_field_names",
 )
 
-from django.contrib.admin.utils import get_fields_from_path
+from django.contrib.admin.utils import NotRelationField
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import CompositePrimaryKey
 from django.db.models import F
+from django.db.models.expressions import OrderBy
 
-from vueda.core.formatted_name import resolve_formatted_name_path
+from vueda.core.formatted_name import resolve_formatted_name_transform_path
 from vueda.core.formatted_name import split_alias_path
+from vueda.core.paths import query_path_field
 
 
 #: Django's random ordering, which names no field.
@@ -125,7 +129,12 @@ def ordering_term_field_names(term):
 
 def queryset_explicit_ordering(queryset):
     """
-    The ordering terms a queryset carries in its own right, as ``order_by()`` received them.
+    The ordering terms that a queryset applies in its own right, with any ``.reverse()`` applied.
+
+    Each term is the one that ``order_by()`` received, unless ``.reverse()`` flipped it. A
+    ``.reverse()`` with no ``order_by()`` gives the model's ``Meta.ordering``, flipped. On a grouped
+    query, such as one that annotates an aggregate, a bare ``.reverse()`` gives nothing, because Django
+    leaves ``Meta.ordering`` out of a query with ``GROUP BY``. The details are below.
 
     Django keeps an explicit ordering on the query itself. ``QuerySet.order_by`` clears whatever
     ordering was there and appends its terms to ``Query.order_by`` (``Query.add_ordering``), and the
@@ -142,8 +151,12 @@ def queryset_explicit_ordering(queryset):
     request ends up with. A filter backend replaces the ordering it finds — DRF's ``OrderingFilter``
     does exactly that whenever a view declares ``ordering`` or a client sends ``?o=`` — and a
     ``get_queryset`` can order differently per request. The ``vueda_info.E010`` system check compares
-    what this reads off a viewset's class-level ``queryset`` against what that viewset declares as its
-    default ordering; neither it nor this claims to know a request's final order.
+    what this reads off a viewset's list queryset against what that viewset declares as its default
+    ordering, and ``vueda_info.E015`` reads it off a model's default manager. Neither they nor this
+    claims to know a request's final order.
+
+    The terms are the same however the ordering was applied: by ``order_by()`` directly, by a custom
+    QuerySet method that calls it, or by a manager's ``get_queryset()``.
 
     An ordering set by ``extra(order_by=...)`` reports nothing. That is raw SQL rather than ordering
     terms, so it has no field paths to read, and reporting the terms it overrides would describe an
@@ -154,9 +167,16 @@ def queryset_explicit_ordering(queryset):
     rows arrive unordered while the metadata still reports the model's declaration. Nothing here
     distinguishes a queryset that never ordered from one that deliberately stopped ordering.
 
+    A ``.reverse()`` is applied to the terms. Django records it as a flag on the query
+    (``Query.standard_ordering``) and flips every term when it compiles the query, so each term here
+    comes back flipped the same way. A ``.reverse()`` with no ``order_by()`` flips the model's
+    ``Meta.ordering``, so that reversed ordering is reported. It is an ordering that the queryset
+    applies in its own right, and it differs from the model's default.
+
     :param queryset: The queryset to inspect.
     :type queryset: django.db.models.QuerySet
-    :return: The explicit ordering terms, or an empty list when the queryset carries none.
+    :return: The ordering terms that the queryset applies, with any ``.reverse()`` applied. The list is
+        empty when the queryset applies none.
     :rtype: List[Union[str, django.db.models.F, django.db.models.expressions.BaseExpression]]
     """
     query = getattr(queryset, "query", None)
@@ -166,7 +186,35 @@ def queryset_explicit_ordering(queryset):
     if getattr(query, "extra_order_by", ()):
         return []
 
-    return list(getattr(query, "order_by", ()) or ())
+    ordering = list(getattr(query, "order_by", ()) or ())
+    if getattr(query, "standard_ordering", True):
+        return ordering
+
+    # Django leaves `Meta.ordering` out of a grouped query, so a bare `.reverse()` there flips nothing.
+    if not ordering and query.default_ordering and query.group_by is None:
+        ordering = list(query.get_meta().ordering)
+
+    return [_reversed_ordering_term(term) for term in ordering]
+
+
+def _reversed_ordering_term(term):
+    """
+    The ordering term that sorts the other way, the way Django's SQL compiler flips a term for a
+    ``.reverse()`` (``SQLCompiler._order_by_pairs``).
+
+    A string swaps its ``-`` prefix, and ``"?"`` stays random. An expression is wrapped in ``.asc()``
+    when it isn't already an ``OrderBy``, then copied and reversed, which also swaps a nulls placement
+    to the other end.
+    """
+    if isinstance(term, str):
+        if term == RANDOM_ORDERING:
+            return term
+
+        return term.removeprefix("-") if term.startswith("-") else f"-{term}"
+
+    term = term.copy() if isinstance(term, OrderBy) else term.asc()
+    term.reverse_ordering()
+    return term
 
 
 def ordering_term_is_ascending(term):
@@ -254,7 +302,14 @@ def ordering_pk_field_names(model, field_name):
     :return: The concrete field paths, or ``[field_name]`` when there is no alias to expand.
     :rtype: List[str]
     """
-    split = split_alias_path(model, field_name, PK_ALIAS)
+    try:
+        split = split_alias_path(model, field_name, PK_ALIAS)
+    except NotRelationField:
+        # The prefix ends at a field that isn't a relation, so a trailing "pk" can't be the alias.
+        # It may be a transform on that field instead, such as a key named "pk" on a `JSONField`
+        # (`specs__pk`), so the path is left as it is for resolution to judge.
+        return [field_name]
+
     if split is None:
         return [field_name]
 
@@ -266,6 +321,32 @@ def ordering_pk_field_names(model, field_name):
     # against, and it's what `model_ordering.fields` already advertises for a relation ("order" rather
     # than "order_id").
     return [f"{prefix}{pk_field.name}" for pk_field in pk_fields]
+
+
+def ordering_field_key(model, field_name):
+    """
+    A key that two ordering paths share when they sort by the same field.
+
+    A ``"pk"`` alias and the field behind it are two spellings of one field: ``"customer__pk"`` and
+    ``"customer__id"`` share a key, and so do ``"pk"`` and every column of a ``CompositePrimaryKey``
+    taken together. Any other path is its own key. ``VuedaOrderingFilter`` matches a ``nulls_ordering``
+    key to a request term by this key, and the ``vueda_info.E007`` system check compares names the
+    same way, so the two cannot disagree about which spellings match.
+
+    A path that resolves to nothing is its own key too, rather than raising. Comparing names is not
+    where a broken path gets reported.
+
+    :param model: The model the path starts from.
+    :type model: Type[django.db.models.Model]
+    :param field_name: The ordering path, without a direction prefix.
+    :type field_name: str
+    :return: The concrete field path(s) behind the path, as a tuple so that the key is hashable.
+    :rtype: Tuple[str, ...]
+    """
+    try:
+        return tuple(ordering_pk_field_names(model, field_name))
+    except (FieldDoesNotExist, NotRelationField):
+        return (field_name,)
 
 
 def expand_ordering_pk(model, term):
@@ -309,10 +390,20 @@ def expand_ordering_pk(model, term):
     ]
 
 
-def ordering_fields_from_path(model, field_name):
+def ordering_path_field(model, field_name):
     """
-    The model fields an ordering path resolves to, following ``formatted_name_lookup_expression`` for
-    a ``formatted_name`` that has no column of its own.
+    The field that describes the value that an ordering path sorts by, following
+    ``formatted_name_lookup_expression`` for a ``formatted_name`` that has no column of its own.
+
+    Django resolves the path itself (see ``vueda.core.paths.query_path_field``), so every path that
+    ``order_by()`` accepts on the model resolves here. That includes a path that ends in one or more
+    transforms, such as ``created__year``, ``created__date__year``, or a key on a ``JSONField``. Such a
+    path is typed by the output of its last transform, which is the value the database sorts:
+    ``created__year`` is typed as a number, not as a date.
+
+    A transform may also follow ``formatted_name``, as in ``customer__formatted_name__unaccent``. The
+    part up to ``formatted_name`` is rewritten to the lookup expression behind it, and the transforms
+    are applied to that path. See ``resolve_formatted_name_transform_path``.
 
     ``formatted_name`` is a display name every VUEDA model exposes, but it reaches the database three
     different ways: as its own ``GeneratedField`` column; as the path named by
@@ -323,18 +414,21 @@ def ordering_fields_from_path(model, field_name):
     loading every row into Python — and the ``vueda_info.E005`` system check reports an ordering
     declared on one.
 
-    ``resolve_formatted_name_path`` is what the ordering and filtering backends put into the query, so
-    metadata describing a field and the query sorting by it agree by construction: a path this types
-    is a path those can run, and one it can't type is one they leave alone.
+    ``resolve_formatted_name_transform_path`` is what the ordering backend puts into the query, so
+    metadata describing a field and the query sorting by it agree by construction. A path that this
+    function types is a path that the backend can run. A path that it can't type is one that the
+    backend leaves alone.
 
     :param model: The model the path starts from.
     :type model: Type[django.db.models.Model]
     :param field_name: The ordering path to resolve.
     :type field_name: str
-    :return: The fields the path traverses, the last of which is the column ordered by.
-    :rtype: List[django.db.models.Field]
+    :return: The field that describes the value ordered by: the last field that the path names, or the
+        output field of the transform that the path ends in.
+    :rtype: django.db.models.Field
+    :raises django.core.exceptions.FieldDoesNotExist: If Django can't resolve the path on ``model``.
     """
-    lookup_path = resolve_formatted_name_path(model, field_name)
+    lookup_path = resolve_formatted_name_transform_path(model, field_name)
 
     # A lookup expression takes precedence over a `formatted_name` column, on the rare model that
     # declares both, because the lookup expression is what the query sorts by. Such a model gets no
@@ -342,4 +436,4 @@ def ordering_fields_from_path(model, field_name):
     # over an existing field name raises — and with no annotation to recognize, `VuedaOrderingFilter`
     # rewrites the name to the lookup expression rather than leaving it on the column. Typing the
     # field from that path is what keeps this description in step with the query.
-    return get_fields_from_path(model, lookup_path or field_name)
+    return query_path_field(model, lookup_path or field_name)

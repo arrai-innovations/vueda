@@ -55,7 +55,32 @@ class InvoiceLineViewSet(VuedaViewSet):
 
 The system check accepts the name without applying the two path rules, so the annotation must have one value per row. An annotation that reads the multi-valued side of a join has a value per related row, and its total is wrong. [`get_column_info`]{@api py:function:vueda.core.viewsets.ListRowLevelViewSetMixin.get_column_info} describes how each kind of total counts a matched row once.
 
-When the value could be a column, store it in a {@api ext:django:django.db.models.GeneratedField} or a database view instead, so the check validates the path. [Declare List Ordering](./declare-list-ordering.md#make-a-function-or-annotation-default-visible) shows both, and [Queryset Annotations](../core-concepts/filtering-and-ordering-semantics.md#queryset-annotations) gives the same advice for ordering.
+When the value could be a column, store it in a {@api ext:django:django.db.models.GeneratedField} or a database view instead, so the check validates the path. [Declare List Ordering](./declare-list-ordering.md#make-a-function-default-visible) shows both, and [Queryset Annotations](../core-concepts/filtering-and-ordering-semantics.md#queryset-annotations) gives the same advice for ordering.
+
+### Total Over a Transform
+
+A path can end in a transform. A transform is a lookup that turns each row's value into another value before the sum, such as `__len` on an array. Most numeric transforms are database functions that a project registers itself. To bill per started hour, round each entry up to a whole hour before adding them:
+
+```python
+from django.db.models import DecimalField
+from django.db.models.functions import Ceil
+
+DecimalField.register_lookup(Ceil)
+
+
+class TimesheetEntryViewSet(VuedaViewSet):
+    queryset = TimesheetEntry.objects.all()
+    serializer_class = TimesheetEntrySerializer
+    column_totals = {"billable_hours": "hours__ceil"}
+```
+
+Entries of 1.25 and 0.5 hours total 3 billable hours. Summing first and rounding after would give 2.
+
+Register the transform once at startup, such as in an app's `AppConfig.ready()`. A transform that isn't registered names nothing, so the check reports the path, and Django would refuse it too.
+
+The first path rule applies to the transform's output rather than to the column. `hours__ceil` passes because `Ceil` returns a decimal. A key on a `JSONField` fails, because its output is still JSON. The check judges only the type, so a path such as `created__year` passes because a year is an integer. Whether the sum means something is yours to decide.
+
+A transform can also follow an annotation that `get_queryset` adds with `.annotate()` or `.alias()`, such as `launched__year` on a `launched` annotation. VUEDA works out the transformed value once per matched row and sums those values, so a row that a join matched more than once still counts once. The check judges the transform's output type, and names a transform that it can't apply, such as a misspelled `launched__yaer`.
 
 ## Run the System Check
 
@@ -64,8 +89,9 @@ Run `python manage.py check`. The `vueda_info.E013` error names the viewset, the
 - a `column_totals` that is not a mapping;
 - a name that is empty, contains a comma, is a wildcard value (`*` or `~all`), or is one that Django refuses as a column alias;
 - a path that names no model field and no annotation of the viewset's queryset;
+- a path that applies something to such an annotation that is not a transform Django can apply, or that applies a transform to an annotation whose own type Django can't determine;
 - a path through a relation that can match more than one row;
-- a path that ends on a relation, or on a column that `SUM` cannot add.
+- a path that ends on a relation, or on a column or transform output that `SUM` cannot add.
 
 When `get_queryset` reads `self.request`, the check cannot build the queryset. It then checks the names only and skips the path rules.
 

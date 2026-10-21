@@ -154,8 +154,29 @@ workflows:
                   filters:
                       branches:
                           only: main
+            - pytest/pytest:
+                  # A release tag has no branch, so it cannot upload coverage under a branch
+                  # directory. This job runs the same tests with no coverage upload, so a
+                  # release does not depend on the upload's apt and rsync steps.
+                  name: server-pytest-django61-py314-release
+                  executor: python314-pg
+                  context: arrai-global
+                  wd: server
+                  pytest_args: -n2 --dist loadgroup
+                  create_status_badge: false
+                  create_coverage_badge: false
+                  build_coverage: false
+                  config:
+                      - run:
+                            name: Copy config
+                            command: |
+                                cd server
+                                cp config.circleci.toml config.local.toml
+                  filters:
                       tags:
                           only: /^server-v.*/
+                      branches:
+                          ignore: /.*/
             - pytest/pytest:
                   name: server-pytest-django61-py314-no-badge
                   executor: python314-pg
@@ -203,7 +224,7 @@ workflows:
                   requires:
                       - server-pytest-django61-py312
                       - server-pytest-django61-py313
-                      - server-pytest-django61-py314
+                      - server-pytest-django61-py314-release
                   filters:
                       tags:
                           only: /^server-v.*/

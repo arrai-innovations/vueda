@@ -490,7 +490,7 @@ The dotted path that a request uses for a field, filter, ordering term, or expan
 
 ## Query Parameter Validation
 
-The server's rejection of any query parameter that a `list` or `retrieve` request does not recognize. An unknown key, or an `f` or `e` value that the endpoint does not offer, returns a validation error that names it.
+The server's rejection of query parameters that a request does not recognize. A `list` or `retrieve` request rejects an unknown key. A `list`, `retrieve`, `create`, `update`, or `partial_update` request rejects an `f` or `e` value that the endpoint does not offer. Each rejection returns a validation error that names the parameter or value.
 
 - Names: [`NoExtraFieldsForViewSetMixin`]{@api py:class:vueda.core.viewsets.NoExtraFieldsForViewSetMixin}; [`get_extra_allowed_fields`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.get_extra_allowed_fields}; [`reject_unrecognized_query_params`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.reject_unrecognized_query_params}; [`validate_flex_expand_and_field_param`]{@api py:function:vueda.core.viewsets.NoExtraFieldsForViewSetMixin.validate_flex_expand_and_field_param}
 - Described in: [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#query-namespace-and-validation-boundary)

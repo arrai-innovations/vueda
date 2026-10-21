@@ -304,7 +304,10 @@ The store actions that need a recent session, such as `setupTOTPDevice` and `get
 - A signed-out user goes to `sign-in`, with the current path as the `redirect` query value.
 - A user with a pending reauthentication flow goes to `reauthenticate`. The flow change and the refused submit lead to the same navigation, so the user sees one toast and one navigation.
 - When the router cannot complete either navigation, the error goes to the form's usual error handling.
+- A `ServerFeedbackError` stays with `ActionForm`, which shows its feedback on the form's fields.
 - Every other error goes to the form's usual error handling.
+
+The form's usual error handling is {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionError}. To replace it, pass [`onSubmissionErrorHandler`]{@api vue:component:AuthForm:prop:onSubmissionErrorHandler}. Your handler receives each error that goes to the form's usual error handling. Server field feedback and the errors that `AuthForm` sends to `sign-in` or `reauthenticate` do not reach it, so you control ordinary errors without reimplementing reauthentication. Return `true` when your handler dealt with the error. Return `false` to let `ActionForm` record the error and show its error toast. The handler can be asynchronous.
 
 Set [`requireRecentAuth`]{@api vue:component:AuthForm:prop:requireRecentAuth} to `false` for a form whose action the server accepts without a recent session. The user then stays on the form while a reauthentication flow is pending. Change-password is one such action: the server checks the current password instead. `changePassword` does not reload the current user, so its `UnauthorizedError` goes to the form's usual error handling. {@api vue:component:ViewChangePassword} sets `requireRecentAuth` to `false`, and so does this form:
 

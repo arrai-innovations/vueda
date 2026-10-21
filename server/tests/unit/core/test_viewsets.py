@@ -2196,6 +2196,9 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             ("store", "CartItem", "update"),
             ("store", "ProductOption", "update"),
         ],
+        "Timesheet Reader": [
+            ("timesheet", "Timesheet", "read"),
+        ],
     }
 
     users_to_create: ClassVar[dict] = {
@@ -2206,6 +2209,14 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
                 "Timesheet Updater",
                 "Customer Updater",
                 "CartItem Updater",
+            ],
+        },
+        "test_reader_writer@domain.invalid": {
+            "name": "Test User read and write",
+            "password": "testpass",
+            "groups": [
+                "Timesheet Updater",
+                "Timesheet Reader",
             ],
         },
     }
@@ -2444,7 +2455,7 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
             reverse(
                 "timesheet.timesheet-detail",
                 kwargs={"pk": t1.pk},
-                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start,une"},
+                query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "period_start"},
             ),
             data={
                 "employee": e1.pk,
@@ -2718,26 +2729,6 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         )
         return response, t1
 
-    @pytest.mark.parametrize("expand", ["bogus", "supervisor"])
-    def test_partial_update_rejects_an_expand_the_permit_list_leaves_out(self, api_client, monkeypatch, expand):
-        """drf-flex-fields2 drops an expand that the action's permit list leaves out; the write reports it."""
-        monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
-
-        response, t1 = self._patch_timesheet(api_client, expand, {"period_end": "2024-03-01"})
-
-        self.assert_response(response, 400)
-        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
-        assert errors == {
-            expand: [
-                ErrorDetail(
-                    "Invalid expands. Permitted expands are employee. Or use a wildcard to expand all: *, ~all",
-                    code="invalid",
-                )
-            ]
-        }, response.data
-        t1.refresh_from_db()
-        assert t1.period_end == datetime.date(2024, 2, 29)
-
     def test_partial_update_accepts_a_permitted_expand(self, api_client, monkeypatch):
         monkeypatch.setattr(TimesheetViewSet, "permit_partial_update_expands", ["employee"], raising=False)
 
@@ -2759,24 +2750,185 @@ class TestNoExtraFieldsSerializerMixin(BaseTestAssertResponseMixin, BaseTestUser
         t1.refresh_from_db()
         assert t1.employee.employee_number == "abcd-1234"
 
-    def test_create_rejects_an_expand_when_the_permit_list_is_empty(self, api_client, monkeypatch):
-        monkeypatch.setattr(TimesheetViewSet, "permit_create_expands", [], raising=False)
+    @pytest.mark.parametrize(
+        "query",
+        [
+            pytest.param({settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "bogus"}, id="unknown-field"),
+            pytest.param({settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,bogus.id"}, id="unknown-dotted-field"),
+            pytest.param({settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "bogus"}, id="unknown-expand"),
+            pytest.param(
+                {
+                    settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,bogus",
+                    settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "bogus",
+                },
+                id="unknown-field-and-expand",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("method", ["post", "put", "patch"])
+    def test_write_rejects_invalid_flex_params_like_retrieve_and_saves_nothing(self, api_client, method, query):
+        user = self.users["test_reader_writer@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+        detail_url = reverse("timesheet.timesheet-detail", kwargs={"pk": t1.pk}, query=query)
+
+        retrieve_response = api_client.get(detail_url)
+        self.assert_response(retrieve_response, 400)
+        retrieve_errors = {k: v for k, v in retrieve_response.data.items() if k != "serverStack"}
+
+        data = {"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"}
+        if method == "post":
+            url = reverse("timesheet.timesheet-list", query=query)
+        else:
+            url = detail_url
+        response = getattr(api_client, method)(url, data=data, format="json")
+
+        self.assert_response(response, 400)
+        assert "serverStack" in response.data, response.data
+        errors = {k: v for k, v in response.data.items() if k != "serverStack"}
+        assert errors == retrieve_errors, response.data
+        assert set(errors) == {name for value in query.values() for name in value.split(",") if name != "id"}
+        assert list(Timesheet.objects.values_list("pk", "period_start", "period_end")) == [
+            (t1.pk, datetime.date(2024, 2, 15), datetime.date(2024, 2, 29))
+        ]
+
+    @pytest.mark.parametrize("method", ["post", "put", "patch"])
+    def test_write_accepts_valid_flex_params(self, api_client, method):
         user = self.users["test_my_user@domain.invalid"]
         api_client.force_authenticate(user=user)
         e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
-
-        response = api_client.post(
-            reverse("timesheet.timesheet-list", query={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee"}),
-            data={"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"},
-            format="json",
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
         )
+        query = {
+            settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,period_start,employee.employee_number",
+            settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "employee",
+        }
+        data = {
+            "employee": {"id": e1.pk, "user": user.pk, "employee_number": "abcd-1234"},
+            "period_start": "2024-03-01",
+            "period_end": "2024-03-15",
+        }
+        if method == "post":
+            response = api_client.post(reverse("timesheet.timesheet-list", query=query), data=data, format="json")
+            self.assert_response(response, 201)
+        else:
+            url = reverse("timesheet.timesheet-detail", kwargs={"pk": t1.pk}, query=query)
+            response = getattr(api_client, method)(url, data=data, format="json")
+            self.assert_response(response, 200)
+
+        saved = Timesheet.objects.get(pk=response.data["id"])
+        assert response.data == {
+            "id": saved.pk,
+            "period_start": "2024-03-01",
+            "employee": {"employee_number": "abcd-1234"},
+        }, response.data
+        assert saved.period_end == datetime.date(2024, 3, 15)
+
+    @pytest.mark.parametrize(
+        ("permitted", "message"),
+        [
+            pytest.param(
+                ["employee"],
+                "Invalid expands. Permitted expands are employee. Or use a wildcard to expand all: *, ~all",
+                id="left-out",
+            ),
+            pytest.param([], "Invalid expands. No expands are permitted.", id="empty-permit-list"),
+        ],
+    )
+    @pytest.mark.parametrize(("method", "action"), [("post", "create"), ("put", "update"), ("patch", "partial_update")])
+    def test_write_rejects_an_unpermitted_expand_like_retrieve_and_saves_nothing(
+        self, api_client, monkeypatch, method, action, permitted, message
+    ):
+        monkeypatch.setattr(TimesheetViewSet, "permit_retrieve_expands", permitted, raising=False)
+        monkeypatch.setattr(TimesheetViewSet, f"permit_{action}_expands", permitted, raising=False)
+        user = self.users["test_reader_writer@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "supervisor"}
+        detail_url = reverse("timesheet.timesheet-detail", kwargs={"pk": t1.pk}, query=query)
+        expected_errors = {"supervisor": [ErrorDetail(message, code="invalid")]}
+
+        retrieve_response = api_client.get(detail_url)
+        self.assert_response(retrieve_response, 400)
+        assert {k: v for k, v in retrieve_response.data.items() if k != "serverStack"} == expected_errors
+
+        data = {"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"}
+        if method == "post":
+            url = reverse("timesheet.timesheet-list", query=query)
+        else:
+            url = detail_url
+        response = getattr(api_client, method)(url, data=data, format="json")
+
+        self.assert_response(response, 400)
+        assert {k: v for k, v in response.data.items() if k != "serverStack"} == expected_errors, response.data
+        assert list(Timesheet.objects.values_list("pk", "period_start", "period_end")) == [
+            (t1.pk, datetime.date(2024, 2, 15), datetime.date(2024, 2, 29))
+        ]
+
+    @pytest.mark.parametrize("method", ["post", "put", "patch"])
+    def test_write_checks_names_against_the_write_actions_serializer(self, api_client, monkeypatch, method):
+        class TimesheetWriteSerializer(timesheet_serializers.TimesheetSerializer):
+            class Meta(timesheet_serializers.TimesheetSerializer.Meta):
+                fields = ["id", "period_start", "period_end", "employee"] + VuedaSerializer.Meta.fields
+                expandable_fields = {
+                    name: value
+                    for name, value in timesheet_serializers.TimesheetSerializer.Meta.expandable_fields.items()
+                    if name != "supervisor"
+                }
+
+        read_get_serializer_class = TimesheetViewSet.get_serializer_class
+
+        def get_serializer_class(viewset):
+            if viewset.action in ("create", "update", "partial_update"):
+                return TimesheetWriteSerializer
+            return read_get_serializer_class(viewset)
+
+        monkeypatch.setattr(TimesheetViewSet, "get_serializer_class", get_serializer_class)
+        user = self.users["test_reader_writer@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        e1 = Employee.objects.create(user=user, employee_number="abcd-1234")
+        t1 = Timesheet.objects.create(
+            employee=e1,
+            period_start=datetime.date(2024, 2, 15),
+            period_end=datetime.date(2024, 2, 29),
+        )
+        query = {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,supervisor"}
+        detail_url = reverse("timesheet.timesheet-detail", kwargs={"pk": t1.pk}, query=query)
+
+        retrieve_response = api_client.get(detail_url)
+        self.assert_response(retrieve_response, 200)
+        assert retrieve_response.data == {"id": t1.pk, "supervisor": None}, retrieve_response.data
+
+        data = {"employee": e1.pk, "period_start": "2024-03-01", "period_end": "2024-03-15"}
+        if method == "post":
+            url = reverse("timesheet.timesheet-list", query=query)
+        else:
+            url = detail_url
+        response = getattr(api_client, method)(url, data=data, format="json")
 
         self.assert_response(response, 400)
         errors = {k: v for k, v in response.data.items() if k != "serverStack"}
-        assert errors == {"employee": [ErrorDetail("Invalid expands. No expands are permitted.", code="invalid")]}, (
-            response.data
-        )
-        assert not Timesheet.objects.filter(period_start=datetime.date(2024, 3, 1)).exists()
+        assert list(errors) == ["supervisor"], response.data
+        message = str(errors["supervisor"][0])
+        valid_fields = message.removeprefix("Invalid field.  Valid fields are ").split(".")[0].split(", ")
+        assert "period_end" in valid_fields, message
+        assert "supervisor" not in valid_fields, message
+        assert list(Timesheet.objects.values_list("pk", "period_start", "period_end")) == [
+            (t1.pk, datetime.date(2024, 2, 15), datetime.date(2024, 2, 29))
+        ]
 
 
 class _OrderItemCompositePKResponse(TypedDict):

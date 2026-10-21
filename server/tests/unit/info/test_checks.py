@@ -1,16 +1,34 @@
 import warnings
 
 import pytest
+from django.db import models
+from django.db.models import Transform
+from django.db.models.functions import Ceil
+from django.db.models.functions import Left
+from django.db.models.functions import Lower
 from django.db.models.sql.query import Query
+from django.test.utils import register_lookup
 
 from tests.erring import models as err_models
 from tests.erring import serializers as err_serializers
 from tests.erring import viewsets as err_viewsets
+from tests.product import serializers as product_serializers
+from tests.product import viewsets as product_viewsets
 from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
+from tests.timesheet import serializers as timesheet_serializers
+from tests.timesheet import viewsets as timesheet_viewsets
 from vueda import info
 from vueda.info import checks
+
+
+class TwoArgumentTransform(Transform):
+    """A transform that needs two arguments, which a query path can't give it. Django raises
+    `TypeError` when it builds this from a path."""
+
+    lookup_name = "twoarg"
+    arity = 2
 
 
 ORDERING_HINT = (
@@ -236,79 +254,6 @@ class TestFormattedNameChecks:
 
         assert errors == []
 
-    def test_plain_default_manager_system_check_error(self):
-        """PlainManagerLookupExpression declares its own `objects = models.Manager()`, which shadows the
-        `FormattedNameManager` that `FormattedNameBaseModel` provides.
-
-        Nothing then annotates `formatted_name` onto the model's own querysets, so it resolves only on
-        the ones `VuedaViewSet.get_queryset` builds, and `vueda_info.E009` is the signal for that.
-        A `Meta.ordering` naming `formatted_name` is reported separately by Django's own
-        `models.E015`, since `FormattedNameBaseModel._check_ordering` asks about the default manager
-        before withholding that term — this model declares no such ordering, so E009 stands alone
-        here.
-        """
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.PlainManagerLookupExpressionSerializer)
-
-        errors = check_formatted_name_configuration(app_configs=None)
-
-        assert [error.id for error in errors] == ["vueda_info.E009"]
-        assert (
-            errors[0].msg == "PlainManagerLookupExpression reaches formatted_name through "
-            "formatted_name_lookup_expression but uses Manager as its default manager, which does not "
-            "inherit FormattedNameManager."
-        )
-        assert "Subclass it instead of `models.Manager`" in errors[0].hint
-        assert errors[0].obj is err_models.PlainManagerLookupExpression
-
-    def test_formatted_name_manager_default_passes_system_check(self):
-        """ValidLookupExpression declares no manager of its own, so it keeps the inherited
-        `FormattedNameManager` and E009 has to stay quiet."""
-        from vueda.info.checks import check_formatted_name_configuration
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.ValidLookupExpressionSerializer)
-
-        assert check_formatted_name_configuration(app_configs=None) == []
-
-    def test_a_manager_subclassing_formatted_name_manager_passes_system_check(self):
-        """The documented way to keep the annotation while adding manager behaviour of your own.
-
-        `tests.product.ProductManager` is one instance of it: it declares `objects` on the model
-        itself, which shadows the `FormattedNameManager` that `FormattedNameBaseModel` provides, so
-        it has to inherit that manager rather than `models.Manager` to avoid taking the annotation
-        with it. A manager declared on an abstract base closer in the MRO than
-        `FormattedNameBaseModel` shadows it the same way.
-        """
-        from django.db import models
-
-        from vueda.core.models import FormattedNameManager
-        from vueda.info.checks import check_formatted_name_configuration
-
-        class NarrowingManager(FormattedNameManager):
-            pass
-
-        info.registration.get_empty_registry()
-        info.register_serializer(err_serializers.PlainManagerLookupExpressionSerializer)
-
-        model = err_models.PlainManagerLookupExpression
-        # `default_manager` is a cached_property, so the cache entry is what has to be swapped.
-        original = model._meta.__dict__.get("default_manager")
-        model._meta.__dict__["default_manager"] = NarrowingManager()
-        try:
-            errors = check_formatted_name_configuration(app_configs=None)
-        finally:
-            if original is None:
-                model._meta.__dict__.pop("default_manager", None)
-            else:
-                model._meta.__dict__["default_manager"] = original
-
-        assert errors == []
-        # Guards the assertion above against passing for the wrong reason.
-        assert issubclass(NarrowingManager, models.Manager)
-
     def test_no_name_field_system_check_error(self):
         """NoNameField has formatted_name = None with no lookup expression or get_formatted_name(); check must flag it."""
         from django.core.checks import Error
@@ -477,9 +422,11 @@ class TestOrderingDeclarationChecks:
 
     def test_unresolvable_viewset_ordering_system_check_error(self):
         """UnresolvableOrderingViewSet default-orders by a field the model doesn't have; check must
-        flag it as E006 and name `ordering`."""
-        from django.core.checks import Error
+        flag it as E006 and name `ordering`.
 
+        The message ends with Django's own `FieldError` text, which is what a list request falling
+        back to this ordering fails with. Django lists the model's field and relation names after it,
+        and those change with the test models, so only the sentence before the list is pinned."""
         from vueda.info.checks import check_ordering_configuration
 
         info.registration.get_empty_registry()
@@ -487,27 +434,24 @@ class TestOrderingDeclarationChecks:
 
         errors = check_ordering_configuration(app_configs=None)
 
-        assert errors == [
-            Error(
-                "Ordering by 'no_such_field' is declared in UnresolvableOrderingViewSet.ordering, but "
-                "ValidLookupExpression has no such field, related field, or lookup.",
-                hint=(
-                    "Point it at a field ValidLookupExpression has, at a path through its relations, "
-                    "or at an annotation the viewset's own `get_queryset` adds. Model-info metadata "
-                    "leaves what it can't resolve out of `model_ordering`, and a list request that "
-                    "falls back to this ordering fails with a `FieldError`."
-                ),
-                obj=err_viewsets.UnresolvableOrderingViewSet,
-                id="vueda_info.E006",
-            )
-        ]
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E006"
+        assert errors[0].obj is err_viewsets.UnresolvableOrderingViewSet
+        assert errors[0].msg.startswith(
+            "Ordering by 'no_such_field' is declared in UnresolvableOrderingViewSet.ordering, but Django can't "
+            "resolve it: Cannot resolve keyword 'no_such_field' into field. Choices are: "
+        ), errors[0].msg
+        assert errors[0].hint == (
+            "Point it at a field ValidLookupExpression has, at a path through its relations, "
+            "or at an annotation the viewset's own `get_queryset` adds. Model-info metadata "
+            "leaves what it can't resolve out of `model_ordering`, and a list request that "
+            "falls back to this ordering fails with a `FieldError`."
+        )
 
     def test_unresolvable_ordering_fields_entry_system_check_error(self):
         """UnresolvableOrderingFieldsViewSet offers a field the model doesn't have through
         `ordering_fields`. Nothing fails at request time for this one, so the check is the only signal
         it produces; the hint says so rather than promising a `FieldError`."""
-        from django.core.checks import Error
-
         from vueda.info.checks import check_ordering_configuration
 
         info.registration.get_empty_registry()
@@ -515,21 +459,19 @@ class TestOrderingDeclarationChecks:
 
         errors = check_ordering_configuration(app_configs=None)
 
-        assert errors == [
-            Error(
-                "Ordering by 'no_such_field' is declared in "
-                "UnresolvableOrderingFieldsViewSet.ordering_fields, but ValidLookupExpression has no "
-                "such field, related field, or lookup.",
-                hint=(
-                    "Point it at a field ValidLookupExpression has, at a path through its relations, "
-                    "or at an annotation the viewset's own `get_queryset` adds. Model-info metadata "
-                    "leaves what it can't resolve out of `model_ordering`, so clients are never "
-                    "offered this field to order by."
-                ),
-                obj=err_viewsets.UnresolvableOrderingFieldsViewSet,
-                id="vueda_info.E006",
-            )
-        ]
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E006"
+        assert errors[0].obj is err_viewsets.UnresolvableOrderingFieldsViewSet
+        assert errors[0].msg.startswith(
+            "Ordering by 'no_such_field' is declared in UnresolvableOrderingFieldsViewSet.ordering_fields, but "
+            "Django can't resolve it: Cannot resolve keyword 'no_such_field' into field. Choices are: "
+        ), errors[0].msg
+        assert errors[0].hint == (
+            "Point it at a field ValidLookupExpression has, at a path through its relations, "
+            "or at an annotation the viewset's own `get_queryset` adds. Model-info metadata "
+            "leaves what it can't resolve out of `model_ordering`, so clients are never "
+            "offered this field to order by."
+        )
 
     def test_unresolvable_labelled_ordering_fields_entry_system_check_error(self):
         """LabelledOrderingFieldsViewSet writes both `ordering_fields` entries as DRF's
@@ -537,8 +479,6 @@ class TestOrderingDeclarationChecks:
         do, so the stale one is reported by its field name — not by the pair — and the label stays
         out of the message. Read as an ordering term instead, a pair yields no field path at all and
         a stale one would be reported by nothing."""
-        from django.core.checks import Error
-
         from vueda.info.checks import check_ordering_configuration
 
         info.registration.get_empty_registry()
@@ -546,20 +486,19 @@ class TestOrderingDeclarationChecks:
 
         errors = check_ordering_configuration(app_configs=None)
 
-        assert errors == [
-            Error(
-                "Ordering by 'no_such_field' is declared in LabelledOrderingFieldsViewSet.ordering_fields, "
-                "but ValidLookupExpression has no such field, related field, or lookup.",
-                hint=(
-                    "Point it at a field ValidLookupExpression has, at a path through its relations, "
-                    "or at an annotation the viewset's own `get_queryset` adds. Model-info metadata "
-                    "leaves what it can't resolve out of `model_ordering`, so clients are never "
-                    "offered this field to order by."
-                ),
-                obj=err_viewsets.LabelledOrderingFieldsViewSet,
-                id="vueda_info.E006",
-            )
-        ]
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E006"
+        assert errors[0].obj is err_viewsets.LabelledOrderingFieldsViewSet
+        assert errors[0].msg.startswith(
+            "Ordering by 'no_such_field' is declared in LabelledOrderingFieldsViewSet.ordering_fields, but "
+            "Django can't resolve it: Cannot resolve keyword 'no_such_field' into field. Choices are: "
+        ), errors[0].msg
+        assert errors[0].hint == (
+            "Point it at a field ValidLookupExpression has, at a path through its relations, "
+            "or at an annotation the viewset's own `get_queryset` adds. Model-info metadata "
+            "leaves what it can't resolve out of `model_ordering`, so clients are never "
+            "offered this field to order by."
+        )
 
     def test_resolvable_labelled_ordering_fields_entry_is_not_flagged(self):
         """The pair naming a real field is left alone, so declaring a field with a label doesn't
@@ -571,8 +510,10 @@ class TestOrderingDeclarationChecks:
 
         errors = check_ordering_configuration(app_configs=None)
 
+        # The one error is about the stale pair. `the_name_field` still appears in the message, but
+        # only in Django's list of the model's field names after "Choices are:".
         assert len(errors) == 1
-        assert "the_name_field" not in errors[0].msg
+        assert errors[0].msg.startswith("Ordering by 'no_such_field' is declared in "), errors[0].msg
         assert "The Name" not in errors[0].msg
 
     def test_resolvable_field_in_the_same_declaration_is_not_flagged(self):
@@ -584,8 +525,10 @@ class TestOrderingDeclarationChecks:
 
         errors = check_ordering_configuration(app_configs=None)
 
+        # The one error is about the bad term. `the_name_field` still appears in the message, but only
+        # in Django's list of the model's field names after "Choices are:".
         assert len(errors) == 1
-        assert "the_name_field" not in errors[0].msg
+        assert errors[0].msg.startswith("Ordering by 'no_such_field' is declared in "), errors[0].msg
 
     def test_pk_and_lookup_expression_aliases_pass_system_check(self):
         """ResolvableOrderingAliasesViewSet orders by "pk", by a lookup-expression formatted_name, and
@@ -691,6 +634,233 @@ class TestOrderingDeclarationChecks:
 
         assert [error.id for error in errors] == ["vueda_info.E006"]
         assert "Ordering by 'cart_items__formatted_name' is declared in " in errors[0].msg
+
+    def test_transform_in_viewset_ordering_passes_system_check(self):
+        """ProductReleaseTransformDefaultViewSet default-orders by `released__year` and
+        `-released__month`. Django resolves `year` and `month` as transforms on the date/time column,
+        so the ordering works and the check must stay quiet."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseTransformDefaultViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_transforms_in_ordering_fields_pass_system_check(self):
+        """ProductReleaseTransformFieldsViewSet offers a single transform, a chain of two transforms,
+        and a key on a `JSONField`. Each one resolves through Django's lookup registry, so the check
+        must stay quiet."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseTransformFieldsViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_misspelled_transform_system_check_error(self):
+        """ProductReleaseMisspelledTransformViewSet offers `released__yaer`. Django holds no `yaer`
+        transform for a date/time column, so the path names nothing and is reported with the
+        `FieldError` that Django raises for it when a query orders by it. The real field beside it is
+        not reported."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseMisspelledTransformViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "Ordering by 'released__yaer' is declared in "
+                "ProductReleaseMisspelledTransformViewSet.ordering_fields, but Django can't resolve it: "
+                "Cannot resolve keyword 'yaer' into field. Join on 'released' not permitted.",
+                hint=(
+                    "Point it at a field ProductRelease has, at a path through its relations, or at an "
+                    "annotation the viewset's own `get_queryset` adds. Model-info metadata leaves what it "
+                    "can't resolve out of `model_ordering`, so clients are never offered this field to "
+                    "order by."
+                ),
+                obj=product_viewsets.ProductReleaseMisspelledTransformViewSet,
+                id="vueda_info.E006",
+            )
+        ]
+
+    def test_transform_after_an_annotation_passes_system_check(self):
+        """ProductReleaseAnnotationTransformViewSet offers `launched__year`, where `launched` is an
+        annotation that `get_queryset` adds. Django applies `year` to the annotation, so the check
+        must stay quiet."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseAnnotationTransformViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_transform_after_a_lookup_expression_formatted_name_passes_system_check(self):
+        """ProductModelOrderingLookupFormattedNameTransformViewSet offers `formatted_name__lower` on
+        a model that reaches `formatted_name` through a lookup expression. With `Lower` registered on
+        `CharField`, the path resolves through the lookup expression, so the check must stay quiet."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductModelOrderingLookupFormattedNameSerializer,
+            product_viewsets.ProductModelOrderingLookupFormattedNameTransformViewSet,
+        )
+
+        with register_lookup(models.CharField, Lower):
+            assert check_ordering_configuration(app_configs=None) == []
+
+    def test_transform_after_a_related_formatted_name_passes_system_check(self):
+        """CartOrderingRelatedFormattedNameTransformViewSet offers `customer__formatted_name__lower`.
+        Customer reaches its formatted name through a lookup expression, and the transform is applied
+        to the path behind it, so the check must stay quiet."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartOrderingRelatedFormattedNameTransformViewSet)
+
+        with register_lookup(models.CharField, Lower):
+            assert check_ordering_configuration(app_configs=None) == []
+
+    def test_unregistered_transform_after_a_formatted_name_system_check_error(self):
+        """Without `Lower` registered, `lower` is no transform that Django holds for a `CharField`, so
+        `customer__formatted_name__lower` names nothing and is reported."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CartSerializer, store_viewsets.CartOrderingRelatedFormattedNameTransformViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E006"]
+        assert "Ordering by 'customer__formatted_name__lower' is declared in " in errors[0].msg
+
+    def test_annotation_name_containing_a_dot_system_check_error(self):
+        """ProductReleaseDottedAnnotationViewSet offers `v1.2`, an annotation name with a dot in it.
+        Every annotation name resolves, but this one can't be named in a `?o=` request, so it is
+        reported with the same message as a dotted `JSONField` key."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseDottedAnnotationViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.msg for error in errors] == [
+            "Ordering by 'v1.2' is declared in ProductReleaseDottedAnnotationViewSet.ordering_fields, but no "
+            "`?o=` name can carry the path, because it contains a '.' or a ','.",
+        ]
+        assert errors[0].id == "vueda_info.E006"
+
+    def test_transform_after_an_alias_passes_system_check(self):
+        """ProductReleaseAliasTransformViewSet offers `launched` and `launched__year`, where `launched`
+        comes from `.alias()`. `VuedaOrderingFilter` orders by the transform path through `F()`, which
+        Django resolves against aliases, so the check must stay quiet about both."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseAliasTransformViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_json_key_containing_a_dot_or_a_comma_system_check_error(self):
+        """ProductReleaseDottedJSONKeyViewSet offers `specs__v1.2` and `specs__a,b`. Both paths resolve,
+        but no client can request either, so the message says that rather than claiming the model has
+        no such field."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseDottedJSONKeyViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.msg for error in errors] == [
+            "Ordering by 'specs__v1.2' is declared in ProductReleaseDottedJSONKeyViewSet.ordering_fields, but no "
+            "`?o=` name can carry the path, because it contains a '.' or a ','.",
+            "Ordering by 'specs__a,b' is declared in ProductReleaseDottedJSONKeyViewSet.ordering_fields, but no "
+            "`?o=` name can carry the path, because it contains a '.' or a ','.",
+        ]
+        assert {error.id for error in errors} == {"vueda_info.E006"}
+
+    def test_json_key_named_pk_passes_system_check(self):
+        """ProductReleaseJSONPKKeyViewSet offers `specs__pk`. `specs` is not a relation, so the trailing
+        `pk` is a key on the `JSONField` rather than the primary key alias, and the check must stay
+        quiet."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseJSONPKKeyViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_function_registered_as_a_lookup_is_not_a_transform(self):
+        """ProductReleaseFunctionLookupViewSet offers `name__left`, with `Left` registered on
+        `CharField`. `Left` is not a `Transform`, so Django doesn't apply it, and the check reports the
+        `FieldError` that a query ordered by the path fails with."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseFunctionLookupViewSet
+        )
+
+        with register_lookup(models.CharField, Left, lookup_name="left"):
+            errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E006"]
+        assert errors[0].msg == (
+            "Ordering by 'name__left' is declared in ProductReleaseFunctionLookupViewSet.ordering_fields, but "
+            "Django can't resolve it: Cannot resolve keyword 'left' into field. Join on 'name' not permitted."
+        )
+
+    def test_transform_that_cannot_be_built_from_the_path_raises_djangos_error(self):
+        """ProductReleaseTwoArgumentTransformViewSet offers `name__twoarg`, with a two-argument
+        `Transform` registered under that name. Django raises `TypeError` when it builds the transform,
+        and the check run raises the same `TypeError` rather than reporting a missing field, so the
+        error points at the transform's own bug."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseTwoArgumentTransformViewSet
+        )
+
+        with (
+            register_lookup(models.CharField, TwoArgumentTransform),
+            pytest.raises(TypeError, match="takes exactly 2 arguments"),
+        ):
+            check_ordering_configuration(app_configs=None)
+
+    def test_transform_after_a_method_backed_formatted_name_is_left_to_e005(self):
+        """ValidGetFormattedNameTransformOrderingViewSet offers `formatted_name__unaccent` on a model
+        that computes formatted_name in Python. E005 reports it with the answer specific to that case,
+        so the ordering check must not report it as a missing field."""
+        from vueda.info.checks import check_formatted_name_configuration
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidGetFormattedNameSerializer,
+            err_viewsets.ValidGetFormattedNameTransformOrderingViewSet,
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+        assert [error.id for error in check_formatted_name_configuration(app_configs=None)] == ["vueda_info.E005"]
 
 
 @pytest.mark.django_db
@@ -837,6 +1007,243 @@ class TestNullsOrderingChecks:
         # The placement itself is usable, so nothing is reported about `nulls_ordering`.
         assert "nulls_ordering[" not in errors[0].msg
 
+    def test_relation_path_keys_pass_system_check(self):
+        """RelationNullsOrderingViewSet keys placements on a relation path, on a path ending in "pk",
+        and on a related formatted_name. Each is a `__`-joined name that `ordering_fields` offers, so
+        each is a term the filter orders by."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.RelationNullsOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_pk_alias_and_the_field_behind_it_match_each_other(self):
+        """CrossSpelledPKNullsOrderingViewSet keys its placement on `the_name_source__pk` while
+        `ordering_fields` and the flip entry name `the_name_source__id`. The filter treats the two
+        spellings as one field, so the key is requestable and the flip entry has a placement to flip."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.CrossSpelledPKNullsOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_composite_primary_key_without_its_columns_system_check_error(self):
+        """CompositePKNullsOrderingViewSet keys its placement and flip on the "pk" of a two-column
+        primary key and on neither column. A metadata-driven client sorts by one column at a time, so
+        both entries are reported with the columns to add, and neither is reported a second time as
+        unrequestable."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(store_serializers.OrderItemCompositePKSerializer, err_viewsets.CompositePKNullsOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "CompositePKNullsOrderingViewSet.nulls_ordering['pk'] names a primary key made of 2 columns, but "
+                "`nulls_ordering` leaves out 'order', 'product'.",
+                hint=(
+                    "Add 'order', 'product' to `nulls_ordering` as well. `model_ordering` advertises each "
+                    "column of the key separately, so a client sorts by one column at a time, and only a "
+                    "placement on that column reaches the request. The placement on 'pk' still applies when "
+                    "the list is sorted by the whole key."
+                ),
+                obj=err_viewsets.CompositePKNullsOrderingViewSet,
+                id="vueda_info.E007",
+            ),
+            Error(
+                "'pk' in CompositePKNullsOrderingViewSet.nulls_ordering_flip names a primary key made of 2 "
+                "columns, but `nulls_ordering_flip` leaves out 'order', 'product'.",
+                hint=(
+                    "Add 'order', 'product' to `nulls_ordering_flip` as well. `model_ordering` advertises each "
+                    "column of the key separately, so a client sorts by one column at a time, and only a "
+                    "placement on that column reaches the request. The placement on 'pk' still applies when "
+                    "the list is sorted by the whole key."
+                ),
+                obj=err_viewsets.CompositePKNullsOrderingViewSet,
+                id="vueda_info.E007",
+            ),
+        ]
+
+    def test_composite_primary_key_with_its_columns_passes_system_check(self):
+        """CompositePKColumnNullsOrderingViewSet keys a placement on the "pk" of a two-column primary key
+        and on each column, so a list sorted by the whole key and a request for either column both
+        reach a placement."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            store_serializers.OrderItemCompositePKSerializer, err_viewsets.CompositePKColumnNullsOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_dotted_key_system_check_error(self):
+        """DottedNullsOrderingKeyViewSet writes its key in the dotted `?o=` spelling. The filter looks the
+        placement up by the `__`-joined term, so the key matches nothing and the placement is dropped."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.DottedNullsOrderingKeyViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "DottedNullsOrderingKeyViewSet.nulls_ordering['the_name_source.the_name_field'] names no field "
+                "that a list request can sort DottedNullsOrderingKeyViewSet by.",
+                hint=(
+                    "Write it as 'the_name_source__the_name_field'. `nulls_ordering` uses `__`-joined paths, "
+                    "the same as `ordering`; only the `?o=` query parameter is dotted. As declared, the "
+                    "placement is never applied, so nulls arrive wherever the database puts them by default."
+                ),
+                obj=err_viewsets.DottedNullsOrderingKeyViewSet,
+                id="vueda_info.E007",
+            )
+        ]
+
+    def test_dotted_flip_entry_system_check_error(self):
+        """DottedNullsOrderingFlipViewSet spells its `nulls_ordering` key correctly and its
+        `nulls_ordering_flip` entry dotted. The entry gives no placement to flip, and it names no term
+        the filter orders by. Both are reported, and the second names the spelling the entry needs."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.DottedNullsOrderingFlipViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E007", "vueda_info.E007"]
+        assert errors[0].msg == (
+            "'the_name_source.the_name_field' is listed in DottedNullsOrderingFlipViewSet.nulls_ordering_flip, "
+            "but DottedNullsOrderingFlipViewSet.nulls_ordering gives it no placement to flip."
+        )
+        assert errors[1].msg == (
+            "'the_name_source.the_name_field' in DottedNullsOrderingFlipViewSet.nulls_ordering_flip names no "
+            "field that a list request can sort DottedNullsOrderingFlipViewSet by."
+        )
+        assert errors[1].hint.startswith(
+            "Write it as 'the_name_source__the_name_field'. `nulls_ordering_flip` uses `__`-joined paths"
+        )
+
+    def test_key_outside_ordering_fields_system_check_error(self):
+        """UnrequestableNullsOrderingViewSet keys a placement on a real path that neither
+        `ordering_fields` nor the default ordering names. No request sorts by it, so the hint says to
+        offer the field rather than claiming it doesn't exist."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.UnrequestableNullsOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E007", "vueda_info.E007"]
+        assert errors[0].msg == (
+            "UnrequestableNullsOrderingViewSet.nulls_ordering['the_name_source__the_name_field'] names no field "
+            "that a list request can sort UnrequestableNullsOrderingViewSet by."
+        )
+        assert errors[0].hint == (
+            "Add 'the_name_source__the_name_field' to `ordering_fields`, or remove it from `nulls_ordering`. "
+            "A list request can only sort by a field that `ordering_fields` or the default ordering names. "
+            "As declared, the placement is never applied, so nulls arrive wherever the database puts them by "
+            "default."
+        )
+
+    def test_key_naming_no_field_system_check_error(self):
+        """UnrequestableNullsOrderingViewSet also keys a placement on `no_such_field`, which names
+        nothing on the model, so the hint says that instead of suggesting `ordering_fields`."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer, err_viewsets.UnrequestableNullsOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors[1].msg == (
+            "UnrequestableNullsOrderingViewSet.nulls_ordering['no_such_field'] names no field that a list "
+            "request can sort UnrequestableNullsOrderingViewSet by."
+        )
+        # Django's own `FieldError` text, whose list of field names after "Choices are:" changes with
+        # the test models, so only the parts around it are pinned.
+        assert errors[1].hint.startswith(
+            "Django can't resolve that path: Cannot resolve keyword 'no_such_field' into field. Choices are: "
+        ), errors[1].hint
+        assert errors[1].hint.endswith(
+            ". As declared, the placement is never applied, so nulls arrive wherever the database puts them by default."
+        ), errors[1].hint
+
+    def test_dotted_json_key_hint_does_not_suggest_ordering_fields(self):
+        """ProductReleaseDottedNullsOrderingViewSet keys a placement on `specs__v1.2`. The key
+        resolves, but no `?o=` request can name it, so offering it through `ordering_fields` would only
+        trade this error for `vueda_info.E006`. The hint says to annotate the value instead."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseDottedNullsOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E007"]
+        assert errors[0].hint.startswith(
+            "No `?o=` name can carry 'specs__v1.2', because it contains a '.' or a ','. Annotate the value"
+        ), errors[0].hint
+        assert "ordering_fields" not in errors[0].hint
+
+    def test_transform_key_outside_ordering_fields_system_check_error(self):
+        """ProductReleaseUnrequestableTransformNullsViewSet keys a placement on `released__year`,
+        which `ordering_fields` leaves out. The path ends in a transform that Django resolves, so the
+        hint says to offer the field rather than claiming that the model has no such field."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer,
+            product_viewsets.ProductReleaseUnrequestableTransformNullsViewSet,
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E007"]
+        assert errors[0].hint == (
+            "Add 'released__year' to `ordering_fields`, or remove it from `nulls_ordering`. A list request can "
+            "only sort by a field that `ordering_fields` or the default ordering names. As declared, the "
+            "placement is never applied, so nulls arrive wherever the database puts them by default."
+        )
+
+    def test_keys_are_not_judged_when_the_queryset_needs_a_request(self):
+        """RequestOnlyQuerysetNullsOrderingViewSet has a dotted key, but its `get_queryset` reads
+        `self.request`, which a view built at check time doesn't have. With the requestable names
+        unknown there is nothing to judge the key against, so the check stays quiet instead of failing
+        the check run."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SingleValuedLookupExpressionSerializer,
+            err_viewsets.RequestOnlyQuerysetNullsOrderingViewSet,
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
     def test_a_viewset_without_nulls_ordering_passes_system_check(self):
         """Neither attribute is required, so a viewset that declares neither has nothing to report."""
         from vueda.info.checks import check_ordering_configuration
@@ -851,11 +1258,14 @@ class TestNullsOrderingChecks:
 
 @pytest.mark.django_db
 class TestQuerysetOrderingChecks:
-    """`vueda_info.E010` covers an ordering declared on a viewset's class-level `queryset`.
+    """`vueda_info.E010` covers the ordering that a viewset's list queryset carries, from
+    `get_queryset()`, the class-level `queryset`, or the default manager.
 
     DRF's ordering backend reads a view's `ordering` and nothing else, so an `order_by()` on the
     queryset is an ordering the metadata never reports — and, with no `ordering` declared, the one a
     list request actually returns. Nothing fails either way, which is why a check is the only signal.
+    The check applies three rules: the metadata must not lie, an ordering of fields alone is declared
+    rather than applied, and an `order_by()` that a declared `ordering` replaces is removed.
     """
 
     def test_queryset_ordering_conflicting_with_model_ordering_system_check_error(self):
@@ -883,8 +1293,8 @@ class TestQuerysetOrderingChecks:
                     "`ordering` and nothing else, so with none declared it applies no ordering and "
                     "the queryset's own survives to the response — while `model_ordering.default` "
                     "falls back to ModelOrderingQueryset.Meta.ordering and describes a different "
-                    "order to every client. Dropping the `order_by()` is the other answer, and "
-                    "reverses the list."
+                    "order to every client. Dropping the `order_by()` is the other answer, and changes "
+                    "the list's order."
                 ),
                 obj=err_viewsets.ConflictingQuerysetOrderingViewSet,
                 id="vueda_info.E010",
@@ -1002,6 +1412,775 @@ class TestQuerysetOrderingChecks:
         )
 
         assert check_ordering_configuration(app_configs=None) == []
+
+    def test_get_queryset_ordering_conflicting_with_model_ordering_system_check_error(self):
+        """GetQuerysetConflictingOrderingViewSet orders ascending inside `get_queryset()` on a model
+        whose `Meta.ordering` is descending. The check reads what `get_queryset()` returns, so it
+        reports the conflict and names `get_queryset()` as the place the ordering was written."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.GetQuerysetConflictingOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "GetQuerysetConflictingOrderingViewSet.get_queryset() orders by 'the_name_field', but the "
+            "default ordering reported for it comes from ModelOrderingQueryset.Meta.ordering "
+            "('-the_name_field'), which no list request here applies."
+        )
+
+    def test_get_queryset_ordering_declared_nowhere_else_system_check_error(self):
+        """GetQuerysetUndeclaredOrderingViewSet orders inside `get_queryset()` on a model that declares
+        no `Meta.ordering`, so the metadata reports no default ordering for rows that arrive sorted."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.GetQuerysetUndeclaredOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "GetQuerysetUndeclaredOrderingViewSet.get_queryset() orders by 'the_name_field', which neither "
+            "GetQuerysetUndeclaredOrderingViewSet.ordering nor ValidLookupExpression.Meta.ordering declares."
+        )
+
+    def test_get_queryset_ordering_a_viewset_ordering_replaces_system_check_error(self):
+        """GetQuerysetOverriddenOrderingViewSet declares an `ordering` that reverses the one
+        `get_queryset()` applies, so the hint points at `get_queryset()` rather than the queryset."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.GetQuerysetOverriddenOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "GetQuerysetOverriddenOrderingViewSet.get_queryset() orders by '-the_name_field', which "
+            "GetQuerysetOverriddenOrderingViewSet.ordering ('the_name_field') replaces on every list request."
+        )
+        assert errors[0].hint.startswith("Remove the `order_by()` from `get_queryset()`")
+
+    def test_get_queryset_that_needs_a_request_falls_back_to_the_queryset_attribute(self):
+        """RequestOnlyGetQuerysetOrderingViewSet's `get_queryset()` reads `self.request`, which a view
+        built at check time doesn't have. The check reads the class-level `queryset` instead, as it
+        did before it called `get_queryset()`, and reports the conflict there."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.RequestOnlyGetQuerysetOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith("RequestOnlyGetQuerysetOrderingViewSet.queryset orders by 'the_name_field'")
+
+    def test_nulls_placement_that_differs_system_check_error(self):
+        """GetQuerysetNullsPlacementViewSet names the same field in the same direction on both sides,
+        but `get_queryset()` puts nulls first and the declared `ordering` leaves them last, which is
+        where PostgreSQL puts them in an ascending sort."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.GetQuerysetNullsPlacementViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "GetQuerysetNullsPlacementViewSet.get_queryset() orders by 'the_name_field' (nulls first), which "
+            "GetQuerysetNullsPlacementViewSet.ordering ('the_name_field') replaces on every list request."
+        )
+
+    def test_nulls_placement_declared_through_nulls_ordering_passes_system_check(self):
+        """NullsOrderingAgreeingGetQuerysetViewSet declares the same placement through `nulls_ordering`.
+        A list request applies it to the declared `ordering`, so the two sort the same way."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.NullsOrderingAgreeingGetQuerysetViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_queryset_method_ordering_system_check_error(self):
+        """QuerySetMethodOrderingViewSet orders through a custom QuerySet method rather than calling
+        `order_by()` itself. The method leaves the same terms on the query, so it is reported the same
+        way."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.SecondaryManagerOrderingSerializer, err_viewsets.QuerySetMethodOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "QuerySetMethodOrderingViewSet.get_queryset() orders by '-the_name_field', which neither "
+            "QuerySetMethodOrderingViewSet.ordering nor SecondaryManagerOrdering.Meta.ordering declares."
+        )
+
+    def test_a_viewset_starting_from_a_second_manager_system_check_error(self):
+        """SecondaryManagerQuerysetOrderingViewSet starts from a second manager that orders. That manager
+        isn't the model's default, so the model-wide check leaves it alone, but this viewset's list
+        arrives in its order, so `vueda_info.E010` reports the viewset."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SecondaryManagerOrderingSerializer, err_viewsets.SecondaryManagerQuerysetOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "SecondaryManagerQuerysetOrderingViewSet.queryset orders by 'the_name_field', which neither "
+            "SecondaryManagerQuerysetOrderingViewSet.ordering nor SecondaryManagerOrdering.Meta.ordering "
+            "declares."
+        )
+
+    def test_get_queryset_annotation_ordering_with_no_declared_default_passes_system_check(self):
+        """GetQuerysetAnnotationOrderingViewSet orders inside `get_queryset()` by an annotation it adds,
+        and neither the viewset nor the model declares a default. An ordering that names an annotation
+        may stay in `get_queryset()`, and an empty `model_ordering.default` makes no claim for it to
+        contradict."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.GetQuerysetAnnotationOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_reversed_list_queryset_on_a_sortable_viewset_system_check_error(self):
+        """ReversedGetQuerysetOrderingViewSet calls `.reverse()` in `get_queryset()`. It declares no
+        `ordering_fields`, so DRF lets `?o=` sort by its serializer's fields. Django keeps the
+        `.reverse()` through DRF's `order_by()`, so every sort that a client asks for comes back in the
+        opposite order."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.ReversedGetQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "ReversedGetQuerysetOrderingViewSet.get_queryset() calls `.reverse()`, which stays on the query "
+                "when DRF sorts it, so every list request on ReversedGetQuerysetOrderingViewSet returns the "
+                "opposite of the order that it asks for.",
+                hint=(
+                    "Remove the `.reverse()` from `get_queryset()`, and declare the order that you want as "
+                    "ReversedGetQuerysetOrderingViewSet.ordering. DRF's ordering backend calls `order_by()` with "
+                    "ReversedGetQuerysetOrderingViewSet.ordering or a client's `?o=`, and Django keeps a "
+                    "`.reverse()` through that call, so a client that sorts by a column gets the rows in the "
+                    "opposite order."
+                ),
+                obj=err_viewsets.ReversedGetQuerysetOrderingViewSet,
+                id="vueda_info.E010",
+            )
+        ]
+
+    def test_reversed_list_queryset_on_an_unsortable_viewset_follows_the_three_rules(self):
+        """ReversedUnsortableGetQuerysetOrderingViewSet calls `.reverse()` on a viewset that no list
+        request can sort, so its rows always arrive in one order and a client has nothing to get
+        backwards. The `.reverse()` itself isn't reported. The reversed ordering is still an ordering of
+        fields alone with no declared default, which rule 2 reports."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.ReversedUnsortableGetQuerysetOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "ReversedUnsortableGetQuerysetOrderingViewSet.get_queryset() orders by '-the_name_field', which "
+            "neither ReversedUnsortableGetQuerysetOrderingViewSet.ordering nor ValidLookupExpression.Meta.ordering "
+            "declares."
+        )
+        assert errors[0].hint.endswith(
+            "Remove the `.reverse()` from `get_queryset()` as well, because DRF's `order_by()` keeps it."
+        )
+
+    def test_function_ordering_that_a_viewset_ordering_replaces_system_check_error(self):
+        """LowerGetQuerysetOrderingViewSet orders by `Lower` of the field that its `ordering` names.
+        Both read one column but sort differently, so the `get_queryset()` ordering isn't the declared
+        one, and DRF replaces it on every list request."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.LowerGetQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "LowerGetQuerysetOrderingViewSet.get_queryset() orders by 'Lower(F(the_name_field))', which "
+            "LowerGetQuerysetOrderingViewSet.ordering ('the_name_field') replaces on every list request."
+        )
+
+    def test_a_manager_as_the_queryset_attribute_passes_system_check(self):
+        """ManagerQuerysetAttributeViewSet sets `queryset` to a manager, and its `get_queryset()` needs
+        the request, so the check falls back to the class attribute. A manager has no `.query` of its
+        own, and DRF returns it unchanged, so the check calls `.all()` on it instead of failing."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.ManagerQuerysetAttributeViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_get_queryset_transform_on_an_annotation_passes_system_check(self):
+        """ProductReleaseGetQuerysetAnnotationTransformViewSet orders by `-launched__year`, a transform
+        on an annotation that its `get_queryset()` adds, with no declared default. The transform names
+        the annotation, so rule 2 exempts it, and no default makes a claim for it to contradict."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer,
+            product_viewsets.ProductReleaseGetQuerysetAnnotationTransformViewSet,
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_get_queryset_transform_on_a_field_system_check_error(self):
+        """ProductReleaseGetQuerysetTransformViewSet orders by `released__year`, a transform on a model
+        field, with no declared default. A field with a transform can be declared as the viewset's
+        `ordering`, so rule 2 reports it under its `__`-joined path."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            product_serializers.ProductReleaseSerializer, product_viewsets.ProductReleaseGetQuerysetTransformViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "ProductReleaseGetQuerysetTransformViewSet.get_queryset() orders by 'released__year', which neither "
+            "ProductReleaseGetQuerysetTransformViewSet.ordering nor ProductRelease.Meta.ordering declares."
+        )
+        assert "`ordering = ['released__year']`" in errors[0].hint
+
+    def test_grouped_list_queryset_that_drops_meta_ordering_system_check_error(self):
+        """GroupedGetQuerysetOrderingViewSet annotates an aggregate, which groups the query. Django leaves
+        `Meta.ordering` out of a grouped query, so the rows arrive unordered while
+        `model_ordering.default` reports `Meta.ordering`. That breaks rule 1."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.GroupedGetQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "GroupedGetQuerysetOrderingViewSet.get_queryset() groups its rows, so Django leaves out "
+                "ModelOrderingQueryset.Meta.ordering ('-the_name_field') and the rows arrive unordered, but "
+                "`model_ordering.default` reports that ordering for GroupedGetQuerysetOrderingViewSet.",
+                hint=(
+                    "Declare `ordering = ['-the_name_field']` on GroupedGetQuerysetOrderingViewSet, so DRF "
+                    "applies it to every list request and `model_ordering.default` reports it. Django doesn't "
+                    "use `Meta.ordering` in a query with `GROUP BY`, such as one that annotates an aggregate."
+                ),
+                obj=err_viewsets.GroupedGetQuerysetOrderingViewSet,
+                id="vueda_info.E010",
+            )
+        ]
+
+    def test_grouped_list_queryset_with_a_declared_ordering_passes_system_check(self):
+        """GroupedDeclaredOrderingViewSet groups its query the same way, but declares `ordering`. DRF
+        applies it with `order_by()`, which Django keeps on a grouped query, so the rows arrive in the
+        reported order."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.GroupedDeclaredOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_two_collations_of_one_column_system_check_error(self):
+        """CollateGetQuerysetOrderingViewSet's `ordering` and `get_queryset()` collate the same column
+        differently. Django renders both as `Collate(F(the_name_field))`, so the check compares the SQL
+        that each compiles to, and the two differ."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.CollateGetQuerysetOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith("CollateGetQuerysetOrderingViewSet.get_queryset() orders by")
+
+    def test_a_viewset_without_an_ordering_backend_passes_system_check(self):
+        """ReversedWithoutOrderingBackendViewSet has no ordering backend, so nothing applies a declared
+        `ordering` or a client's `?o=` to its list. The ordering rules can't judge it, so its
+        `.reverse()` and its undeclared ordering are both left alone."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.ReversedWithoutOrderingBackendViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_reverse_on_the_class_queryset_names_the_class_queryset(self):
+        """ReversedClassQuerysetViewSet calls `.reverse()` on its class-level `queryset`, and its
+        `get_queryset()` adds its own `order_by()`. The message names the layer that holds the
+        `.reverse()`, not the one that last changed the ordering."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.ReversedClassQuerysetViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith("ReversedClassQuerysetViewSet.queryset calls `.reverse()`")
+        assert errors[0].hint.startswith("Remove the `.reverse()` from the queryset")
+
+    def test_grouped_list_queryset_with_an_extra_ordering_passes_system_check(self):
+        """GroupedExtraOrderingViewSet groups its query and orders it with `extra(order_by=...)`. Django
+        drops `Meta.ordering`, but the extra ordering still sorts the rows, so nothing arrives
+        unordered."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ModelOrderingQuerysetSerializer, err_viewsets.GroupedExtraOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_a_viewset_error_beside_a_rejected_default_manager_system_check_error(self):
+        """MisspelledFManagerOwnErrorViewSet starts from a default manager that E015 reports, and its
+        own `get_queryset()` misspells a different name. E010 leaves the manager's error to E015 but
+        reports the viewset's own."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.MisspelledFManagerOrderingSerializer, err_viewsets.MisspelledFManagerOwnErrorViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert sorted(error.id for error in errors) == ["vueda_info.E010", "vueda_info.E015"]
+        (viewset_error,) = (error for error in errors if error.id == "vueda_info.E010")
+        assert viewset_error.msg.startswith(
+            "MisspelledFManagerOwnErrorViewSet.get_queryset() builds a query that Django rejects: "
+            "Cannot resolve keyword 'the_name_fiel' into field."
+        )
+
+    def test_a_rejected_manager_as_the_queryset_attribute_names_the_queryset(self):
+        """MisspelledSecondManagerQuerysetViewSet sets `queryset` to a second manager whose query Django
+        rejects. `get_queryset()` builds from that manager, so it raises too, but the message names the
+        `queryset` attribute, where the broken manager was chosen."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SecondaryManagerOrderingSerializer, err_viewsets.MisspelledSecondManagerQuerysetViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith(
+            "MisspelledSecondManagerQuerysetViewSet.queryset builds a query that Django rejects: "
+            "Cannot resolve keyword 'the_name_feild' into field."
+        )
+
+    def test_a_rejected_default_manager_under_an_annotated_list_is_left_to_e015(self):
+        """AnnotatedMisspelledFManagerViewSet starts from a default manager whose query Django rejects,
+        and annotates its own list. Django's message then lists the annotation among its choices, so it
+        differs from E015's. The check compares the messages without that list, and leaves the error to
+        E015."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.MisspelledFManagerOrderingSerializer, err_viewsets.AnnotatedMisspelledFManagerViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E015"]
+
+    def test_plain_ordering_filter_applies_no_nulls_ordering(self):
+        """PlainOrderingFilterNullsViewSet uses DRF's own `OrderingFilter`, which never applies
+        `nulls_ordering`. Its declared `ordering` therefore puts nulls last, so the nulls-first ordering
+        in `get_queryset()` differs from it, and DRF replaces it on every list request."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.ValidLookupExpressionSerializer, err_viewsets.PlainOrderingFilterNullsViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg == (
+            "PlainOrderingFilterNullsViewSet.get_queryset() orders by 'the_name_field' (nulls first), which "
+            "PlainOrderingFilterNullsViewSet.ordering ('the_name_field') replaces on every list request."
+        )
+
+    def test_misspelled_name_in_get_queryset_system_check_error(self):
+        """MisspelledNameGetQuerysetOrderingViewSet misspells a plain string name in `order_by()`, which
+        Django rejects as soon as `get_queryset()` calls it. The check reports Django's own message
+        instead of falling back to the class-level `queryset`."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.MisspelledNameGetQuerysetOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith(
+            "MisspelledNameGetQuerysetOrderingViewSet.get_queryset() builds a query that Django rejects: "
+            "Cannot resolve keyword 'the_name_feild' into field."
+        )
+        assert errors[0].hint == (
+            "Fix the query that MisspelledNameGetQuerysetOrderingViewSet lists from. Django raises this "
+            "`FieldError` when it builds or runs the query, so the check reports it at startup."
+        )
+
+    def test_misspelled_relation_in_an_f_path_system_check_error(self):
+        """MisspelledPathGetQuerysetOrderingViewSet misspells a relation inside an `F()`. Django resolves
+        an `F()` only when the query is compiled, so the check compiles the list queryset and reports
+        Django's message instead of crashing on the path."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.MisspelledPathGetQuerysetOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith(
+            "The list queryset of MisspelledPathGetQuerysetOrderingViewSet builds a query that Django rejects: "
+            "Cannot resolve keyword 'custmer' into field."
+        )
+
+    def test_aggregate_written_into_order_by_system_check_error(self):
+        """GetQuerysetInlineAggregateOrderingViewSet passes `Count(...)` straight to `order_by()`. Django
+        rejects an aggregate there unless it is annotated and ordered by name, so the check reports
+        Django's message."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.ValidLookupExpressionSerializer, err_viewsets.GetQuerysetInlineAggregateOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E010"]
+        assert errors[0].msg.startswith(
+            "GetQuerysetInlineAggregateOrderingViewSet.get_queryset() builds a query that Django rejects: "
+            "Using an aggregate in order_by() without also including it in annotate() is not allowed"
+        )
+
+
+@pytest.mark.django_db
+class TestDefaultManagerOrderingChecks:
+    """`vueda_info.E015` covers an ordering applied by a registered model's default manager.
+
+    The default manager sorts every query of the model that names no other manager, so its ordering
+    is a model-wide default. `Meta.ordering` is where Django, DRF, and `model_ordering.default` read
+    that default, so an ordering `Meta.ordering` could hold is reported, unless `Meta.ordering` already
+    declares the same order. An ordering by an annotation
+    the manager adds has nowhere else to live and is allowed.
+    """
+
+    def test_default_manager_under_another_name_system_check_error(self):
+        """OtherNameManagerOrdering's only manager is `ordered`. Django makes it the default, so the
+        check finds it without reading `objects`. Its viewset starts from the same manager, and
+        `vueda_info.E010` leaves that ordering to this check rather than reporting it again."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.OtherNameManagerOrderingSerializer, err_viewsets.OtherNameManagerOrderingViewSet)
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "OtherNameManagerOrdering.ordered, the default manager, orders every query of "
+                "OtherNameManagerOrdering by 'the_name_field', which `model_ordering.default` never reports.",
+                hint=(
+                    "Declare the ordering as OtherNameManagerOrdering.Meta.ordering and remove the "
+                    "`order_by()` or `.reverse()` from the manager. `Meta.ordering` is the model-wide default "
+                    "that Django, DRF, and `model_ordering.default` all read. A default manager may keep an "
+                    "ordering that names an annotation that it adds, since `Meta.ordering` can't name one."
+                ),
+                obj=err_models.OtherNameManagerOrdering,
+                id="vueda_info.E015",
+            )
+        ]
+
+    def test_default_manager_chosen_by_default_manager_name_system_check_error(self):
+        """DefaultManagerNameOrdering declares a plain `objects` first, then names its ordering manager
+        in `Meta.default_manager_name`. Django makes that one the default, and so does the check."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.DefaultManagerNameOrderingSerializer, err_viewsets.DefaultManagerNameOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E015"]
+        assert errors[0].msg.startswith("DefaultManagerNameOrdering.ordered, the default manager, orders every query")
+
+    def test_a_second_manager_that_orders_passes_system_check(self):
+        """SecondaryManagerOrdering's default manager applies no ordering. Its second manager does, but
+        that orders only the code that names it, and this viewset starts from the default."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.SecondaryManagerOrderingSerializer, err_viewsets.SecondaryManagerModelViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_manager_ordering_that_matches_meta_ordering_passes_system_check(self):
+        """MatchingMetaManagerOrdering's default manager orders by `the_name_field`, and so does its
+        `Meta.ordering`. `model_ordering.default` reads `Meta.ordering`, so it describes the rows the
+        manager returns. Its viewset declares no `ordering` and starts from the same manager, and
+        `vueda_info.E010` finds nothing to report either."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.MatchingMetaManagerOrderingSerializer, err_viewsets.MatchingMetaManagerOrderingViewSet
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_ordering_by_an_aggregate_annotation_passes_system_check(self):
+        """AggregateManagerOrdering's default manager orders by a `Count` it annotates, then by a plain
+        field. `Meta.ordering` can't hold the aggregate, and the tie-breaker can't move there on its
+        own, so the whole ordering is allowed. `vueda_info.E010` doesn't report it for the viewset
+        either."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.AggregateManagerOrderingSerializer, err_viewsets.AggregateManagerOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_aggregate_annotation_with_a_disagreeing_meta_ordering_system_check_error(self):
+        """AggregateManagerMetaOrdering's default manager orders by an aggregate annotation, and its
+        `Meta.ordering` names a different order. The manager ordering is allowed, so E015 stays quiet,
+        but a viewset that starts from the manager and declares no `ordering` returns rows the metadata
+        describes wrongly. `Meta.ordering` still applies through the base manager, so the viewset is
+        what gets reported, and it can fix this by declaring the annotation ordering itself. The message
+        names the default manager, because that is where the `order_by()` is."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.AggregateManagerMetaOrderingSerializer, err_viewsets.AggregateManagerMetaOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "AggregateManagerMetaOrdering.objects, the default manager that AggregateManagerMetaOrderingViewSet "
+                "starts from, orders by '-source_count', 'the_name_field', but the default ordering reported for "
+                "AggregateManagerMetaOrderingViewSet comes from AggregateManagerMetaOrdering.Meta.ordering "
+                "('the_name_field'), which no list request here applies.",
+                hint=(
+                    "Declare `ordering = ['-source_count', 'the_name_field']` on "
+                    "AggregateManagerMetaOrderingViewSet, so the ordering DRF applies is the one "
+                    "`model_ordering.default` reports. Or remove AggregateManagerMetaOrdering.Meta.ordering, so "
+                    "that `model_ordering.default` makes no claim about the order. An ordering that names an "
+                    "annotation may stay in AggregateManagerMetaOrdering.objects when no default ordering is "
+                    "declared."
+                ),
+                obj=err_viewsets.AggregateManagerMetaOrderingViewSet,
+                id="vueda_info.E010",
+            )
+        ]
+
+    def test_ordering_by_a_simple_annotation_passes_system_check(self):
+        """SimpleAnnotationManagerOrdering's default manager orders by a single-column annotation. The
+        check doesn't judge how complex an annotation is, so this is allowed like an aggregate."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.SimpleAnnotationManagerOrderingSerializer,
+            err_viewsets.SimpleAnnotationManagerOrderingViewSet,
+        )
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_misspelled_f_name_system_check_error(self):
+        """MisspelledFManagerOrdering's default manager misspells the field inside an `F()`. Django
+        resolves it only when a query runs, so compiling the query is what reports it at startup."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.MisspelledFManagerOrderingSerializer, err_viewsets.MisspelledFManagerOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E015"]
+        assert errors[0].msg.startswith(
+            "MisspelledFManagerOrdering.objects, the default manager, builds a query that Django rejects: "
+            "Cannot resolve keyword 'the_name_feild' into field."
+        )
+
+    def test_misspelled_plain_name_system_check_error(self):
+        """MisspelledNameManagerOrdering's default manager misspells a plain string name. Django rejects
+        it inside `order_by()`, so the manager raises as soon as it builds a queryset. Its viewset builds
+        the queryset only in `get_queryset()`, so nothing fails at import, and the check is what reports
+        it at startup."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.MisspelledNameManagerOrderingSerializer, err_viewsets.MisspelledNameManagerOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert errors == [
+            Error(
+                "MisspelledNameManagerOrdering.objects, the default manager, builds a query that Django rejects: "
+                "Cannot resolve keyword 'the_name_feild' into field. Choices are: id, the_name_field",
+                hint=(
+                    "Fix the manager's `get_queryset()`. A manager builds its queryset only when code first "
+                    "uses it, so nothing fails when MisspelledNameManagerOrdering is imported, and the first "
+                    "query of MisspelledNameManagerOrdering would raise this `FieldError`."
+                ),
+                obj=err_models.MisspelledNameManagerOrdering,
+                id="vueda_info.E015",
+            )
+        ]
+
+    def test_manager_ordering_by_a_transform_on_formatted_name_passes_system_check(self):
+        """LowerFormattedNameManagerOrdering's default manager orders by `formatted_name__lower`.
+        `Meta.ordering` can name the bare `formatted_name` only, so E015 doesn't ask for this ordering
+        to move there, and treats it like an ordering by an annotation that the manager adds."""
+        from django.db.models import CharField
+        from django.db.models.functions import Lower
+        from django.test.utils import register_lookup
+
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.LowerFormattedNameManagerOrderingSerializer,
+            err_viewsets.LowerFormattedNameManagerOrderingViewSet,
+        )
+
+        with register_lookup(CharField, Lower):
+            assert check_ordering_configuration(app_configs=None) == []
+
+    def test_aggregate_written_into_the_managers_order_by_system_check_error(self):
+        """InlineAggregateManagerOrdering's default manager passes `Count(...)` straight to `order_by()`,
+        which Django rejects as soon as the manager builds its queryset. E015 reports Django's message
+        once for the model, and `vueda_info.E010` doesn't repeat it for the viewset."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.InlineAggregateManagerOrderingSerializer, err_viewsets.InlineAggregateManagerOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E015"]
+        assert errors[0].msg.startswith(
+            "InlineAggregateManagerOrdering.objects, the default manager, builds a query that Django rejects: "
+            "Using an aggregate in order_by() without also including it in annotate() is not allowed"
+        )
+
+    def test_manager_query_that_compiles_to_no_sql_is_still_checked(self):
+        """EmptyFilterManagerOrdering's default manager filters with `pk__in=[]`, which Django compiles to
+        `EmptyResultSet` rather than SQL. That says nothing about the ordering, so E015 still reports
+        an ordering that `Meta.ordering` could declare."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.EmptyFilterManagerOrderingSerializer, err_viewsets.EmptyFilterManagerOrderingViewSet
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E015"]
+        assert errors[0].msg == (
+            "EmptyFilterManagerOrdering.objects, the default manager, orders every query of "
+            "EmptyFilterManagerOrdering by 'the_name_field', which `model_ordering.default` never reports."
+        )
+
+    def test_random_manager_ordering_passes_system_check(self):
+        """RandomManagerOrdering's default manager orders randomly, which names no column. The checks
+        have nothing to compare it with, so they leave it alone, the same as a random queryset
+        ordering."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(err_serializers.RandomManagerOrderingSerializer, err_viewsets.RandomManagerOrderingViewSet)
+
+        assert check_ordering_configuration(app_configs=None) == []
+
+    def test_misspelled_transform_system_check_error(self):
+        """MisspelledTransformManagerOrdering's default manager misspells a transform after a real
+        field. Django accepts the string when `order_by()` is called and fails only when a query
+        runs."""
+        from vueda.info.checks import check_ordering_configuration
+
+        info.registration.get_empty_registry()
+        info.register(
+            err_serializers.MisspelledTransformManagerOrderingSerializer,
+            err_viewsets.MisspelledTransformManagerOrderingViewSet,
+        )
+
+        errors = check_ordering_configuration(app_configs=None)
+
+        assert [error.id for error in errors] == ["vueda_info.E015"]
+        assert "Cannot resolve keyword 'lowr' into field." in errors[0].msg
 
 
 @pytest.mark.django_db
@@ -1356,10 +2535,12 @@ class TestColumnTotalsChecks:
 
         assert len(errors) == 1, errors
         assert errors[0].id == "vueda_info.E013"
-        assert errors[0].msg == (
-            "CartItemUnresolvableColumnTotalsViewSet.column_totals['quantity'] is 'no_such_field', but "
-            "CartItem has no such field or related field."
-        )
+        # Django's own `FieldError` text, whose list of field names after "Choices are:" changes with
+        # the test models, so only the sentence before it is pinned.
+        assert errors[0].msg.startswith(
+            "CartItemUnresolvableColumnTotalsViewSet.column_totals['quantity'] is 'no_such_field', but Django "
+            "can't resolve it: Cannot resolve keyword 'no_such_field' into field. Choices are: "
+        ), errors[0].msg
 
     def test_unsummable_leaf_is_reported(self):
         errors = self.column_totals_errors_for(store_viewsets.CartItemUnsummableColumnTotalsViewSet)
@@ -1417,6 +2598,104 @@ class TestColumnTotalsChecks:
         )
 
         assert errors == []
+
+    def test_registered_transform_path_passes(self):
+        """TimesheetEntryBillableHoursViewSet totals `hours__ceil`. With `Ceil` registered on
+        `DecimalField`, the transform resolves and its output is a decimal, so the check stays
+        quiet."""
+        with register_lookup(models.DecimalField, Ceil):
+            errors = self.column_totals_errors_for(
+                timesheet_viewsets.TimesheetEntryBillableHoursViewSet,
+                serializer=timesheet_serializers.TimesheetEntrySerializer,
+            )
+
+        assert errors == []
+
+    def test_unregistered_transform_path_is_reported(self):
+        """Without `Ceil` registered, `ceil` is no transform that Django holds for a `DecimalField`, so
+        `hours__ceil` names nothing."""
+        errors = self.column_totals_errors_for(
+            timesheet_viewsets.TimesheetEntryBillableHoursViewSet,
+            serializer=timesheet_serializers.TimesheetEntrySerializer,
+        )
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E013"
+        assert errors[0].msg == (
+            "TimesheetEntryBillableHoursViewSet.column_totals['billable_hours'] is 'hours__ceil', but Django "
+            "can't resolve it: Cannot resolve keyword 'ceil' into field. Join on 'hours' not permitted."
+        )
+
+    def test_unsummable_transform_output_is_reported(self):
+        """ProductReleaseJSONKeyTotalViewSet totals `specs__rank`. The key resolves, and its output is
+        JSON, which is judged the same way a JSON column is."""
+        errors = self.column_totals_errors_for(
+            product_viewsets.ProductReleaseJSONKeyTotalViewSet,
+            serializer=product_serializers.ProductReleaseSerializer,
+        )
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E013"
+        assert errors[0].msg == (
+            "ProductReleaseJSONKeyTotalViewSet.column_totals['rank'] is 'specs__rank', which is a JSONField "
+            "and cannot be summed."
+        )
+
+    def test_transform_on_an_annotation_passes(self):
+        """ProductReleaseAnnotationTransformTotalViewSet totals `launched__year`, a transform on an
+        annotation. The transform resolves and its output is an integer, so the check stays quiet."""
+        errors = self.column_totals_errors_for(
+            product_viewsets.ProductReleaseAnnotationTransformTotalViewSet,
+            serializer=product_serializers.ProductReleaseSerializer,
+        )
+
+        assert errors == []
+
+    def test_transform_on_an_alias_passes(self):
+        """ProductReleaseAliasTransformTotalViewSet totals `launched__year`, where `launched` comes from
+        `.alias()`. The total sums the path through `F()`, which Django resolves against aliases, so
+        the check stays quiet."""
+        errors = self.column_totals_errors_for(
+            product_viewsets.ProductReleaseAliasTransformTotalViewSet,
+            serializer=product_serializers.ProductReleaseSerializer,
+        )
+
+        assert errors == []
+
+    def test_transform_on_an_untyped_annotation_is_reported(self):
+        """ProductReleaseUntypedAnnotationTotalViewSet totals `launched__year` over a `Coalesce` of
+        mixed types. Django's own message blames the annotation's missing type, and the hint says how
+        to give it one, rather than pointing at the spelling of `year`, which is a real transform."""
+        errors = self.column_totals_errors_for(
+            product_viewsets.ProductReleaseUntypedAnnotationTotalViewSet,
+            serializer=product_serializers.ProductReleaseSerializer,
+        )
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E013"
+        assert errors[0].msg == (
+            "ProductReleaseUntypedAnnotationTotalViewSet.column_totals['launch_year'] is 'launched__year', but "
+            "Django can't resolve it: Expression contains mixed types: DateTimeField, CharField. You must set "
+            "output_field."
+        )
+        assert errors[0].hint.startswith("Give the annotation's expression an `output_field`"), errors[0].hint
+
+    def test_misspelled_transform_on_an_annotation_is_reported(self):
+        """ProductReleaseMisspelledAnnotationTransformTotalViewSet totals `launched__yaer`. Django
+        resolves a path on an annotation through its transform lookup, so its own message names the
+        part that isn't a transform and suggests the one that was meant."""
+        errors = self.column_totals_errors_for(
+            product_viewsets.ProductReleaseMisspelledAnnotationTransformTotalViewSet,
+            serializer=product_serializers.ProductReleaseSerializer,
+        )
+
+        assert len(errors) == 1, errors
+        assert errors[0].id == "vueda_info.E013"
+        assert errors[0].msg == (
+            "ProductReleaseMisspelledAnnotationTransformTotalViewSet.column_totals['launch_year'] is "
+            "'launched__yaer', but Django can't resolve it: Unsupported lookup 'yaer' for DateTimeField or join "
+            "on the field not permitted, perhaps you meant year?"
+        )
 
     def test_wildcard_name_is_reported(self):
         errors = self.column_totals_errors_for(store_viewsets.CartItemWildcardColumnTotalsViewSet)

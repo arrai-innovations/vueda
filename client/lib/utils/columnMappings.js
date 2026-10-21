@@ -4,8 +4,9 @@
  *
  * Boolean types resolve to `ColumnBoolean`; date/time/datetime types resolve to
  * `ColumnDateTime`; duration types resolve to `ColumnDuration`; `JSON` resolves to
- * `ColumnJson`; foreign-key relations resolve to `ColumnModelLink`. Any unmapped type
- * falls back to `ColumnText`, reproducing the historical plain-text cell.
+ * `ColumnJson`; file and image types resolve to `ColumnFile`; foreign-key relations
+ * resolve to `ColumnModelLink`. Any unmapped type falls back to `ColumnText`,
+ * reproducing the historical plain-text cell.
  */
 import merge from "lodash-es/merge.js";
 
@@ -55,6 +56,18 @@ export const columnMappings = {
     DurationSecondsField: {
         DurationField: {
             column: "ColumnDuration",
+            default: true,
+        },
+    },
+    FileField: {
+        FileField: {
+            column: "ColumnFile",
+            default: true,
+        },
+    },
+    ImageField: {
+        ImageField: {
+            column: "ColumnFile",
             default: true,
         },
     },
