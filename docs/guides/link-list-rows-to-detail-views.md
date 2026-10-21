@@ -63,6 +63,7 @@ The link controls navigation in the UI only. Route guards and server permissions
 The check uses the adapter that the column resolves to, so a `columnComponents` override that names one of these adapters keeps the link. Other adapters render without a row link:
 
 - {@api vue:component:ColumnModelLink} already links to the related record and keeps that target.
+- {@api vue:component:ColumnFile} already links to the stored file and keeps that target.
 - A custom adapter may contain links, buttons, or other controls, so VUEDA leaves its navigation alone. Use a field slot (next section) to link custom content.
 - A column whose override does not name a component renders no cells, and the list shows an error for that column. [Customize List Column Rendering](./customize-list-column-rendering) describes the override chain.
 

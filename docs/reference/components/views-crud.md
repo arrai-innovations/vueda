@@ -197,7 +197,7 @@ After a successful create, the view opens the new record's update view. The [`re
 
 ## ViewRead
 
-{@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
+{@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, file, image, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
 
 The sticky bar holds the record's detail actions and its transitions:
 

@@ -1076,6 +1076,19 @@ class VuedaSerializer(
         ModelImageField: VuedaImageField,
     }
 
+    def build_standard_field(self, field_name, model_field):
+        """
+        Accept ``null`` for a file or image column that the model marks ``blank=True``.
+
+        DRF only allows ``null`` for a ``null=True`` column, and Django file columns are rarely nullable,
+        so an optional file had no value that means "no file". Accepting ``null`` lets a form send its empty
+        value, and lets a client clear a stored file. Django saves the cleared file as an empty name.
+        """
+        field_class, field_kwargs = super().build_standard_field(field_name, model_field)
+        if isinstance(model_field, ModelFileField) and model_field.blank:
+            field_kwargs["allow_null"] = True
+        return field_class, field_kwargs
+
     class Meta:
         expandable_fields = {}
         fields = ["formatted_name", "available_actions", "object_revision"]

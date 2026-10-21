@@ -113,6 +113,7 @@ export const defaultFieldMappings = {
     FileField: {
         FileField: {
             widget: availableWidgets.WidgetFile,
+            readOnlyWidget: availableWidgets.WidgetFileReadOnly,
             default: true,
         },
     },
@@ -126,6 +127,7 @@ export const defaultFieldMappings = {
     ImageField: {
         ImageField: {
             widget: availableWidgets.WidgetImage,
+            readOnlyWidget: availableWidgets.WidgetFileReadOnly,
             default: true,
         },
     },

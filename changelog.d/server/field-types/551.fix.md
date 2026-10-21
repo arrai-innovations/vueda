@@ -1,0 +1,2 @@
+- **Optional `FileField` and `ImageField` on a `VuedaSerializer`**:
+    - A file or image column with `blank=True` now accepts `null`, which saves no file on create and clears the stored file on update. Before, `null` returned 400 ("This field may not be null."), so a form that sent an empty file field failed and the API had no way to clear a file. A column without `blank=True` still rejects `null`, and the OpenAPI schema marks the optional field nullable.

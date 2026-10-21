@@ -302,6 +302,10 @@ a file, {@api vue:component:WidgetFile} shows it as a download link with remove
 and download controls, and {@api vue:component:WidgetImage} shows a preview with a
 remove control.
 
+In a read view, both field types render with {@api vue:component:WidgetFileReadOnly},
+which shows the file as a link labelled with the file name, or a dash when the field
+is empty.
+
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
   <DemoFormModel
