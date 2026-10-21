@@ -49,7 +49,7 @@ On a workflow-enabled model, `ObjectPermissions` can defer its own model-scope d
 
 {@term Model Info} has its own permission gate. The gate is separate from the permissions of the model that the metadata describes. Each model info entry is a {@term Content Type}, so `ObjectPermissions` checks content type codenames on [`ModelInfoViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoViewSet}.
 
-Model info for one model requires `contenttypes.read_contenttype`. The list of registered models requires `contenttypes.list_contenttype`. A user without them gets `403` from model info, even when the user holds every permission on the model itself. The client loads model info before it opens a model's route, so that user cannot open any model in the client. Grant both permissions to every group whose users work in the client.
+Getting model info for one model requires `contenttypes.read_contenttype`. The list of registered models requires `contenttypes.list_contenttype`. A user without them gets `403` from model info, even when the user holds every permission on the model itself. The client loads model info before it opens a model's route, so that user cannot open any model in the client. Grant both permissions to every group whose users work in the client.
 
 These two permissions grant access to metadata only. Each request to the model's own endpoints still needs the model's own codename.
 

@@ -174,9 +174,9 @@ Now verify the server is responding:
 curl -i http://localhost:8000/routes/vueda.user/who-is/
 ```
 
-You should get a 200 response with the body `{"auth_pending_flow":null}`. The server is running, and you are not signed in.
+If the server is running and you are not signed in, you get a 200 response with the body `{"auth_pending_flow":null}`.
 
-For the client, open your browser and navigate to `http://localhost:5173`. The template's router redirects `/` to the `welcome` route. That route requires a signed-in user, so it sends you to the Sign In form at `/sign-in/`. The browser console should show no errors. You create a user to sign in with in [Verify the New API Endpoints](#verify-the-new-api-endpoints).
+For the client, open your browser and navigate to `http://localhost:5173`. The template's router redirects `/` to the `welcome` route. That route requires a signed-in user, so it sends you to the Sign In form at `/sign-in/`. The browser console should show no errors. To create a user to sign in with, follow [Verify the New API Endpoints](#verify-the-new-api-endpoints) later in this tutorial.
 
 ::: tip
 If you want your local environment to match production security settings (secure session and CSRF cookies, HTTPS-only), see [Local HTTPS Development](../guides/local-https-setup.md).
@@ -488,7 +488,7 @@ The `inventory` app has more permissions than these 15. VUEDA records each model
 
 The group also needs `contenttypes.read_contenttype` and `contenttypes.list_contenttype`. The client reads each model's metadata ({@term Model Info}) before it opens the model, and those two permissions gate that metadata. [Model Info Access](../core-concepts/permission-model.md#model-info-access) explains this gate.
 
-Create a group with the 15 model permissions and the two model info permissions, and a user in that group:
+The script below creates a group with the 15 model permissions and the two model info permissions, `contenttypes.read_contenttype` and `contenttypes.list_contenttype`. It then creates a user in that group:
 
 ```console
 uv run python manage.py shell -c '
