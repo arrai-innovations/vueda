@@ -110,7 +110,7 @@ class Delivery(VuedaModel):
     objects = DeliveryManager()
 ```
 
-For a manager built with `Manager.from_queryset()`, call `FormattedNameManager.from_queryset()`. `vueda_info.E009` reports a model whose default manager does not annotate the path. The `FormattedNameManager` reference covers managers on abstract bases and Django's base manager.
+For a manager built with `Manager.from_queryset()`, call `FormattedNameManager.from_queryset()`. `vueda_core.E019` reports each manager that does not annotate the path. The `FormattedNameManager` reference covers managers on abstract bases and Django's base manager.
 
 ### Django's Built-In Models
 

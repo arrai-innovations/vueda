@@ -65,7 +65,7 @@ These dependencies changed:
 - **History policy.** Every `VuedaModel` subclass records history unless it opts out. Composite primary key models must opt out. History never records `password`. [History and Workflow](../core-concepts/model-feature-policy.md#history-and-workflow) describes the policy and its options. Run `makemigrations`, review the generated event models and triggers, and exclude noisy fields such as `last_login`.
 - **Writes outside a request.** Wrap writes in management commands and scripts in `audited_action(..., kind="command")` so that `audited_action` groups their history into one action.
 - **Workflow opt-in.** `HasWorkflowModelMixin`, `HasWorkflowSerializerMixin`, `HasWorkflowViewMixin`, `HasWorkflowViewSetMixin`, and `HasWorkflowFilterSetMixin` are removed. Declare `class Vueda.Workflow: enabled = True` on the model instead. VUEDA then adds the workflow fields, the `workflow_state` filter, and the permission overlay. [History and Workflow](../core-concepts/model-feature-policy.md#history-and-workflow) describes the options.
-- **Default manager.** `FormattedNameManager` is the default manager of every VUEDA model. A custom `objects` manager must subclass it or use `FormattedNameManager.from_queryset(...)`. For a model that declares `formatted_name_lookup_expression`, `Model.objects.values()` without arguments now includes `formatted_name`.
+- **Default manager.** `FormattedNameManager` is the default manager of every VUEDA model. A custom `objects` manager must subclass it or use `FormattedNameManager.from_queryset(...)`. On a model that declares `formatted_name_lookup_expression`, every other manager must also annotate `formatted_name`, or opt out with `used_without_formatted_name = True`. [Opting a Manager Out of the Check](create-crudl-surface.md#opting-a-manager-out-of-the-check) describes the opt-out. For a model that declares `formatted_name_lookup_expression`, `Model.objects.values()` without arguments now includes `formatted_name`.
 - **Model info hook.** `get_expandable_fields()` is removed, and VUEDA silently ignores a v2 override. Override `get_expand_model_info(self, expands)` instead. [Correct an Expand Descriptor](customize-model-info-metadata.md#correct-an-expand-descriptor) shows the hook.
 - **Validation warnings.** `VuedaValidationError(..., is_warning=True)` is removed. Return warnings from `VuedaSerializer.get_warnings()`, or from the viewset's `get_warnings_for_object` and `get_warnings`. The client confirms them through a `409` response. [Require Confirmation Before a Write](require-write-confirmation.md) covers each hook.
 - **Column totals.** `column_totals` is a mapping from the client column name to an ORM path. Rewrite each v2 list as a mapping. `get_column_info` takes `(self, queryset, requested_column_totals=())`. The server computes totals only for the names that the request sends in `ct`. [Expose Aggregates in `list` Responses](list-column-totals.md) describes the contract.
@@ -103,13 +103,11 @@ Server v2 registered no system checks. Server v3 registers checks in `vueda_core
 
 - `vueda_core.E018`: an unsupported `PERMISSION_NAMES_MAPPING`.
 - `vueda_info.E006`: a viewset `ordering` or `ordering_fields` entry that names no field.
-- `vueda_info.E009`: a default manager that cannot annotate `formatted_name`.
+- `vueda_core.E019`: a manager that does not annotate `formatted_name` on a model that declares `formatted_name_lookup_expression`.
 - `vueda_info.E010`: a `queryset` or `get_queryset()` ordering that disagrees with the declared ordering, that orders by fields alone with no declared ordering, or that calls `.reverse()` on a sortable list. It also reports a grouped list queryset that makes Django drop `Meta.ordering`, and a `get_queryset()` or `queryset` query that Django rejects.
 - `vueda_info.E013`: a column total path that crosses a reverse or many-to-many relation, or that ends on a field that cannot be summed.
 - `vueda_info.E014`: a search annotation that the search queryset lacks.
 - `vueda_info.E015`: a default manager that orders by fields alone. Move that ordering to `Meta.ordering`. It also reports a default manager whose query Django rejects, such as a misspelled field, `F()` name, or transform.
-
-`vueda_info.E006` and `E013` also reject paths that end in a transform, such as `created__year`. Server v2 accepted those. Until [#494](https://github.com/arrai-innovations/vueda/issues/494) lands, declare an annotation for such a path, or silence the check.
 
 ### Review Authorization Changes
 
@@ -266,6 +264,7 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 - File and image widgets read the `url` of a `{name, url}` value.
 - `WidgetDuration` takes a duration string. With the `seconds` prop, it takes a number of seconds.
 - Read-only fields render formatted values. The `widget(<name>)default` slot receives `rawValue` for code that needs the stored value.
+- On update, read, and detail views, a view's own form props, such as `fieldProps` and `widgetProps`, now win over the same keys in model config `formProps`. Client v2 let model config win on those views. Check each key that both set.
 - `FormModel`'s `fields` slot binds the merged field props map as `allFieldProps`. Render each field in a custom `fields` layout with `FormModelField`, which receives the per-field slots that you pass to the form. [Lay Out the Fields Yourself](custom-field-widget-rendering.md#lay-out-the-fields-yourself) shows the layout.
 - A custom `redirectTo` on `ActionForm` that stays on the form after a success must return or resolve `false`. The form treats any other result as navigation away and keeps its buttons disabled. [What an Action Form Does on Pre-Flight, Submit, and Cancel](transition-ux-and-redirects.md#what-an-action-form-does-on-pre-flight-submit-and-cancel) describes the contract.
 - Save buttons read "Create" and "Update". Update tests that find "Submit".
