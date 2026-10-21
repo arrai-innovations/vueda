@@ -914,14 +914,19 @@ def build_prefetch_plan(serializer, model):
     The child serializer's own paths join the plan prefixed with the relation's path, for a to-one
     and a to-many relation alike. A nested ``Prefetch`` keeps its queryset under the prefixed path.
     The plan holds each path as its own entry, so the child's paths stay in the plan when a different
-    ``Prefetch`` loads the relation itself. That ``Prefetch`` can be the viewset's own or the one that
-    a second expand of the same relation builds. :func:`apply_prefetch_plan` places each path on
-    whichever ``Prefetch`` loads the relation:
+    ``Prefetch`` loads the relation itself. That ``Prefetch`` can be one that the viewset's queryset
+    lists in ``prefetch_related`` or the one that a second expand of the same relation builds.
+    :func:`apply_prefetch_plan` places each path on whichever ``Prefetch`` loads the relation:
 
     - A join under a ``Prefetch`` that the plan built goes onto that ``Prefetch`` queryset.
     - A join under a viewset's own ``Prefetch`` loads after it, at one query per relation for each
       request.
     - A nested prefetch runs after the ``Prefetch`` that loads the relation.
+
+    A prefetch inside the queryset of a viewset's ``Prefetch``, such as ``"cart_items"`` in
+    ``Prefetch("cart_set", queryset=Cart.objects.prefetch_related("cart_items"))``, loads its
+    relation while that queryset runs. The child's paths under that relation then load one query per
+    row.
 
     Returns ``(select_related, prefetch_related)``: the plan's join paths and its prefetch lookups.
     Pass them to :func:`apply_prefetch_plan`, which keeps a join from replacing the objects that a
@@ -1136,11 +1141,12 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
       reaches costs one query per request.
 
     Each surviving ``Prefetch`` queryset gets the same split, whether the plan built it or
-    ``queryset`` already carried it, and whether its relation is to-one or to-many. Its joins are split at each relation that a lookup prefetches
-    under its relation, such as ``customer`` for a ``cart_set`` queryset when the plan also
-    prefetches ``cart_set__customer``. The split applies at every depth. A viewset's own ``Prefetch``
-    is rebuilt with the split queryset only when one of its joins passes through such a relation.
-    Its filters, annotations, and ordering stay as declared.
+    ``queryset`` already carried it, and whether its relation is to-one or to-many. Its joins are
+    split at each relation that a lookup prefetches under its relation, such as ``customer`` for a
+    ``cart_set`` queryset when the plan also prefetches ``cart_set__customer``. The split applies at
+    every depth. A viewset's own ``Prefetch`` is rebuilt with the split queryset only when one of
+    its joins passes through such a relation. Its filters, annotations, and ordering stay as
+    declared.
 
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
@@ -1837,10 +1843,13 @@ class VuedaViewSet(
         request expands it. A relation that this queryset prefetches without a queryset loads through
         the plan's ``Prefetch``. No join replaces the objects that a ``Prefetch`` queryset loads.
 
-        The expands nested under a relation keep their plan whichever ``Prefetch`` loads the
-        relation, to-one or to-many. They load after the viewset's ``Prefetch`` at one query per relation for each
-        request. The viewset's ``Prefetch`` queryset is rebuilt without the joins that pass through a
-        relation that a nested expand prefetches, and keeps its filters, annotations, and ordering.
+        The expands nested under a relation keep their plan when this queryset lists the
+        ``Prefetch`` that loads the relation, to-one or to-many. They load after the viewset's
+        ``Prefetch`` at one query per relation for each request. The viewset's ``Prefetch`` queryset
+        is rebuilt without the joins that pass through a relation that a nested expand prefetches,
+        and keeps its filters, annotations, and ordering. A prefetch inside the queryset of the
+        viewset's ``Prefetch`` loads its relation while that queryset runs, and the expands nested
+        under that relation load one query per row.
         """
         queryset = super().get_queryset()
 
