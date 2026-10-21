@@ -41,7 +41,7 @@ This guide assumes access to a [bash](https://www.gnu.org/software/bash/)-like s
 
 VUEDA is available from [public PyPI](https://pypi.org/project/vueda/) and [public npm](https://www.npmjs.com/package/@arrai-innovations/vueda). No registry credentials are needed.
 
-The v3 series is a prerelease, and the templates select it with version ranges. To add VUEDA to an existing project, use the same ranges. For the server, run `uv add "vueda[redis]>=3.0.0a5,<4"`. For the client, run `pnpm add "@arrai-innovations/vueda@^3.0.0-alpha.7"`. A range names the release series directly, so it does not depend on which version a registry tag such as `latest` points to.
+The v3 series is a prerelease, and the templates select it with version ranges. To add VUEDA to an existing project, use the same ranges. For the server, run `uv add "vueda[redis]>=3.0.0b1,<4"`. For the client, run `pnpm add "@arrai-innovations/vueda@^3.0.0-beta.1"`. A range names the release series directly, so it does not depend on which version a registry tag such as `latest` points to.
 
 ## Scaffold a New Project
 

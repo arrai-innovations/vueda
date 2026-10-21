@@ -13,7 +13,7 @@ Use this page for changes that affect server package consumers: Django apps, set
 
 <!-- towncrier release notes start -->
 
-## v3.0.0b1 (unreleased)
+## v3.0.0b1 (2026-10-21)
 
 This is the first public beta of the VUEDA v3 server. It adds REST endpoints, permissions, metadata, history, and workflow to a Django project, and the VUEDA client builds its screens from that metadata. A project on server v2.3.3 upgrades with [Upgrade from VUEDA v2](../../guides/upgrade-from-v2.md), which also covers the matching client upgrade. That guide lists v2 security defects that may need a review of existing data.
 

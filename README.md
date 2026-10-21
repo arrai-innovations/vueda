@@ -4,7 +4,7 @@
     <img src="docs/public/assets/logo-text-solid.png" alt="VUEDA: Vue.js User Experience for Django Administration" width="420">
 </a>
 
-[![npm alpha](https://img.shields.io/npm/v/@arrai-innovations/vueda/alpha)](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha) [![PyPI](https://img.shields.io/pypi/v/vueda)](https://pypi.org/project/vueda/)
+[![npm beta](https://img.shields.io/npm/v/@arrai-innovations/vueda/beta)](https://www.npmjs.com/package/@arrai-innovations/vueda/v/beta) [![PyPI](https://img.shields.io/pypi/v/vueda)](https://pypi.org/project/vueda/)
 
 **Build business applications with Django and Vue.**
 
@@ -80,10 +80,10 @@ The v3 series is currently a prerelease. Both packages are available from public
 registries; no registry credentials are needed. The tutorial and templates select
 the v3 releases.
 
-| Package                                                                                    | Role                                                                    |
-| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| [vueda](https://pypi.org/project/vueda/)                                                   | Django models, REST APIs, metadata, permissions, workflows, and history |
-| [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/alpha) | Vue components, forms, views, routing, and themes                       |
+| Package                                                                                   | Role                                                                    |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [vueda](https://pypi.org/project/vueda/)                                                  | Django models, REST APIs, metadata, permissions, workflows, and history |
+| [@arrai-innovations/vueda](https://www.npmjs.com/package/@arrai-innovations/vueda/v/beta) | Vue components, forms, views, routing, and themes                       |
 
 ## Develop VUEDA
 
