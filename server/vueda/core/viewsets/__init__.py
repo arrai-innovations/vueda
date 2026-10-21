@@ -16,7 +16,6 @@ __all__ = (
     "WarningConfirmationMixin",
     "apply_prefetch_plan",
     "build_prefetch_plan",
-    "filter_new_prefetch_lookups",
     "resolve_relation_path",
 )
 
@@ -963,11 +962,15 @@ def _prefetch_cache_keys(lookup):
     return intermediate_levels | {prefetch.prefetch_to}
 
 
-def filter_new_prefetch_lookups(queryset, prefetch_related):
+def _filter_new_prefetch_lookups(queryset, prefetch_related):
     """
     Drop each entry in ``prefetch_related`` (as returned by :func:`build_prefetch_plan`) that
-    ``queryset`` -- or an earlier-accepted entry in this same call -- already covers, so
-    ``VuedaViewSet.get_queryset()`` never hands Django two different querysets for the same lookup.
+    ``queryset`` -- or an earlier-accepted entry in this same call -- already covers.
+
+    The result is safe to apply only in the order that :func:`apply_prefetch_plan` sets, which is
+    this function's only caller. A kept ``Prefetch`` can share its key with a lookup that
+    ``queryset`` already carries without a queryset. Django raises ``ValueError`` unless the
+    ``Prefetch`` runs before that lookup, and ``apply_prefetch_plan`` orders the lookups that way.
 
     Django keys each fetched level of a lookup by a cache key (see ``_prefetch_cache_keys``). While
     it evaluates the lookups in order, a lookup that reaches an already fetched key reuses that
@@ -1101,7 +1104,7 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
     whose relation the join already cached.
 
-    The plan's prefetches go through :func:`filter_new_prefetch_lookups` first. A relation that
+    The function first drops each plan prefetch that ``queryset`` already covers. A relation that
     ``queryset`` already prefetches with a ``Prefetch`` queryset of its own keeps that ``Prefetch``.
     A relation that ``queryset`` prefetches without a queryset, such as with the string
     ``"customer"``, loads through the plan's ``Prefetch``, so its ``formatted_name`` annotation
@@ -1126,7 +1129,7 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     :return: ``queryset`` with the plan applied.
     :rtype: django.db.models.QuerySet
     """
-    new_lookups = filter_new_prefetch_lookups(queryset, prefetch_related)
+    new_lookups = _filter_new_prefetch_lookups(queryset, prefetch_related)
 
     prefetched_paths = set()
     for lookup in (*queryset._prefetch_related_lookups, *new_lookups):

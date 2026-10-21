@@ -49,9 +49,9 @@ from vueda.core.utils import implemented_builtin_actions
 from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.core.viewsets import VuedaViewSet
+from vueda.core.viewsets import _filter_new_prefetch_lookups
 from vueda.core.viewsets import apply_prefetch_plan
 from vueda.core.viewsets import build_prefetch_plan
-from vueda.core.viewsets import filter_new_prefetch_lookups
 from vueda.user.serializers import UserSerializer
 
 
@@ -126,7 +126,7 @@ def test_filter_new_prefetch_lookups_keeps_a_prefetch_object_over_a_bare_string(
     queryset = Timesheet.objects.prefetch_related("timesheet_entries")
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
-    assert filter_new_prefetch_lookups(queryset, plan) == plan
+    assert _filter_new_prefetch_lookups(queryset, plan) == plan
 
 
 def test_filter_new_prefetch_lookups_drops_a_prefetch_object_that_an_existing_queryset_claims():
@@ -135,21 +135,21 @@ def test_filter_new_prefetch_lookups_drops_a_prefetch_object_that_an_existing_qu
     )
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
-    assert filter_new_prefetch_lookups(queryset, plan) == []
+    assert _filter_new_prefetch_lookups(queryset, plan) == []
 
 
 def test_filter_new_prefetch_lookups_drops_a_prefetch_object_duplicate():
     queryset = Timesheet.objects.prefetch_related(Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all()))
     plan = ["timesheet_entries"]
 
-    assert filter_new_prefetch_lookups(queryset, plan) == []
+    assert _filter_new_prefetch_lookups(queryset, plan) == []
 
 
 def test_filter_new_prefetch_lookups_keeps_a_non_overlapping_lookup():
     queryset = Timesheet.objects.prefetch_related("timesheet_entries")
     other_lookup = Prefetch("events", queryset=Timesheet.pgh_event_model.objects.all())
 
-    assert filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
+    assert _filter_new_prefetch_lookups(queryset, [other_lookup]) == [other_lookup]
 
 
 def test_filter_new_prefetch_lookups_keeps_a_prefetch_object_the_existing_lookup_passes_through():
@@ -158,14 +158,14 @@ def test_filter_new_prefetch_lookups_keeps_a_prefetch_object_the_existing_lookup
     queryset = Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
-    assert filter_new_prefetch_lookups(queryset, plan) == plan
+    assert _filter_new_prefetch_lookups(queryset, plan) == plan
 
 
 def test_filter_new_prefetch_lookups_drops_a_bare_string_the_existing_lookup_passes_through():
     # The cache key is "timesheet_entries", not the whole lookup path.
     queryset = Timesheet.objects.prefetch_related("timesheet_entries__timesheet")
 
-    assert filter_new_prefetch_lookups(queryset, ["timesheet_entries"]) == []
+    assert _filter_new_prefetch_lookups(queryset, ["timesheet_entries"]) == []
 
 
 def test_filter_new_prefetch_lookups_drops_a_second_plan_entry_for_the_same_path():
@@ -176,7 +176,7 @@ def test_filter_new_prefetch_lookups_drops_a_second_plan_entry_for_the_same_path
     first = Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.filter(hours__gt=0))
     second = Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())
 
-    assert filter_new_prefetch_lookups(queryset, [first, second]) == [first]
+    assert _filter_new_prefetch_lookups(queryset, [first, second]) == [first]
 
 
 def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_renamed_with_to_attr():
@@ -188,7 +188,7 @@ def test_filter_new_prefetch_lookups_keeps_a_plan_entry_the_existing_lookup_rena
     )
     plan = [Prefetch("timesheet_entries", queryset=TimesheetEntry.objects.all())]
 
-    assert filter_new_prefetch_lookups(queryset, plan) == plan
+    assert _filter_new_prefetch_lookups(queryset, plan) == plan
 
 
 def expanded_serializer(serializer_class, expand):
@@ -1874,7 +1874,7 @@ class TestTimesheetWithToAttrPrefetchedEntriesViewSet(BaseTestAssertResponseMixi
     ``TimesheetWithToAttrPrefetchedEntriesViewSet.queryset`` hand-declares its own
     "timesheet_entries" prefetch under ``to_attr="raw_timesheet_entries"``, a distinct cache key
     from the "entries" expand's own plan entry (which uses the relation's default attribute name).
-    Before ``filter_new_prefetch_lookups`` compared lookups by lookup path rather than cache key,
+    Before ``_filter_new_prefetch_lookups`` compared lookups by lookup path rather than cache key,
     the plan entry was dropped as though it collided, silently falling back to one query per row --
     this covers that it now runs and holds a flat query count.
     """
