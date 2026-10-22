@@ -264,7 +264,7 @@ The prompt describes only the action. Describe other effects, such as ending ses
 
 The view differs from `ViewAction` in its copy and its request:
 
-- The page title is the transition's `name` in title case, followed by the model's verbose name. Until the workflow metadata loads, the title uses the transition code in title case. The prompt uses the same name in lower case.
+- The page title is the transition's `name` as written, followed by the model's verbose name. Until the workflow metadata loads, the title uses the transition code in title case. The prompt uses the same name in lower case.
 - Both the pre-flight and the confirm execute the transition. [Design Transition UX and Redirects](../../guides/transition-ux-and-redirects.md) describes the request.
 
 The confirmation shows the transition name and the selected records only. A pre-flight rejection shows its message beside the record's chip. To show source and target states or eligibility reasons, supply a project view for the transition code.

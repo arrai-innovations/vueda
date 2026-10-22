@@ -212,14 +212,24 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
         // The view contributes its title through `usePageTitle(source)`; read the registered getter.
         const pageTitle = () => mockedUsePageTitle.mock.calls[0][0]().title;
 
-        scopedIt("defaults to the start-cased transition display name followed by the model's verbose name", () => {
+        scopedIt("defaults to the transition display name as written, followed by the model's verbose name", () => {
             mockedInject.mockReturnValueOnce({});
             workflowTransitions.transitions = [{ code: "submit", name: "Submit for approval" }];
             modelConfig.config.verboseName = "purchase order";
             mount(ViewExecuteTransition, {
                 props: { app: "catalog", model: "purchaseorder", action: "submit", pk: "4" },
             });
-            expect(pageTitle()).toBe("Submit For Approval Purchase Order");
+            expect(pageTitle()).toBe("Submit for approval Purchase Order");
+        });
+
+        scopedIt("keeps the punctuation of a written display name", () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowTransitions.transitions = [{ code: "reopen", name: "Re-open" }];
+            modelConfig.config.verboseName = "purchase order";
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "reopen", pk: "4" },
+            });
+            expect(pageTitle()).toBe("Re-open Purchase Order");
         });
 
         scopedIt("falls back to the start-cased transition code when no transition matches yet", () => {
@@ -250,7 +260,7 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
             });
             expect(pageTitle()).toBe("");
             modelConfig.config.verboseName = "purchase order";
-            expect(pageTitle()).toBe("Submit For Approval Purchase Order");
+            expect(pageTitle()).toBe("Submit for approval Purchase Order");
         });
 
         scopedIt("uses the title prop when given, even before the verbose name is known", () => {
