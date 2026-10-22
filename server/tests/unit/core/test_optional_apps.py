@@ -128,6 +128,27 @@ def test_the_history_backend_is_configured():
     assert_probe_succeeded(result)
 
 
+def test_history_queries_load_without_workflow_and_find_no_state_events():
+    """History owns the registration point, so it builds its queries without importing workflow."""
+    result = run_optional_apps_probe(
+        """
+        import sys
+
+        import django
+
+        django.setup()
+
+        import vueda.history.queries
+        from vueda.history.sources import state_events_for
+
+        assert state_events_for(object()) == ()
+        assert "vueda.workflow.models" not in sys.modules
+        """
+    )
+
+    assert_probe_succeeded(result)
+
+
 def test_stale_optional_url_includes_are_empty_when_apps_are_absent():
     result = run_optional_apps_probe(
         """

@@ -11,6 +11,7 @@ event leaves no trace in a page count.
 
 __all__ = (
     "related_tracked_models",
+    "self_predicate",
     "visibility_predicate",
 )
 
@@ -53,11 +54,16 @@ def related_tracked_models(model):
     ]
 
 
+def self_predicate(instance):
+    """A predicate that selects the events written to the requested object itself."""
+    return Q(pgh_obj_model=_label(type(instance)), pgh_obj_id=str(instance.pk))
+
+
 def visibility_predicate(instance, user):
     """A predicate over the aggregate event columns for one requested object and one requester."""
     model = type(instance)
     # The endpoint authorized the requested object, so its own events need no further check.
-    predicate = Q(pgh_obj_model=_label(model), pgh_obj_id=str(instance.pk))
+    predicate = self_predicate(instance)
 
     for related in related_tracked_models(model):
         meta = related._meta

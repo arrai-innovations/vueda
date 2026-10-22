@@ -73,6 +73,7 @@ from vueda.history.queries import events_in_groups
 from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.history.serializers.actions import HistoryActionGroupSerializer
+from vueda.history.sources import state_events_for
 
 
 # The zero a column total falls back to when its filtered set is empty, by column type. Django hands
@@ -1615,7 +1616,7 @@ class VuedaViewSet(
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         # Name what the request is doing inside the action the history middleware opened, so an
-        # event records "update" or "execute_transition" rather than only that a request happened.
+        # event records "update" or "destroy" rather than only that a request happened.
         # Called as a function rather than entered, this adds to an open action and does nothing
         # outside one.
         if self.action:
@@ -1648,10 +1649,11 @@ class VuedaViewSet(
         """
         # get_object() authorizes the requested object, which is what makes its own events visible.
         instance = self.get_object()
-        groups = action_groups_for(instance, request.user)
+        state_events = state_events_for(instance)
+        groups = action_groups_for(instance, request.user, state_events)
         page = self.paginate_queryset(groups)
-        events = events_in_groups(instance, request.user, [group["group_key"] for group in page])
-        serializer = HistoryActionGroupSerializer(build_action_groups(instance, page, events), many=True)
+        events = events_in_groups(instance, request.user, state_events, [group["group_key"] for group in page])
+        serializer = HistoryActionGroupSerializer(build_action_groups(page, events), many=True)
         return self.get_paginated_response(serializer.data)
 
     def __init_subclass__(cls, **kwargs):

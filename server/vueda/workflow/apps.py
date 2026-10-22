@@ -99,10 +99,13 @@ class WorkflowConfig(AppConfig):
         from django.core.checks import register
         from django.db.models.signals import post_save
 
+        from vueda.history.sources import register_state_events
         from vueda.workflow.checks import check_workflow_definitions
         from vueda.workflow.models import ensure_object_state
+        from vueda.workflow.models import object_state_events
 
         register(check_workflow_definitions, Tags.database)
+        register_state_events(object_state_events)
 
         # Connected once for every sender rather than per model, because saving a proxy sends the
         # proxy class, which never passes through the feature-policy contributor.

@@ -22,6 +22,7 @@ Core Concepts explains the "why" behind VUEDA defaults and the contracts that le
 - [Filtering and Ordering Semantics](filtering-and-ordering-semantics.md): How server filtersets/ordering shape client query controls.
 - [Error and Validation Contract](error-and-validation-contract.md): Validation payload shapes, `non_field_errors`, and client form handling.
 - [Primary Key and Identifier Discipline](pk-and-identifier-discipline.md): Expected identifier formats and conversion across Python/JS boundaries.
+- [Model History Response](model-history-response.md): Which events an object's history includes, who sees them, and how they group into actions.
 
 ## Compatibility and Boundaries
 

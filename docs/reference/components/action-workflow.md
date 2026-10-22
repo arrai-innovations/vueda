@@ -277,6 +277,8 @@ Theme keys: {@api theme-key:ViewExecuteTransition}, {@api theme-key:ModelActionF
 
 {@api vue:component:ViewHistoryList} shows the {@term Model History} of one record as the actions that produced it. The page title reads "History of" plus the model's verbose name, and a "Back" button sits in the page actions. Each action groups the events it wrote that touch the record, and each event lists its field changes. A meta strip above the grid switches between table and card layouts, and a {@api vue:component:PaginationFooter} follows the grid.
 
+The Model cell names the row that an event wrote. A related row's model name has its object id beside it. A workflow state event reads "Workflow state". [Model History Response](../../core-concepts/model-history-response.md) describes which events the response includes and how they group.
+
 In the table layout, each field change is one row. The first row of an action carries the action's When, Who, Kind, and Action cells. The first row of each event carries its Model and Type cells. An action's first row has `data-rev-start`, its other rows have `data-rev-child`, and each event's first row has `data-event-start`. {@api theme-key:ViewHistoryList.row} draws the action stripe from these attributes, so the grouping survives a reskin.
 
 In the card layout, each event is one card. Its changes stack in the Old and New cells, each value labeled with its field name.
