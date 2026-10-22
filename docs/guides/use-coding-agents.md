@@ -98,9 +98,32 @@ should tell you which behavior it could not verify.
 
 ## Update the Skill
 
-Rerun the installation command to update `using-vueda` from the VUEDA
-repository. Review and commit the resulting changes in your application.
-Updating a VUEDA package does not update this separately installed skill.
+Check for skill updates when you update VUEDA dependencies. With this
+installation method, neither Claude Code nor Codex downloads skill updates
+automatically. Updating a VUEDA package or the coding agent does not update
+the installed skill.
+
+From your application's repository root, check for available updates:
+
+```bash
+npx skills check
+```
+
+Update this project's copy of `using-vueda`:
+
+```bash
+npx skills update using-vueda --project
+```
+
+You can also rerun the installation command. Review and commit the changed
+skill files and `skills-lock.json` so that your team uses the same copy.
+The lockfile records the source and a hash of the skill directory, including
+its scripts. See the [Skills CLI reference](https://github.com/vercel-labs/skills/blob/main/docs/commands.md#skills-update)
+for update options.
+
+Skill updates provide new instructions and helper behavior. The symbol lookup
+helper fetches the current symbol index on each run, so new symbols
+and documentation pages do not require a skill update.
 
 The [skill source](https://github.com/arrai-innovations/vueda/blob/main/skills/using-vueda/SKILL.md)
 contains the instructions that both agents use.
