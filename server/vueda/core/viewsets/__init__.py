@@ -1386,7 +1386,8 @@ class NoExtraFieldsForViewSetMixin:
 
             for extra_key in extra_keys:
                 errors.setdefault(extra_key, []).append(
-                    f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}"
+                    f"Invalid field.  Valid fields are {', '.join(sorted(valid_fields))}. Or use a wildcard to "
+                    f"specify all: {', '.join(sorted(valid_wildcard_fields, key=sort_by_dot_count_alphabetically))}"
                 )
 
         if settings.REST_FLEX_FIELDS2["EXPAND_PARAM"] in request.query_params:
@@ -1795,15 +1796,16 @@ class VuedaViewSet(
         Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
         is ``None`` -- through this viewset's own configured permission classes.
 
-        Checked as an ordinary "retrieve" read, through :func:`vueda.core.permissions.check_action_permission`,
-        the same function an object's own ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`)
-        and model metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
-        already call to check ``retrieve`` for the same row or model, on this same viewset
-        instance, within the same request. ``check_action_permission`` caches its answer per
-        ``(action, instance)`` on that viewset instance, so whichever of those two callers reaches
-        ``retrieve`` first pays for the permission pass, and this call reuses that answer instead
-        of paying for a second one. See ``check_action_permission`` for what "checked as an
-        action" means and why ``instance=None`` takes a different path than a specific object.
+        Checked as an ordinary "retrieve" read, through
+        :func:`vueda.core.permissions.check_action_permission`, the same function an object's own
+        ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`) and model
+        metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
+        already call to check ``retrieve`` for the same row or model, on this same viewset instance, within
+        the same request. ``check_action_permission`` caches its answer per ``(action, instance)`` on that
+        viewset instance, so whichever of those two callers reaches ``retrieve`` first pays for the
+        permission pass, and this call reuses that answer instead of paying for a second one. See
+        ``check_action_permission`` for what "checked as an action" means and why ``instance=None`` takes a
+        different path than a specific object.
         """
         return check_action_permission(self, request, instance, "retrieve")
 

@@ -1320,7 +1320,8 @@ class TestStoreProductViewSet:
         )
         assert (
             response.data["distributor.brands"][0]
-            == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, "
+            "distributor.*, distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
@@ -1346,7 +1347,12 @@ class TestStoreProductViewSet:
         )
         assert (
             response.data["distributor.brands"][0]
-            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, distributor, distributor.description, distributor.formatted_name, distributor.id, distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, distributor.~all"
+            == "Invalid field.  Valid fields are available_actions, current_sale_date, description, disabled, "
+            "distributor, distributor.description, distributor.formatted_name, distributor.id, "
+            "distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, "
+            "internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, "
+            "reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, "
+            "distributor.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
 
     def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
@@ -1462,7 +1468,8 @@ class TestStoreProductViewSet:
         assert len(response.data["bogus"]) == 1, response_body(response)
         assert response.data["bogus"][0].startswith("Invalid field.  Valid fields are "), response_body(response)
         assert response.data["distributor.brands"] == [
-            "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, distributor.*, distributor.~all"
+            "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, "
+            "distributor.*, distributor.~all"
         ], response_body(response)
         assert "VuedaValidationError" in response.data["serverStack"], response_body(response)
 
@@ -1710,7 +1717,11 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         period_start = new_instance.period_start
         period_end = new_instance.period_end
-        formatted_name = f"{new_instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = (
+            f"{new_instance.employee.employee_number} on "
+            f"{period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')}"
+            f" to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        )
         expected_create_response["formatted_name"] = formatted_name
 
     def update_expected_retrieve_response(self, expected_retrieve_response, instance):
@@ -1718,7 +1729,11 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         period_start = instance.period_start
         period_end = instance.period_end
-        formatted_name = f"{instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = (
+            f"{instance.employee.employee_number} on "
+            f"{period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')}"
+            f" to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        )
         expected_retrieve_response["formatted_name"] = formatted_name
 
     def update_expected_update_response(self, expected_update_response, updated_instance):
@@ -1726,7 +1741,11 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
 
         period_start = updated_instance.period_start
         period_end = updated_instance.period_end
-        formatted_name = f"{updated_instance.employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = (
+            f"{updated_instance.employee.employee_number} on "
+            f"{period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')}"
+            f" to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        )
         expected_update_response["formatted_name"] = formatted_name
 
     def test_list_with_valid_expands(self, page_data, authenticated_client, list_querystring):
@@ -1782,7 +1801,11 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         }
         period_start = instance.period_start
         period_end = instance.period_end
-        formatted_name = f"{employee.employee_number} on {period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')} to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        formatted_name = (
+            f"{employee.employee_number} on "
+            f"{period_start.strftime('%Y')}/{period_start.strftime('%m')}/{period_start.strftime('%d')}"
+            f" to {period_end.strftime('%Y')}/{period_end.strftime('%m')}/{period_end.strftime('%d')}"
+        )
         expected_retrieve_response["formatted_name"] = formatted_name
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -1799,7 +1822,8 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert len(response.data["guardian"]) == 1, f"guardian data: {response.data['guardian']}"
         assert (
             response.data["guardian"][0]
-            == "Invalid expands. Permitted expands are employee, foo, supervisor, timesheet_entry. Or use a wildcard to expand all: *, ~all"
+            == "Invalid expands. Permitted expands are employee, foo, supervisor, timesheet_entry. Or use a "
+            "wildcard to expand all: *, ~all"
         ), f"guardian message: {response.data['guardian'][0]}"
         assert "employee" not in response.data
 

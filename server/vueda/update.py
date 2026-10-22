@@ -228,7 +228,8 @@ def backup(stdout: typing.TextIO, stderr: typing.TextIO, non_interactive: bool =
     """
     Clean up backups older than a week. Create a new database backup.
     """
-    # Configure Django settings and get config up front in this command, so we are not halfway through and throw an error
+    # Configure Django settings and get config up front in this command, so we are not halfway through and throw an
+    # error
     _, _, manage_py_dir = detect_package_manager()
     settings = configure_django_settings(manage_py_dir)
     backup_dir = os.path.expanduser(settings.DATABASE_BACKUP_DIR)

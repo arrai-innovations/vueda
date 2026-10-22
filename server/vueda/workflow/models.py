@@ -482,7 +482,8 @@ class TransitionSource(models.Model):
 class ObjectStateProxy(models.Model):
     """
     A view that adds workflow's content type as a calculated field on object state.
-    Used for the object_states_proxy GenericRelation that workflow adds to each workflow model (reverse GenericForeignKey).
+    Used for the object_states_proxy GenericRelation that workflow adds to each workflow model
+    (reverse GenericForeignKey).
     """
 
     workflow = models.ForeignKey(
@@ -719,9 +720,10 @@ class WorkflowModelMethods:
         """
         with self.cached_workflow_state():
             # has_workflow_permission resolves the workflow first, so a missing definition is still
-            # reported as one rather than as a denial. A user without the workflow permissions for this object has nothing to take, which
-            # object-transitions reports as a denial. Here it is an empty result, so a list or detail
-            # response that includes valid_transitions still succeeds for a reader.
+            # reported as one rather than as a denial. A user without the workflow permissions for this
+            # object has nothing to take, which object-transitions reports as a denial. Here it is an
+            # empty result, so a list or detail response that includes valid_transitions still succeeds
+            # for a reader.
             if not self.has_workflow_permission(user, obj=self):
                 return Transition.objects.none()
             transitions = self.fast_available_transitions()
@@ -946,7 +948,8 @@ class WorkflowModelMethods:
         return {}
 
     def get_transition(self, transition_code: str) -> Transition:
-        """Return the ``Transition`` with the given code in this object's workflow. Raises ``Transition.DoesNotExist`` if not found."""
+        """Return the ``Transition`` with the given code in this object's workflow. Raises ``Transition.DoesNotExist``
+        if not found."""
         try:
             return Transition.objects.get(
                 workflow=self.workflow,
