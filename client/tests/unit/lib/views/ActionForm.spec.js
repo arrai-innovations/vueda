@@ -166,6 +166,7 @@ function mountActionForm(options = {}) {
             ...options.props,
         },
         slots: options.slots,
+        attachTo: options.attachTo,
         global: {
             provide: { [FormContextSymbol]: formContext },
         },
@@ -233,6 +234,29 @@ describe("lib/views/ActionForm.vue", () => {
             expect(formId).toBeTruthy();
             const confirm = wrapper.get('[data-qa="action-form-buttons"] [data-qa="prime-button"]');
             expect(confirm.attributes("form")).toBe(formId);
+        });
+
+        scopedIt("leaves the form attribute off the confirm button without page", () => {
+            const { wrapper } = mountActionForm();
+            const confirm = wrapper.get('[data-qa="action-form-buttons"] [data-qa="prime-button"]');
+            expect(confirm.attributes("form")).toBeUndefined();
+        });
+
+        scopedIt("gives each page form an id that is unique across Vue apps", () => {
+            // Each mount() is a separate Vue app, as each documentation demo is. useId() restarts in
+            // every app, so it would give both forms the same id.
+            const first = mountActionForm({ props: { page: true }, attachTo: document.body }).wrapper;
+            const second = mountActionForm({ props: { page: true }, attachTo: document.body }).wrapper;
+            try {
+                expect(first.get("form").attributes("id")).not.toBe(second.get("form").attributes("id"));
+                for (const wrapper of [first, second]) {
+                    const confirm = wrapper.get('[data-qa="action-form-buttons"] [data-qa="prime-button"]');
+                    expect(confirm.element.form).toBe(wrapper.get("form").element);
+                }
+            } finally {
+                first.unmount();
+                second.unmount();
+            }
         });
 
         scopedIt("passes the form id to a confirm-button slot", () => {

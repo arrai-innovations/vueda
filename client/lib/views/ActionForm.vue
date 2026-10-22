@@ -12,7 +12,8 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { createReusableTemplate } from "@vueuse/core";
-import { computed, inject, reactive, toRef, useId } from "vue";
+import uniqueId from "lodash-es/uniqueId.js";
+import { computed, inject, reactive, toRef } from "vue";
 
 /**
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
@@ -150,8 +151,12 @@ const {
     handleCancelClick,
 } = useActionForm(formContext, props);
 const theme = useTheme("ActionForm", props, reactive({ page: toRef(props, "page") }));
-// A sticky action bar teleports out of the <form>, so the confirm button names the form by id.
-const formId = useId();
+// On a page, the sticky action bar renders outside the <form>, so the confirm button names the form
+// by id. The id has to be unique on the whole page, not only within this Vue app: useId() restarts in
+// each app, and a page can run several, as the documentation does with one app per demo.
+const formId = uniqueId("vueda-action-form-");
+// Only a button outside the form needs the attribute. In a card the button sits inside its form.
+const confirmFormId = computed(() => (props.page ? formId : undefined));
 // The action bar renders in one of two places: in a StickyBar above the content, or as a strip below it.
 const [DefineActionBar, ReuseActionBar] = createReusableTemplate();
 const icon = useIcons("ActionForm", props);
@@ -222,16 +227,16 @@ const validationTitle = computed(() => {
                 :handle-cancel-click="handleCancelClick"
             >
                 <div :class="theme(page ? 'stickyButtons' : 'buttons')" data-qa="action-form-buttons">
-                    <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, `form`, and `disabled` as slot props. `form` is the id of the action's form; bind it so the button still submits when a sticky action bar renders it outside the form. `disabled` is true while the action runs, after a successful submit navigates away, and while the form has errors. -->
+                    <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, `form`, and `disabled` as slot props. With `page`, `form` is the id of the action's form; bind it so the button still submits from the sticky action bar, which renders outside the form. Without `page`, `form` is undefined. `disabled` is true while the action runs, after a successful submit navigates away, and while the form has errors. -->
                     <slot
                         label="Yes, continue"
                         :loading="combinedLoading"
                         name="confirm-button"
                         type="submit"
-                        :form="formId"
+                        :form="confirmFormId"
                         :disabled="confirmDisabled"
                     >
-                        <Button type="submit" :form="formId" tone="primary" :disabled="confirmDisabled">
+                        <Button type="submit" :form="confirmFormId" tone="primary" :disabled="confirmDisabled">
                             <LoadingSpinnerInline v-if="combinedLoading" />
                             Yes, continue
                         </Button>
