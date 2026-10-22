@@ -1,8 +1,11 @@
+import { DOCS_SRC_EXCLUDE, markdownDiscoveryHead } from "../../docs-tooling/js/exporters/markdown.js";
 import { apiLinkPlugin } from "../../docs-tooling/js/utils/api-link-plugin.js";
 import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/utils/changelog-draft-plugin.js";
 import { glossaryTermPlugin } from "../../docs-tooling/js/utils/glossary-term-plugin.js";
-import { apiMemberTitle, memberAnchorFromId } from "../../docs-tooling/js/utils/reference-index.js";
+import { buildApiLinks, buildGlossaryLinks } from "../../docs-tooling/js/utils/reference-links.js";
 import { normalizeTerm, parseFrontmatter, stripInlineMarkdown } from "../../docs-tooling/js/utils/reference-parser.js";
+import { walkFiles } from "../../docs-tooling/js/utils/walk-files.js";
+import { markdownDocsPlugin } from "../../docs-tooling/js/vite/markdown-docs.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
 import fs from "node:fs";
@@ -217,142 +220,27 @@ const writeTimingReport = (siteConfig) => {
     logger.info(`[docs timing] report: ${docsTimingReportPath}`);
 };
 
-const walkFiles = (dir) => {
-    if (!fs.existsSync(dir)) {
-        return [];
-    }
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    return entries.flatMap((entry) => {
-        const entryPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            return walkFiles(entryPath);
-        }
-        return [entryPath];
-    });
-};
-
 const extractHeading = (body) => {
     const match = body.match(/^#\s+(.+)\s*$/m);
     return match ? match[1].trim() : null;
 };
 
-const slugifyHeading = (value) =>
-    stripInlineMarkdown(value)
-        .toLowerCase()
-        .trim()
-        .replace(/<[^>]+>/g, "")
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "-");
-
-const buildGlossaryIndex = () => {
-    const index = new Map();
-    if (!fs.existsSync(glossaryFile)) {
-        setTimingMetric("glossary.terms", 0);
-        return index;
-    }
-
-    const raw = fs.readFileSync(glossaryFile, "utf-8");
-    const { body } = parseFrontmatter(raw);
-    const headings = body.matchAll(/^##\s+(.+?)\s*$/gm);
-    const slugCounts = new Map();
-
-    for (const headingMatch of headings) {
-        const term = headingMatch[1].trim();
-        if (!term) {
-            continue;
-        }
-        const baseSlug = slugifyHeading(term);
-        if (!baseSlug) {
-            continue;
-        }
-        const nextCount = (slugCounts.get(baseSlug) || 0) + 1;
-        slugCounts.set(baseSlug, nextCount);
-        const slug = nextCount === 1 ? baseSlug : `${baseSlug}-${nextCount - 1}`;
-        const key = normalizeTerm(stripInlineMarkdown(term));
-
-        if (index.has(key)) {
-            throw new Error(`Duplicate glossary term: ${term}`);
-        }
-        index.set(key, {
-            term,
-            href: `/reference/glossary#${slug}`,
-        });
-    }
-
-    setTimingMetric("glossary.terms", index.size);
-    return index;
-};
-
-const referenceRoots = [
-    { root: apiRoot, urlPrefix: "/reference/api/" },
-    { root: path.join(docsRoot, "reference", "theming"), urlPrefix: "/reference/theming/" },
-];
-
-const pathForFile = (filePath, root, urlPrefix) => {
-    const rel = path.relative(root, filePath).split(path.sep).join("/");
-    if (rel.endsWith("/index.md")) {
-        return `${urlPrefix}${rel.slice(0, -"index.md".length)}`;
-    }
-    if (rel === "index.md") {
-        return urlPrefix;
-    }
-    return `${urlPrefix}${rel}`;
-};
-
-const buildApiIndex = () => {
-    const index = new Map();
-    let fileCount = 0;
-    for (const { root, urlPrefix } of referenceRoots) {
-        if (!fs.existsSync(root)) {
-            continue;
-        }
-        const files = walkFiles(root).filter((file) => file.endsWith(".md"));
-        fileCount += files.length;
-        for (const filePath of files) {
-            const raw = fs.readFileSync(filePath, "utf-8");
-            const { frontmatter, body } = parseFrontmatter(raw);
-            if (!frontmatter.id) {
-                continue;
-            }
-            if (index.has(frontmatter.id)) {
-                throw new Error(`Duplicate API id: ${frontmatter.id}`);
-            }
-            const title = frontmatter.title || extractHeading(body) || frontmatter.id;
-            const pageHref = pathForFile(filePath, root, urlPrefix);
-            index.set(frontmatter.id, {
-                href: pageHref,
-                title,
-                filePath,
-            });
-            if (Array.isArray(frontmatter.member_ids)) {
-                for (const memberId of frontmatter.member_ids) {
-                    if (!memberId || index.has(memberId)) {
-                        continue;
-                    }
-                    const anchor = memberAnchorFromId(memberId);
-                    index.set(memberId, {
-                        href: anchor ? `${pageHref}#${anchor}` : pageHref,
-                        title: apiMemberTitle(title, memberId),
-                        filePath,
-                    });
-                }
-            }
-        }
-    }
-    setTimingMetric("apiIndex.files", fileCount);
-    // Upstream documentation ids, which the docs-tooling external extractor writes as a flat map.
-    const externalIdsFile = path.join(docsRoot, "..", "docs-tooling", ".generated", "external-ids.json");
-    if (fs.existsSync(externalIdsFile)) {
-        for (const [id, entry] of Object.entries(JSON.parse(fs.readFileSync(externalIdsFile, "utf-8")))) {
-            index.set(id, { href: entry.href, title: entry.title, external: true });
-        }
-    }
-    setTimingMetric("apiIndex.ids", index.size);
-    return index;
-};
-
-const apiIndex = timeSync("config:api-index", buildApiIndex);
-const glossaryIndex = timeSync("config:glossary-index", buildGlossaryIndex);
+const apiIndex = timeSync("config:api-index", () =>
+    buildApiLinks(docsRoot, path.join(docsRoot, "..", "docs-tooling", ".generated", "external-ids.json")),
+);
+const glossaryIndex = timeSync("config:glossary-index", () => buildGlossaryLinks(glossaryFile));
+if (docsTiming) {
+    const referenceRoots = [apiRoot, path.join(docsRoot, "reference", "theming")];
+    setTimingMetric(
+        "apiIndex.files",
+        referenceRoots
+            .filter((root) => fs.existsSync(root))
+            .flatMap(walkFiles)
+            .filter((file) => file.endsWith(".md")).length,
+    );
+}
+setTimingMetric("apiIndex.ids", apiIndex.size);
+setTimingMetric("glossary.terms", glossaryIndex.size);
 
 const instrumentMarkdownTiming = (md) => {
     if (!docsTiming) {
@@ -742,7 +630,7 @@ export default defineConfig({
     metaChunk: true,
     buildConcurrency:
         Number.isFinite(docsBuildConcurrency) && docsBuildConcurrency > 0 ? docsBuildConcurrency : undefined,
-    srcExclude: ["**/AGENTS.md", "**/CLAUDE.md", "**/CONTENT_PLAN.md", "**/README.md", "temp/**"],
+    srcExclude: DOCS_SRC_EXCLUDE,
     head: [
         ["link", { rel: "icon", href: `${base}assets/logo-cube-solid.svg` }],
         [
@@ -771,6 +659,7 @@ export default defineConfig({
                 ...pageData.frontmatter,
                 head: [
                     ...authoredHead,
+                    ...markdownDiscoveryHead(pageData.relativePath, siteConfig.site.base),
                     ...buildSocialHead({
                         siteUrl,
                         base: siteConfig.site.base,
@@ -879,6 +768,11 @@ export default defineConfig({
             host: true,
             https: httpsConfig,
         },
-        plugins: [tailwindcss(), generatedAssetsPlugin(), docsTimingPlugin()].filter(Boolean),
+        plugins: [
+            tailwindcss(),
+            generatedAssetsPlugin(),
+            markdownDocsPlugin({ docsRoot, repoRoot, siteUrl }),
+            docsTimingPlugin(),
+        ].filter(Boolean),
     },
 });

@@ -1,5 +1,5 @@
 <script setup>
-import { useData } from "vitepress";
+import { useData, withBase } from "vitepress";
 import { computed } from "vue";
 
 const { theme } = useData();
@@ -18,8 +18,12 @@ const parts = computed(() => {
 </script>
 
 <template>
-    <footer v-if="parts.length" class="VuedaVersionFooter">
-        <p class="line">
+    <footer class="VuedaVersionFooter">
+        <p class="line documentation-index">
+            <a :href="withBase('/llms.txt')" target="_self">Documentation index (llms.txt)</a>
+            <span> for coding agents</span>
+        </p>
+        <p v-if="parts.length" class="line">
             <span>Documents matching: </span>
             <template v-for="(part, index) in parts" :key="part.label">
                 <span v-if="index > 0" class="sep" aria-hidden="true">·</span>
@@ -49,6 +53,20 @@ const parts = computed(() => {
 .line .sep {
     margin: 0 0.5em;
     color: var(--vp-c-text-3);
+}
+
+.documentation-index + .line {
+    margin-top: 4px;
+}
+
+.documentation-index a {
+    color: var(--vp-c-brand-1);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.documentation-index a:hover {
+    color: var(--vp-c-brand-2);
 }
 
 .line code {

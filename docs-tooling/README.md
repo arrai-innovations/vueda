@@ -13,6 +13,7 @@ Internal tooling for extracting, normalizing, and rendering API documentation in
     - [Extract](#extract)
     - [Normalize](#normalize)
     - [Render](#render)
+    - [Export Markdown](#export-markdown)
   - [Workflow](#workflow)
   - [Install](#install)
   - [Source Annotations](#source-annotations)
@@ -101,6 +102,23 @@ Options:
 - `--input` (single-source override)
 - `--output` (rendered Markdown dir)
 
+### Export Markdown
+
+```console
+$ ./bin/docs-tooling.js export-markdown --base /v3/ --site-url https://vueda.dev
+```
+
+Run after API rendering to write published pages, `llms.txt`, and `llms-full.txt`
+to `.generated/markdown/`. The exporter resolves API and glossary references,
+expands full-file Markdown includes and code snippets, and preserves embedded Vue source.
+Directory indexes retain their `index.md` filenames. Internal pages are excluded.
+Unknown references and documentation links fail the export.
+
+VitePress runs the same exporter before bundling and emits the files as static
+assets. HTML pages link to their Markdown versions. The development server
+refreshes exports on the next Markdown request after an input changes. The
+`--base` option defaults to `VITEPRESS_BASE`, or `/vueda/` when it is unset.
+
 ## Workflow
 
 From repo root:
@@ -109,6 +127,7 @@ From repo root:
 - `just docs-normalize`
 - `just docs-render`
 - `just docs-api` (extract + normalize + render)
+- `just docs-markdown` (export the current authored and generated pages)
 
 ## Install
 
