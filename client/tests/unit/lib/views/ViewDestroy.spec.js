@@ -80,7 +80,7 @@ describe("lib/views/ViewDestroy.vue", () => {
     });
 
     describe("Destructive action presentation", () => {
-        scopedIt("wraps ModelActionForm in a danger-toned card with a banner", () => {
+        scopedIt("renders ModelActionForm as a danger-toned page with the destroy banner in its banner slot", () => {
             const modelConfig = reactive({ info: { pk: "id", verboseName: "thing", verboseNamePlural: "things" } });
             mockedUseViewDestroy.mockReturnValue({
                 modelConfig,
@@ -90,15 +90,17 @@ describe("lib/views/ViewDestroy.vue", () => {
 
             const wrapper = mount(ViewDestroy, { props: { app: "a", model: "thing", pk: "5" } });
 
-            const card = wrapper.get('[data-qa="view-destroy-card"]');
-            expect(card.attributes("data-tone")).toBe("danger");
-            const title = wrapper.get('[data-qa="view-destroy-banner-title"]');
+            const form = wrapper.get('[data-qa="model-action-form"]');
+            expect(form.attributes("tone")).toBe("danger");
+            expect(form.attributes("page")).toBeDefined();
+            expect(form.attributes("action-verbose-name")).toBe("delete");
+            const bannerSlot = form.get('[data-slot="action-banner"]');
+            const title = bannerSlot.get('[data-qa="view-destroy-banner-title"]');
             expect(title.text()).toContain("permanently delete");
             expect(title.text()).toContain("thing");
-            expect(wrapper.get('[data-qa="view-destroy-banner-description"]').text()).toContain(
+            expect(bannerSlot.get('[data-qa="view-destroy-banner-description"]').text()).toContain(
                 "This action cannot be undone.",
             );
-            expect(wrapper.findComponent(ModelActionFormStub).exists()).toBe(true);
         });
 
         scopedIt("renders linkedObjectCounts entries via ConsequencesBullets", () => {

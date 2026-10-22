@@ -1,4 +1,5 @@
 <script setup>
+import { useList } from "@arrai-innovations/reactive-helpers";
 import Button from "@vueda/controls/button/Button.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import FieldWarningsList from "@vueda/form/confirm/FieldWarningsList.vue";
@@ -7,14 +8,17 @@ import FormField from "@vueda/form/form-model/FormField.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
+import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelAction } from "@vueda/use/useModelAction.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import ActionForm from "@vueda/views/ActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
-import { computed, inject, provide, ref, unref, useSlots, watch } from "vue";
+import upperFirst from "lodash-es/upperFirst.js";
+import { computed, inject, provide, reactive, ref, toRef, unref, useSlots, watch } from "vue";
 
 /**
  * Wraps `ActionForm` to execute a named action (such as delete or a custom
@@ -23,9 +27,12 @@ import { computed, inject, provide, ref, unref, useSlots, watch } from "vue";
  * validation, and post-action redirect to the appropriate list or detail view.
  *
  * Renders a tone-tracked confirmation card with a banner, a selected-objects
- * chip-row panel, and a confirm-prompt panel. The `bare` prop suppresses the
- * card chrome and banner so a parent view (such as `ViewDestroy`) can wrap
- * the form in its own toned card.
+ * chip-row panel, and a confirm-prompt panel. The `page` prop renders the same
+ * parts as a routed page instead: the confirm button moves into the sticky
+ * action bar and the parts sit in the page gutter, as the detail views lay out
+ * a page. The action views and `ViewDestroy` set `page`. The `bare` prop
+ * suppresses the card chrome and banner, for a host that wraps the form in a
+ * card of its own.
  */
 
 defineOptions({
@@ -74,7 +81,7 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    /** Reactive fetch state object providing the list of selected objects and their data. */
+    /** Reactive fetch state object providing the list of selected objects and their data. Without it, the form looks the selected records up by primary key so its chips can show their formatted names. That lookup is for display only and never changes which records the action targets. */
     fetchState: {
         type: Object,
         default: undefined,
@@ -126,11 +133,20 @@ const props = defineProps({
         default: undefined,
     },
     /**
-     * When true, suppress the card chrome and tone-tracked banner. Used by
-     * parent views (such as `ViewDestroy`) that wrap the form in their own
-     * toned card.
+     * When true, suppress the card chrome and tone-tracked banner, for a host
+     * that wraps the form in a card of its own.
      */
     bare: {
+        type: Boolean,
+        default: false,
+    },
+    /**
+     * When true, the form fills a view's page rather than sitting in a card. The confirm button moves
+     * into a top-zone StickyBar beside the page title, and the cancel button is left out, because the
+     * view's Go Back action already leaves the page. Without `bare`, the card chrome is also dropped:
+     * the banner, selected records, and confirm prompt sit directly in the view's gutter.
+     */
+    page: {
         type: Boolean,
         default: false,
     },
@@ -174,7 +190,7 @@ const modelConfig = modelAction.modelConfig;
 const {
     pksAsString,
     pkCount,
-    objectsMap,
+    objectsMap: hostObjectsMap,
     modelVerboseName,
     actionSuccessSummary: actionSuccessSummaryComputed,
     actionErrorSummary: actionErrorSummaryComputed,
@@ -186,8 +202,32 @@ const {
     dryRunTarget,
 } = modelAction.state;
 const redirectTo = modelAction.redirectTo;
+// A host that fetches the selected records passes them as `fetchState`. Without one, look the
+// records up here, so each chip shows the record's formatted name rather than its primary key.
+// The lookup is for display only: the action still targets the `pk` prop, and a failed lookup
+// leaves the chips showing primary keys without blocking the confirm button.
+const isActive = useIsActive();
+const selectedObjectsLookup = props.fetchState
+    ? null
+    : useList({
+          props: reactive({
+              target: { app: toRef(props, "app"), model: toRef(props, "model") },
+              pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+              params: { id: pksAsString },
+              intendToList: computed(
+                  () => !!(isActive.value && pksAsString.value.length > 0 && modelConfig.loading === false),
+              ),
+          }),
+          handlers: { list: allPagePaginatedListCrudAdaptor },
+      });
+const objectsMap = computed(() =>
+    selectedObjectsLookup ? selectedObjectsLookup.state.objectsMap || new Map() : hostObjectsMap.value,
+);
+// The confirm button names the action it runs, in sentence case, so a reader who skips the prompt
+// still sees what pressing it does.
+const confirmLabel = computed(() => upperFirst(unref(modelAction.state.actionVerboseNameLowerCase)));
 const defaultRunAction = modelAction.runAction;
-const theme = useTheme("ModelActionForm", props);
+const theme = useTheme("ModelActionForm", props, reactive({ page: toRef(props, "page") }));
 const icon = useIcons("ModelActionForm", props);
 const slots = useSlots();
 
@@ -245,6 +285,8 @@ const resolveWarningGroups = (warnings, bulk) => {
         v-bind="$attrs"
         :action-error-summary="actionErrorSummaryComputed"
         :action-success-summary="actionSuccessSummaryComputed"
+        :page="page"
+        :cancel-button="!page"
     >
         <template
             v-for="(_, slot) in omit(slots, [
@@ -261,16 +303,17 @@ const resolveWarningGroups = (warnings, bulk) => {
             <slot
                 v-if="$slots['confirm-button']"
                 name="confirm-button"
-                v-bind="{ ...slotProps, disabled: slotProps.disabled || typedConfirmGateBlocking }"
+                v-bind="{ ...slotProps, label: confirmLabel, disabled: slotProps.disabled || typedConfirmGateBlocking }"
             />
             <Button
                 v-else
                 type="submit"
+                :form="slotProps.form"
                 :tone="tone === 'danger' ? 'destructive' : 'primary'"
                 :disabled="slotProps.loading || slotProps.disabled || typedConfirmGateBlocking"
             >
                 <LoadingSpinnerInline v-if="slotProps.loading" />
-                {{ slotProps.label }}
+                {{ confirmLabel }}
             </Button>
         </template>
         <template #action-form-inner="{ combinedLoading }">
@@ -365,7 +408,11 @@ const resolveWarningGroups = (warnings, bulk) => {
                                             </template>
                                         </widget-read-only>
                                     </form-field>
-                                    <span :class="theme('listItemPk')" data-qa="action-form-list-item-pk">
+                                    <span
+                                        v-if="!objectsMap.get(targetPk)?.formatted_name"
+                                        :class="theme('listItemPk')"
+                                        data-qa="action-form-list-item-pk"
+                                    >
                                         {{ targetPk }}
                                     </span>
                                 </li>

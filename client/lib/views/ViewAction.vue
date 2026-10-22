@@ -116,11 +116,18 @@ const theme = useTheme("ViewAction", props);
         <!-- Page actions teleport into the layout's PageTitle action zone. -->
         <page-actions>
             <slot label="Go Back" name="return-button" @click="handleReturnClick">
-                <Button @click="handleReturnClick">Go Back</Button>
+                <Button emphasis="outline" @click="handleReturnClick">Go Back</Button>
             </slot>
         </page-actions>
         <slot :action="action" :app="app" :form-context="formContext" :model="model" :pk="pk">
-            <model-action-form :action="action" :app="app" :model="model" :pk="pk" v-bind="omit($attrs, ['class'])">
+            <model-action-form
+                :action="action"
+                :app="app"
+                :model="model"
+                :pk="pk"
+                page
+                v-bind="omit($attrs, ['class'])"
+            >
                 <template v-for="(_, slot) in omit(slots, ['before-list'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>

@@ -135,7 +135,7 @@ const theme = useTheme("ViewExecuteTransition", props);
         <!-- The "Go Back" action teleports into the layout's PageTitle action zone. -->
         <page-actions>
             <slot label="Go Back" name="return-button" @click="handleReturnClick">
-                <Button @click="handleReturnClick">Go Back</Button>
+                <Button emphasis="outline" @click="handleReturnClick">Go Back</Button>
             </slot>
         </page-actions>
         <model-action-form
@@ -145,6 +145,7 @@ const theme = useTheme("ViewExecuteTransition", props);
             :model="model"
             :pk="pk"
             :run-action="runAction"
+            page
             v-bind="omit($attrs, ['class'])"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">

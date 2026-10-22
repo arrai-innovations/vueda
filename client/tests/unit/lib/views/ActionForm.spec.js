@@ -163,8 +163,10 @@ function mountActionForm(options = {}) {
             app: "app",
             model: "model",
             action: "activate",
+            ...options.props,
         },
         slots: options.slots,
+        attachTo: options.attachTo,
         global: {
             provide: { [FormContextSymbol]: formContext },
         },
@@ -202,6 +204,80 @@ describe("lib/views/ActionForm.vue", () => {
             const buttons = wrapper.findAll('[data-qa="prime-button"]');
             expect(buttons).toHaveLength(2);
             expect(buttons[0].text()).toContain("Yes, continue");
+        });
+
+        scopedIt("renders the action bar after the form content by default, with a cancel button", () => {
+            const { wrapper } = mountActionForm();
+            const form = wrapper.get("form");
+            const buttons = form.get('[data-qa="action-form-buttons"]');
+            expect(buttons.findAll('[data-qa="prime-button"]').map((b) => b.text().trim())).toEqual([
+                "Yes, continue",
+                "Cancel, go back",
+            ]);
+            expect(wrapper.findComponent({ name: "StickyBar" }).exists()).toBe(false);
+        });
+
+        scopedIt("with page, renders the action bar in a StickyBar before the content", () => {
+            const { wrapper } = mountActionForm({ props: { page: true } });
+            const stickyBar = wrapper.findComponent({ name: "StickyBar" });
+            expect(stickyBar.exists()).toBe(true);
+            const buttons = stickyBar.get('[data-qa="action-form-buttons"]');
+            expect(wrapper.get("form").find('[data-qa="action-form-buttons"]').exists()).toBe(false);
+            const content = wrapper.get('[data-qa="action-form-content"]');
+            const order = buttons.element.compareDocumentPosition(content.element);
+            expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        });
+
+        scopedIt("ties the confirm button to the form by id, so it submits from outside the form", () => {
+            const { wrapper } = mountActionForm({ props: { page: true } });
+            const formId = wrapper.get("form").attributes("id");
+            expect(formId).toBeTruthy();
+            const confirm = wrapper.get('[data-qa="action-form-buttons"] [data-qa="prime-button"]');
+            expect(confirm.attributes("form")).toBe(formId);
+        });
+
+        scopedIt("leaves the form attribute off the confirm button without page", () => {
+            const { wrapper } = mountActionForm();
+            const confirm = wrapper.get('[data-qa="action-form-buttons"] [data-qa="prime-button"]');
+            expect(confirm.attributes("form")).toBeUndefined();
+        });
+
+        scopedIt("gives each page form an id that is unique across Vue apps", () => {
+            // Each mount() is a separate Vue app, as each documentation demo is. useId() restarts in
+            // every app, so it would give both forms the same id.
+            const first = mountActionForm({ props: { page: true }, attachTo: document.body }).wrapper;
+            const second = mountActionForm({ props: { page: true }, attachTo: document.body }).wrapper;
+            try {
+                expect(first.get("form").attributes("id")).not.toBe(second.get("form").attributes("id"));
+                for (const wrapper of [first, second]) {
+                    const confirm = wrapper.get('[data-qa="action-form-buttons"] [data-qa="prime-button"]');
+                    expect(confirm.element.form).toBe(wrapper.get("form").element);
+                }
+            } finally {
+                first.unmount();
+                second.unmount();
+            }
+        });
+
+        scopedIt("passes the form id to a confirm-button slot", () => {
+            const { wrapper } = mountActionForm({
+                props: { page: true },
+                slots: {
+                    "confirm-button": `<template #confirm-button="{ form }"><button data-qa="custom-confirm" type="submit" :form="form">Go</button></template>`,
+                },
+            });
+            expect(wrapper.get('[data-qa="custom-confirm"]').attributes("form")).toBe(
+                wrapper.get("form").attributes("id"),
+            );
+        });
+
+        scopedIt("renders no cancel button when cancelButton is false", () => {
+            const { wrapper } = mountActionForm({ props: { cancelButton: false } });
+            const labels = wrapper
+                .get('[data-qa="action-form-buttons"]')
+                .findAll('[data-qa="prime-button"]')
+                .map((b) => b.text().trim());
+            expect(labels).toEqual(["Yes, continue"]);
         });
 
         scopedIt("renders slot overrides for action bar", async () => {

@@ -18,51 +18,57 @@ patchTheme({
         root: {
             class: [],
         },
-        /** Bare-mode wrapper used when the form is embedded in an outer toned card (e.g. {@api theme-key:ViewDestroy.card}). Renders `display: contents` so chip-row tone routing still works via the parent `group/view-destroy` scope while suppressing this form's own card chrome. */
+        /** Bare-mode wrapper used when the form is embedded in a host's own card. Renders `display: contents`, which suppresses this form's own card chrome and tone scope. */
         bare: {
             class: ["contents"],
         },
-        /** Canonical confirmation card. Opens a `group/model-action-form` named scope so descendants opt into tone via `group-data-[tone=…]/model-action-form:` variants, and routes a `data-[tone=…]:` border + 8% ring (`box-shadow: 0 0 0 3px <tone>/8%`) per tone. */
+        /** Canonical confirmation card. Opens a `group/model-action-form` named scope so descendants opt into tone via `group-data-[tone=…]/model-action-form:` variants, and routes a `data-[tone=…]:` border + 8% ring (`box-shadow: 0 0 0 3px <tone>/8%`) per tone. With `page`, the same element drops the card chrome and only stacks the banner and body, because the view's gutter and the page title frame the page. */
         card: {
-            class: [
-                "group/model-action-form",
-                "rounded-vueda-card border-hairline bg-card overflow-hidden",
+            class: ({ page }) =>
+                page
+                    ? ["group/model-action-form", "flex flex-col gap-4"]
+                    : [
+                          "group/model-action-form",
+                          "rounded-vueda-card border-hairline bg-card overflow-hidden",
 
-                // info (default)
-                "data-[tone=info]:border-border",
-                "data-[tone=info]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_8%,transparent)]",
+                          // info (default)
+                          "data-[tone=info]:border-border",
+                          "data-[tone=info]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--ring)_8%,transparent)]",
 
-                // success
-                "data-[tone=success]:border-success/50",
-                "data-[tone=success]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--success)_8%,transparent)]",
+                          // success
+                          "data-[tone=success]:border-success/50",
+                          "data-[tone=success]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--success)_8%,transparent)]",
 
-                // warning
-                "data-[tone=warning]:border-warning/50",
-                "data-[tone=warning]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--warning)_8%,transparent)]",
+                          // warning
+                          "data-[tone=warning]:border-warning/50",
+                          "data-[tone=warning]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--warning)_8%,transparent)]",
 
-                // danger
-                "data-[tone=danger]:border-destructive/50",
-                "data-[tone=danger]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
-            ],
+                          // danger
+                          "data-[tone=danger]:border-destructive/50",
+                          "data-[tone=danger]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
+                      ],
         },
-        /** Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone` via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body. */
-        banner: {
-            composes: ["_ActionBanner.banner"],
-            class: [
-                // info
-                "group-data-[tone=info]/model-action-form:border-border",
-                "group-data-[tone=info]/model-action-form:bg-[color-mix(in_oklab,var(--info)_6%,transparent)]",
-                // success
-                "group-data-[tone=success]/model-action-form:border-success/20",
-                "group-data-[tone=success]/model-action-form:bg-[color-mix(in_oklab,var(--success)_6%,transparent)]",
-                // warning
-                "group-data-[tone=warning]/model-action-form:border-warning/20",
-                "group-data-[tone=warning]/model-action-form:bg-[color-mix(in_oklab,var(--warning)_6%,transparent)]",
-                // danger
-                "group-data-[tone=danger]/model-action-form:border-destructive/20",
-                "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
-            ],
-        },
+        /** Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone` via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body. With `page`, the banner is an unframed row: the icon tile carries the tone, and the page supplies the spacing. */
+        banner: ({ page }) =>
+            page
+                ? { class: ["flex items-start gap-3"] }
+                : {
+                      composes: ["_ActionBanner.banner"],
+                      class: [
+                          // info
+                          "group-data-[tone=info]/model-action-form:border-border",
+                          "group-data-[tone=info]/model-action-form:bg-[color-mix(in_oklab,var(--info)_6%,transparent)]",
+                          // success
+                          "group-data-[tone=success]/model-action-form:border-success/20",
+                          "group-data-[tone=success]/model-action-form:bg-[color-mix(in_oklab,var(--success)_6%,transparent)]",
+                          // warning
+                          "group-data-[tone=warning]/model-action-form:border-warning/20",
+                          "group-data-[tone=warning]/model-action-form:bg-[color-mix(in_oklab,var(--warning)_6%,transparent)]",
+                          // danger
+                          "group-data-[tone=danger]/model-action-form:border-destructive/20",
+                          "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
+                      ],
+                  },
         /** 36 px circular icon tile leading the banner. Tile fill and foreground swap with tone (info / success / warning / danger) via the `group/model-action-form` scope; matches the destructive tile recipe on {@api theme-key:ActionForm.validationIcon} so danger surfaces read as siblings. */
         bannerIcon: {
             composes: ["_ActionBanner.bannerIcon"],
@@ -103,25 +109,21 @@ patchTheme({
         bannerMeta: {
             class: ["font-mono text-[11px] font-normal leading-[1.5] tracking-[0.04em]", "text-muted-foreground"],
         },
-        /** Card body region beneath the banner. Holds the selected-objects panel, confirm prompt, and extra-fields stack with a 12 px gap between sections. */
+        /** Card body region beneath the banner. Holds the selected-objects panel, confirm prompt, and extra-fields stack with a 12 px gap between sections. With `page`, the body drops its padding and uses the view's gutter. */
         body: {
-            class: ["p-4 flex flex-col gap-3"],
+            class: ({ page }) => (page ? ["flex flex-col gap-3"] : ["p-4 flex flex-col gap-3"]),
         },
         /** Inner stack used by the embedded {@api theme-key:ActionForm.inner} when ModelActionForm composes ActionForm. Mirrors the ActionForm rhythm so the field column reads continuously across the two shells. */
         inner: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],
         },
-        /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when nested in either the {@api theme-key:ViewDestroy.card} `group/view-destroy` scope or this form's own `group/model-action-form` scope at `tone="danger"`; neutral otherwise. */
+        /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when this form's own `group/model-action-form` scope is at `tone="danger"`; neutral otherwise. */
         selectedObjects: {
             class: [
                 "rounded-vueda-card bg-muted/25 hairline hairline-border p-3",
                 "flex flex-col gap-2",
 
-                // Tint when surrounding ViewDestroy card is in danger tone.
-                "group-data-[tone=danger]/view-destroy:bg-destructive/[0.06]",
-                "group-data-[tone=danger]/view-destroy:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
-
-                // Same when the ModelActionForm card itself is in danger tone.
+                // Tint when the form is in the danger tone.
                 "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
                 "group-data-[tone=danger]/model-action-form:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
             ],
@@ -141,14 +143,17 @@ patchTheme({
                 "text-muted-foreground leading-none",
             ],
         },
-        /** Confirm-prompt panel: tinted-muted background with a 2 px primary left rule that signals "read this before you submit". Inner `flex-col` accommodates multi-paragraph guidance without breaking the rule's visual anchor. */
+        /** Confirm-prompt panel: tinted-muted background with a 2 px primary left rule that signals "read this before you submit". Inner `flex-col` accommodates multi-paragraph guidance without breaking the rule's visual anchor. With `page`, the prompt is plain text, so the selected-records panel stays the page's one framed block. */
         message: {
-            class: [
-                "flex flex-col gap-1.5",
-                "rounded-vueda-control bg-muted/25",
-                "border-l-2 border-primary/60",
-                "px-3 py-2.5",
-            ],
+            class: ({ page }) =>
+                page
+                    ? ["flex flex-col gap-1.5"]
+                    : [
+                          "flex flex-col gap-1.5",
+                          "rounded-vueda-control bg-muted/25",
+                          "border-l-2 border-primary/60",
+                          "px-3 py-2.5",
+                      ],
         },
         /** Paragraph element inside the confirm-prompt panel. 13 px / foreground; resets the default `<p>` margin so consecutive paragraphs stack on the panel's own gap. */
         messageText: {
@@ -166,14 +171,12 @@ patchTheme({
         list: {
             class: ["flex flex-row flex-wrap gap-2"],
         },
-        /** One chip in the selected-objects strip: label + mono PK on a card-toned background with a hairline border. Tints destructive when nested in either the {@api theme-key:ViewDestroy.card} `group/view-destroy` scope or this form's own danger scope; neutral otherwise. */
+        /** One chip in the selected-objects strip: label + mono PK on a card-toned background with a hairline border. Tints destructive in this form's own danger scope; neutral otherwise. */
         listItem: {
             class: [
                 "inline-flex items-center gap-2 px-2 py-1 rounded-vueda-control",
                 "hairline hairline-border bg-card",
                 "text-[12px] font-medium text-foreground leading-none",
-                "group-data-[tone=danger]/view-destroy:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
-                "group-data-[tone=danger]/view-destroy:bg-card",
                 "group-data-[tone=danger]/model-action-form:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
                 "group-data-[tone=danger]/model-action-form:bg-card",
             ],
@@ -186,7 +189,6 @@ patchTheme({
         listItemPk: {
             class: [
                 "text-[11px] font-normal font-mono text-muted-foreground leading-none",
-                "group-data-[tone=danger]/view-destroy:text-destructive/80",
                 "group-data-[tone=danger]/model-action-form:text-destructive/80",
             ],
         },
