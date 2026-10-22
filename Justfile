@@ -136,6 +136,9 @@ docs-normalize:
 docs-render:
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js render
 
+docs-markdown:
+  cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js export-markdown
+
 docs-api:
   just docs-extract
   just docs-normalize
