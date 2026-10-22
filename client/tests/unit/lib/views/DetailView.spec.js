@@ -139,6 +139,34 @@ describe("lib/views/DetailView.vue", () => {
         vi.clearAllMocks();
     });
 
+    describe("record name", () => {
+        afterEach(() => {
+            delete modelConfig.info.fields;
+        });
+
+        scopedIt("names the record from the fetched object's formatted name", async () => {
+            modelConfig.info.fields = { formatted_name: { hidden: true } };
+            instanceState.object = { id: "1", formatted_name: "Widget 42" };
+            const wrapper = mountWithContext();
+            expect(wrapper.find('[data-qa="record-name"]').text()).toBe("Widget 42");
+        });
+
+        scopedIt("shows a skeleton while the record loads", async () => {
+            modelConfig.info.fields = { formatted_name: { hidden: true } };
+            instanceState.object = null;
+            instanceState.loading = true;
+            const wrapper = mountWithContext();
+            expect(wrapper.find('[data-qa="record-name-skeleton"]').exists()).toBe(true);
+        });
+
+        scopedIt("renders no heading for a model without a formatted name", async () => {
+            instanceState.object = { id: "1" };
+            const wrapper = mountWithContext();
+            expect(wrapper.find('[data-qa="record-name"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="record-name-skeleton"]').exists()).toBe(false);
+        });
+    });
+
     function mountWithContext(options = {}) {
         const formContext = { state: vue.reactive({ values: {}, anyModified: false }) };
         const objectForm = { state: vue.reactive({ loading: false }), submit: vi.fn() };
