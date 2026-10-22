@@ -263,13 +263,13 @@ After a successful save the view stays on the page unless [`redirectAfter`]{@api
 
 ## ViewDestroy
 
-{@api vue:component:ViewDestroy} is a routed page, so a user can link to it, bookmark it, or reach it from a multi-step flow. It wraps a {@api vue:component:ModelActionForm} in a destructive card with three parts:
+{@api vue:component:ViewDestroy} is a routed page, so a user can link to it, bookmark it, or reach it from a multi-step flow. It renders a {@api vue:component:ModelActionForm} as a page in the danger tone. The sticky action bar holds the Delete button, and the page body below it has three parts:
 
 - A banner states what the delete removes. The [`linkedObjectCounts`]{@api vue:component:ViewDestroy:prop:linkedObjectCounts} prop adds one line per related model that the delete also removes.
-- A list shows each selected record, fetched by pk, with its {@term Formatted Name} and pk.
+- A list shows each selected record, fetched by pk, as its {@term Formatted Name}. A record without one shows its pk.
 - An optional type-to-confirm phrase, set by [`confirmText`]{@api vue:component:ViewDestroy:prop:confirmText}, keeps the confirm button disabled until the reader types it.
 
-The page title reads "Delete" followed by the model's verbose name. A bulk destroy reads "Delete", the record count, and the plural verbose name. The confirm button reads "Yes, continue" and takes the destructive tone; the cancel button reads "Cancel, go back".
+The page title reads "Delete" followed by the model's verbose name. A bulk destroy reads "Delete", the record count, and the plural verbose name. The confirm button reads "Delete" and takes the destructive tone. The page title holds a Go Back button, so the page has no separate cancel button.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -286,12 +286,12 @@ The page title reads "Delete" followed by the model's verbose name. A bulk destr
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>card: {@api theme-key:ViewDestroy} draws the destructive card and embeds {@api theme-key:ModelActionForm} bare, so only the outer card has chrome</span>
+    <span>layout: the same page structure as Read and Update, with the action bar under the title and the body in the page gutter, and no card</span>
     <span>title: "Delete 3 Customers", counted for a bulk destroy</span>
     <span>banner: a destructive icon tile and a title built from the record count and the model's verbose name</span>
     <span>consequences: <code>linkedObjectCounts</code> becomes a {@api vue:component:ConsequencesBullets} list; with none, the banner reads "This action cannot be undone."</span>
-    <span>records: fetched by pk; each row shows the record's formatted name beside its pk</span>
-    <span>type-to-confirm: {@api vue:component:TypedConfirmField} keeps Yes, continue disabled until the phrase matches; the phrase is not sent</span>
+    <span>records: fetched by pk; each chip shows the record's formatted name</span>
+    <span>type-to-confirm: {@api vue:component:TypedConfirmField} keeps Delete disabled until the phrase matches; the phrase is not sent</span>
     <span>theme keys: {@api theme-key:ViewDestroy}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewDestroy.vue</code></span>
   </footer>
 </VuedaDemo>
@@ -304,7 +304,7 @@ These tokens apply across the five views:
 - {@api css-token:card} and {@api css-token:background} set the view card and the page background.
 - {@api css-token:border} sets dividers, separators, and card edges.
 - {@api css-token:primary} tints filter chips, the unsaved-changes marker, and selected rows.
-- {@api css-token:destructive} colors the destroy view's card edge, banner, and confirm button, and every delete or destroy action button.
+- {@api css-token:destructive} colors the destroy view's banner icon, selected-records panel, and confirm button, and every delete or destroy action button.
 - {@api css-token:muted} and {@api css-token:muted-foreground} set the constraints band tint and secondary text such as read-view labels.
 
 Some parts of a finished screen are additions to the default views:

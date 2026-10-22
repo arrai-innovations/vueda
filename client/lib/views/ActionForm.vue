@@ -4,20 +4,23 @@ import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
 import FormMessage from "@vueda/form/form-model/FormMessage.vue";
+import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ActionForm.theme.js";
 import { useActionForm } from "@vueda/use/useActionForm.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
-import { computed, inject } from "vue";
+import { createReusableTemplate } from "@vueuse/core";
+import { computed, inject, reactive, toRef, useId } from "vue";
 
 /**
  * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
  *
- * Renders a pinned actions strip (confirm + cancel + optional hint) and, when
- * the form has per-field errors that no rendered field shows beside itself, a
- * structured validation alert sourced from `formContext.state.errors`. The
+ * Renders a pinned actions strip (confirm + cancel + optional hint) below the
+ * form, or, with the `page` prop, a sticky action bar above it. When the form
+ * has per-field errors that no rendered field shows beside itself, it also
+ * renders a structured validation alert sourced from `formContext.state.errors`. The
  * alert sits with the non-field error block above the fields, so a reader meets
  * it before the first field and the submit control. Also mounts a `FormConfirmDialog`
  * bound to the action's confirmation controller, so actions the server gates
@@ -107,6 +110,16 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    /** When `false`, the default action bar has no cancel button. A view whose page title already offers a Go Back action sets this, so the page does not offer two ways back. */
+    cancelButton: {
+        type: Boolean,
+        default: true,
+    },
+    /** When `true`, the form fills a view's page. The default action bar renders first, in a top-zone StickyBar that stacks with the page title, and the confirm button stays tied to the form through its `form` attribute. The error display, the validation summary, and the form follow in the page gutter. Without a sticky stack, the bar still renders first and spans the page, as the detail views' action bar does. A form inside a dialog or a card leaves this off. */
+    page: {
+        type: Boolean,
+        default: false,
+    },
     /** When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty where modification is not a meaningful concept. */
     requireModified: {
         type: Boolean,
@@ -136,7 +149,11 @@ const {
     handleConfirm,
     handleCancelClick,
 } = useActionForm(formContext, props);
-const theme = useTheme("ActionForm", props);
+const theme = useTheme("ActionForm", props, reactive({ page: toRef(props, "page") }));
+// A sticky action bar teleports out of the <form>, so the confirm button names the form by id.
+const formId = useId();
+// The action bar renders in one of two places: in a StickyBar above the content, or as a strip below it.
+const [DefineActionBar, ReuseActionBar] = createReusableTemplate();
 const icon = useIcons("ActionForm", props);
 
 /**
@@ -194,122 +211,129 @@ const validationTitle = computed(() => {
 
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value" data-qa="action-form-root">
-        <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
-        <div :class="theme('inner')" data-qa="action-form-inner">
-            <div :class="theme('nonFieldErrorBlock')">
-                <form-message type="error" />
-                <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set and at least one field error has no rendered field showing it; receives `entries` (each `{ field, label, messages }`, limited to those errors), `count`, and `title`. -->
-                <slot
-                    v-if="showValidation"
-                    name="validation-summary"
-                    :entries="validationEntries"
-                    :count="validationCount"
-                    :title="validationTitle"
-                >
-                    <div :class="theme('validation')" role="alert" data-tone="danger" data-qa="action-form-validation">
-                        <div v-if="icon('triangleExclamation')" :class="theme('validationIcon')" aria-hidden="true">
-                            <component
-                                :is="icon('triangleExclamation').component"
-                                v-bind="icon('triangleExclamation').props"
-                                aria-hidden="true"
-                            />
-                        </div>
-                        <div :class="theme('validationBody')">
-                            <div :class="theme('validationTitle')" data-qa="action-form-validation-title">
-                                {{ validationTitle }}
+        <define-action-bar>
+            <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `confirmDisabled`, `cancelDisabled`, `handleConfirm`, and `handleCancelClick` as slot props. -->
+            <slot
+                :loading="combinedLoading"
+                name="action-bar"
+                :confirm-disabled="confirmDisabled"
+                :cancel-disabled="cancelDisabled"
+                :handle-confirm="handleConfirm"
+                :handle-cancel-click="handleCancelClick"
+            >
+                <div :class="theme(page ? 'stickyButtons' : 'buttons')" data-qa="action-form-buttons">
+                    <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, `form`, and `disabled` as slot props. `form` is the id of the action's form; bind it so the button still submits when a sticky action bar renders it outside the form. `disabled` is true while the action runs, after a successful submit navigates away, and while the form has errors. -->
+                    <slot
+                        label="Yes, continue"
+                        :loading="combinedLoading"
+                        name="confirm-button"
+                        type="submit"
+                        :form="formId"
+                        :disabled="confirmDisabled"
+                    >
+                        <Button type="submit" :form="formId" tone="primary" :disabled="confirmDisabled">
+                            <LoadingSpinnerInline v-if="combinedLoading" />
+                            Yes, continue
+                        </Button>
+                    </slot>
+                    <!-- Cancel button that invokes the redirect; receives `label`, `loading`, `verb`, and `disabled` as slot props. `disabled` is true while the action runs and after a successful submit navigates away. -->
+                    <slot
+                        v-if="cancelButton"
+                        label="Cancel, go back"
+                        :loading="combinedLoading"
+                        name="cancel-button"
+                        :disabled="cancelDisabled"
+                        @click="handleCancelClick"
+                    >
+                        <Button type="button" emphasis="ghost" :disabled="cancelDisabled" @click="handleCancelClick">
+                            <LoadingSpinnerInline v-if="combinedLoading" />
+                            Cancel, go back
+                        </Button>
+                    </slot>
+                    <!-- @slot [actions-hint] Optional right-aligned hint shown in the actions strip (e.g. keyboard shortcut, reversibility note, audit hint). -->
+                    <div
+                        v-if="$slots['actions-hint']"
+                        :class="theme('buttonsSpacer')"
+                        data-qa="action-form-buttons-spacer"
+                    ></div>
+                    <div v-if="$slots['actions-hint']" :class="theme('buttonsHint')" data-qa="action-form-buttons-hint">
+                        <slot name="actions-hint" />
+                    </div>
+                </div>
+            </slot>
+        </define-action-bar>
+        <!-- On a page, the bar comes first, so a page with no sticky stack still shows it above the content, as the detail views do. -->
+        <sticky-bar v-if="page" zone="top" reveal="scroll-up-or-idle">
+            <reuse-action-bar />
+        </sticky-bar>
+        <div :class="theme('content')" data-qa="action-form-content">
+            <error-display :error="combinedError" :errored="combinedErrored" :ignore-form-validation-errors="true" />
+            <div :class="theme('inner')" data-qa="action-form-inner">
+                <div :class="theme('nonFieldErrorBlock')">
+                    <form-message type="error" />
+                    <!-- @slot [validation-summary] Override the structured per-field validation alert shown when `formContext.state.anyError` is set and at least one field error has no rendered field showing it; receives `entries` (each `{ field, label, messages }`, limited to those errors), `count`, and `title`. -->
+                    <slot
+                        v-if="showValidation"
+                        name="validation-summary"
+                        :entries="validationEntries"
+                        :count="validationCount"
+                        :title="validationTitle"
+                    >
+                        <div
+                            :class="theme('validation')"
+                            role="alert"
+                            data-tone="danger"
+                            data-qa="action-form-validation"
+                        >
+                            <div v-if="icon('triangleExclamation')" :class="theme('validationIcon')" aria-hidden="true">
+                                <component
+                                    :is="icon('triangleExclamation').component"
+                                    v-bind="icon('triangleExclamation').props"
+                                    aria-hidden="true"
+                                />
                             </div>
-                            <p :class="theme('validationDesc')" data-qa="action-form-validation-desc">
-                                These errors are not shown beside a field. Resolve them, then try again.
-                            </p>
-                            <ul :class="theme('validationList')" data-qa="action-form-validation-list">
-                                <li
-                                    v-for="entry in validationEntries"
-                                    :key="entry.field"
-                                    :class="theme('validationListItem')"
-                                    data-qa="action-form-validation-item"
-                                >
-                                    <span :class="theme('validationField')" data-qa="action-form-validation-field">
-                                        {{ entry.label }}
-                                    </span>
-                                    <span :class="theme('validationMsg')">
-                                        {{ entry.messages.join("; ") }}
-                                    </span>
-                                </li>
-                            </ul>
+                            <div :class="theme('validationBody')">
+                                <div :class="theme('validationTitle')" data-qa="action-form-validation-title">
+                                    {{ validationTitle }}
+                                </div>
+                                <p :class="theme('validationDesc')" data-qa="action-form-validation-desc">
+                                    These errors are not shown beside a field. Resolve them, then try again.
+                                </p>
+                                <ul :class="theme('validationList')" data-qa="action-form-validation-list">
+                                    <li
+                                        v-for="entry in validationEntries"
+                                        :key="entry.field"
+                                        :class="theme('validationListItem')"
+                                        data-qa="action-form-validation-item"
+                                    >
+                                        <span :class="theme('validationField')" data-qa="action-form-validation-field">
+                                            {{ entry.label }}
+                                        </span>
+                                        <span :class="theme('validationMsg')">
+                                            {{ entry.messages.join("; ") }}
+                                        </span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                    </div>
-                </slot>
-                <form-message type="message" />
+                    </slot>
+                    <form-message type="message" />
+                </div>
+                <form :id="formId" @submit.prevent="handleConfirm()">
+                    <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
+                    <slot
+                        name="action-form-inner"
+                        v-bind="{
+                            loading: combinedLoading,
+                            error: combinedError,
+                            errored: combinedErrored,
+                            handleConfirm,
+                            handleCancelClick,
+                        }"
+                    />
+                    <reuse-action-bar v-if="!page" />
+                </form>
             </div>
-            <form @submit.prevent="handleConfirm()">
-                <!-- Main form content area; receives `loading`, `error`, `errored`, `handleConfirm`, and `handleCancelClick` as slot props. -->
-                <slot
-                    name="action-form-inner"
-                    v-bind="{
-                        loading: combinedLoading,
-                        error: combinedError,
-                        errored: combinedErrored,
-                        handleConfirm,
-                        handleCancelClick,
-                    }"
-                />
-                <!-- Action bar containing the confirm and cancel buttons; receives `loading`, `confirmDisabled`, `cancelDisabled`, `handleConfirm`, and `handleCancelClick` as slot props. -->
-                <slot
-                    :loading="combinedLoading"
-                    name="action-bar"
-                    :confirm-disabled="confirmDisabled"
-                    :cancel-disabled="cancelDisabled"
-                    :handle-confirm="handleConfirm"
-                    :handle-cancel-click="handleCancelClick"
-                >
-                    <div :class="theme('buttons')" data-qa="action-form-buttons">
-                        <!-- Submit button that triggers the action; receives `label`, `loading`, `verb`, `type`, and `disabled` as slot props. `disabled` is true while the action runs, after a successful submit navigates away, and while the form has errors. -->
-                        <slot
-                            label="Yes, continue"
-                            :loading="combinedLoading"
-                            name="confirm-button"
-                            type="submit"
-                            :disabled="confirmDisabled"
-                        >
-                            <Button type="submit" tone="primary" :disabled="confirmDisabled">
-                                <LoadingSpinnerInline v-if="combinedLoading" />
-                                Yes, continue
-                            </Button>
-                        </slot>
-                        <!-- Cancel button that invokes the redirect; receives `label`, `loading`, `verb`, and `disabled` as slot props. `disabled` is true while the action runs and after a successful submit navigates away. -->
-                        <slot
-                            label="Cancel, go back"
-                            :loading="combinedLoading"
-                            name="cancel-button"
-                            :disabled="cancelDisabled"
-                            @click="handleCancelClick"
-                        >
-                            <Button
-                                type="button"
-                                emphasis="ghost"
-                                :disabled="cancelDisabled"
-                                @click="handleCancelClick"
-                            >
-                                <LoadingSpinnerInline v-if="combinedLoading" />
-                                Cancel, go back
-                            </Button>
-                        </slot>
-                        <!-- @slot [actions-hint] Optional right-aligned hint shown in the actions strip (e.g. keyboard shortcut, reversibility note, audit hint). -->
-                        <div
-                            v-if="$slots['actions-hint']"
-                            :class="theme('buttonsSpacer')"
-                            data-qa="action-form-buttons-spacer"
-                        ></div>
-                        <div
-                            v-if="$slots['actions-hint']"
-                            :class="theme('buttonsHint')"
-                            data-qa="action-form-buttons-hint"
-                        >
-                            <slot name="actions-hint" />
-                        </div>
-                    </div>
-                </slot>
-            </form>
         </div>
         <!-- Resolves submit-time warning confirmations (HTTP 409); without it warned actions would be cancelled. -->
         <form-confirm-dialog :controller="confirmation">

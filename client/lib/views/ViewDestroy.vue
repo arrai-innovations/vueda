@@ -1,6 +1,8 @@
 <script setup>
+import Button from "@vueda/controls/button/Button.vue";
 import ConsequencesBullets from "@vueda/display/consequences-bullets/ConsequencesBullets.vue";
 import LoadingSpinnerBlock from "@vueda/display/loading/LoadingSpinnerBlock.vue";
+import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewDestroy.theme.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
@@ -10,7 +12,9 @@ import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import isEmpty from "lodash-es/isEmpty.js";
+import omit from "lodash-es/omit.js";
 import { computed, useSlots } from "vue";
+import { useRouter } from "vue-router";
 
 /**
  * View that presents a confirmation form and displays a list of selected items to be deleted via
@@ -79,6 +83,10 @@ const { modelConfig, instanceList, titleStr, pageLoading } = useViewDestroy(prop
 usePageTitle(() => ({ title: titleStr.value, loading: pageLoading.value }));
 const slots = useSlots();
 const theme = useTheme("ViewDestroy", props);
+const router = useRouter();
+const handleReturnClick = () => {
+    router.back();
+};
 const icon = useIcons("ViewDestroy", props);
 
 const cascadeItems = computed(() =>
@@ -110,46 +118,56 @@ const computedBannerTitle = computed(() => {
 <template>
     <!-- TODO: theme.hideStyle requires a single themed root -->
     <div v-if="!isEmpty(modelConfig.info)" :class="theme('root')">
-        <div :class="theme('card')" data-tone="danger" data-qa="view-destroy-card">
-            <!-- @slot [view-destroy-banner] Override the danger banner shown above the confirmation form. -->
-            <slot name="view-destroy-banner" :linked-object-counts="linkedObjectCounts" :title="computedBannerTitle">
-                <action-banner
-                    :theme="theme"
-                    :icon="icon"
-                    icon-name="triangleExclamation"
-                    :title="computedBannerTitle"
-                    :description="linkedObjectCounts.length === 0 ? 'This action cannot be undone.' : undefined"
-                    description-theme-key="bannerDescription"
-                    banner-qa="view-destroy-banner"
-                    title-qa="view-destroy-banner-title"
-                    description-qa="view-destroy-banner-description"
-                >
-                    <consequences-bullets
-                        v-if="linkedObjectCounts.length > 0"
-                        :items="cascadeItems"
-                        data-qa="view-destroy-cascade"
-                    />
-                </action-banner>
+        <!-- The "Go Back" action teleports into the layout's PageTitle action zone. -->
+        <page-actions>
+            <slot label="Go Back" name="return-button" @click="handleReturnClick">
+                <Button emphasis="outline" @click="handleReturnClick">Go Back</Button>
             </slot>
-            <div :class="theme('body')">
-                <model-action-form
-                    action="destroy"
-                    :app="app"
-                    :model="model"
-                    :pk="pk"
-                    :bare="true"
-                    tone="danger"
-                    :confirm-text="confirmText"
-                    :fetch-state="instanceList.state"
-                    :instance-list="instanceList"
-                    v-bind="$attrs"
+        </page-actions>
+        <!-- A page-mode ModelActionForm in the danger tone supplies the sticky Delete button, the page gutter, and the selected-records panel. This view adds its own banner, which can list the records that the delete removes with it. -->
+        <model-action-form
+            action="destroy"
+            action-verbose-name="delete"
+            :app="app"
+            :model="model"
+            :pk="pk"
+            page
+            tone="danger"
+            :confirm-text="confirmText"
+            :fetch-state="instanceList.state"
+            :instance-list="instanceList"
+            v-bind="$attrs"
+        >
+            <template v-for="(_, slot) in omit(slots, ['view-destroy-banner', 'action-banner'])" #[slot]="slotProps">
+                <slot :name="slot" v-bind="slotProps || {}" />
+            </template>
+            <template #action-banner>
+                <!-- @slot [view-destroy-banner] Override the danger banner shown above the selected records. -->
+                <slot
+                    name="view-destroy-banner"
+                    :linked-object-counts="linkedObjectCounts"
+                    :title="computedBannerTitle"
                 >
-                    <template v-for="(_, slot) in slots" #[slot]="slotProps">
-                        <slot :name="slot" v-bind="slotProps || {}" />
-                    </template>
-                </model-action-form>
-            </div>
-        </div>
+                    <action-banner
+                        :theme="theme"
+                        :icon="icon"
+                        icon-name="triangleExclamation"
+                        :title="computedBannerTitle"
+                        :description="linkedObjectCounts.length === 0 ? 'This action cannot be undone.' : undefined"
+                        description-theme-key="bannerDescription"
+                        banner-qa="view-destroy-banner"
+                        title-qa="view-destroy-banner-title"
+                        description-qa="view-destroy-banner-description"
+                    >
+                        <consequences-bullets
+                            v-if="linkedObjectCounts.length > 0"
+                            :items="cascadeItems"
+                            data-qa="view-destroy-cascade"
+                        />
+                    </action-banner>
+                </slot>
+            </template>
+        </model-action-form>
     </div>
     <div v-else><loading-spinner-block /></div>
 </template>

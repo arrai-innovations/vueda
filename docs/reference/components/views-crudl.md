@@ -291,11 +291,11 @@ from the fetched instances, and an optional type-to-confirm phrase gates the sub
     page-title
   />
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-    <span>card: {@api theme-key:ViewDestroy} paints a <code>border-destructive/50</code> edge plus an 8 % destructive ring, and wraps the inner {@api theme-key:ModelActionForm} as <code>bare</code> so only this surface carries chrome</span>
+    <span>layout: {@api theme-key:ViewDestroy} renders {@api theme-key:ModelActionForm} as a page in the danger tone, so the Delete button sits in the sticky action bar and the body uses the page gutter, with no card</span>
     <span>title: contributed through <code>usePageTitle</code> like the other CRUD views, and counted for a bulk destroy. It reads Delete, not Destroy: the route names the operation, the page says what the operator is doing</span>
-    <span>banner: destructive 6 %-mix fill behind a 36 px destructive icon tile; the banner title is generated from the record count and model verbose name</span>
+    <span>banner: an unframed row led by a 36 px destructive icon tile; the banner title is generated from the record count and model verbose name</span>
     <span>consequences: the <code>linkedObjectCounts</code> prop becomes a {@api vue:component:ConsequencesBullets} list. With none supplied the banner falls back to a single "This action cannot be undone." line</span>
-    <span>records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each row's <code>formatted_name</code> beside its primary key</span>
+    <span>records: fetched by pk, then rendered through {@api vue:component:WidgetReadOnly}, which shows each row's <code>formatted_name</code>; a row without one shows its primary key</span>
     <span>type-to-confirm: {@api vue:component:TypedConfirmField} holds its own value and gates submit; it is not a form field, so the phrase never reaches the request body</span>
     <span>theme keys: {@api theme-key:ViewDestroy}, {@api theme-key:ModelActionForm}, {@api theme-key:ActionForm} · source: <code>ViewDestroy.vue</code></span>
   </footer>
@@ -309,7 +309,7 @@ Token decisions flow across all five views:
 - {@api css-token:card} and {@api css-token:background} set the view card and page background.
 - {@api css-token:border} controls every divider, separator, and card edge in the views.
 - {@api css-token:primary} tints active filter chips, modified indicators, status badges, and the selected-row accent.
-- {@api css-token:destructive} drives the destroy view's card border, banner background, and submit button.
+- {@api css-token:destructive} drives the destroy view's banner icon, selected-records panel, and submit button.
 - {@api css-token:muted} and {@api css-token:muted-foreground} apply to filter strips, pagination labels, section headers, and empty values.
 
 Some of what a finished screen shows is a consumer addition rather than a view default:
@@ -317,7 +317,7 @@ Some of what a finished screen shows is a consumer addition rather than a view d
 - `ViewRead` renders one flat `FormModel`. Grouping fields into titled sections is a customization.
 - `PageActions` hosts action buttons; a status badge beside the title is something the layout adds.
 - The detail action bar is generated from each record's `available_actions`, and each label is `startCase` applied to the DRF action name. Friendlier labels and extra entries come from project-defined actions, not from the view.
-- `ViewDestroy`'s buttons read "Yes, continue" and "Cancel, go back" unless the `confirm-button` slot overrides them.
+- `ViewDestroy`'s confirm button reads "Delete" unless the `confirm-button` slot overrides it. Its Go Back button sits in the page title, and the `return-button` slot replaces it.
 
 The highest-value theme keys for CRUDL views:
 

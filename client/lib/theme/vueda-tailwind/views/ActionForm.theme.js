@@ -13,9 +13,13 @@ patchTheme({
      * objects, and submit controls inside a view or card surface.
      */
     ActionForm: {
-        /** Outer wrapper. Caps content at the `7xl` content column so a confirmation form does not stretch the full width of a wide viewport. */
+        /** Outer wrapper. Caps content at the `7xl` content column so a confirmation form does not stretch the full width of a wide viewport. With `page`, the cap moves to {@api theme-key:ActionForm.content}, so the sticky action bar spans the page. */
         root: {
-            class: ["max-w-7xl"],
+            class: ({ page }) => (page ? [] : ["max-w-7xl"]),
+        },
+        /** Wrapper around the error display, the validation summary, and the form. Without `page` it adds no box (`display: contents`). With `page`, it is the page body under the sticky action bar: `px-5 py-5` sets the gutter shared with {@api theme-key:ViewRead.body} and {@api theme-key:ViewUpdate.body}, and `max-w-7xl` caps the content column. */
+        content: {
+            class: ({ page }) => (page ? ["px-5 py-5 max-w-7xl"] : ["contents"]),
         },
         /** Vertical stack for the form body (selected objects, message, fields). Gap scales up at breakpoints to keep section spacing legible on larger viewports. */
         inner: {
@@ -37,6 +41,10 @@ patchTheme({
                 "border-t-hairline bg-muted/25",
                 "rounded-b-vueda-card",
             ],
+        },
+        /** Action row used in place of {@api theme-key:ActionForm.buttons} when `page` moves the bar into a StickyBar. Wraps like the detail views' action bar and drops the strip's own hairline, tint, and padding, which the StickyBar supplies. */
+        stickyButtons: {
+            class: ["flex flex-row flex-wrap items-center gap-1 2xl:gap-2 w-full"],
         },
         /** Flexible filler between the confirm / cancel cluster and the optional hint, keeping the buttons pinned to the start of the strip. */
         buttonsSpacer: {

@@ -114,7 +114,7 @@ const handleReturnClick = () => {
     <!-- The "Go Back" action teleports into the layout's PageTitle action zone. -->
     <page-actions>
         <slot label="Go Back" name="return-button" @click="handleReturnClick">
-            <Button @click="handleReturnClick">Go Back</Button>
+            <Button emphasis="outline" @click="handleReturnClick">Go Back</Button>
         </slot>
     </page-actions>
     <div v-if="!isEmpty(modelConfig.info)">
@@ -127,6 +127,7 @@ const handleReturnClick = () => {
             :fetch-state="instanceList.state"
             :instance-list="instanceList"
             request-method="PATCH"
+            page
             v-bind="$attrs"
         >
             <template v-for="(_, slot) in slots" #[slot]="slotProps">
