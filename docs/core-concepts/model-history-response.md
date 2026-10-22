@@ -110,7 +110,7 @@ A transition's state change and the writes of its `on_transition` hook always sh
 - A transition inside another action joins it. The action keeps its own label. For example, a `PATCH` whose `save()` runs a transition stays `update`, and a VDQ task stays labelled with its task name. The `state` events in the group show which transitions ran.
 - A transition run with no action open, for example from a shell or a script, opens its own action. The action's label is the transition code, its `kind` is `system`, and its actor is the user passed to the transition, or the system user when none is passed.
 
-A dry run writes nothing, so it adds nothing to history.
+A dry-run request, one sent with the `Dry-Run: true` header, rolls back its writes, so it adds nothing to history. [Dry-Run and Mutation Semantics](./action-contract-and-availability.md#dry-run-and-mutation-semantics) describes the rollback. A direct call with `dry_run=True`, such as `order.apply_transition("pack_order", user=manager, dry_run=True)`, does not roll back. It saves the new state, which adds a state event to the object's history, and it passes `dry_run` to `on_transition`.
 
 ## Order and Pagination
 
