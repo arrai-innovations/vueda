@@ -332,7 +332,8 @@ class BaseModelInfoDetail(BaseModelInfo):
             for expected_model_expand in expected_data:
                 if model_expand["name"] == expected_model_expand["name"]:
                     assert frozenset(model_expand) == frozenset(expected_model_expand), (
-                        f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" -> {{keys}}'
+                        f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" '
+                        "-> {keys}"
                     )
                     for key, value in model_expand.items():
                         if key == settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]:
@@ -341,11 +342,13 @@ class BaseModelInfoDetail(BaseModelInfo):
                                 expected_model_expand[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]],
                                 app_label,
                                 model_name,
-                                f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}"',
+                                f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": '
+                                f'"{model_expand["name"]}"',
                             )
                             continue
                         assert value == expected_model_expand[key], (
-                            f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": "{model_expand["name"]}" -> {key}'
+                            f'"{app_label}", "{model_name}" -> "expected_expands" -> "name": '
+                            f'"{model_expand["name"]}" -> {key}'
                         )
 
     def check_model_fields(self, data, expected_data, app_label, model_name, extra_key=None):

@@ -1131,7 +1131,8 @@ class MakeReadonly(serializers.SerializerMetaclass):
 
 
 class VuedaReadonlyListSerializer(VuedaListSerializer, metaclass=MakeReadonly):
-    """List serializer that disables ``create`` and ``update``. Used as the list class for ``VuedaReadonlySerializer``."""
+    """List serializer that disables ``create`` and ``update``. Used as the list class for
+    ``VuedaReadonlySerializer``."""
 
     __excluded__ = ("create", "update")
 

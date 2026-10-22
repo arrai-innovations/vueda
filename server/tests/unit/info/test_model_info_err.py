@@ -278,7 +278,8 @@ class TestFormattedName:
         ) in response.data["serverStack"]
 
     def test_expand_model_with_no_formatted_name_returns_null(self, test_data, api_client):
-        """Expanding a model that has formatted_name = None and no alternatives returns null for formatted_name rather than crashing."""
+        """Expanding a model that has formatted_name = None and no alternatives returns null for formatted_name rather
+        than crashing."""
         user = test_data.users["test_customer_1@domain.invalid"]
         api_client.force_authenticate(user=user)
 

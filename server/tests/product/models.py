@@ -49,8 +49,8 @@ class Product(VuedaModel):
         @classmethod
         def check_instance(cls, model, obj, perm, user, perm_type) -> bool | None:
             """
-            True if the user has the permission, False if the user does not have the permission, None if the check is not
-            applicable due to there being no row level permissions for the model.
+            True if the user has the permission, False if the user does not have the permission, None if the check is
+            not applicable due to there being no row level permissions for the model.
             """
             if user.is_superuser:
                 return None

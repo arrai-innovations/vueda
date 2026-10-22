@@ -67,7 +67,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     # Actions that do not require vueda_workflow.read_workflow.
     workflow_gate_exempt_actions = frozenset(("object_state", "permitted_transitions"))
 
-    # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api docs generation.
+    # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api
+    # docs generation.
     def get_queryset(self):
         if hasattr(self, "queryset_model"):
             return self.queryset_model.objects.all()
