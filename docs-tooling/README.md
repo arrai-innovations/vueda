@@ -108,11 +108,19 @@ Options:
 $ ./bin/docs-tooling.js export-markdown --base /v3/ --site-url https://vueda.dev
 ```
 
-Run after API rendering to write published pages, `llms.txt`, and `llms-full.txt`
+Run after API rendering to write published pages, `llms.txt`, `symbols.json`, and `llms-full.txt`
 to `.generated/markdown/`. The exporter resolves API and glossary references,
 expands full-file Markdown includes and code snippets, and preserves embedded Vue source.
 Directory indexes retain their `index.md` filenames. Internal pages are excluded.
 Unknown references and documentation links fail the export.
+
+`llms.txt` groups tutorials, concepts, and guides and links to reference indexes
+instead of listing every generated page. `symbols.json` contains a `version`
+field (currently `1`) and a `symbols` array. Each entry has an `id`, a display
+`name`, and an absolute Markdown `url` that can include a member anchor. It
+includes local documented identifiers and excludes directory indexes and
+external documentation. The `using-vueda` skill searches this file locally.
+`llms-full.txt` continues to contain all published Markdown pages.
 
 VitePress runs the same exporter before bundling and emits the files as static
 assets. HTML pages link to their Markdown versions. The development server
