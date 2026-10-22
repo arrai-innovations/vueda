@@ -84,6 +84,14 @@ documentation site. There is no separate site for each client or server release.
 When a feature may be newer than your installation, the skill checks the
 package changelog or installed API before using it.
 
+For a known API name, the skill includes a symbol lookup script that requires
+Node.js 22 or newer. It downloads the selected major's symbol index, searches
+it locally, and returns matching names and Markdown links. The agent reads
+the matching pages without loading the entire index into its context.
+The lookup covers documented APIs and members, including component props
+and slots, Python methods, and theme keys. It does not search your application.
+If the helper is unavailable, the agent can follow the reference indexes.
+
 The skill needs access to the documentation for those lookups. If it cannot
 fetch a page, it can inspect installed source and application examples, and
 should tell you which behavior it could not verify.

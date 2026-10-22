@@ -304,6 +304,93 @@ function expandContent(raw, file, context, stack = []) {
     return parts.join("\n");
 }
 
+const startingPages = ["tutorials/start-building.md", "guides/use-coding-agents.md", "index.md"];
+const discoveryDescriptions = {
+    "tutorials/start-building.md": "Set up an application with the VUEDA server and client.",
+    "guides/use-coding-agents.md": "Install the using-vueda skill and look up documentation from a coding agent.",
+    "index.md": "Project overview and documentation navigation.",
+    "reference/api/index.md": "Browse the API reference by language and component type.",
+    "reference/api/js/index.md": "JavaScript functions, stores, and types.",
+    "reference/api/py/index.md": "Python classes, functions, and modules.",
+    "reference/api/vue/index.md": "Vue components, props, events, and slots.",
+    "reference/api/rest/index.md": "HTTP endpoints and request and response schemas.",
+    "reference/components/index.md": "Component guides organized by purpose.",
+    "reference/theming.md": "Theme structure and customization reference.",
+    "reference/theming/keys.md": "Theme keys grouped by component family.",
+    "reference/theming/tokens.md": "CSS custom properties grouped by purpose.",
+};
+
+function discoverySection(relative) {
+    if (startingPages.includes(relative)) {
+        return "Getting Started";
+    }
+    if (
+        relative.startsWith("reference/api/") &&
+        !/^reference\/api\/(?:(?:js|py|vue|rest)\/)?index\.md$/.test(relative)
+    ) {
+        return null;
+    }
+    if (
+        relative.startsWith("reference/theming/") &&
+        !["reference/theming/keys.md", "reference/theming/tokens.md"].includes(relative)
+    ) {
+        return null;
+    }
+    if (relative.startsWith("reference/components/") && relative !== "reference/components/index.md") {
+        return null;
+    }
+    if (relative.startsWith("reference/changelog/")) {
+        return "Optional";
+    }
+    return (
+        { tutorials: "Tutorials", "core-concepts": "Core Concepts", guides: "Guides" }[relative.split("/")[0]] ||
+        "Reference"
+    );
+}
+
+function documentationIndex(pages, urlRoot) {
+    const lines = [
+        "# VUEDA",
+        "",
+        "> Integrator guides and API reference for VUEDA's Django server and Vue client.",
+        "",
+        "Start with the guide for your task, then follow its API links for signatures and supported options.",
+        "Reference indexes link to individual Markdown pages. This site follows one evolving major version;",
+        "check the package changelog or installed API when a feature may be newer than your installation.",
+    ];
+    const sections = new Map(
+        ["Getting Started", "Tutorials", "Core Concepts", "Guides", "Reference", "Symbol Lookup", "Optional"].map(
+            (name) => [name, []],
+        ),
+    );
+    for (const { relative, title, url, description } of pages) {
+        const section = discoverySection(relative);
+        if (!section) {
+            continue;
+        }
+        const notes = description || discoveryDescriptions[relative];
+        sections.get(section).push({
+            relative,
+            link: `- [${escapeLabel(title)}](${url})${notes ? `: ${notes.replace(/\s+/g, " ").trim()}` : ""}`,
+        });
+    }
+    sections
+        .get("Getting Started")
+        .sort((a, b) => startingPages.indexOf(a.relative) - startingPages.indexOf(b.relative));
+    sections.get("Symbol Lookup").push({
+        link: `- [Symbol index](${urlRoot}symbols.json): Download and search locally for known identifiers; do not load the whole index into context. JSON contains a version field and a symbols array with id, name, and url fields. URLs point to Markdown pages and member anchors.`,
+    });
+    sections.get("Optional").push({
+        link: `- [Complete documentation](${urlRoot}llms-full.txt): All published Markdown in one large file. Prefer individual pages for ordinary lookups.`,
+    });
+    for (const [name, entries] of sections) {
+        if (entries.length) {
+            lines.push("", `## ${name}`, "", ...entries.map(({ link }) => link));
+        }
+    }
+    return `${lines.join("\n")}\n`;
+}
+
 /** Generate all exports before writing, so unresolved references fail without partial output. */
 export async function exportMarkdown({
     docsRoot,
@@ -325,21 +412,15 @@ export async function exportMarkdown({
     const resolveLink = linkResolver({ pages, base });
     const dependencies = new Set();
     const outputs = new Map();
-    const index = [
-        "# VUEDA",
-        "",
-        "> Integrator guides, changelog, and API reference for VUEDA.",
-        "",
-        "## Documentation",
-        "",
-    ];
+    const indexPages = [];
+    const origin = siteUrl.replace(/\/$/, "");
     for (const relativePath of pages) {
         const file = path.join(docsRoot, relativePath);
         dependencies.add(file);
         const raw = fs.readFileSync(file, "utf8");
         const { frontmatter, body } = parseFrontmatter(raw);
         const title = frontmatter.title || body.match(/^#\s+(.+)$/m)?.[1] || relativePath;
-        const url = `${siteUrl.replace(/\/$/, "")}${base}${escapeDestination(relativePath)}`;
+        const url = `${origin}${base}${escapeDestination(relativePath)}`;
         const content = expandContent(raw, file, {
             docsRoot,
             apiIndex,
@@ -354,9 +435,23 @@ export async function exportMarkdown({
         }
         metadata.push("---", "", content.trim(), "");
         outputs.set(relativePath, metadata.join("\n"));
-        index.push(`- [${escapeLabel(title)}](${url})`);
+        indexPages.push({ relative: relativePath, title, url, description: frontmatter.description });
     }
-    outputs.set("llms.txt", `${index.join("\n")}\n`);
+    outputs.set("llms.txt", documentationIndex(indexPages, `${origin}${base}`));
+    const symbols = [...apiIndex]
+        .filter(
+            ([, entry]) =>
+                !entry.external && outputs.has(path.relative(docsRoot, entry.filePath).split(path.sep).join("/")),
+        )
+        .filter(([id]) => id !== "api:reference" && !/^(js|py|vue|rest):index(?::|$)/.test(id))
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, { title, href }]) => ({
+            id,
+            // Underscores are part of identifiers, including Python dunder names.
+            name: title.replace(/`([^`]+)`/g, "$1").trim(),
+            url: `${origin}${resolveLink(href, "index.md")}`,
+        }));
+    outputs.set("symbols.json", `${JSON.stringify({ version: 1, symbols })}\n`);
     // Page URLs delimit the combined document and keep links meaningful outside their source page.
     outputs.set(
         "llms-full.txt",
