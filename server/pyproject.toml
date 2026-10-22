@@ -95,7 +95,7 @@ dev = [
     "psycopg[binary]>=3.3.3",
     # The migration commands format changed_data with black or ruff, depending on which the
     # project configures and has installed, so the tests need both.
-    "black >=26.5.1",
+    "black >=26.10.1",
     "ruff ==0.15.20",
 ]
 docs = [
