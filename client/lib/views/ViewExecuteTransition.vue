@@ -4,6 +4,7 @@ import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import "@vueda/theme/vueda-tailwind/views/ViewExecuteTransition.theme.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
@@ -50,7 +51,11 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Page title override; defaults to the transition's display name plus the model name. */
+    /**
+     * Page title override. The default title is the start-cased transition display name followed by the model's verbose
+     * name. When `pk` lists more than one object, the default uses the verbose plural name. The default is empty until
+     * the verbose name is known, so the layout shows a skeleton.
+     */
     title: {
         type: String,
         default: undefined,
@@ -64,19 +69,30 @@ const slots = useSlots();
 const router = useRouter();
 const workflow = storeWorkflow();
 const workflowTransitions = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
+const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
 const transition = computed(() => workflowTransitions.transitions?.find((t) => t.code === props.action));
 // Falls back to a start-cased version of the code so copy stays readable while transitions are
 // still loading, or for a code the model-level fetch does not (yet) report.
 const transitionDisplayName = computed(() => transition.value?.name || memoizedStartCase(props.action));
 
+// Start-cases the display name so the title matches the detail views ("Update Purchase Order") and the
+// `ModelActionForm` banner. Empty until the model's verbose name is known, so PageTitle shows a skeleton
+// instead of a guessed label.
 const actionTitleText = computed(() => {
-    return props.title?.length > 0 ? props.title : `${transitionDisplayName.value} ${memoizedStartCase(props.model)}`;
+    if (props.title?.length > 0) {
+        return props.title;
+    }
+    const bulk = Array.isArray(props.pk) && props.pk.length > 1;
+    const verboseName = memoizedStartCase(
+        bulk ? modelConfig.config?.verboseNamePlural : modelConfig.config?.verboseName,
+    );
+    return verboseName ? `${memoizedStartCase(transitionDisplayName.value)} ${verboseName}` : "";
 });
 // `useModelAction` consumes `action-verbose-name` as `actionVerboseNameLowerCase` and interpolates it
 // mid-sentence in the confirm prompt ("Are you sure you want to {verb} the selected {model}?"),
 // exactly as it does the default `getLowerTitle(props.action)` value this replaces. The page title
-// above keeps the cased `transitionDisplayName`; only the confirm-prompt copy needs the lower case.
+// above start-cases `transitionDisplayName`; only the confirm-prompt copy needs the lower case.
 const transitionVerboseName = computed(() => getLowerTitle(transitionDisplayName.value));
 // Contribute the page title to the layout's PageTitle display.
 usePageTitle(() => ({ title: actionTitleText.value }));

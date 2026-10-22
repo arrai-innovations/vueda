@@ -7,6 +7,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
+import { memoizedStartCase } from "@vueda/utils/case.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
@@ -45,10 +46,14 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Page title contributed to the layout's PageTitle display. */
+    /**
+     * Page title override, contributed to the layout's PageTitle display. The default title is the start-cased action
+     * name followed by the model's verbose name. When `pk` lists more than one object, the default uses the verbose
+     * plural name. The default is empty until the verbose name is known, so the layout shows a skeleton.
+     */
     title: {
         type: String,
-        required: true,
+        default: undefined,
     },
 });
 
@@ -84,8 +89,20 @@ const instanceList = useList({
     clearListOnListIntentTriggered: false,
 });
 
+// Empty until the model's verbose name is known, so PageTitle shows a skeleton instead of a
+// guessed label.
+const titleText = computed(() => {
+    if (props.title?.length > 0) {
+        return props.title;
+    }
+    const bulk = Array.isArray(props.pk) && props.pk.length > 1;
+    const verboseName = memoizedStartCase(
+        bulk ? modelConfig.config?.verboseNamePlural : modelConfig.config?.verboseName,
+    );
+    return verboseName ? `${memoizedStartCase(props.action)} ${verboseName}` : "";
+});
 // Contribute the page title to the layout's PageTitle display.
-usePageTitle(() => ({ title: props.title }));
+usePageTitle(() => ({ title: titleText.value }));
 
 const router = useRouter();
 const handleReturnClick = () => {

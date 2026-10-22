@@ -1,10 +1,9 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/views/ViewActivate.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { memoizedStartCase } from "@vueda/utils/case.js";
 import ViewSelectedObjectsAction from "@vueda/views/ViewSelectedObjectsAction.vue";
 import omit from "lodash-es/omit.js";
-import { computed, useSlots } from "vue";
+import { useSlots } from "vue";
 
 /**
  * View that renders a confirmation form for the activate action via ModelActionForm, then sends
@@ -32,7 +31,11 @@ const props = defineProps({
         type: [String, Array],
         required: true,
     },
-    /** Page title override; defaults to "Activate {Model}". */
+    /**
+     * Page title override. The default title is "Activate" followed by the model's verbose name. When `pk` lists more
+     * than one object, the default uses the verbose plural name. The default is empty until the verbose name is known,
+     * so the layout shows a skeleton.
+     */
     title: {
         type: String,
         default: undefined,
@@ -41,9 +44,6 @@ const props = defineProps({
 });
 
 const slots = useSlots();
-const titleText = computed(() => {
-    return props.title?.length > 0 ? props.title : `Activate ${memoizedStartCase(props.model)}`;
-});
 const theme = useTheme("ViewActivate", props);
 </script>
 
@@ -54,7 +54,7 @@ const theme = useTheme("ViewActivate", props);
             :model="model"
             :pk="pk"
             action="activate"
-            :title="titleText"
+            :title="title"
             tone="success"
             v-bind="omit($attrs, ['class'])"
         >

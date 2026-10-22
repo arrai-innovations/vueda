@@ -39,8 +39,14 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     THEME_OVERRIDE_PROPS: {},
 }));
 
-vi.mock("@vueda/utils/case.js", () => ({
-    memoizedStartCase: (v) => v.toUpperCase(),
+vi.mock("@vueda/utils/case.js", async () => {
+    const { default: startCase } = await import("lodash-es/startCase.js");
+    return { memoizedStartCase: startCase };
+});
+
+const mockedUsePageTitle = vi.fn();
+vi.mock("@vueda/use/usePageTitle.js", () => ({
+    usePageTitle: mockedUsePageTitle,
 }));
 
 const routerBack = vi.fn();
@@ -115,7 +121,11 @@ let ViewActivate, vue, mockInstanceList, modelConfig;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
-    modelConfig = vue.reactive({ info: { pk: "id" }, loading: false });
+    modelConfig = vue.reactive({
+        info: { pk: "id" },
+        config: { verboseName: "", verboseNamePlural: "" },
+        loading: false,
+    });
     mockedUseModelConfig.mockReturnValue(modelConfig);
     mockedUseIsActive.mockReturnValue(vue.ref(true));
     mockInstanceList = {
@@ -185,6 +195,42 @@ describe("lib/views/ViewActivate.vue", () => {
             expect(root.classes()).toContain("theme-root");
             expect(root.classes()).toContain("custom");
             expect(mockedUseTheme).toHaveBeenCalledWith("ViewActivate", expect.any(Object));
+        });
+    });
+
+    describe("Page title", () => {
+        // The view contributes its title through `usePageTitle(source)`; read the registered getter.
+        const pageTitle = () => mockedUsePageTitle.mock.calls[0][0]().title;
+
+        scopedIt('defaults to "Activate" followed by the model\'s verbose name', () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.verboseName = "purchase order";
+            mount(ViewActivate, { props: { app: "catalog", model: "purchaseorder", pk: "4" } });
+            expect(pageTitle()).toBe("Activate Purchase Order");
+        });
+
+        scopedIt("uses the verbose plural name when pk lists more than one object", () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.verboseName = "purchase order";
+            modelConfig.config.verboseNamePlural = "purchase orders";
+            mount(ViewActivate, { props: { app: "catalog", model: "purchaseorder", pk: ["4", "5"] } });
+            expect(pageTitle()).toBe("Activate Purchase Orders");
+        });
+
+        scopedIt("is empty until the verbose name is known, then resolves", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewActivate, { props: { app: "catalog", model: "purchaseorder", pk: "4" } });
+            expect(pageTitle()).toBe("");
+            modelConfig.config.verboseName = "purchase order";
+            expect(pageTitle()).toBe("Activate Purchase Order");
+        });
+
+        scopedIt("uses the title prop when given, even before the verbose name is known", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewActivate, {
+                props: { app: "catalog", model: "purchaseorder", pk: "4", title: "Custom Title" },
+            });
+            expect(pageTitle()).toBe("Custom Title");
         });
     });
 

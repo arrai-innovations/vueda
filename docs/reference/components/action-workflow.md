@@ -86,7 +86,7 @@ Theme keys: {@api theme-key:ModelActionForm} for the card and {@api theme-key:Ac
 
 ## ViewAction
 
-{@api vue:component:ViewAction} is the generic confirmation that {@term Action View Resolution} falls back to for a model action. It puts the action and model names in the page title and a "Go Back" button in the page actions. It passes its [`pk`]{@api vue:component:ViewAction:prop:pk} values to the card without fetching the records, so its chips show primary keys. It sends the action as `PUT` unless [`requestMethod`]{@api vue:component:ModelActionForm:prop:requestMethod} names another method.
+{@api vue:component:ViewAction} is the generic confirmation that {@term Action View Resolution} falls back to for a model action. Its page title is the action name followed by the model's verbose name, and a "Go Back" button sits in the page actions. An action on several records uses the plural verbose name. It passes its [`pk`]{@api vue:component:ViewAction:prop:pk} values to the card without fetching the records, so its chips show primary keys. It sends the action as `PUT` unless [`requestMethod`]{@api vue:component:ModelActionForm:prop:requestMethod} names another method.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -163,7 +163,7 @@ The pre-flight is a real request, so it can fail. Here the endpoint rejects the 
 
 ## ViewActivate
 
-{@api vue:component:ViewActivate} confirms the `activate` action in the `success` tone. It fetches the selected records, so each chip shows the record's formatted name as a link beside its primary key. It sends the action as `PATCH`. The title reads "Activate" plus the model name unless you set the [`title`]{@api vue:component:ViewActivate:prop:title} prop.
+{@api vue:component:ViewActivate} confirms the `activate` action in the `success` tone. It fetches the selected records, so each chip shows the record's formatted name as a link beside its primary key. It sends the action as `PATCH`. The title reads "Activate" followed by the model's verbose name unless you set the [`title`]{@api vue:component:ViewActivate:prop:title} prop. An action on several records uses the plural verbose name.
 
 The server offers the `activate` action only for a model that inherits {@api py:class:vueda.core.models.ActivatableBaseModel}, on a viewset that mixes in {@api py:class:vueda.core.viewsets.DeactivateActionViewSetMixin}. `VuedaViewSet` does not include that mixin. The action sets `is_active` to `true` and rejects a record that is already active.
 
@@ -197,7 +197,7 @@ The server offers the `activate` action only for a model that inherits {@api py:
 
 ## ViewDeactivate
 
-{@api vue:component:ViewDeactivate} is the default view for every model's `deactivate` route. It confirms the `deactivate` action in the `warning` tone. Like `ViewActivate`, it fetches the selected records and sends the action as `PATCH`. The title reads "Deactivate" plus the model name unless you set the [`title`]{@api vue:component:ViewDeactivate:prop:title} prop.
+{@api vue:component:ViewDeactivate} is the default view for every model's `deactivate` route. It confirms the `deactivate` action in the `warning` tone. Like `ViewActivate`, it fetches the selected records and sends the action as `PATCH`. The title reads "Deactivate" followed by the model's verbose name unless you set the [`title`]{@api vue:component:ViewDeactivate:prop:title} prop. An action on several records uses the plural verbose name.
 
 The server offers the `deactivate` action under the same conditions as `activate`: a model that inherits `ActivatableBaseModel`, on a viewset that mixes in `DeactivateActionViewSetMixin`. The action sets `is_active` to `false` and rejects a record that is already inactive. It changes nothing else, so sessions, tokens, and owned records stay as they are unless your server code changes them.
 
@@ -264,7 +264,7 @@ The prompt describes only the action. Describe other effects, such as ending ses
 
 The view differs from `ViewAction` in its copy and its request:
 
-- The page title is the transition's `name` followed by the model name. Until the workflow metadata loads, the title uses the transition code in title case. The prompt uses the same name in lower case.
+- The page title is the transition's `name` in title case, followed by the model's verbose name. Until the workflow metadata loads, the title uses the transition code in title case. The prompt uses the same name in lower case.
 - Both the pre-flight and the confirm execute the transition. [Design Transition UX and Redirects](../../guides/transition-ux-and-redirects.md) describes the request.
 
 The confirmation shows the transition name and the selected records only. A pre-flight rejection shows its message beside the record's chip. To show source and target states or eligibility reasons, supply a project view for the transition code.
