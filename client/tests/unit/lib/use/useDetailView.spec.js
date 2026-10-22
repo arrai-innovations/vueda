@@ -148,6 +148,8 @@ describe("lib/use/useDetailView.js", () => {
             expect(instance).toHaveProperty("combinedWhileText");
             expect(instance).toHaveProperty("combinedFormProps");
             expect(instance).toHaveProperty("currentActionAvailable");
+            expect(instance).toHaveProperty("recordName");
+            expect(instance).toHaveProperty("recordNamePending");
         });
 
         scopedIt("actions group contains expected keys", async () => {
@@ -384,6 +386,79 @@ describe("lib/use/useDetailView.js", () => {
             mockInstanceObject.state.object = { id: "42", available_actions: ["retrieve"] };
             await nextTick();
             expect(instance.currentActionAvailable).toBe(false);
+        });
+    });
+
+    describe("record name", () => {
+        scopedIt("requests formatted_name when the model info declares it and fetchFields leaves it out", async () => {
+            mockModelConfig.info.fields = { name: {}, formatted_name: { hidden: true } };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.params[FIELDS_PARAM]).toContain("formatted_name");
+        });
+
+        scopedIt("requests formatted_name once when fetchFields already names it", async () => {
+            mockModelConfig.info.fields = { name: {}, formatted_name: {} };
+            mockModelConfig.config.fetchFields = ["id", "name", "formatted_name"];
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            const requested = objectProps.params[FIELDS_PARAM].flat();
+            expect(requested.filter((field) => field === "formatted_name")).toHaveLength(1);
+        });
+
+        scopedIt("does not request formatted_name when the model info does not declare it", async () => {
+            mockModelConfig.info.fields = { name: {} };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.params[FIELDS_PARAM].flat()).not.toContain("formatted_name");
+        });
+
+        scopedIt("keeps a formatted_name fetched only for the heading out of the form values", async () => {
+            mockModelConfig.info.fields = { name: {}, formatted_name: { hidden: true } };
+            mockInstanceObject.state.object = { id: "42", name: "Test Widget", formatted_name: "Widget 42" };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            expect(formInitialValue).toEqual({ id: "42", name: "Test Widget" });
+        });
+
+        scopedIt("keeps formatted_name in the form values when fetchFields names it", async () => {
+            mockModelConfig.info.fields = { name: {}, formatted_name: {} };
+            mockModelConfig.config.fetchFields = ["id", "name", "formatted_name"];
+            mockInstanceObject.state.object = { id: "42", name: "Test Widget", formatted_name: "Widget 42" };
+            await withSetup(() => useDetailView(props, formInitialValue));
+            expect(formInitialValue).toEqual({ id: "42", name: "Test Widget", formatted_name: "Widget 42" });
+        });
+
+        scopedIt("names the record from the fetched object's formatted_name", async () => {
+            mockModelConfig.info.fields = { formatted_name: { hidden: true } };
+            mockInstanceObject.state.object = { id: "42", formatted_name: "Widget 42" };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.recordName).toBe("Widget 42");
+            expect(instance.recordNamePending).toBe(false);
+        });
+
+        scopedIt("is pending while the object loads", async () => {
+            mockModelConfig.info.fields = { formatted_name: { hidden: true } };
+            mockInstanceObject.state.object = null;
+            mockInstanceObject.state.loading = true;
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.recordName).toBe("");
+            expect(instance.recordNamePending).toBe(true);
+        });
+
+        scopedIt("is empty and not pending when the loaded name is blank", async () => {
+            mockModelConfig.info.fields = { formatted_name: { hidden: true } };
+            mockInstanceObject.state.object = { id: "42", formatted_name: null };
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.recordName).toBe("");
+            expect(instance.recordNamePending).toBe(false);
+        });
+
+        scopedIt("is never pending for a model without a formatted name", async () => {
+            mockModelConfig.info.fields = { name: {} };
+            mockInstanceObject.state.object = null;
+            mockInstanceObject.state.loading = true;
+            const { instance } = await withSetup(() => useDetailView(props, formInitialValue));
+            expect(instance.recordNamePending).toBe(false);
         });
     });
 

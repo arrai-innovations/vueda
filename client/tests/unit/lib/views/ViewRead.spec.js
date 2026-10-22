@@ -63,6 +63,8 @@ beforeEach(async () => {
             combinedErrored: false,
             combinedWhileText: "",
             combinedFormProps: {},
+            recordName: "",
+            recordNamePending: false,
         }),
         actions: reactive({
             nonDetailActions: [],
@@ -132,6 +134,38 @@ describe("lib/views/ViewRead.vue", () => {
     });
 
     describe("rendering", () => {
+        scopedIt("names the record in a heading above the body", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mockDetailViewResult.instance.recordName = "Widget 42";
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="record-name"]').text()).toBe("Widget 42");
+        });
+
+        scopedIt("shows a skeleton in place of the record name while it loads", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mockDetailViewResult.instance.recordNamePending = true;
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="record-name-skeleton"]').exists()).toBe(true);
+            expect(wrapper.find('[data-qa="record-name"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders no heading when the record has no name", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            expect(wrapper.find('[data-qa="record-name"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="record-name-skeleton"]').exists()).toBe(false);
+        });
+
+        scopedIt("lets the record-name slot replace the heading", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mockDetailViewResult.instance.recordName = "Widget 42";
+            const wrapper = mount(ViewRead, {
+                props: { app: "a", model: "m", pk: "1" },
+                slots: { "record-name": ({ recordName }) => h("p", { "data-qa": "custom-name" }, recordName) },
+            });
+            expect(wrapper.find('[data-qa="custom-name"]').text()).toBe("Widget 42");
+            expect(wrapper.find('[data-qa="record-name"]').exists()).toBe(false);
+        });
         scopedIt("renders root element with data-qa attribute", async () => {
             const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
             const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });

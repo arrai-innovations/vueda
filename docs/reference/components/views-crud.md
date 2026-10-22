@@ -199,6 +199,8 @@ After a successful create, the view opens the new record's update view. The [`re
 
 {@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, file, image, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
 
+A heading above the fields names the record by its {@term Formatted Name}. The heading scrolls with the fields and is not part of the sticky header, so a long name wraps. A skeleton holds its place while the record loads. A model whose serializer leaves out `formatted_name` gets no heading. The [`record-name`]{@api vue:component:ViewRead:slot:record-name} slot replaces the heading.
+
 The sticky bar holds the record's detail actions and its transitions:
 
 - One {@api vue:component:LinkModelView} button for each configured detail action that the record's {@term Available Actions} list includes, except the read action itself.
@@ -232,7 +234,7 @@ Update renders as the filled primary button, and the [`primaryActions`]{@api vue
 
 ## ViewUpdate
 
-{@api vue:component:ViewUpdate} shows the create form filled from the fetched record. Its sticky bar holds the Update button, the record's other detail actions, and its valid transitions. An unsaved-changes marker shows while any field differs from its original value.
+{@api vue:component:ViewUpdate} shows the create form filled from the fetched record, under the same record name heading as `ViewRead`. The [`record-name`]{@api vue:component:ViewUpdate:slot:record-name} slot replaces the heading. Its sticky bar holds the Update button, the record's other detail actions, and its valid transitions. An unsaved-changes marker shows while any field differs from its original value.
 
 If the record's available actions lack `update`, the view hides the Update button and shows an "Editing unavailable" notice in place of the form. The [`update-unavailable`]{@api vue:component:ViewUpdate:slot:update-unavailable} slot replaces the notice.
 
