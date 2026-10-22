@@ -4,6 +4,7 @@ import { changelogDraftPlugin, renderUnreleased } from "../../docs-tooling/js/ut
 import { glossaryTermPlugin } from "../../docs-tooling/js/utils/glossary-term-plugin.js";
 import { buildApiLinks, buildGlossaryLinks } from "../../docs-tooling/js/utils/reference-links.js";
 import { normalizeTerm, parseFrontmatter, stripInlineMarkdown } from "../../docs-tooling/js/utils/reference-parser.js";
+import { walkFiles } from "../../docs-tooling/js/utils/walk-files.js";
 import { markdownDocsPlugin } from "../../docs-tooling/js/vite/markdown-docs.js";
 import { arraiThemeRoot, buildBreadcrumbRoutes, buildSocialHead } from "@arrai-innovations/vitepress-theme/config";
 import tailwindcss from "@tailwindcss/vite";
@@ -217,20 +218,6 @@ const writeTimingReport = (siteConfig) => {
         logger.info(`  ${section}: ${item.count} page(s), ${item.totalBytes} bytes`);
     }
     logger.info(`[docs timing] report: ${docsTimingReportPath}`);
-};
-
-const walkFiles = (dir) => {
-    if (!fs.existsSync(dir)) {
-        return [];
-    }
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    return entries.flatMap((entry) => {
-        const entryPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            return walkFiles(entryPath);
-        }
-        return [entryPath];
-    });
 };
 
 const extractHeading = (body) => {

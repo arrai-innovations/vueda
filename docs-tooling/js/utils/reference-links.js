@@ -1,22 +1,9 @@
 /** Shared link targets and labels for the HTML and Markdown documentation. */
 import { apiMemberTitle, memberAnchorFromId } from "./reference-index.js";
 import { normalizeTerm, parseFrontmatter, stripInlineMarkdown } from "./reference-parser.js";
+import { walkFiles } from "./walk-files.js";
 import fs from "node:fs";
 import path from "node:path";
-
-const walkFiles = (dir) => {
-    if (!fs.existsSync(dir)) {
-        return [];
-    }
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    return entries.flatMap((entry) => {
-        const entryPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            return walkFiles(entryPath);
-        }
-        return [entryPath];
-    });
-};
 
 const extractHeading = (body) => {
     const match = body.match(/^#\s+(.+)\s*$/m);
