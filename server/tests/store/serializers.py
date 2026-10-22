@@ -423,6 +423,64 @@ class CartAnnotatedCustomerSerializer(VuedaSerializer):
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
 
+class CartItemAnnotatedCartSerializer(VuedaSerializer):
+    """CartItem expanding its to-one `cart` onto CartAnnotatedCustomerSerializer, which expands the
+    cart's to-one `customer` in turn."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CartItem
+        fields = ["id"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "cart": (CartAnnotatedCustomerSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CartItemProductOptionSerializer(VuedaSerializer):
+    """CartItem expanding its to-one `product_option`. `quantity_doubled` reads an annotation that
+    only a viewset's own Prefetch queryset adds, and renders null on rows that the plan loads."""
+
+    quantity_doubled = serializers.SerializerMethodField()
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.CartItem
+        fields = ["id", "quantity", "quantity_doubled"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "product_option": (ProductOptionSerializer, {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["id", "name"]}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+    def get_quantity_doubled(self, obj):
+        return getattr(obj, "quantity_doubled", None)
+
+
+class CartWithAliasedItemsSerializer(VuedaSerializer):
+    """Cart expanding its reverse `cart_items` under two names, `cart_items` and `items`, both onto
+    CartItemProductOptionSerializer."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Cart
+        fields = ["id"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "cart_items": (CartItemProductOptionSerializer, {"many": True}),
+            "items": (CartItemProductOptionSerializer, {"source": "cart_items", "many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class CustomerWithAliasedItemCartsSerializer(VuedaSerializer):
+    """Customer expanding its reverse `cart_set` onto CartWithAliasedItemsSerializer, so a to-many
+    expand sits under another to-many expand."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Customer
+        fields = ["id"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "cart_set": (CartWithAliasedItemsSerializer, {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
 class CartItemCartCustomerSerializer(VuedaSerializer):
     """CartItem expanding `customer` from the source "cart.customer", which crosses the to-one `cart`
     before it reaches Customer, whose `formatted_name` is an annotation."""

@@ -861,6 +861,269 @@ def test_to_one_expand_keeps_the_viewsets_own_prefetch(api_client, cart_formatte
     assert actual == expected
 
 
+def test_apply_prefetch_plan_splits_the_joins_inside_the_querysets_own_prefetch():
+    # Cart's manager joins customer__user. The plan prefetches `customer` under the queryset's own
+    # `cart_set` Prefetch, so the join is split at `customer`. The own Prefetch keeps its filter and
+    # ordering.
+    own_queryset = store_models.Cart.objects.filter(reserved_until=None).order_by("-pk")
+    plan_prefetch = Prefetch("cart_set__customer", queryset=store_models.Customer._base_manager.all())
+
+    queryset = apply_prefetch_plan(
+        store_models.Customer.objects.prefetch_related(Prefetch("cart_set", queryset=own_queryset)), [], [plan_prefetch]
+    )
+
+    cart_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "cart_set")
+    assert not cart_prefetch.queryset.query.select_related
+    assert str(cart_prefetch.queryset.query.where) == str(own_queryset.query.where)
+    assert cart_prefetch.queryset.query.order_by == own_queryset.query.order_by
+    customer_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "cart_set__customer")
+    assert customer_prefetch.queryset.query.select_related == {"user": {}}
+
+
+@pytest.mark.django_db
+class TestNestedExpandUnderAnotherPrefetch:
+    """The expands nested under a relation keep their plan when another Prefetch loads the relation:
+    the viewset's own Prefetch, for a to-one or a to-many relation, or the Prefetch of a second
+    expand of the same to-many relation.
+
+    Each cart holds items with quantities 2, 1, and 0, each on its own product option, so loading a
+    product option per item costs one query per item. CartPrefetchedItemsViewSet's own Prefetch
+    keeps the items with a positive quantity, orders them by descending quantity, and annotates
+    `quantity_doubled`.
+    """
+
+    @pytest.fixture(autouse=True)
+    def authenticated_client(self, api_client, cart_formatted_name_select_related_data):
+        user = cart_formatted_name_select_related_data.users["test_super_user@domain.invalid"]
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @staticmethod
+    def create_carts(cart_count):
+        """Replace every Cart with `cart_count` carts, each for its own customer.
+
+        Returns `{cart_pk: (email, items)}`. `email` is the customer's email, and `items` lists each
+        item as `(item_pk, quantity, product option name)`, by descending quantity.
+        """
+        store_models.CartItem.objects.all().delete()
+        store_models.Cart.objects.all().delete()
+        store_models.Customer.objects.all().delete()
+        distributor = store_models.Distributor.objects.create(name=f"Distributor {cart_count}", description="")
+        tangible_type, _ = store_models.TangibleType.objects.get_or_create(
+            code="nested-plan", defaults={"name": "Nested plan"}
+        )
+        product = store_models.Product.objects.create(
+            distributor=distributor, name="Product", tangible_type=tangible_type, order_between=(1, 10)
+        )
+        carts = {}
+        for i in range(cart_count):
+            email = f"nested-plan-customer-{cart_count}-{i}@domain.invalid"
+            user = get_user_model().objects.create(email=email, name="Customer", is_active=True)
+            cart = store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=user))
+            items = []
+            for quantity in (2, 1, 0):
+                name = f"option-{cart_count}-{i}-{quantity}"
+                product_option = store_models.ProductOption.objects.create(
+                    product=product, name=name, sku=name, gtin=name
+                )
+                item = store_models.CartItem.objects.create(cart=cart, product_option=product_option, quantity=quantity)
+                items.append((item.pk, quantity, name))
+            carts[cart.pk] = (email, items)
+        return carts
+
+    def test_nested_expand_loads_after_the_viewsets_prefetch(self, authenticated_client, settings):
+        """The viewset's own Prefetch loads `cart_items` with its filter, ordering, and annotation.
+        `cart_items.product_option` loads after it, at one query for the request."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_cart_prefetched_items"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_items,cart_items.product_option"}
+
+        counts = {}
+        for cart_count in (2, 10):
+            carts = self.create_carts(cart_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.cart-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {
+                row["id"]: [
+                    (item["id"], item["quantity"], item["quantity_doubled"], item["product_option"]["name"])
+                    for item in row["cart_items"]
+                ]
+                for row in response.data["results"]
+            }
+            assert actual == {
+                pk: [(item_pk, quantity, quantity * 2, name) for item_pk, quantity, name in items if quantity > 0]
+                for pk, (_email, items) in carts.items()
+            }
+            counts[cart_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested expand query count grows with row count: {counts}"
+
+    @pytest.mark.parametrize(
+        ("urlconf", "viewset_prefetch"),
+        [
+            ("tests.unit.core.urls_cart_with_aliased_items", False),
+            ("tests.unit.core.urls_cart_prefetched_items", True),
+        ],
+    )
+    @pytest.mark.parametrize("nested_name", ["items", "cart_items"])
+    def test_both_names_of_one_relation_render_their_nested_expands(
+        self, authenticated_client, settings, urlconf, viewset_prefetch, nested_name
+    ):
+        """`cart_items` and `items` both expand the reverse `cart_items`, and only `nested_name`
+        expands `product_option`. One Prefetch loads the relation for both names, the expand's own or
+        the viewset's, and `product_option` loads after it.
+
+        The order of the two names in the serializer's fields follows string hashing, because
+        rest_flex_fields2 intersects the expand names with the permit list as sets. Running the test
+        with each name as the nested one covers both orders under every hash seed."""
+        settings.ROOT_URLCONF = urlconf
+        plain_name = "cart_items" if nested_name == "items" else "items"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: f"{plain_name},{nested_name},{nested_name}.product_option"}
+
+        counts = {}
+        for cart_count in (2, 10):
+            carts = self.create_carts(cart_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.cart-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {
+                row["id"]: (
+                    sorted(item["id"] for item in row[plain_name]),
+                    sorted((item["id"], item["product_option"]["name"]) for item in row[nested_name]),
+                )
+                for row in response.data["results"]
+            }
+            expected = {}
+            for pk, (_email, items) in carts.items():
+                loaded = [(item_pk, name) for item_pk, quantity, name in items if quantity > 0 or not viewset_prefetch]
+                expected[pk] = (sorted(item_pk for item_pk, _name in loaded), sorted(loaded))
+            assert actual == expected
+            counts[cart_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"aliased expand query count grows with row count: {counts}"
+
+    def test_nested_formatted_name_under_the_viewsets_to_many_prefetch(self, authenticated_client, settings):
+        """The viewset's own `cart_set` Prefetch comes from Cart's manager, which joins
+        `customer__user`. The join is split at `customer`, so the expand's own prefetch loads each
+        cart's `customer` with its `formatted_name` annotation."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_customer_prefetched_annotated_carts"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_set,cart_set.customer"}
+
+        counts = {}
+        for cart_count in (2, 10):
+            carts = self.create_carts(cart_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.customer-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {
+                cart["id"]: cart["customer"]["formatted_name"]
+                for row in response.data["results"]
+                for cart in row["cart_set"]
+            }
+            assert actual == {pk: email for pk, (email, _items) in carts.items()}
+            counts[cart_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested to-one expand query count grows with row count: {counts}"
+
+    def test_nested_formatted_name_under_the_viewsets_to_one_prefetch(self, authenticated_client, settings):
+        """The viewset's own Prefetch for the to-one `cart` comes from Cart's manager, which joins
+        `customer__user`. The join is split at `customer`, so the expand's own prefetch loads each
+        cart's `customer` with its `formatted_name` annotation."""
+        settings.ROOT_URLCONF = "tests.unit.core.urls_cart_item_prefetched_annotated_cart"
+        query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart,cart.customer"}
+
+        counts = {}
+        for cart_count in (2, 10):
+            carts = self.create_carts(cart_count)
+
+            with CaptureQueriesContext(connection) as captured:
+                response = authenticated_client.get(reverse("store.cartitem-list"), data=query, format="json")
+
+            assert response.status_code == HTTPStatus.OK, response_body(response)
+            actual = {
+                row["id"]: (row["cart"]["id"], row["cart"]["customer"]["formatted_name"])
+                for row in response.data["results"]
+            }
+            assert actual == {
+                item_pk: (pk, email) for pk, (email, items) in carts.items() for item_pk, _quantity, _name in items
+            }
+            counts[cart_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested to-one expand query count grows with row count: {counts}"
+
+    @pytest.mark.parametrize("own_path", ["cart_set", "cart_set__cart_items"])
+    def test_nested_expand_under_a_viewset_prefetch_at_depth(self, own_path):
+        """The viewset's own Prefetch loads `cart_set`, or `cart_set__cart_items` one level down
+        under the expand's own `cart_set` Prefetch. `cart_set.cart_items.product_option` loads after
+        whichever Prefetch loads the items."""
+        serializer = expanded_serializer(
+            store_serializers.CustomerWithAliasedItemCartsSerializer,
+            "cart_set,cart_set.cart_items,cart_set.cart_items.product_option",
+        )
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.Customer)
+        own_querysets = {
+            "cart_set": store_models.Cart.objects.all(),
+            "cart_set__cart_items": store_models.CartItem.objects.filter(quantity__gt=0),
+        }
+        viewset_queryset = store_models.Customer.objects.prefetch_related(
+            Prefetch(own_path, queryset=own_querysets[own_path])
+        )
+        keeps_every_item = own_path == "cart_set"
+
+        counts = {}
+        for cart_count in (2, 10):
+            carts = self.create_carts(cart_count)
+            queryset = apply_prefetch_plan(viewset_queryset.all(), select_related, prefetch_related)
+
+            with CaptureQueriesContext(connection) as captured:
+                actual = {
+                    cart.pk: sorted((item.pk, item.product_option.name) for item in cart.cart_items.all())
+                    for customer in queryset
+                    for cart in customer.cart_set.all()
+                }
+
+            assert actual == {
+                pk: sorted((item_pk, name) for item_pk, quantity, name in items if quantity > 0 or keeps_every_item)
+                for pk, (_email, items) in carts.items()
+            }
+            counts[cart_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"nested expand query count grows with row count: {counts}"
+
+    @pytest.mark.parametrize("own_lookups", [(), ("cart_items",)])
+    def test_nested_expand_without_a_viewset_prefetch_queryset(self, own_lookups):
+        """With no Prefetch queryset of the viewset's own, the expand's own Prefetch loads
+        `cart_items` with `product_option` joined onto it. A plain `prefetch_related("cart_items")`
+        reuses those rows, so the request costs the cart query and the item query alone."""
+        serializer = expanded_serializer(
+            store_serializers.CartWithAliasedItemsSerializer, "cart_items,cart_items.product_option"
+        )
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.Cart)
+        carts = self.create_carts(3)
+        queryset = apply_prefetch_plan(
+            store_models.Cart.objects.prefetch_related(*own_lookups), select_related, prefetch_related
+        )
+
+        cart_query_and_item_query = 2
+
+        with CaptureQueriesContext(connection) as captured:
+            actual = {
+                cart.pk: sorted((item.pk, item.product_option.name) for item in cart.cart_items.all())
+                for cart in queryset
+            }
+
+        assert actual == {
+            pk: sorted((item_pk, name) for item_pk, _quantity, name in items) for pk, (_email, items) in carts.items()
+        }
+        assert len(captured) == cart_query_and_item_query, [query["sql"] for query in captured]
+
+
 @pytest.mark.django_db
 class TestProductViewSet(BaseTestModelViewSet):
     model = Product
