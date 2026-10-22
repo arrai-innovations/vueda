@@ -108,7 +108,7 @@ patchTheme({
                 "data-[kind=command]:text-warning",
             ],
         },
-        /** Model cell naming the row an event wrote. `data-relation="self"` is the requested object and renders as plain foreground text; `data-relation="related"` is another row that references it and renders muted, with the object id beside it on {@api theme-key:ViewHistoryList.cellModelObject}. */
+        /** Model cell naming the row an event wrote. `data-relation="self"` is the requested object and renders as plain foreground text. `data-relation="state"` is the requested object's workflow state, reads "Workflow state", and renders as plain foreground text. `data-relation="related"` is another row that references it and renders muted, with the object id beside it on {@api theme-key:ViewHistoryList.cellModelObject}. */
         cellModel: {
             class: [
                 "inline-flex items-baseline gap-1 text-[12px] leading-[1.3] text-foreground",

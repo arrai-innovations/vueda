@@ -14,6 +14,7 @@ __all__ = (
     "WorkflowPermission",
     "ensure_object_state",
     "get_workflow_for_model",
+    "object_state_events",
     "objects_without_object_state",
 )
 
@@ -31,9 +32,13 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import QuerySet
+from pghistory.models import Events
 from rest_framework.exceptions import PermissionDenied
 
+from vueda.core.audit import action_is_open
+from vueda.core.audit import audited_action
 from vueda.core.audit import current_action_metadata
+from vueda.core.installed_apps import workflow_enabled
 from vueda.core.models import BaseModelMeta
 from vueda.core.models import Lookup
 from vueda.core.utils import get_system_user
@@ -575,6 +580,37 @@ def get_workflow_for_model(model) -> Workflow:
     return workflow
 
 
+def object_state_events(instance):
+    """Name the workflow state changes of ``instance`` for its history.
+
+    These are the ``update`` events of the object's ``ObjectState`` row. The row's ``insert`` records
+    the object's initial state rather than a transition, so history leaves it out. Returns ``None``
+    when the model does not enable workflow or the object has no ``ObjectState`` row.
+    """
+    if not workflow_enabled(instance):
+        return None
+    object_state = instance.object_state
+    if object_state is None:
+        return None
+    return Events.objects.tracks(object_state).filter(pgh_label="update")
+
+
+@contextmanager
+def _transition_action(transition, user=None):
+    """Run a transition's writes inside one action, so its state change and side effects group together.
+
+    Inside an open action, such as a request or a task, the transition joins it and the action keeps
+    its own name. Otherwise the transition opens an action labelled with its code, acting as ``user`` or,
+    without one, the system user.
+    """
+    if action_is_open():
+        yield
+        return
+    acting_user = user if user is not None else get_system_user()
+    with audited_action(transition.code, user=acting_user.pk):
+        yield
+
+
 def objects_without_object_state(model, workflow):
     """Return the objects of ``model`` that have no ``ObjectState`` row in ``workflow``.
 
@@ -1013,8 +1049,9 @@ class WorkflowModelMethods:
         Returns the target state and the object state's new revision, which is ``None`` when the
         object has no state row to record.
         """
-        self.update_object_state(transition.target, user=user, change_reason=f"Transition {transition.code!r} applied.")
-        self.on_transition(transition, user, dry_run)
+        with _transition_action(transition, user):
+            self.update_object_state(transition.target)
+            self.on_transition(transition, user, dry_run)
         return transition.target, object_revision(self.object_state)
 
     def apply_transition(
@@ -1041,18 +1078,19 @@ class WorkflowModelMethods:
             raise InvalidTransitionError(
                 f"Transition {transition_code!r} not available from state {self.workflow_state.code!r}"
             )
-        self.update_object_state(transition.target)
-        self.on_transition(transition)
+        with _transition_action(transition):
+            self.update_object_state(transition.target)
+            self.on_transition(transition)
 
-    def update_object_state(self, state, *, user=None, change_reason=None):  # Used in tests
+    def update_object_state(self, state):
         """
-        Sets the history user to the system user if a user isn't passed in.
+        Write ``state`` as this object's current state.
+
+        The write joins the open action. ``apply_checked_transition`` and ``fast_transition`` open one
+        named after the transition when no action is open.
         """
         object_state = self.object_state
         object_state.state = state
-        object_state._history_user = user if user is not None else get_system_user()
-        if change_reason is not None:
-            object_state._change_reason = change_reason
         object_state.save()
 
     def on_transition(self, transition: Transition, user: User | None = None, dry_run: bool = False):

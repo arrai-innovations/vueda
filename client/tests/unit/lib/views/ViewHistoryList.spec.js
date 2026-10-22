@@ -550,8 +550,34 @@ describe("lib/views/ViewHistoryList.vue", () => {
                 "Dana Okonkwo",
             );
             expect(wrapper.vm.referenceText({ id: 6, display: null, missing: true }, "user")).toBe("deleted user #6");
-            expect(wrapper.vm.modelDisplay("store.OrderLine")).toBe("OrderLine");
-            expect(wrapper.vm.modelDisplay(null)).toBe("");
+            expect(wrapper.vm.modelDisplay({ model: "store.OrderLine", relation: "related" })).toBe("OrderLine");
+            expect(wrapper.vm.modelDisplay({ model: null, relation: "self" })).toBe("");
+            wrapper.unmount();
+        });
+
+        scopedIt("names a workflow state event's model cell after the state, with no object id", async () => {
+            mockedInject.mockReturnValueOnce({});
+            mockInstanceList.state.objectsInOrder = [UPDATE_ACTION];
+            const wrapper = mount(ViewHistoryList, { props: { app: "a", model: "b", pk: "1" } });
+            await vue.nextTick();
+            const renderModelCell = (obj) =>
+                mount(defineComponent({ setup: () => () => objectsGridSlots["field(model)"]({ obj }) }));
+
+            // The ObjectState record that holds the state means nothing to a reader.
+            const stateCell = renderModelCell({
+                model: "vueda_workflow.ObjectState",
+                object_id: "318",
+                relation: "state",
+            });
+            expect(stateCell.text()).toBe("Workflow state");
+            expect(stateCell.find("[data-relation='state']").exists()).toBe(true);
+            stateCell.unmount();
+
+            // A related row keeps its model name and object id.
+            const relatedCell = renderModelCell({ model: "store.OrderLine", object_id: "1204", relation: "related" });
+            expect(relatedCell.text().replace(/\s+/g, " ")).toBe("OrderLine #1204");
+            expect(relatedCell.find("[data-relation='related']").exists()).toBe(true);
+            relatedCell.unmount();
             wrapper.unmount();
         });
     });

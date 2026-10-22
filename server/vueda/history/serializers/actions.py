@@ -35,12 +35,20 @@ class HistoryChangeSerializer(serializers.Serializer):
 
 
 class HistoryEventSerializer(serializers.Serializer):
-    """One write to one row, named by the tracked model rather than the event model."""
+    """One write to one row, named by the tracked model rather than the event model.
+
+    ``relation`` says how the written row belongs to the requested object's history:
+
+    - ``self``: the row is the requested object.
+    - ``related``: the row has a foreign key to the requested object.
+    - ``state``: the row records the requested object's workflow state. ``model`` and ``object_id``
+      name that record, which a client has no reason to show.
+    """
 
     id = serializers.CharField()
     model = serializers.CharField()
     object_id = serializers.CharField(allow_null=True)
-    relation = serializers.ChoiceField(choices=("self", "related"))
+    relation = serializers.ChoiceField(choices=("self", "related", "state"))
     type = serializers.CharField()
     recorded_at = serializers.DateTimeField()
     changes = HistoryChangeSerializer(many=True)

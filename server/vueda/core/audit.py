@@ -1,6 +1,7 @@
 """An explicit action context for audited writes that happen outside a request."""
 
 __all__ = (
+    "action_is_open",
     "audited_action",
     "current_action_metadata",
 )
@@ -32,7 +33,7 @@ def audited_action(action, kind=None, **metadata):
     action keeps that metadata until it exits. Only the outermost block clears the action when it
     ends, because an inner one leaving must not take the action its caller is still writing under.
     """
-    owns_action = getattr(runtime._tracker, "value", None) is None
+    owns_action = not action_is_open()
 
     with pghistory.context(action=action, **metadata) as current:
         if kind is not None:
@@ -46,17 +47,31 @@ def audited_action(action, kind=None, **metadata):
                 _clear_action()
 
 
+def _open_action():
+    """Return pghistory's open action, or ``None`` outside one.
+
+    pghistory keeps the open action in a thread-local and exposes no reader for it. This is the one
+    place that reaches for it, and the one place to change if pghistory grows a supported one.
+    """
+    return getattr(runtime._tracker, "value", None)
+
+
+def action_is_open():
+    """Return whether an action is open, so a write made now joins it.
+
+    An operation that names its own action only when nothing else has opened one checks this first.
+    Inside an open action it runs unchanged and keeps that action's name.
+    """
+    return _open_action() is not None
+
+
 def current_action_metadata():
     """Return the metadata of the action currently open, or an empty mapping outside one.
 
     History middleware records the acting user on a request's action, so this is where code holding
     no user of its own can find who is acting.
-
-    pghistory keeps the open action in a thread-local and exposes no reader for it. This is the one
-    place that reaches for it, and the one place to change if pghistory grows a supported one.
     """
-    current = getattr(runtime._tracker, "value", None)
-    return getattr(current, "metadata", None) or {}
+    return getattr(_open_action(), "metadata", None) or {}
 
 
 def _clear_action():

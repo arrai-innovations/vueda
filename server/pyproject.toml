@@ -33,6 +33,7 @@ dependencies = [
     "django-anymail[mailgun,sendgrid,sparkpost]>=15.0,<16",
     "django-allauth[mfa]>=65.14.1",
     "django-cors-headers>=4.9.0,<5",
+    "django-cte>=4.0.0,<5",
     "django-extensions>=4.0.0,<5",
     "django-filter>=23.5",
     "django-pghistory>=3.9.2,<4",

@@ -384,7 +384,7 @@ The client's settings for a model's views, built from {@term Model Info} and the
 The record of inserts, updates, and deletes that VUEDA keeps for each tracked model, stored as pghistory event rows. VUEDA tracks every managed {@term VUEDA Model} unless its {@term Feature Policy} sets `History.enabled = False`. Event rows are append-only, and VUEDA sets no retention policy.
 
 - Names: [`vueda.history`]{@api py:module:vueda.history}; `History.enabled`; `PGHISTORY_APPEND_ONLY`
-- Described in: [Model Feature Policy](../core-concepts/model-feature-policy.md#history-and-workflow)
+- Described in: [Model Feature Policy](../core-concepts/model-feature-policy.md#history-and-workflow); [Model History Response](../core-concepts/model-history-response.md)
 - Upstream: [pghistory: `track`]{@api ext:pghistory:pghistory.track}; [pghistory: `Event`]{@api ext:pghistory:pghistory.models.Event}
 
 ## Model Info
