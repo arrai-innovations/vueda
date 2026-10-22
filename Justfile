@@ -150,9 +150,10 @@ docs:
 
 docs-validate:
   just docs-api
+  just docs-markdown
   cd {{justfile_directory()}}/docs-tooling && ./bin/docs-tooling.js validate
 
-# Like docs-validate, but unknown API ids and glossary terms are warnings.
+# Validate references without exporting Markdown; unknown ids and terms are warnings.
 # For draft branches that link symbols before the generators produce them.
 # CI and the production site build stay strict.
 docs-validate-draft:

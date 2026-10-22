@@ -153,6 +153,10 @@ jobs:
                       mkdir -p docs/reference/api
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js render
             - run:
+                  name: Export Markdown Documentation
+                  command: |
+                      cd ~/project/docs-tooling && ./bin/docs-tooling.js export-markdown
+            - run:
                   name: Validate Documentation References
                   command: |
                       cd ~/project/docs-tooling && ./bin/docs-tooling.js validate
