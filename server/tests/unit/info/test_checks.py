@@ -103,10 +103,10 @@ class TestFormattedNameChecks:
                 "BothFormattedNameSelectRelatedConfigured defines both formatted_name_lookup_expression "
                 "and formatted_name_select_related.",
                 hint=(
-                    "formatted_name_select_related only has an effect alongside a get_formatted_name() "
-                    "method: formatted_name_lookup_expression resolves entirely through a database "
-                    "annotation, so there is no per-instance computation for select_related to prepare "
-                    "relations for. Remove whichever one the model doesn't use."
+                    "formatted_name_select_related only takes effect alongside a get_formatted_name() method. "
+                    "formatted_name_lookup_expression already reads the name through a database annotation, "
+                    "so VUEDA skips the joins, which would load related rows that nothing reads. "
+                    "Remove whichever one the model doesn't use."
                 ),
                 obj=err_models.BothFormattedNameSelectRelatedConfigured,
                 id="vueda_info.E011",
@@ -410,6 +410,167 @@ class TestFormattedNameChecks:
         assert err_models.RelatedObjectsAreMissingData in error_objs
         assert err_models.NoNameField in error_objs
         assert all(e.id == "vueda_info.E001" for e in errors)
+
+    def test_lookup_expression_to_a_char_field_passes_the_type_check(self):
+        """Note's formatted_name_lookup_expression = "subject" ends at a CharField, so E016 reports nothing."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(store_serializers.NoteSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert [error for error in errors if error.id == "vueda_info.E016"] == []
+
+    @pytest.mark.parametrize(
+        ("lookup_expression", "field_type"),
+        [
+            ("text", "TextField"),
+            ("object_id", "PositiveIntegerField"),
+            ("content_type", "ForeignKey"),
+        ],
+    )
+    def test_lookup_expression_to_a_field_that_is_not_a_char_field_fails_the_type_check(
+        self, monkeypatch, lookup_expression, field_type
+    ):
+        """A lookup expression that ends at any field but a CharField is reported, a TextField included."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_formatted_name_configuration
+
+        monkeypatch.setattr(store_models.Note, "formatted_name_lookup_expression", lookup_expression)
+        info.registration.get_empty_registry()
+        info.register_serializer(store_serializers.NoteSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert [error for error in errors if error.id == "vueda_info.E016"] == [
+            Error(
+                f"Note takes formatted_name from formatted_name_lookup_expression '{lookup_expression}', "
+                f"whose field type is {field_type}, not CharField.",
+                hint=(
+                    "formatted_name must be a one-line string, because the client shows it as a label and "
+                    "VUEDA filters and orders it as text. Point formatted_name_lookup_expression at a "
+                    "CharField, or give the formatted_name GeneratedField an output_field=CharField() and "
+                    'an expression that produces one, such as Cast(F("number"), output_field=CharField()).'
+                ),
+                obj=store_models.Note,
+                id="vueda_info.E016",
+            )
+        ]
+
+    def test_generated_column_with_an_output_field_that_is_not_a_char_field_fails_the_type_check(self, monkeypatch):
+        """CustomerOrder's formatted_name GeneratedField is checked by its output_field."""
+        from django.core.checks import Error
+
+        from vueda.info.checks import check_formatted_name_configuration
+
+        column = store_models.CustomerOrder._meta.get_field("formatted_name")
+        monkeypatch.setattr(column, "output_field", models.IntegerField())
+        info.registration.get_empty_registry()
+        info.register_serializer(store_serializers.CustomerOrderSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert [error for error in errors if error.id == "vueda_info.E016"] == [
+            Error(
+                "CustomerOrder takes formatted_name from its formatted_name column, whose field type is "
+                "IntegerField, not CharField.",
+                hint=(
+                    "formatted_name must be a one-line string, because the client shows it as a label and "
+                    "VUEDA filters and orders it as text. Point formatted_name_lookup_expression at a "
+                    "CharField, or give the formatted_name GeneratedField an output_field=CharField() and "
+                    'an expression that produces one, such as Cast(F("number"), output_field=CharField()).'
+                ),
+                obj=store_models.CustomerOrder,
+                id="vueda_info.E016",
+            )
+        ]
+
+    def test_declared_formatted_name_source_that_is_not_a_char_field_fails_the_type_check(self):
+        """A declared formatted_name with its own source is held to the same CharField rule as the model."""
+        from django.core.checks import Error
+
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.core.serializers.fields import FormattedNameField
+        from vueda.info.checks import check_formatted_name_configuration
+
+        class NoteTextSourceSerializer(VuedaSerializer):
+            formatted_name = FormattedNameField(source="text")
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.Note
+                fields = ["id", "subject", "text"] + VuedaSerializer.Meta.fields
+
+        info.registration.get_empty_registry()
+        info.register_serializer(NoteTextSourceSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert [error for error in errors if error.id == "vueda_info.E016"] == [
+            Error(
+                "NoteTextSourceSerializer.formatted_name reads source 'text', whose field type is TextField, "
+                "not CharField.",
+                hint=(
+                    "formatted_name must be a one-line string, because the client shows it as a label and "
+                    "VUEDA filters and orders it as text. Point the field's source at a CharField, or remove "
+                    "the declaration so that VuedaSerializer builds the field from the model."
+                ),
+                obj=NoteTextSourceSerializer,
+                id="vueda_info.E016",
+            )
+        ]
+
+    def test_expanded_serializer_declared_formatted_name_source_fails_the_type_check(self):
+        """An expandable child serializer is checked too, because the expanded relation serves its declaration."""
+        from django.core.checks import Error
+
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.core.serializers.fields import FormattedNameField
+        from vueda.info.checks import check_formatted_name_configuration
+
+        class NoteTextSourceSerializer(VuedaSerializer):
+            formatted_name = FormattedNameField(source="text")
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.Note
+                fields = ["id", "subject", "text"] + VuedaSerializer.Meta.fields
+
+        class DistributorWithNotesSerializer(VuedaSerializer):
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.Distributor
+                fields = ["id", "name"] + VuedaSerializer.Meta.fields
+                expandable_fields = {"notes": (NoteTextSourceSerializer, {"many": True})}
+
+        info.registration.get_empty_registry()
+        info.register_serializer(DistributorWithNotesSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert [error for error in errors if error.id == "vueda_info.E016"] == [
+            Error(
+                "NoteTextSourceSerializer.formatted_name reads source 'text', whose field type is TextField, "
+                "not CharField.",
+                hint=(
+                    "formatted_name must be a one-line string, because the client shows it as a label and "
+                    "VUEDA filters and orders it as text. Point the field's source at a CharField, or remove "
+                    "the declaration so that VuedaSerializer builds the field from the model."
+                ),
+                obj=NoteTextSourceSerializer,
+                id="vueda_info.E016",
+            )
+        ]
+
+    def test_declared_formatted_name_source_to_a_char_field_passes_the_type_check(self):
+        """CustomerSerializer declares FormattedNameField(source="data.formatted_name"), a CharField on CustomerData."""
+        from vueda.info.checks import check_formatted_name_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(store_serializers.CustomerSerializer)
+
+        errors = check_formatted_name_configuration(app_configs=None)
+
+        assert [error for error in errors if error.id == "vueda_info.E016"] == []
 
 
 @pytest.mark.django_db
@@ -2230,8 +2391,8 @@ class TestFieldSourceResolutionCheck:
 
         assert all("available_actions" not in warning.msg for warning in warnings)
 
-    def test_get_field_name_method_opt_out_produces_no_warning(self):
-        """ValidGetFormattedName has formatted_name = None (opting out of the generated column) and a plain get_formatted_name() method; the source= walk fails to resolve "formatted_name" as a model field, but the callable get_formatted_name() is an explicit opt-out, so it must not warn -- even though its source is implicit (defaults to its field name), just like available_actions."""
+    def test_built_get_formatted_name_field_produces_no_warning(self):
+        """ValidGetFormattedName has formatted_name = None (opting out of the generated column) and a plain get_formatted_name() method, and its serializer declares no formatted_name field. VuedaSerializer builds a FormattedNameField for it, whose source "formatted_name" names no model field, but the callable get_formatted_name() is an explicit opt-out, so it must not warn."""
         from vueda.info.checks import check_field_source_resolution
 
         info.registration.get_empty_registry()
@@ -2240,6 +2401,160 @@ class TestFieldSourceResolutionCheck:
         warnings = check_field_source_resolution(app_configs=None)
 
         assert all("formatted_name" not in warning.msg for warning in warnings)
+
+    def test_get_field_name_method_opt_out_produces_no_warning(self):
+        """DeclaredReadOnlyGetFormattedNameSerializer declares formatted_name as a ReadOnlyField on ValidGetFormattedName. The source= walk fails to resolve "formatted_name" as a model field, but the callable get_formatted_name() is an explicit opt-out, so it must not warn -- even though its source is implicit (defaults to its field name), just like available_actions."""
+        from vueda.info.checks import check_field_source_resolution
+
+        info.registration.get_empty_registry()
+        info.register_serializer(err_serializers.DeclaredReadOnlyGetFormattedNameSerializer)
+
+        warnings = check_field_source_resolution(app_configs=None)
+
+        assert all("formatted_name" not in warning.msg for warning in warnings)
+
+    @pytest.mark.parametrize(
+        ("serializer_class", "model_name"),
+        [
+            (err_serializers.DeclaredSourceGetFormattedNameSerializer, "ValidGetFormattedName"),
+            (err_serializers.DeclaredSourceLookupExpressionSerializer, "ValidLookupExpression"),
+        ],
+    )
+    def test_declared_formatted_name_source_that_does_not_resolve_produces_warning(self, serializer_class, model_name):
+        """A declared formatted_name with its own source reads that path, so the path is walked and reported.
+
+        Neither the model's get_formatted_name() nor its formatted_name_lookup_expression exempts it,
+        because neither is what the field reads. DeclaredSourceGetFormattedNameSerializer repeats a
+        mistake that tests.store's CartSerializer used to make: a source through a "data" relation
+        that the model does not have.
+        """
+        from vueda.info.checks import check_field_source_resolution
+
+        info.registration.get_empty_registry()
+        info.register_serializer(serializer_class)
+
+        warnings = [w for w in check_field_source_resolution(app_configs=None) if "formatted_name" in w.msg]
+        source = serializer_class._declared_fields["formatted_name"].source
+
+        assert [(w.msg, w.hint, w.id) for w in warnings] == [
+            (
+                f"{serializer_class.__name__}.formatted_name does not resolve to a field on {model_name}.",
+                f"'{source}' did not resolve to a model field. If formatted_name is genuinely not "
+                "model-backed, override get_field_model_info to correct its model_fields metadata. "
+                "Otherwise, fix the field's source=.",
+                "vueda_info.W001",
+            )
+        ]
+
+    def test_declared_source_that_names_a_model_method_produces_no_warning(self):
+        """DRF calls a source that names a method, so source="get_formatted_name" is a valid source."""
+        from rest_framework import serializers as drf_serializers
+
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.info.checks import check_field_source_resolution
+
+        class MethodSourceSerializer(VuedaSerializer):
+            formatted_name = drf_serializers.ReadOnlyField(source="get_formatted_name")
+
+            class Meta(VuedaSerializer.Meta):
+                model = err_models.ValidGetFormattedName
+                fields = ["id"] + VuedaSerializer.Meta.fields
+
+        info.registration.get_empty_registry()
+        info.register_serializer(MethodSourceSerializer)
+
+        warnings = check_field_source_resolution(app_configs=None)
+
+        assert all("formatted_name" not in warning.msg for warning in warnings)
+
+    def test_declared_dotted_source_that_ends_at_a_method_produces_no_warning(self):
+        """DRF calls the method at the end of a dotted source too, so cart.get_formatted_name is valid."""
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.core.serializers.fields import FormattedNameField
+        from vueda.info.checks import check_field_source_resolution
+
+        class CartItemCartLabelSerializer(VuedaSerializer):
+            formatted_name = FormattedNameField(source="cart.get_formatted_name")
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.CartItem
+                fields = ["id"] + VuedaSerializer.Meta.fields
+
+        info.registration.get_empty_registry()
+        info.register_serializer(CartItemCartLabelSerializer)
+
+        warnings = check_field_source_resolution(app_configs=None)
+
+        assert all("formatted_name" not in warning.msg for warning in warnings)
+
+    def test_declared_source_that_names_a_model_property_produces_no_warning(self, monkeypatch):
+        """DRF reads a property that a source names, so a property is a valid source."""
+        from rest_framework import serializers as drf_serializers
+
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.info.checks import check_field_source_resolution
+
+        monkeypatch.setattr(store_models.PackingBox, "display_label", property(lambda self: self.name), raising=False)
+
+        class PackingBoxDisplaySerializer(VuedaSerializer):
+            shown = drf_serializers.ReadOnlyField(source="display_label")
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.PackingBox
+                fields = ["id", "shown"] + VuedaSerializer.Meta.fields
+
+        info.registration.get_empty_registry()
+        info.register_serializer(PackingBoxDisplaySerializer)
+
+        warnings = check_field_source_resolution(app_configs=None)
+
+        assert all("shown" not in warning.msg for warning in warnings)
+
+    def test_formatted_name_field_under_another_name_reports_a_broken_lookup_expression(self, monkeypatch):
+        """box_label reads formatted_name's lookup expression, so the warning points at the model's expression."""
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.core.serializers.fields import FormattedNameField
+        from vueda.info.checks import check_field_source_resolution
+
+        monkeypatch.setattr(store_models.PackingBox, "formatted_name_lookup_expression", "no_such_field")
+
+        class PackingBoxLabelSerializer(VuedaSerializer):
+            box_label = FormattedNameField()
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.PackingBox
+                fields = ["id", "name", "box_label"] + VuedaSerializer.Meta.fields
+
+        info.registration.get_empty_registry()
+        info.register_serializer(PackingBoxLabelSerializer)
+
+        warnings = [w for w in check_field_source_resolution(app_configs=None) if "box_label" in w.msg]
+
+        assert [w.hint for w in warnings] == [
+            "'no_such_field' did not resolve to a model field. formatted_name_lookup_expression is used for "
+            "queryset annotation and Django admin field lookups, both DB-level operations, so it must name a "
+            "real field path. Fix the model's lookup expression."
+        ]
+
+    def test_formatted_name_field_under_another_name_produces_no_warning(self):
+        """A FormattedNameField declared as box_label resolves as formatted_name, not as a box_label attribute."""
+        from vueda.core.serializers import VuedaSerializer
+        from vueda.core.serializers.fields import FormattedNameField
+        from vueda.info.checks import check_field_source_resolution
+
+        class PackingBoxLabelSerializer(VuedaSerializer):
+            box_label = FormattedNameField()
+
+            class Meta(VuedaSerializer.Meta):
+                model = store_models.PackingBox
+                fields = ["id", "name", "box_label"] + VuedaSerializer.Meta.fields
+
+        info.registration.get_empty_registry()
+        info.register_serializer(PackingBoxLabelSerializer)
+
+        warnings = check_field_source_resolution(app_configs=None)
+
+        assert all("box_label" not in warning.msg for warning in warnings)
 
     def test_implicit_source_field_name_typo_reports_null_and_produces_system_check_warning(self):
         """implicit_typo = CharField(read_only=True) sets no source= at all (defaults to its own field name, which does not exist on the model, and there is no get_implicit_typo() opt-out) -- it is reported the same as an explicit source= failure, since DRF's default gives no way to tell a field-name typo from a deliberate computed field apart from the two explicit opt-outs."""

@@ -14,6 +14,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 
 from vueda.core.formatted_name import annotate_formatted_name
+from vueda.core.formatted_name import formatted_name_of
 
 
 #: pghistory labels its triggers by operation. The response publishes readable names instead.
@@ -30,10 +31,7 @@ def _fields_by_column(model):
 
 
 def _display_of(instance):
-    formatted_name = getattr(instance, "_get_formatted_name", None)
-    if callable(formatted_name):
-        return formatted_name() or str(instance)
-    return str(instance)
+    return formatted_name_of(instance) or str(instance)
 
 
 class _References:

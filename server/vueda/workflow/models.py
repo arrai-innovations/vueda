@@ -57,7 +57,8 @@ class Workflow(Lookup):
     # was for the deleted workflow, so we can add that workflow to the migration to delete.
     historical_app_label = models.CharField(max_length=255, blank=True)
     historical_model = models.CharField(max_length=255, blank=True)
-    formatted_name = None  # Workflow doesn't need a formatted name.
+    formatted_name = None
+    formatted_name_select_related = ("content_type",)
 
     class Meta(BaseModelMeta):
         default_related_name = "workflows"
@@ -66,6 +67,10 @@ class Workflow(Lookup):
 
     def __str__(self):
         return f"name: {self.name}, code: {self.code}"
+
+    def get_formatted_name(self):
+        """Return the workflow's name and the model that it applies to, such as ``Orders for store.order``."""
+        return f"{self.name} for {self.content_type.app_label}.{self.content_type.model}"
 
     if django.VERSION >= (6, 0):
 

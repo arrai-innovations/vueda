@@ -178,9 +178,10 @@ class FormattedNameManager(models.Manager):
     annotates nothing for it (see ``formatted_name_annotation_path``). One that computes the value in
     Python with ``get_formatted_name()`` has no database path to annotate either, but may still
     declare ``formatted_name_select_related``, which this manager applies the same as
-    ``annotate_formatted_name`` does everywhere else. The annotation itself only matters for the third
-    form, where ``formatted_name`` is a name for some other path — a column on this model, or one
-    reached through single-valued relations.
+    ``annotate_formatted_name`` does everywhere else. The joins are skipped for a model whose
+    formatted name comes from a lookup expression, or that has no ``get_formatted_name()``. The
+    annotation itself only matters for the third form, where ``formatted_name`` is a name for some
+    other path — a column on this model, or one reached through single-valued relations.
 
     Annotating here rather than only in ``VuedaViewSet.get_queryset`` is what makes
     ``formatted_name`` usable everywhere a queryset is, not just on a list request:
@@ -324,7 +325,9 @@ class FormattedNameBaseModel(models.Model):
     """Relation paths to join whenever this model is queried, for a ``get_formatted_name()`` that reads them.
 
     ``annotate_formatted_name`` passes them to ``select_related()``, so the method's relations load in
-    the same query instead of one extra query per row.
+    the same query instead of one extra query per row. It skips them on a model with no
+    ``get_formatted_name()``, or one with a lookup expression, because nothing reads the joined rows
+    there.
     """
 
     class Meta(BaseModelMeta):
@@ -785,6 +788,13 @@ class VuedaModel(FormattedNameBaseModel):
 class ActivatableBaseModel(models.Model):
     """
     A base model for models that can be activated or deactivated.
+
+    Combine it with a VUEDA model base by listing that base first, as in
+    ``class Gadget(VuedaModel, ActivatableBaseModel)``. A model that declares no ``Meta`` of its
+    own takes the ``Meta`` of its first parent only, and Django ignores the others. This class's
+    ``Meta`` sets only ``abstract = True``, so listing it first drops the CRUD
+    ``default_permissions`` that ``BaseModelMeta`` gives ``VuedaModel``. A model that declares its
+    own ``Meta`` should subclass ``VuedaModel.Meta``, whatever order its bases are in.
     """
 
     is_active = models.BooleanField(

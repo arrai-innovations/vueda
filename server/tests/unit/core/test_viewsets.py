@@ -14,7 +14,6 @@ from django.db import connection
 from django.db.models import Prefetch
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
-from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
@@ -475,8 +474,6 @@ def test_list_serializer_applies_select_related_for_an_unfetched_manager_relatio
     """
 
     class _CartFormattedNameSerializer(VuedaSerializer):
-        formatted_name = serializers.SerializerMethodField()
-
         class Meta(VuedaSerializer.Meta):
             model = store_models.Cart
             fields = ["id", "customer", "formatted_name", "object_revision"]
@@ -2984,6 +2981,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         note = store_models.Note.objects.create(
             content_type=ContentType.objects.get_for_model(store_models.Distributor),
             object_id=distributor.pk,
+            subject="Distributor note",
             text="A note about the distributor.",
         )
 
@@ -3023,6 +3021,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         note = store_models.Note.objects.create(
             content_type=ContentType.objects.get_for_model(store_models.Distributor),
             object_id=distributor.pk,
+            subject="Distributor note",
             text="A note about the distributor.",
         )
         response = authenticated_client.get(
@@ -3038,6 +3037,7 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         note = store_models.Note.objects.create(
             content_type=ContentType.objects.get_for_model(store_models.Distributor),
             object_id=distributor.pk,
+            subject="Distributor note",
             text="A note about the distributor.",
         )
         response = authenticated_client.get(

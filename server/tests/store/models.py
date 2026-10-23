@@ -415,7 +415,8 @@ class Note(VuedaModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey("content_type", "object_id")
+    subject = models.CharField(max_length=255)
     text = models.TextField()
 
     formatted_name = None
-    formatted_name_lookup_expression = "text"
+    formatted_name_lookup_expression = "subject"

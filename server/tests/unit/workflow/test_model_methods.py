@@ -20,6 +20,7 @@ from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Transition
 from vueda.workflow.models import TransitionPermission
+from vueda.workflow.models import Workflow
 from vueda.workflow.models import WorkflowPermission
 
 
@@ -803,3 +804,19 @@ class TestWorkflowModelMethods(BaseTestGroupMixin, BaseTestUserMixin):
         assert not check_instance_workflow_called, (
             "check_instance_workflow should not be called for non-workflow models"
         )
+
+
+@pytest.mark.django_db
+def test_workflow_formatted_name_names_the_workflow_and_its_model():
+    """Workflow.get_formatted_name() joins the workflow's name to its content type's app label and model.
+
+    Workflow declares formatted_name_select_related = ("content_type",), so the default manager joins
+    the content type, and reading the name costs no query after the workflow loads.
+    """
+    workflow = Workflow.objects.get(code="order_fulfillment")
+
+    with CaptureQueriesContext(connection) as captured:
+        formatted_name = workflow._get_formatted_name()
+
+    assert formatted_name == "Order Fulfillment for store.customerorder"
+    assert len(captured) == 0

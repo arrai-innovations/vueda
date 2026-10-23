@@ -10,6 +10,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import VuedaReadonlySerializer
 from vueda.core.serializers import VuedaSerializer
+from vueda.core.serializers.fields import FormattedNameField
 from vueda.user.serializers import UserSerializer
 
 
@@ -17,7 +18,7 @@ class CustomerSerializer(VuedaSerializer):
     user = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(is_system=False),
     )
-    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+    formatted_name = FormattedNameField(source="data.formatted_name")
     number_of_ordered_products = serializers.SerializerMethodField()
 
     class Meta(VuedaSerializer.Meta):
@@ -213,7 +214,6 @@ class ProductOptionSerializer(VuedaSerializer):
 
 
 class CartSerializer(VuedaSerializer):
-    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
     cart_items = serializers.PrimaryKeyRelatedField(queryset=models.CartItem.objects.all(), many=True)
     customer_relation = serializers.CharField(source="customer.user", read_only=True)
 
@@ -252,8 +252,6 @@ class CartSerializer(VuedaSerializer):
 
 
 class CartItemSerializer(VuedaSerializer):
-    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
-
     class Meta(VuedaSerializer.Meta):
         model = models.CartItem
         fields = [
@@ -292,16 +290,11 @@ class CartItemSerializer(VuedaSerializer):
 
 
 class CartFormattedNameMethodSerializer(VuedaSerializer):
-    """Cart resolves formatted_name through get_formatted_name() (self.customer.user.email), so per
-    the documented get_formatted_name() serializer contract, formatted_name must be declared
-    explicitly as a SerializerMethodField. CartSerializer's own formatted_name field is unrelated --
-    it is sourced from "data.formatted_name", which Cart has no "data" relation to resolve, so it
-    never actually renders get_formatted_name()'s value. This is a separate, minimal serializer
-    dedicated to exercising formatted_name_select_related's bulk query-count fix across the three
-    call sites annotate_formatted_name shares.
+    """Cart resolves formatted_name through get_formatted_name() (self.customer.user.email), so
+    VuedaSerializer builds a FormattedNameField that calls the method, without a declaration here.
+    This is a separate, minimal serializer dedicated to exercising formatted_name_select_related's
+    bulk query-count fix across the three call sites annotate_formatted_name shares.
     """
-
-    formatted_name = serializers.SerializerMethodField()
 
     class Meta(VuedaSerializer.Meta):
         model = models.Cart
@@ -493,8 +486,6 @@ class OrderStateSerializer(VuedaSerializer):
 
 
 class OrderItemSerializer(VuedaSerializer):
-    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
-
     class Meta(VuedaSerializer.Meta):
         model = models.OrderItem
         fields = [
@@ -594,7 +585,7 @@ class InventoryRecordReasonSerializer(VuedaSerializer):
 
 
 class InventoryRecordSerializer(VuedaSerializer):
-    formatted_name = serializers.CharField(source="data.formatted_name", read_only=True)
+    formatted_name = FormattedNameField(source="data.formatted_name")
 
     class Meta(VuedaSerializer.Meta):
         model = models.InventoryRecord
@@ -837,7 +828,7 @@ class DistributorProxySerializer(VuedaSerializer):
 class NoteSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.Note
-        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        fields = ["id", "content_type", "object_id", "subject", "text"] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "content_object": (
                 GenericForeignKeySerializer,
@@ -862,7 +853,7 @@ class NoteSerializer(VuedaSerializer):
 class AnotherNoteSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.Note
-        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        fields = ["id", "content_type", "object_id", "subject", "text"] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "content_object": GenericForeignKeySerializer,
         }
@@ -871,7 +862,7 @@ class AnotherNoteSerializer(VuedaSerializer):
 class NoteStaticOmitSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.Note
-        fields = ["id", "content_type", "object_id", "text"] + VuedaSerializer.Meta.fields
+        fields = ["id", "content_type", "object_id", "subject", "text"] + VuedaSerializer.Meta.fields
         expandable_fields = {
             "content_object": (
                 GenericForeignKeySerializer,

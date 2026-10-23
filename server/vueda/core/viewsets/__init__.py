@@ -54,9 +54,9 @@ from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
-from vueda.core.formatted_name import FORMATTED_NAME_SELECT_RELATED
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.formatted_name import formatted_name_annotation_path
+from vueda.core.formatted_name import formatted_name_select_related_paths
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.parsers import NestedMultipartMixin
 from vueda.core.paths import path_annotation_name
@@ -898,10 +898,10 @@ def build_prefetch_plan(serializer, model):
     ``GenericRelation`` (a reverse collection onto a fixed, known model) is a normal to-many
     relation and is planned like any other.
 
-    A to-one relation loads through ``select_related``, together with the paths that the related
-    model's ``formatted_name_select_related`` declares. The exception is a related model whose
-    ``formatted_name`` is an annotation (``formatted_name_annotation_path`` returns a path), because a
-    join loads the related model's columns but not its annotations. That relation loads through a
+    A to-one relation loads through ``select_related``. The paths that
+    ``formatted_name_select_related_paths`` returns for the related model join too. The exception
+    is a related model whose ``formatted_name`` is an annotation (``formatted_name_annotation_path``
+    returns a path), because a join loads the related model's columns but not its annotations. That relation loads through a
     ``Prefetch`` whose queryset annotates ``formatted_name``, which costs one query for the related
     rows. The queryset starts from the related model's ``_base_manager``, the manager that Django
     uses to load a related object, so a default manager that filters rows cannot hide the related
@@ -948,7 +948,7 @@ def build_prefetch_plan(serializer, model):
         if formatted_name_annotation_path(related_model) is None:
             # The related model's formatted_name_select_related joins the relations its
             # get_formatted_name() reads, as annotate_formatted_name does for its own querysets.
-            name_select_related = getattr(related_model, FORMATTED_NAME_SELECT_RELATED, None) or ()
+            name_select_related = formatted_name_select_related_paths(related_model)
             select_related.append(orm_path)
             select_related.extend(f"{orm_path}__{nested}" for nested in name_select_related)
         else:
