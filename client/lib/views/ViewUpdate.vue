@@ -5,6 +5,7 @@ import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vu
 import Alert from "@vueda/feedback/alert/Alert.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
+import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import FieldWarningsList from "@vueda/form/confirm/FieldWarningsList.vue";
 import FormConfirmDialog from "@vueda/form/confirm/FormConfirmDialog.vue";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
@@ -271,6 +272,17 @@ onMounted(() => {
             </template>
         </sticky-bar>
         <div :class="theme('body')" data-qa="update-form">
+            <!-- @slot [record-name] Override the heading that names the record above the form; receives `recordName` (the fetched object's formatted name, empty when there is none) and `pending` (true while the name is loading). -->
+            <slot name="record-name" :record-name="instance.recordName" :pending="instance.recordNamePending">
+                <skeleton
+                    v-if="instance.recordNamePending"
+                    :class="theme('recordNameSkeleton')"
+                    data-qa="record-name-skeleton"
+                />
+                <h2 v-else-if="instance.recordName" :class="theme('recordName')" data-qa="record-name">
+                    {{ instance.recordName }}
+                </h2>
+            </slot>
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"
@@ -300,6 +312,7 @@ onMounted(() => {
                             'form-confirm-dialog-warnings',
                             'warning-entry',
                             'update-unavailable',
+                            'record-name',
                         ])"
                         #[slot]="slotProps"
                     >

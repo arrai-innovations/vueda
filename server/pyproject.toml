@@ -33,6 +33,7 @@ dependencies = [
     "django-anymail[mailgun,sendgrid,sparkpost]>=15.0,<16",
     "django-allauth[mfa]>=65.14.1",
     "django-cors-headers>=4.9.0,<5",
+    "django-cte>=4.0.0,<5",
     "django-extensions>=4.0.0,<5",
     "django-filter>=23.5",
     "django-pghistory>=3.9.2,<4",
@@ -95,7 +96,7 @@ dev = [
     "psycopg[binary]>=3.3.3",
     # The migration commands format changed_data with black or ruff, depending on which the
     # project configures and has installed, so the tests need both.
-    "black >=26.5.1",
+    "black >=26.10.1",
     "ruff ==0.15.20",
 ]
 docs = [

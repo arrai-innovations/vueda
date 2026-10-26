@@ -2,6 +2,7 @@
 
 __all__ = ("WorkflowViewSet",)
 
+import pghistory
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.http import Http404
@@ -67,7 +68,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     # Actions that do not require vueda_workflow.read_workflow.
     workflow_gate_exempt_actions = frozenset(("object_state", "permitted_transitions"))
 
-    # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api docs generation.
+    # Moved 'Workflow.objects.all()' to the function, so we can specify a model for workflow actions during open api
+    # docs generation.
     def get_queryset(self):
         if hasattr(self, "queryset_model"):
             return self.queryset_model.objects.all()
@@ -342,6 +344,10 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         # permission classes against the instance we will write, while holding its row lock.
         self.check_object_permissions(request, instance)
         transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
+        # Name the request's action after the transition, so its state changes and their side effects
+        # read as one "approve" in history. Called as a function rather than entered, this adds to the
+        # action the history middleware opened and does nothing outside one.
+        pghistory.context(action=transition.code)
         state, object_state_revision = instance.apply_checked_transition(transition, resolved_user, request.dry_run)
 
         data = {

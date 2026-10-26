@@ -862,7 +862,8 @@ class Migration(migrations.Migration):
     def test_format_changed_data_uses_ruff_when_black_only_infers_settings(self, tmp_path):
         # black infers a target version from requires-python, which is not [tool.black] configuration.
         (tmp_path / "pyproject.toml").write_text(
-            '[project]\nname = "project"\nrequires-python = ">=3.11,<3.15"\n\n[tool.ruff.format]\nquote-style = "single"\n'
+            '[project]\nname = "project"\nrequires-python = ">=3.11,<3.15"\n\n[tool.ruff.format]\n'
+            'quote-style = "single"\n'
         )
         errors = io.StringIO()
 

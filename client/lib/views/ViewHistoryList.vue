@@ -353,8 +353,15 @@ const changeSide = (value) => {
     }
     return { text: String(value), empty: false, missing: false };
 };
-// `app_label.Model` reads as the model alone in a column that already says which row it names.
-const modelDisplay = (label) => (label ? label.split(".").pop() : "");
+// `app_label.Model` reads as the model alone in a column that already says which row it names. A
+// workflow state event names the record that holds the object's state, which means nothing to a
+// reader, so the cell says what the event is instead.
+const modelDisplay = (event) => {
+    if (event.relation === "state") {
+        return "Workflow state";
+    }
+    return event.model ? event.model.split(".").pop() : "";
+};
 // Show the dedicated empty state only after loading settles with zero rows. While loading,
 // keep the grid visible so its skeleton rows render.
 const hasHistory = computed(() => !!instanceList.state.loading || (instanceList.state.objectsInOrder?.length ?? 0) > 0);
@@ -493,7 +500,7 @@ const slots = useSlots();
                 <template #field(model)="{ obj }">
                     <slot name="field(model)" v-bind="{ obj }">
                         <span v-if="obj.model" :class="theme('cellModel')" :data-relation="obj.relation">
-                            {{ modelDisplay(obj.model) }}
+                            {{ modelDisplay(obj) }}
                             <span v-if="obj.relation === 'related'" :class="theme('cellModelObject')">
                                 #{{ obj.object_id }}
                             </span>

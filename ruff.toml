@@ -42,7 +42,6 @@ select = [
     "UP",
 ]
 ignore = [
-    "E501",
     "F811",
     "FIX002",
     "PLC0415",
@@ -61,10 +60,13 @@ ignore = [
     "D103",
     "D104",
 ]
+# Migrations keep the long help_text strings and trigger SQL that Django generates.
 "**/migrations/*" = [
     "D100",
     "D103",
     "D104",
+    "E501",
+    "W505",
 ]
 "server/tests/*" = [
     "DJ008",
@@ -77,6 +79,9 @@ ignore = [
 "scripts/*" = [
     "T201",
 ]
+
+[lint.pycodestyle]
+max-doc-length = 120
 
 [lint.isort]
 known-first-party = [

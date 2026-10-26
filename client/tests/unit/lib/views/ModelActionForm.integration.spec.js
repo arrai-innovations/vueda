@@ -26,12 +26,14 @@ const records = [
     { id: 5, formatted_name: "PO-1045" },
 ];
 
-async function renderConfirmation({ objects = records, slots = {} } = {}) {
+async function renderConfirmation({ objects = records, slots = {}, hostFetches = true } = {}) {
     let form;
-    const fetchState = reactive({
-        loading: false,
-        objectsMap: new Map(objects.map((object) => [String(object.id), object])),
-    });
+    const fetchState = hostFetches
+        ? reactive({
+              loading: false,
+              objectsMap: new Map(objects.map((object) => [String(object.id), object])),
+          })
+        : undefined;
     const router = createRouter({
         history: createMemoryHistory(),
         routes: [{ path: "/", component: { template: "<div />" } }],
@@ -50,7 +52,7 @@ async function renderConfirmation({ objects = records, slots = {} } = {}) {
                             action: "destroy",
                             pk: ["4", "5"],
                             enableDryRun: false,
-                            fetchState,
+                            ...(fetchState ? { fetchState } : {}),
                         },
                         slots,
                     );
@@ -64,8 +66,48 @@ async function renderConfirmation({ objects = records, slots = {} } = {}) {
 const rowSelector = '[data-qa="action-form-list-item"]';
 
 describe("lib/views/ModelActionForm.vue", () => {
+    describe("selected record lookup without a host fetch state", () => {
+        let originalFetch;
+        beforeEach(() => {
+            originalFetch = global.fetch;
+        });
+        afterEach(() => {
+            global.fetch = originalFetch;
+        });
+
+        scopedIt("looks up the selected records and shows their names without IDs", async () => {
+            global.fetch = vi.fn(
+                async () => new Response(JSON.stringify({ results: records, totalPages: 1 }), { status: 200 }),
+            );
+            const { wrapper } = await renderConfirmation({ hostFetches: false });
+            try {
+                await flushPromises();
+                const [url] = global.fetch.mock.calls[0];
+                expect(String(url)).toContain("/catalog/order/");
+                const rows = wrapper.findAll(rowSelector);
+                expect(rows.map((row) => row.get("a").text())).toEqual(["PO-1044", "PO-1045"]);
+                expect(wrapper.find('[data-qa="action-form-list-item-pk"]').exists()).toBe(false);
+            } finally {
+                wrapper.unmount();
+            }
+        });
+
+        scopedIt("keeps the IDs and the selection when the lookup fails", async () => {
+            global.fetch = vi.fn(async () => new Response(JSON.stringify({ detail: "Forbidden" }), { status: 403 }));
+            const { wrapper } = await renderConfirmation({ hostFetches: false });
+            try {
+                await flushPromises();
+                const ids = wrapper.findAll('[data-qa="action-form-list-item-pk"]').map((pk) => pk.text());
+                expect(ids).toEqual(["4", "5"]);
+                expect(wrapper.get('[data-qa="action-form-selected-count"]').text()).toBe("2 of 2 selected");
+            } finally {
+                wrapper.unmount();
+            }
+        });
+    });
+
     describe("selected record names and feedback", () => {
-        scopedIt("shows fetched names as visible links with one trailing ID and no duplicate field label", async () => {
+        scopedIt("shows fetched names as visible links with no trailing ID and no duplicate field label", async () => {
             const { wrapper, fetchState } = await renderConfirmation();
             try {
                 const rows = wrapper.findAll(rowSelector);
@@ -76,7 +118,7 @@ describe("lib/views/ModelActionForm.vue", () => {
                     expect(row.get("a").text()).toBe(record.formatted_name);
                     expect(row.get("a").attributes("href")).toBe(`/catalog/order/read/${record.id}`);
                     expect(row.find("label").exists()).toBe(false);
-                    expect(row.get('[data-qa="action-form-list-item-pk"]').text()).toBe(String(record.id));
+                    expect(row.find('[data-qa="action-form-list-item-pk"]').exists()).toBe(false);
                 }
                 fetchState.objectsMap.set("4", { id: 4, formatted_name: "Renamed order" });
                 await flushPromises();

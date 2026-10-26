@@ -125,7 +125,10 @@ RETRIEVE_EXAMPLES = [
     conditional_open_api_example(
         "GetWorkflowWithExpandableStateAndTransitionExample",
         summary="Get Customer Order (Expanded)",
-        description=f"uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/?&ZeroWidthSpace;{EXPAND_PARAM}=states&amp;{EXPAND_PARAM}=transitions",
+        description=(
+            "uri: /routes/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/?&ZeroWidthSpace;"
+            f"{EXPAND_PARAM}=states&amp;{EXPAND_PARAM}=transitions"
+        ),
         value={
             "code": "order_fulfillment",
             "name": "Order Fulfillment",

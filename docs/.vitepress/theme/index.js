@@ -7,6 +7,7 @@ import ForceState from "./components/ForceState.vue";
 import GlossaryTerm from "./components/GlossaryTerm.vue";
 import HomePreview from "./components/HomePreview.vue";
 import ModelDemo from "./components/ModelDemo.vue";
+import PageMarkdownLink from "./components/PageMarkdownLink.vue";
 import StateLabel from "./components/StateLabel.vue";
 import VersionFooter from "./components/VersionFooter.vue";
 import VuedaDemo from "./components/VuedaDemo.vue";
@@ -50,7 +51,10 @@ const DarkModeTransitionGuard = defineComponent({
 
 const theme = createArraiTheme({
     layoutSlots: {
+        "doc-before": () => h(PageMarkdownLink),
         "home-hero-image": () => h(HomePreview),
+        "home-hero-after": () => h(PageMarkdownLink),
+        "page-top": () => h(PageMarkdownLink),
         "layout-top": () => h(DarkModeTransitionGuard),
         "layout-bottom": () => h(VersionFooter),
     },

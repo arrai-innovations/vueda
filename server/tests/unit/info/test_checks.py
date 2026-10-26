@@ -126,7 +126,8 @@ class TestFormattedNameChecks:
 
         assert errors == [
             Error(
-                "FormattedNameExpressionNotString defines formatted_name_lookup_expression as something other than a string.",
+                "FormattedNameExpressionNotString defines formatted_name_lookup_expression as something other than "
+                "a string.",
                 hint=("formatted_name_lookup_expression is used by DB field lookups, so it must be a string."),
                 obj=err_models.FormattedNameExpressionNotString,
                 id="vueda_info.E004",
@@ -165,7 +166,8 @@ class TestFormattedNameChecks:
         ]
 
     def test_valid_get_formatted_name_passes_system_check(self):
-        """ValidGetFormattedName sets formatted_name=None with a plain get_formatted_name() method; check must produce no errors."""
+        """ValidGetFormattedName sets formatted_name=None with a plain get_formatted_name() method; check must produce
+        no errors."""
         from vueda.info.checks import check_formatted_name_configuration
 
         info.registration.get_empty_registry()
@@ -176,7 +178,8 @@ class TestFormattedNameChecks:
         assert errors == []
 
     def test_valid_lookup_expression_passes_system_check(self):
-        """ValidLookupExpression sets formatted_name=None with a string lookup expression; check must produce no errors."""
+        """ValidLookupExpression sets formatted_name=None with a string lookup expression; check must produce no
+        errors."""
         from vueda.info.checks import check_formatted_name_configuration
 
         info.registration.get_empty_registry()
@@ -255,7 +258,8 @@ class TestFormattedNameChecks:
         assert errors == []
 
     def test_no_name_field_system_check_error(self):
-        """NoNameField has formatted_name = None with no lookup expression or get_formatted_name(); check must flag it."""
+        """NoNameField has formatted_name = None with no lookup expression or get_formatted_name(); check must flag
+        it."""
         from django.core.checks import Error
 
         from vueda.info.checks import check_formatted_name_configuration
@@ -278,7 +282,8 @@ class TestFormattedNameChecks:
         ]
 
     def test_non_vueda_model_skips_formatted_name_check(self):
-        """NonVuedaFormattedName is a plain model (no VuedaModel heritage); formatted name checks must be skipped entirely."""
+        """NonVuedaFormattedName is a plain model (no VuedaModel heritage); formatted name checks must be skipped
+        entirely."""
         from vueda.info.checks import check_formatted_name_configuration
 
         info.registration.get_empty_registry()
@@ -398,7 +403,8 @@ class TestFormattedNameChecks:
         assert errors == []
 
     def test_expandable_model_with_no_formatted_name_found_by_system_check(self):
-        """The enhanced check scans expandable_fields; NoNameField is not registered directly but is flagged because it appears in RelatedObjectsAreMissingDataSerializer.expandable_fields."""
+        """The enhanced check scans expandable_fields; NoNameField is not registered directly but is flagged because it
+        appears in RelatedObjectsAreMissingDataSerializer.expandable_fields."""
         from vueda.info.checks import check_formatted_name_configuration
 
         info.registration.get_empty_registry()
@@ -2381,7 +2387,9 @@ class TestFieldSourceResolutionCheck:
         assert all("computed" not in warning.msg for warning in warnings)
 
     def test_source_star_field_produces_no_warning(self):
-        """available_actions has field.source == "*" (AvailableActionsField sets this explicitly, since it overrides get_attribute() and never reads source at runtime); it is excluded from resolution entirely, the same as a SerializerMethodField, and must not warn."""
+        """available_actions has field.source == "*" (AvailableActionsField sets this explicitly, since it overrides
+        get_attribute() and never reads source at runtime); it is excluded from resolution entirely, the same as a
+        SerializerMethodField, and must not warn."""
         from vueda.info.checks import check_field_source_resolution
 
         info.registration.get_empty_registry()
@@ -2392,7 +2400,10 @@ class TestFieldSourceResolutionCheck:
         assert all("available_actions" not in warning.msg for warning in warnings)
 
     def test_built_get_formatted_name_field_produces_no_warning(self):
-        """ValidGetFormattedName has formatted_name = None (opting out of the generated column) and a plain get_formatted_name() method, and its serializer declares no formatted_name field. VuedaSerializer builds a FormattedNameField for it, whose source "formatted_name" names no model field, but the callable get_formatted_name() is an explicit opt-out, so it must not warn."""
+        """ValidGetFormattedName has formatted_name = None (opting out of the generated column) and a plain
+        get_formatted_name() method, and its serializer declares no formatted_name field. VuedaSerializer builds a
+        FormattedNameField for it, whose source "formatted_name" names no model field, but the callable
+        get_formatted_name() is an explicit opt-out, so it must not warn."""
         from vueda.info.checks import check_field_source_resolution
 
         info.registration.get_empty_registry()
@@ -2403,7 +2414,10 @@ class TestFieldSourceResolutionCheck:
         assert all("formatted_name" not in warning.msg for warning in warnings)
 
     def test_get_field_name_method_opt_out_produces_no_warning(self):
-        """DeclaredReadOnlyGetFormattedNameSerializer declares formatted_name as a ReadOnlyField on ValidGetFormattedName. The source= walk fails to resolve "formatted_name" as a model field, but the callable get_formatted_name() is an explicit opt-out, so it must not warn -- even though its source is implicit (defaults to its field name), just like available_actions."""
+        """DeclaredReadOnlyGetFormattedNameSerializer declares formatted_name as a ReadOnlyField on
+        ValidGetFormattedName. The source= walk fails to resolve "formatted_name" as a model field, but the callable
+        get_formatted_name() is an explicit opt-out, so it must not warn -- even though its source is implicit
+        (defaults to its field name), just like available_actions."""
         from vueda.info.checks import check_field_source_resolution
 
         info.registration.get_empty_registry()
@@ -2557,7 +2571,10 @@ class TestFieldSourceResolutionCheck:
         assert all("box_label" not in warning.msg for warning in warnings)
 
     def test_implicit_source_field_name_typo_reports_null_and_produces_system_check_warning(self):
-        """implicit_typo = CharField(read_only=True) sets no source= at all (defaults to its own field name, which does not exist on the model, and there is no get_implicit_typo() opt-out) -- it is reported the same as an explicit source= failure, since DRF's default gives no way to tell a field-name typo from a deliberate computed field apart from the two explicit opt-outs."""
+        """implicit_typo = CharField(read_only=True) sets no source= at all (defaults to its own field name, which does
+        not exist on the model, and there is no get_implicit_typo() opt-out) -- it is reported the same as an explicit
+        source= failure, since DRF's default gives no way to tell a field-name typo from a deliberate computed field
+        apart from the two explicit opt-outs."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -2576,7 +2593,8 @@ class TestFieldSourceResolutionCheck:
         assert "implicit_typo" in matches[0].hint
 
     def test_single_segment_explicit_source_typo_reports_null_and_produces_system_check_warning(self):
-        """typo = CharField(source="does_not_exist_at_all") fails at its very first segment -- it is reported the same as a source failing partway."""
+        """typo = CharField(source="does_not_exist_at_all") fails at its very first segment -- it is reported the same
+        as a source failing partway."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -2595,7 +2613,14 @@ class TestFieldSourceResolutionCheck:
         assert "does_not_exist_at_all" in matches[0].hint
 
     def test_get_field_model_info_correction_silences_warning_and_object_revision_stays_silent(self):
-        """CustomerOrderSerializer.workflow_state_code/workflow_state_name source through WorkflowModelMethods.workflow_state, a real @property with no database column behind it -- unresolvable through source= alone, same as any other explicit source failure. But VuedaSerializer.get_field_model_info fills in their real type through workflow_field_model_info (State.code/State.name are both CharField), so the check consults that correction before deciding to warn and finds nothing left to report. object_revision, also unresolvable through source= alone, stays silent for a different reason: its source is "*" (ObjectRevisionField sets this explicitly, the same convention SerializerMethodField uses), so it is excluded from resolution entirely rather than evaluated as an explicit path."""
+        """CustomerOrderSerializer.workflow_state_code/workflow_state_name source through
+        WorkflowModelMethods.workflow_state, a real @property with no database column behind it -- unresolvable through
+        source= alone, same as any other explicit source failure. But VuedaSerializer.get_field_model_info fills in
+        their real type through workflow_field_model_info (State.code/State.name are both CharField), so the check
+        consults that correction before deciding to warn and finds nothing left to report. object_revision, also
+        unresolvable through source= alone, stays silent for a different reason: its source is "*" (ObjectRevisionField
+        sets this explicitly, the same convention SerializerMethodField uses), so it is excluded from resolution
+        entirely rather than evaluated as an explicit path."""
         from tests.store import serializers as store_serializers
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
@@ -2615,7 +2640,9 @@ class TestFieldSourceResolutionCheck:
         assert all("object_revision" not in warning.msg for warning in warnings)
 
     def test_unresolvable_source_reports_null_and_produces_system_check_warning(self):
-        """bogus = CharField(source="related.does_not_exist") resolves "related" but not "does_not_exist" -- partial progress. Reports null model types rather than raising, and is reported as a warning through the source= hint (offering get_field_model_info as one option), naming the serializer, field, and path."""
+        """bogus = CharField(source="related.does_not_exist") resolves "related" but not "does_not_exist" -- partial
+        progress. Reports null model types rather than raising, and is reported as a warning through the source= hint
+        (offering get_field_model_info as one option), naming the serializer, field, and path."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -2636,7 +2663,9 @@ class TestFieldSourceResolutionCheck:
         assert "get_field_model_info" in matches[0].hint
 
     def test_source_through_non_relation_field_reports_null_and_produces_system_check_warning(self):
-        """through_non_relation = CharField(source="formatted_name.foo") resolves "formatted_name" (a real field) but can't continue past it, since a CharField/GeneratedField isn't a relation -- also partial progress, also warned, but through the NotRelationField branch of the walk rather than FieldDoesNotExist."""
+        """through_non_relation = CharField(source="formatted_name.foo") resolves "formatted_name" (a real field) but
+        can't continue past it, since a CharField/GeneratedField isn't a relation -- also partial progress, also warned,
+        but through the NotRelationField branch of the walk rather than FieldDoesNotExist."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -2655,7 +2684,10 @@ class TestFieldSourceResolutionCheck:
         assert "formatted_name.foo" in matches[0].hint
 
     def test_unresolvable_lookup_expression_reports_null_and_produces_system_check_warning(self):
-        """formatted_name_lookup_expression = "related__does_not_exist" resolves the relation but not the terminal field name: null model types rather than raising, plus a warning through the lookup_expression hint, which does not offer get_field_model_info as an option -- unlike source=, a lookup_expression has no legitimate non-model-backed reading."""
+        """formatted_name_lookup_expression = "related__does_not_exist" resolves the relation but not the terminal field
+        name: null model types rather than raising, plus a warning through the lookup_expression hint, which does not
+        offer get_field_model_info as an option -- unlike source=, a lookup_expression has no legitimate
+        non-model-backed reading."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 
@@ -2676,7 +2708,10 @@ class TestFieldSourceResolutionCheck:
         assert "get_field_model_info" not in warnings[0].hint
 
     def test_unresolvable_lookup_expression_at_first_segment_reports_null_and_produces_system_check_warning(self):
-        """formatted_name_lookup_expression = "does_not_exist" fails at its very first segment -- unlike a source= failing the same way, this still warns, since a lookup_expression is fed straight to models.F() for queryset annotation and to Django admin's lookup_field(), both DB-level operations that can never reach a @property or method."""
+        """formatted_name_lookup_expression = "does_not_exist" fails at its very first segment -- unlike a source=
+        failing the same way, this still warns, since a lookup_expression is fed straight to models.F() for queryset
+        annotation and to Django admin's lookup_field(), both DB-level operations that can never reach a @property or
+        method."""
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.serializers import ModelInfoSerializer
 

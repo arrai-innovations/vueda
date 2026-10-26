@@ -23,6 +23,8 @@ const ActionFormStub = defineComponent({
         "actionErrorSummary",
         "readyToDryRun",
         "dryRunTarget",
+        "page",
+        "cancelButton",
     ],
     setup(props, { slots }) {
         return () =>
@@ -32,6 +34,8 @@ const ActionFormStub = defineComponent({
                     "data-qa": "action-form-stub",
                     "data-success": props.actionSuccessSummary,
                     "data-error": props.actionErrorSummary,
+                    "data-page": String(props.page),
+                    "data-cancel-button": String(props.cancelButton),
                 },
                 [
                     slots["action-form-inner"]
@@ -46,6 +50,7 @@ const ActionFormStub = defineComponent({
                                   loading: props.fetchState?.loading ?? false,
                                   verb: "confirm",
                                   type: "submit",
+                                  form: "action-form-id",
                                   disabled: false,
                               })
                             : null,
@@ -229,6 +234,7 @@ function mountModelActionForm(options = {}) {
             confirmText: options.confirmText,
             instanceList: options.instanceList,
             tone: options.tone,
+            ...options.props,
         },
         slots: options.slots,
         global: {
@@ -274,7 +280,7 @@ describe("lib/views/ModelActionForm.vue", () => {
             expect(items).toHaveLength(2);
             const message = wrapper.get('[data-qa="action-form-message"]').text();
             expect(message).toContain("Are you sure you want to activate the selected People?");
-            expect(mockedUseTheme).toHaveBeenCalledWith("ModelActionForm", expect.any(Object));
+            expect(mockedUseTheme).toHaveBeenCalledWith("ModelActionForm", expect.any(Object), expect.any(Object));
         });
 
         scopedIt("tags the selected-objects container with neutral tone and renders pk chips", () => {
@@ -285,6 +291,15 @@ describe("lib/views/ModelActionForm.vue", () => {
             expect(pkChips).toHaveLength(2);
             expect(pkChips[0].text()).toBe("1");
             expect(pkChips[1].text()).toBe("2");
+        });
+
+        scopedIt("shows a record's primary key only when the record has no formatted name", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: { objectsInOrder: [{ id: 1, formatted_name: "Ada" }, { id: 2 }] },
+            });
+            const items = wrapper.findAll('[data-qa="action-form-list-item"]');
+            expect(items[0].find('[data-qa="action-form-list-item-pk"]').exists()).toBe(false);
+            expect(items[1].get('[data-qa="action-form-list-item-pk"]').text()).toBe("2");
         });
 
         scopedIt("shows loading placeholder when fetchState.loading", () => {
@@ -472,6 +487,35 @@ describe("lib/views/ModelActionForm.vue", () => {
         });
     });
 
+    describe("Page mode", () => {
+        scopedIt("labels the default confirm button with the action name and ties it to the form", () => {
+            const { wrapper } = mountModelActionForm();
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.text()).toBe("Activate");
+            expect(button.attributes("form")).toBe("action-form-id");
+        });
+
+        scopedIt("keeps ActionForm in card mode with its cancel button by default", () => {
+            const { wrapper } = mountModelActionForm();
+            const stub = wrapper.get('[data-qa="action-form-stub"]');
+            expect(stub.attributes("data-page")).toBe("false");
+            expect(stub.attributes("data-cancel-button")).toBe("true");
+        });
+
+        scopedIt("with page, puts ActionForm in page mode without a cancel button", () => {
+            const { wrapper } = mountModelActionForm({ props: { page: true } });
+            const stub = wrapper.get('[data-qa="action-form-stub"]');
+            expect(stub.attributes("data-page")).toBe("true");
+            expect(stub.attributes("data-cancel-button")).toBe("false");
+        });
+
+        scopedIt("passes page to the theme context", () => {
+            mountModelActionForm({ props: { page: true } });
+            const [, , context] = mockedUseTheme.mock.calls.at(-1);
+            expect(context.page).toBe(true);
+        });
+    });
+
     describe("Typed-confirm gating", () => {
         scopedIt("omits the TypedConfirmField when confirmText is not set", () => {
             const { wrapper } = mountModelActionForm();
@@ -531,7 +575,7 @@ describe("lib/views/ModelActionForm.vue", () => {
                 },
             });
             const custom = wrapper.get('[data-qa="custom-confirm"]');
-            expect(custom.text()).toBe("Yes, continue");
+            expect(custom.text()).toBe("Activate");
             expect(custom.attributes("disabled")).toBeDefined();
 
             await wrapper.get('[data-qa="typed-confirm-field-input"]').setValue("yes");

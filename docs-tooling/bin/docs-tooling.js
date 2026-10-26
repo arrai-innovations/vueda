@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { exportMarkdown } from "../js/exporters/markdown.js";
 import { ComponentsExtractor } from "../js/extractors/components.js";
 import { CssTokensExtractor } from "../js/extractors/css-tokens.js";
 import { ExternalDocsExtractor } from "../js/extractors/external-docs.js";
@@ -728,6 +729,31 @@ yargs(hideBin(process.argv))
                     describe: "Output directory for rendered Markdown",
                 }),
         runRender,
+    )
+    .command(
+        "export-markdown",
+        "Export published documentation as Markdown with resolved links",
+        (y) =>
+            y
+                .option("base", {
+                    type: "string",
+                    default: process.env.VITEPRESS_BASE || "/vueda/",
+                    describe: "Published site path prefix",
+                })
+                .option("site-url", {
+                    type: "string",
+                    default: "https://vueda.dev",
+                    describe: "Published site origin",
+                }),
+        async (argv) => {
+            const { written, unchanged, removed } = await exportMarkdown({
+                docsRoot: path.join(repoRoot, "docs"),
+                repoRoot,
+                base: argv.base,
+                siteUrl: argv.siteUrl,
+            });
+            console.log(`Exported Markdown: ${written} written, ${unchanged} unchanged, ${removed} removed.`);
+        },
     )
     .command(
         "validate-sources",

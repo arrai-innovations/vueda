@@ -22,5 +22,13 @@ patchTheme({
         body: {
             class: ["px-5 py-5"],
         },
+        /** Heading at the top of the body that names the record by its formatted name, above the read-only fields. It scrolls with the body rather than sticking with the page title, so a long name wraps instead of growing the sticky header. */
+        recordName: {
+            class: ["mb-4 text-lg font-semibold leading-tight break-words"],
+        },
+        /** Placeholder shown in place of {@api theme-key:ViewRead.recordName} while the record is loading. Sized to one line of the heading. */
+        recordNameSkeleton: {
+            class: ["mb-4 h-[22px] w-64 max-w-full"],
+        },
     },
 });

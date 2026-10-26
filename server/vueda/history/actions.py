@@ -31,6 +31,11 @@ def _fields_by_column(model):
 
 
 def _display_of(instance):
+    """The referent's name now, read from a row that ``annotate_formatted_name`` fetched.
+
+    A model outside the VUEDA model family has no ``_get_formatted_name``, but its lookup expression
+    still annotates ``formatted_name``, which is how a workflow ``State`` resolves to its name.
+    """
     return formatted_name_of(instance) or str(instance)
 
 
@@ -101,15 +106,12 @@ def _actor_of(metadata, users):
     return {"id": user_id, "display": display, "missing": display is None}
 
 
-def build_action_groups(instance, groups, events):
+def build_action_groups(groups, events):
     """Assemble one page of action groups.
 
     ``groups`` are the paginated group rows and ``events`` every visible event belonging to them,
-    already ordered.
+    already ordered and annotated with their ``relation``.
     """
-    self_model = instance._meta.concrete_model._meta.label
-    self_id = str(instance.pk)
-
     by_group = defaultdict(list)
     for event in events:
         by_group[event.group_key].append(event)
@@ -144,9 +146,7 @@ def build_action_groups(instance, groups, events):
                 "id": f"{event.pgh_obj_model}:{event.pgh_id}",
                 "model": event.pgh_obj_model,
                 "object_id": event.pgh_obj_id,
-                "relation": (
-                    "self" if event.pgh_obj_model == self_model and event.pgh_obj_id == self_id else "related"
-                ),
+                "relation": event.relation,
                 "type": EVENT_TYPES.get(event.pgh_label, event.pgh_label),
                 "recorded_at": event.pgh_created_at,
                 "changes": _changes_of(event, references, collect=False),

@@ -341,7 +341,7 @@ class TestWorkflowModelViewSetPermissions:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND, response_body(response)
 
-    def test_history_list_defers_to_a_matching_state_grant_for_a_subclass_with_its_own_workflow_object_permission_actions(
+    def test_history_list_defers_to_a_matching_state_grant_for_a_subclass_with_its_own_workflow_object_permission_actions(  # noqa: E501
         self, user, permission_group, customer_order, workflow, content_type
     ):
         """

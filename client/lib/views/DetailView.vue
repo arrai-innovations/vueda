@@ -2,6 +2,7 @@
 import Button from "@vueda/controls/button/Button.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
+import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import PageActions from "@vueda/shell/page-title/PageActions.vue";
@@ -292,6 +293,17 @@ onMounted(() => {
             </template>
         </sticky-bar>
         <div :class="theme('body')" :data-qa="`${viewName}-form`">
+            <!-- @slot [record-name] Override the heading that names the record above the form; receives `recordName` (the fetched object's formatted name, empty when there is none) and `pending` (true while the name is loading). -->
+            <slot name="record-name" :record-name="instance.recordName" :pending="instance.recordNamePending">
+                <skeleton
+                    v-if="instance.recordNamePending"
+                    :class="theme('recordNameSkeleton')"
+                    data-qa="record-name-skeleton"
+                />
+                <h2 v-else-if="instance.recordName" :class="theme('recordName')" data-qa="record-name">
+                    {{ instance.recordName }}
+                </h2>
+            </slot>
             <error-display
                 :error="instance.combinedError"
                 :errored="instance.combinedErrored"

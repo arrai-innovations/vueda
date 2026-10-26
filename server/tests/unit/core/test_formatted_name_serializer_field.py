@@ -125,7 +125,10 @@ def test_a_plain_model_formatted_name_property_is_read(monkeypatch):
 
 
 def test_an_unreadable_formatted_name_leaves_the_field_out():
-    """Django refuses to read a generated column on an unsaved instance, and DRF skips a read-only field it cannot read."""
+    """Django refuses to read a generated column on an unsaved instance.
+
+    DRF skips a read-only field that it cannot read.
+    """
     with pytest.raises(SkipField):
         FormattedNameField().get_attribute(store_models.Product(name="Widget"))
 

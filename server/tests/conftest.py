@@ -148,7 +148,8 @@ def use_plain_default_manager(model, monkeypatch):
 
 pytest_plugins = ["celery.contrib.pytest"]
 
-# Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in suffix_each_test.
+# Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in
+# suffix_each_test.
 TransactionTestCase._fixture_teardown = lambda self: None
 
 
@@ -211,9 +212,9 @@ def suffix_each_test(request):
     `pytest-xdist`, specifically for PostgreSQL.
 
     This fixture is automatically applied to each test function. It is designed to operate with Django's test framework
-    in a `pytest` environment. It explicitly targets asynchronous test functions or transactional tests. It generates a unique db name to the
-    base database name provided by `pytest-django`. This unique name ensures that each test is executed in database
-    isolation, which makes parallel test execution using `pytest-xdist` more sane.
+    in a `pytest` environment. It explicitly targets asynchronous test functions or transactional tests. It generates a
+    unique db name to the base database name provided by `pytest-django`. This unique name ensures that each test is
+    executed in database isolation, which makes parallel test execution using `pytest-xdist` more sane.
 
     The fixture takes care of both setting up and tearing down these individual test databases. It dynamically creates
     a new database for the test and drops it afterward. This is managed using PostgreSQL commands, with a consideration
@@ -280,15 +281,18 @@ class BaseTestAssertResponseMixin:
                 my_json = response.json()
                 if "serverStack" in my_json:
                     print(
-                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nserver stack:\n{my_json['serverStack']}"
+                        f"Unexpected response code: {response.status_code} != {expected_status_code}\n"
+                        f"server stack:\n{my_json['serverStack']}"
                     )
                 else:
                     print(
-                        f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response_body(response)}"
+                        f"Unexpected response code: {response.status_code} != {expected_status_code}\n"
+                        f"response was:\n{response_body(response)}"
                     )
             except ValueError:
                 print(
-                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n{response_body(response)}"
+                    f"Unexpected response code: {response.status_code} != {expected_status_code}\nresponse was:\n"
+                    f"{response_body(response)}"
                 )
         assert response.status_code == expected_status_code, response_body(response)
 

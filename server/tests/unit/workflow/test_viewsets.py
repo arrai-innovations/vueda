@@ -755,7 +755,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             },
             str(another_express_order.pk): {
                 "non_field_errors": [
-                    f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment double-check."
+                    f"Order {another_express_order.order_number} ships express; Pack Order needs a fulfillment "
+                    "double-check."
                 ]
             },
         }

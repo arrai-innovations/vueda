@@ -116,6 +116,8 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
  * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value. When the object has calculated values, they join the merged `widgetProps` map.
  * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current view's action. True (optimistic) until the object has loaded.
+ * @property {string} recordName - The fetched object's `formatted_name`, which names the record in the view's header. Empty when the model has no formatted name, when the object has not loaded, or when the name is blank.
+ * @property {boolean} recordNamePending - True while the model has a formatted name and the object that carries it is still loading. A view shows a skeleton in place of the name during this time.
  */
 
 /**
@@ -188,6 +190,14 @@ export function useDetailView(options, formInitialValue) {
         options.fetchFields?.length ? options.fetchFields : modelConfig.config?.fetchFields,
     );
     const hasValidTransitions = computed(() => !!modelConfig.info?.fields?.valid_transitions);
+    // The record name heading needs the object's formatted name even when the field list leaves it
+    // out. VuedaSerializer marks its formatted_name field hidden, which keeps it out of the default
+    // field lists, so most models need this. A model whose serializer drops the field has no entry
+    // in the model info, and the request does not ask for one.
+    const hasFormattedName = computed(() => !!modelConfig.info?.fields?.formatted_name);
+    const addsFormattedName = computed(
+        () => hasFormattedName.value && !(fetchFields.value || []).includes("formatted_name"),
+    );
 
     const formModelProps = useFormModelProps({
         app: () => options.app,
@@ -210,6 +220,7 @@ export function useDetailView(options, formInitialValue) {
                 [
                     modelConfig.info?.pk ?? "id",
                     fetchFields.value,
+                    addsFormattedName.value ? "formatted_name" : null,
                     "available_actions",
                     hasValidTransitions.value ? "valid_transitions" : null,
                 ].filter(Boolean),
@@ -227,9 +238,16 @@ export function useDetailView(options, formInitialValue) {
         [validAndActive, toRef(instanceObject.state, "loading")],
         ([vAA, loading]) => {
             if (vAA && loading === false) {
+                // A formatted name fetched only for the header stays out of the form values, so the
+                // form holds just the fields that the field list asked for.
                 assignReactiveObject(
                     formInitialValue,
-                    omit(cloneDeep(instanceObject.state.object), "available_actions", "valid_transitions"),
+                    omit(
+                        cloneDeep(instanceObject.state.object),
+                        "available_actions",
+                        "valid_transitions",
+                        ...(addsFormattedName.value ? ["formatted_name"] : []),
+                    ),
                 );
             }
         },
@@ -257,6 +275,10 @@ export function useDetailView(options, formInitialValue) {
     );
 
     const pageLoading = computed(() => loadingCombine(modelConfig.loading, instanceObject.state.loading));
+    const recordName = computed(() => instanceObject.state.object?.formatted_name || "");
+    const recordNamePending = computed(
+        () => hasFormattedName.value && !recordName.value && instanceObject.state.loading !== false,
+    );
     const formId = computed(() => `${options.app}-${options.model}-${options.pk}-${options.viewName}`);
 
     // Calculated values join the widgetProps map that the merge picked, so they never change which map applies.
@@ -338,6 +360,8 @@ export function useDetailView(options, formInitialValue) {
             combinedWhileText,
             combinedFormProps,
             currentActionAvailable,
+            recordName,
+            recordNamePending,
         }),
         actions: reactive({
             nonDetailActions,

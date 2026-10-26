@@ -710,7 +710,8 @@ class VuedaSearchFilterBackend(SearchFilter):
         unified 'combined_rank' annotation.
 
         1. Parse search fields and terms using DRF's SearchFilter behavior.
-        2. Separate VUEDA-prefixed fields (ranked fields (`V:`), trigram similar fields (`#`), and word similar fields (`~`)) from standard deterministic lookups.
+        2. Separate VUEDA-prefixed fields (ranked fields (`V:`), trigram similar fields (`#`), and word similar
+           fields (`~`)) from standard deterministic lookups.
         3. For ranked fields: annotate rank components (full-text, trigram, word-boundary matches).
         4. For trigram similar fields: combine all terms into one and filter DRF-style (OR across fields).
         5. For deterministic lookups: filter (OR across fields, AND across terms) and boost rank.

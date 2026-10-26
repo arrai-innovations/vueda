@@ -9,6 +9,16 @@ vi.mock("@vueda/use/useLookupContext.js", () => ({
     useLookupContext: mockedUseLookupContext,
 }));
 
+let modelConfig;
+vi.mock("@vueda/use/useModelConfig.js", () => ({
+    useModelConfig: () => modelConfig,
+}));
+
+const mockedUsePageTitle = vi.fn();
+vi.mock("@vueda/use/usePageTitle.js", () => ({
+    usePageTitle: mockedUsePageTitle,
+}));
+
 const { makeUseThemeMock } = await vi.hoisted(() => import("@tests/unit/themeStub.js"));
 const mockedUseTheme = makeUseThemeMock({
     slotResolver: (key) => (key === "root" ? "theme-root" : ""),
@@ -18,10 +28,10 @@ vi.mock("@vueda/use/useTheme.js", () => ({
     THEME_OVERRIDE_PROPS: {},
 }));
 
-vi.mock("@vueda/utils/case.js", () => ({
-    memoizedStartCase: (v) => v.toUpperCase(),
-    getLowerTitle: (v) => v.toLowerCase(),
-}));
+vi.mock("@vueda/utils/case.js", async () => {
+    const { default: startCase } = await import("lodash-es/startCase.js");
+    return { memoizedStartCase: startCase, getLowerTitle: (v) => v.toLowerCase() };
+});
 
 const routerBack = vi.fn();
 vi.mock("vue-router", () => ({
@@ -104,6 +114,8 @@ let ViewExecuteTransition, vue;
 
 beforeEach(async () => {
     vue = await vi.importActual("vue");
+    modelConfig = vue.reactive({ config: { verboseName: "", verboseNamePlural: "" } });
+    mockedUsePageTitle.mockClear();
     workflowTransitions = vue.reactive({ transitions: [] });
     ViewExecuteTransition = (await import("@vueda/views/ViewExecuteTransition.vue")).default;
     mockedUseLookupContext.mockClear();
@@ -193,6 +205,70 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
             expect(wrapper.find('[data-qa="model-action-form"]').attributes("data-action-verbose-name")).toBe(
                 "approve",
             );
+        });
+    });
+
+    describe("Page title", () => {
+        // The view contributes its title through `usePageTitle(source)`; read the registered getter.
+        const pageTitle = () => mockedUsePageTitle.mock.calls[0][0]().title;
+
+        scopedIt("defaults to the transition display name as written, followed by the model's verbose name", () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowTransitions.transitions = [{ code: "submit", name: "Submit for approval" }];
+            modelConfig.config.verboseName = "purchase order";
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "submit", pk: "4" },
+            });
+            expect(pageTitle()).toBe("Submit for approval Purchase Order");
+        });
+
+        scopedIt("keeps the punctuation of a written display name", () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowTransitions.transitions = [{ code: "reopen", name: "Re-open" }];
+            modelConfig.config.verboseName = "purchase order";
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "reopen", pk: "4" },
+            });
+            expect(pageTitle()).toBe("Re-open Purchase Order");
+        });
+
+        scopedIt("falls back to the start-cased transition code when no transition matches yet", () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.verboseName = "purchase order";
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "submit_for_approval", pk: "4" },
+            });
+            expect(pageTitle()).toBe("Submit For Approval Purchase Order");
+        });
+
+        scopedIt("uses the verbose plural name when pk lists more than one object", () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowTransitions.transitions = [{ code: "approve", name: "Approve" }];
+            modelConfig.config.verboseName = "purchase order";
+            modelConfig.config.verboseNamePlural = "purchase orders";
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "approve", pk: ["4", "5"] },
+            });
+            expect(pageTitle()).toBe("Approve Purchase Orders");
+        });
+
+        scopedIt("is empty until the verbose name is known, then resolves", () => {
+            mockedInject.mockReturnValueOnce({});
+            workflowTransitions.transitions = [{ code: "submit", name: "Submit for approval" }];
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "submit", pk: "4" },
+            });
+            expect(pageTitle()).toBe("");
+            modelConfig.config.verboseName = "purchase order";
+            expect(pageTitle()).toBe("Submit for approval Purchase Order");
+        });
+
+        scopedIt("uses the title prop when given, even before the verbose name is known", () => {
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewExecuteTransition, {
+                props: { app: "catalog", model: "purchaseorder", action: "submit", title: "Send Order Upstream" },
+            });
+            expect(pageTitle()).toBe("Send Order Upstream");
         });
     });
 

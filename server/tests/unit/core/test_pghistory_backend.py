@@ -16,6 +16,7 @@ from tests.conftest import BaseTestCallCommand
 from tests.store import models as store_models
 from tests.utils import append_installed_apps
 from tests.utils import clear_info_registry_before_test
+from vueda.core.audit import action_is_open
 from vueda.core.audit import audited_action
 from vueda.history.middleware import VuedaHistoryMiddleware
 
@@ -180,6 +181,15 @@ class TestActionContext:
         metadata = events_for(invoice)[0].pgh_context.metadata
         assert metadata["action"] == "inner"
         assert metadata["kind"] == "command"
+
+    def test_an_action_is_open_only_inside_its_block(self):
+        assert not action_is_open()
+        with audited_action("outer"):
+            assert action_is_open()
+            with audited_action("inner"):
+                assert action_is_open()
+            assert action_is_open(), "an inner block leaving keeps the outer action open"
+        assert not action_is_open()
 
     def test_an_event_records_its_own_write_time_not_the_transactions(self):
         """One transaction's events must not collapse onto the moment it began.

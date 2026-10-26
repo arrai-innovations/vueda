@@ -631,7 +631,8 @@ def _validate_ordering_declarations(model, viewset):
 
 
 def check_formatted_name_configuration(app_configs, **kwargs):
-    """Report models whose ``formatted_name`` or ``<field>_lookup_expression`` configuration cannot resolve (``vueda_info.E001`` to ``E005``, ``E008``, ``E011``, ``E016``)."""
+    """Report models whose ``formatted_name`` or ``<field>_lookup_expression`` configuration cannot resolve
+    (``vueda_info.E001`` to ``E005``, ``E008``, ``E011``, ``E016``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []
@@ -2335,7 +2336,8 @@ def _validate_column_totals(model, viewset):
 
 
 def check_column_totals_configuration(app_configs, **kwargs):
-    """Report viewsets whose ``column_totals`` declaration or total names are invalid (``vueda_info.E013``, ``W002``)."""
+    """Report viewsets whose ``column_totals`` declaration or total names are invalid (``vueda_info.E013``,
+    ``W002``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []
@@ -2453,7 +2455,8 @@ def _validate_field_source_resolution(serializer_class, model):
 
 
 def check_field_source_resolution(app_configs, **kwargs):
-    """Warn about serializer fields whose ``source`` model info cannot resolve to a model field (``vueda_info.W001``)."""
+    """Warn about serializer fields whose ``source`` model info cannot resolve to a model field
+    (``vueda_info.W001``)."""
     from vueda.info.registration import get_all_registrations
 
     warnings = []

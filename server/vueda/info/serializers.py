@@ -2015,7 +2015,8 @@ class ModelInfoChoicesSerializer(
                                             "/store/customer/tangible_type/"
                                         ),
                                         "value": {
-                                            "detail": "Invalid field 'tangible_type'. Valid fields with choices are user.",
+                                            "detail": "Invalid field 'tangible_type'. Valid fields with choices "
+                                            "are user.",
                                             "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
                                         },
                                     },
@@ -2148,7 +2149,8 @@ class ModelInfoFilterSetChoicesSerializer(ModelInfoChoicesSerializer):
                                             "/store/customer/tangible_type/"
                                         ),
                                         "value": {
-                                            "detail": "Invalid field 'tangible_type'. Valid fields with choices are user.",
+                                            "detail": "Invalid field 'tangible_type'. Valid fields with choices "
+                                            "are user.",
                                             "serverStack": open_api_tracebacks.INFO_CHOICES_INVALID_FIELD,
                                         },
                                     },

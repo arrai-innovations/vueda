@@ -1,6 +1,6 @@
 import { useListInstance } from "@arrai-innovations/reactive-helpers";
 import { scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
 import { FormContextSymbol, LookupContextSymbol } from "@vueda/utils/symbols.js";
 import flushPromises from "flush-promises";
 import { createPinia, setActivePinia } from "pinia";
@@ -53,6 +53,10 @@ const lookupContext = { requestObject: vi.fn(() => Promise.resolve({})) };
 
 let ViewDestroy;
 let mockedFetch;
+
+// mountRealStack attaches to document.body. Unmount after each test, so no earlier test's form
+// shares an id with the form under test.
+enableAutoUnmount(afterEach);
 
 beforeEach(async () => {
     // WidgetReadOnly resolves lookup objects through the model stores.

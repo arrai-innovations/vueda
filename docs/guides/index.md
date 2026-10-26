@@ -17,6 +17,10 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 - [Configure the Cache and Sessions](configure-cache-and-sessions.md): Choose a cache backend through `CACHE_URL`, keep sessions readable across worker processes, and verify the result.
 - [Local HTTPS Development](local-https-setup.md): Set up mkcert, gunicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
 
+## Coding Agents
+
+- [Use VUEDA with Coding Agents](use-coding-agents.md): Install the integrator skill for Codex or Claude Code and use the documentation for your application's VUEDA major version.
+
 ## Client Setup & Theming
 
 - [Style Unovis Charts](style-unovis-charts.md): Optional chart palette and mappings for VUEDA typography, surfaces, and dark mode.

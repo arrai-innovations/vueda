@@ -85,7 +85,8 @@ def find_one_migration_generated_today_or_fail(migration_dir, name):
         for path in glob.glob(os.path.join(migration_dir, f"*{name}_{date.strftime('%Y_%m_%d')}.py"))
     )
     assert len(found) == 1, (
-        f"expected one {name}_<today>.py migration in {migration_dir}, found {found} among {sorted(os.listdir(migration_dir))}"
+        f"expected one {name}_<today>.py migration in {migration_dir}, found {found} among "
+        f"{sorted(os.listdir(migration_dir))}"
     )
     return found[0]
 

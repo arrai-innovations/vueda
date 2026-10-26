@@ -31,8 +31,9 @@ def workflow_serializer_fields():
     """Return new instances of the fields that a workflow model's serializers receive.
 
     ``WorkflowFieldsSerializerMixin`` adds them to each ``VuedaSerializer`` of a model that enables
-    ``class Vueda.Workflow``, unless its ``Meta`` sets ``workflow_fields = False``. A default list shows the state's name. Its code repeats that as a
-    machine value, and the per-record transitions belong on the detail view.
+    ``class Vueda.Workflow``, unless its ``Meta`` sets ``workflow_fields = False``. A default list
+    shows the state's name. Its code repeats that as a machine value, and the per-record transitions
+    belong on the detail view.
     """
     return {
         "workflow_state_code": drf_serializers.CharField(

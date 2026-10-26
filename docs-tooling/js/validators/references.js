@@ -5,22 +5,8 @@ import {
     parseTermRef,
     stripInlineMarkdown,
 } from "../utils/reference-parser.js";
+import { walkFiles } from "../utils/walk-files.js";
 import fs from "node:fs";
-import path from "node:path";
-
-const walkFiles = (dir) => {
-    if (!fs.existsSync(dir)) {
-        return [];
-    }
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    return entries.flatMap((entry) => {
-        const entryPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            return walkFiles(entryPath);
-        }
-        return [entryPath];
-    });
-};
 
 /**
  * Build a Map<id, filePath> from API markdown files.

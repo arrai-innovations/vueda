@@ -14,23 +14,13 @@ patchTheme({
      * chrome before delegating the actual form controls.
      */
     ViewDestroy: {
-        /** Outer wrapper. Empty; the card below owns all visible chrome. */
+        /** Outer wrapper. Empty; the embedded {@api theme-key:ModelActionForm} renders the page in its danger tone: the sticky action bar, the gutter, and the selected-records panel. */
         root: {
             class: [],
         },
-        /** Outer danger card. Opens a `group/view-destroy` named scope, carries a destructive-bordered card with an 8 % destructive ring, and wraps the embedded {@api theme-key:ModelActionForm} in `:bare="true" tone="danger"` so the inner card is suppressed and this surface stays authoritative. */
-        card: {
-            class: [
-                "group/view-destroy",
-                "rounded-vueda-card border-hairline bg-card overflow-hidden",
-                "border-destructive/50",
-                "shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
-            ],
-        },
-        /** Banner row at the top of the danger card: destructive 6 %-mix background, destructive-tinted bottom hairline. Mirrors the {@api theme-key:ModelActionForm.banner} layout so danger and tone-routed banners read as siblings. */
+        /** Unframed banner row at the top of the page body: the destructive icon tile beside the title and the description or cascade list. Matches {@api theme-key:ModelActionForm.banner} on a page. */
         banner: {
-            composes: ["_ActionBanner.banner"],
-            class: ["border-destructive/20 bg-destructive/[0.06]"],
+            class: ["flex items-start gap-3"],
         },
         /** 36 px destructive icon tile leading the banner. Fixed destructive recipe (no tone routing) since ViewDestroy is the danger specialization; matches {@api theme-key:ModelActionForm.bannerIcon} under the danger tone. */
         bannerIcon: {
@@ -51,10 +41,6 @@ patchTheme({
         bannerDescription: {
             composes: ["_ActionBanner.bannerDesc"],
             class: [],
-        },
-        /** Body region beneath the banner: holds the consequences cascade and the embedded ModelActionForm. 16 px padding so the card edge stays clear of the chip-strip border. */
-        body: {
-            class: ["p-4"],
         },
     },
 });
