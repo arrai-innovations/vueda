@@ -247,7 +247,13 @@ class TestReverseWorkflowObjectStates(BaseTestUserMixin):
 
         assert object_states() == {pk: row for pk, row in before.items() if row[0] not in removed_workflows}
 
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_the_vdq_migrations_still_reverse_and_apply(self):
+        """
+        Reversing ``vueda_vdq`` also reverses the migrations that depend on it, and Django replays the model state of
+        every applied migration to do that, so this runs where the test apps' migrations are not applied.
+        """
         call_command("migrate", "vueda_vdq", "0001", verbosity=0)
         assert not Workflow.objects.filter(code="queueitem").exists()
 
