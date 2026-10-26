@@ -36,6 +36,7 @@ from django.db.models import F
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
+from django.db.models.fields.reverse_related import ManyToOneRel
 from django.http import Http404
 from django_filters.filters import AllValuesFilter
 from django_filters.filters import AllValuesMultipleFilter
@@ -1149,6 +1150,12 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     its joins passes through such a relation. Its filters, annotations, and ordering stay as
     declared.
 
+    A reverse foreign key or reverse one-to-one prefetch is the exception. Django points each row
+    that it loads back at the row that it was loaded for, so a lookup through that back reference,
+    such as ``cart_set__customer``, never runs. A join part under the back reference goes to the
+    rows it points back to. For example, the ``user`` part of Cart's ``customer__user`` join under a
+    ``cart_set`` prefetch becomes a ``user`` join on the Customer queryset.
+
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
     whose relation the join already cached.
@@ -1180,6 +1187,45 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     """
     queryset, _ = _place_prefetch_plan(queryset, select_related, prefetch_related, frozenset())
     return queryset
+
+
+def _prefetch_back_reference(model, path):
+    """
+    The name of the field that points from the rows that a prefetch loads back to the rows that it
+    loads them for.
+
+    ``path`` is a prefetch lookup's path on ``model``. When its last relation is a reverse foreign
+    key or a reverse one-to-one, Django sets that relation's own field on each prefetched row to the
+    row that it was prefetched for. A row whose field a join already cached keeps the joined object.
+    For example, each ``Cart`` that ``cart_set`` loads gets the ``Customer`` row it belongs to as
+    its ``customer``. A prefetch through ``cart_set__customer`` then finds every ``customer``
+    already cached and does not run.
+
+    :param model: The model that the path starts from.
+    :type model: Type[django.db.models.Model]
+    :param path: The prefetch lookup's ``__``-joined path of relation attribute names.
+    :type path: str
+    :return: The name of the field on the prefetched rows. ``None`` when the path's last relation is
+        any other kind of relation, or when the path does not resolve.
+    :rtype: Optional[str]
+    """
+    field = None
+    for segment in path.split("__"):
+        field = next(
+            (
+                candidate
+                for candidate in model._meta.get_fields()
+                if (candidate.get_accessor_name() if isinstance(candidate, ForeignObjectRel) else candidate.name)
+                == segment
+            ),
+            None,
+        )
+        if field is None or field.related_model is None:
+            return None
+        model = field.related_model
+    if isinstance(field, ManyToOneRel):
+        return field.field.name
+    return None
 
 
 def _loads_relation_through_queryset(lookup):
@@ -1248,9 +1294,21 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
             joins_under = list(prefetch_joins.pop(path, {})) if from_plan else []
             nested_paths = frozenset(p.removeprefix(prefix) for p in split_paths if p.startswith(prefix))
             nested_queryset, handed_out = _place_prefetch_plan(lookup.queryset, joins_under, [], nested_paths)
+            back_reference = _prefetch_back_reference(queryset.model, path)
+            parent_path = path.rpartition("__")[0]
             for owner, joins_after in handed_out.items():
                 for join in joins_after:
-                    place(f"{prefix}{owner}", join)
+                    if back_reference is None or not f"{owner}__".startswith(f"{back_reference}__"):
+                        place(f"{prefix}{owner}", join)
+                        continue
+                    # Django points each prefetched row's back reference at the row it was loaded
+                    # for, so the lookup under the back reference never runs. Its join loads with
+                    # those parent rows instead.
+                    rest = owner.removeprefix(back_reference).removeprefix("__")
+                    parent_join = "__".join(part for part in (parent_path, rest, join) if part)
+                    for parent_owner, parent_piece in _split_join_at_prefetches(parent_join, split_paths):
+                        place(parent_owner, parent_piece)
+                    changed = True
             if nested_queryset is not lookup.queryset:
                 lookup = Prefetch(path, queryset=nested_queryset)
                 changed = True

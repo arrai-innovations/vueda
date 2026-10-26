@@ -775,6 +775,42 @@ class TestToOneExpandAnnotatedFormattedName:
 
         assert len(set(counts.values())) == 1, f"nested to-many expand query count grows with row count: {counts}"
 
+    @pytest.mark.parametrize("own_prefetch", [False, True])
+    def test_back_reference_join_under_a_prefetched_parent(self, own_prefetch):
+        """Django sets each cart's `customer` to the customer that `customer.cart_set` loaded it for,
+        so the `customer.cart_set.customer` prefetch never runs. Cart's `customer__user` join moves
+        to the customers instead, and each cart's get_formatted_name() reads a loaded user."""
+        serializer = expanded_serializer(
+            store_serializers.CustomerOrderAnnotatedCustomerCartsSerializer,
+            "customer,customer.cart_set,customer.cart_set.customer",
+        )
+        select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+        viewset_queryset = store_models.CustomerOrder.objects.all()
+        if own_prefetch:
+            viewset_queryset = viewset_queryset.prefetch_related(
+                Prefetch("customer", queryset=store_models.Customer.objects.all())
+            )
+
+        counts = {}
+        for row_count in (2, 10):
+            store_models.CartItem.objects.all().delete()
+            store_models.Cart.objects.all().delete()
+            expected = self.create_orders(row_count)
+            for order in store_models.CustomerOrder.objects.all():
+                store_models.Cart.objects.create(customer_id=order.customer_id)
+            queryset = apply_prefetch_plan(viewset_queryset.all(), select_related, prefetch_related)
+
+            with CaptureQueriesContext(connection) as captured:
+                actual = {
+                    order.pk: [cart._get_formatted_name() for cart in order.customer.cart_set.all()]
+                    for order in queryset
+                }
+
+            assert actual == {pk: [email] for pk, email in expected.items()}
+            counts[row_count] = len(captured)
+
+        assert len(set(counts.values())) == 1, f"back-reference join query count grows with row count: {counts}"
+
     def test_join_through_a_plain_prefetch_stays_a_join(self):
         """Cart's manager joins `customer__user`. A plain `prefetch_related("customer")` loads the same
         objects that the join loads, so the join stays, and the Cart query alone resolves every
@@ -860,8 +896,9 @@ def test_to_one_expand_keeps_the_viewsets_own_prefetch(api_client, cart_formatte
 
 def test_apply_prefetch_plan_splits_the_joins_inside_the_querysets_own_prefetch():
     # Cart's manager joins customer__user. The plan prefetches `customer` under the queryset's own
-    # `cart_set` Prefetch, so the join is split at `customer`. The own Prefetch keeps its filter and
-    # ordering.
+    # `cart_set` Prefetch, so the join is split at `customer`. Django sets each cart's `customer` to
+    # the customer it was loaded for, so `user` joins on the Customer queryset instead. The own
+    # Prefetch keeps its filter and ordering.
     own_queryset = store_models.Cart.objects.filter(reserved_until=None).order_by("-pk")
     plan_prefetch = Prefetch("cart_set__customer", queryset=store_models.Customer._base_manager.all())
 
@@ -873,8 +910,9 @@ def test_apply_prefetch_plan_splits_the_joins_inside_the_querysets_own_prefetch(
     assert not cart_prefetch.queryset.query.select_related
     assert str(cart_prefetch.queryset.query.where) == str(own_queryset.query.where)
     assert cart_prefetch.queryset.query.order_by == own_queryset.query.order_by
+    assert queryset.query.select_related == {"user": {}}
     customer_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "cart_set__customer")
-    assert customer_prefetch.queryset.query.select_related == {"user": {}}
+    assert not customer_prefetch.queryset.query.select_related
 
 
 @pytest.mark.django_db
