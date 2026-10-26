@@ -798,35 +798,47 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
     return names
 
 
-def _resolve_relation_segment(model, segment):
+def _relation_field(model, segment):
     """
-    Match ``segment`` against one of ``model``'s relations by the same accessor name Django uses
-    for instance attribute access, ``select_related``, and ``prefetch_related`` alike: a forward
-    relation's field name, or a reverse relation's accessor name (``get_accessor_name()``), which
-    is not the same string as the reverse field's own ``name`` (that is the query lookup name --
-    ``related_query_name()`` territory -- and can differ from the attribute/prefetch accessor
-    whenever ``related_name`` and ``related_query_name`` diverge).
+    Return the relation on ``model`` whose accessor name is ``segment``. The accessor name is the one
+    that Django uses for instance attribute access, ``select_related``, and ``prefetch_related``
+    alike: a forward relation's field name, or a reverse relation's ``get_accessor_name()``. That is
+    not the same string as the reverse field's own ``name``, which is the query lookup name and can
+    differ from the accessor whenever ``related_name`` and ``related_query_name`` diverge.
 
-    Returns ``(related_model, is_to_one)`` for a matching relation, or ``None`` when ``segment``
-    names a plain column, a Python property or method, or a ``GenericForeignKey`` (a relation with
-    no fixed ``related_model`` to plan against).
+    Returns ``None`` when ``segment`` names no relation, such as a plain column or a Python property
+    or method.
     """
     for field in model._meta.get_fields():
         if not field.is_relation:
             continue
 
         name = field.get_accessor_name() if isinstance(field, ForeignObjectRel) else field.name
-        if name != segment:
-            continue
-
-        related_model = getattr(field, "related_model", None)
-        if related_model is None:
-            return None
-
-        is_to_one = bool(getattr(field, "one_to_one", False) or getattr(field, "many_to_one", False))
-        return related_model, is_to_one
+        if name == segment:
+            return field
 
     return None
+
+
+def _resolve_relation_segment(model, segment):
+    """
+    Match ``segment`` against one of ``model``'s relations by its accessor name (see
+    :func:`_relation_field`).
+
+    Returns ``(related_model, is_to_one)`` for a matching relation, or ``None`` when ``segment``
+    names a plain column, a Python property or method, or a ``GenericForeignKey`` (a relation with
+    no fixed ``related_model`` to plan against).
+    """
+    field = _relation_field(model, segment)
+    if field is None:
+        return None
+
+    related_model = getattr(field, "related_model", None)
+    if related_model is None:
+        return None
+
+    is_to_one = bool(getattr(field, "one_to_one", False) or getattr(field, "many_to_one", False))
+    return related_model, is_to_one
 
 
 def resolve_relation_path(model, source):
@@ -1150,11 +1162,25 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     its joins passes through such a relation. Its filters, annotations, and ordering stay as
     declared.
 
-    A reverse foreign key or reverse one-to-one prefetch is the exception. Django points each row
-    that it loads back at the row that it was loaded for, so a lookup through that back reference,
-    such as ``cart_set__customer``, never runs. A join part under the back reference goes to the
-    rows it points back to. For example, the ``user`` part of Cart's ``customer__user`` join under a
-    ``cart_set`` prefetch becomes a ``user`` join on the Customer queryset.
+    A prefetch through a reverse foreign key, a reverse one-to-one, or a forward one-to-one is the
+    exception. Django points each row that it loads back at the row that it was loaded for, so a
+    lookup through that back reference, such as ``cart_set__customer``, never runs. A join part
+    right after the back reference goes to the rows that the back reference points to. For example,
+    the ``user`` part of Cart's ``customer__user`` join under a ``cart_set`` prefetch becomes a
+    ``user`` join on the Customer rows:
+
+    - When ``queryset`` or a plan ``Prefetch`` loads those rows, the part joins onto that queryset.
+      On a plan ``Prefetch`` queryset, the join replaces a bare ``select_related()``, as every other
+      plan join there does.
+    - When a viewset's own ``Prefetch`` loads them, the part becomes a string lookup after it.
+    - When the rows are reached through a to-many relation that no ``Prefetch`` queryset loads, or
+      when the join would replace a bare ``select_related()`` on ``queryset``, the part becomes a
+      string lookup through the back reference, such as ``cart_set__customer__user``. Django follows
+      the cached back reference and loads ``user`` with one query.
+
+    A join part deeper under the back reference, such as one under a ``Prefetch`` for
+    ``cart_set__customer__user``, stays with that deeper relation, because Django runs that
+    ``Prefetch`` on the cached rows.
 
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
@@ -1169,9 +1195,10 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     attribute, so a join on the same relation leaves it unaffected and stays.
 
     A bare ``select_related()`` with no paths follows every non-null foreign key and records no path
-    to split. When the plan adds a join, Django replaces the bare ``select_related()`` with the
-    plan's paths, so the queryset joins only those paths. Without a join in the plan, the bare
-    ``select_related()`` stays, and its joins can replace a prefetched to-one relation.
+    to split. When the plan adds a join on ``queryset``, Django replaces the bare
+    ``select_related()`` with the plan's paths, so the queryset joins only those paths. Without such
+    a join in the plan, the bare ``select_related()`` stays, and its joins can replace a prefetched
+    to-one relation.
 
     Reads ``queryset.query.select_related``, a private Django attribute: ``False``, ``True`` for a
     bare ``select_related()``, or a nested dict of relation names.
@@ -1191,41 +1218,56 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
 
 def _prefetch_back_reference(model, path):
     """
-    The name of the field that points from the rows that a prefetch loads back to the rows that it
+    Return the attribute that points from the rows that a prefetch loads back to the rows that it
     loads them for.
 
-    ``path`` is a prefetch lookup's path on ``model``. When its last relation is a reverse foreign
-    key or a reverse one-to-one, Django sets that relation's own field on each prefetched row to the
-    row that it was prefetched for. A row whose field a join already cached keeps the joined object.
-    For example, each ``Cart`` that ``cart_set`` loads gets the ``Customer`` row it belongs to as
-    its ``customer``. A prefetch through ``cart_set__customer`` then finds every ``customer``
-    already cached and does not run.
+    ``path`` is a prefetch lookup's path on ``model``. Django caches this back reference on each
+    prefetched row when the path's last relation is one of these:
+
+    - A reverse foreign key or a reverse one-to-one. Django sets the relation's own field. For
+      example, each ``Cart`` that ``cart_set`` loads gets the ``Customer`` row that it belongs to as
+      its ``customer``. A reverse foreign key leaves a field that a join already cached as it is.
+    - A forward one-to-one. Django sets the reverse accessor. For example, each ``User`` that a
+      Customer's ``user`` loads gets that ``Customer`` as its ``customer``.
+
+    A prefetch through the back reference, such as ``cart_set__customer``, then finds every row's
+    relation already cached and does not run. A forward foreign key, a many-to-many relation, and a
+    generic relation cache no back reference.
 
     :param model: The model that the path starts from.
     :type model: Type[django.db.models.Model]
     :param path: The prefetch lookup's ``__``-joined path of relation attribute names.
     :type path: str
-    :return: The name of the field on the prefetched rows. ``None`` when the path's last relation is
-        any other kind of relation, or when the path does not resolve.
+    :return: The back reference's attribute name on the prefetched rows. The result is ``None`` when
+        the path's last relation caches no back reference, or when the path does not resolve.
     :rtype: Optional[str]
     """
     field = None
     for segment in path.split("__"):
-        field = next(
-            (
-                candidate
-                for candidate in model._meta.get_fields()
-                if (candidate.get_accessor_name() if isinstance(candidate, ForeignObjectRel) else candidate.name)
-                == segment
-            ),
-            None,
-        )
+        field = _relation_field(model, segment)
         if field is None or field.related_model is None:
             return None
         model = field.related_model
     if isinstance(field, ManyToOneRel):
         return field.field.name
+    if field.one_to_one:
+        return field.remote_field.get_accessor_name()
     return None
+
+
+def _joins_to_one(model, owner, join):
+    """
+    Return whether ``join`` follows only to-one relations from the rows at ``owner``. Both are
+    ``__``-joined paths, and ``owner`` starts from ``model``. An empty ``owner`` means ``model``'s
+    own rows. A path that does not resolve to relations counts as not to-one.
+    """
+    if owner:
+        resolved = resolve_relation_path(model, owner.replace("__", "."))
+        if resolved is None:
+            return False
+        model = resolved[1]
+    resolved = resolve_relation_path(model, join.replace("__", "."))
+    return resolved is not None and resolved[2]
 
 
 def _loads_relation_through_queryset(lookup):
@@ -1281,10 +1323,14 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
             place(owner, join)
 
     changed = bool(select_related or new_lookups or prefetch_joins or outer_joins)
+    # A bare select_related() records no paths to keep, so a join on the queryset would replace it.
+    keeps_bare_select_related = existing_select_related is True and not queryset_joins
 
     # Shallower lookups come first, so a join that a Prefetch queryset hands to a relation under it
     # is placed before that relation's own Prefetch is processed.
     placed_lookups = []
+    back_reference_lookups = []
+    plan_prefetches = {}
     for lookup, from_plan in lookups:
         if _loads_relation_through_queryset(lookup):
             path = lookup.prefetch_through
@@ -1294,30 +1340,51 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
             joins_under = list(prefetch_joins.pop(path, {})) if from_plan else []
             nested_paths = frozenset(p.removeprefix(prefix) for p in split_paths if p.startswith(prefix))
             nested_queryset, handed_out = _place_prefetch_plan(lookup.queryset, joins_under, [], nested_paths)
-            back_reference = _prefetch_back_reference(queryset.model, path)
-            parent_path = path.rpartition("__")[0]
+            back_reference = _prefetch_back_reference(queryset.model, path) if handed_out else None
             for owner, joins_after in handed_out.items():
                 for join in joins_after:
-                    if back_reference is None or not f"{owner}__".startswith(f"{back_reference}__"):
+                    if owner != back_reference:
                         place(f"{prefix}{owner}", join)
                         continue
-                    # Django points each prefetched row's back reference at the row it was loaded
-                    # for, so the lookup under the back reference never runs. Its join loads with
-                    # those parent rows instead.
-                    rest = owner.removeprefix(back_reference).removeprefix("__")
-                    parent_join = "__".join(part for part in (parent_path, rest, join) if part)
-                    for parent_owner, parent_piece in _split_join_at_prefetches(parent_join, split_paths):
-                        place(parent_owner, parent_piece)
+                    # Django points each prefetched row's back reference at the row that it was
+                    # loaded for, so the lookup through the back reference never runs. The join
+                    # loads with those parent rows instead.
                     changed = True
+                    parent_join = "__".join(part for part in (path.rpartition("__")[0], join) if part)
+                    pieces = _split_join_at_prefetches(parent_join, split_paths)
+                    if all(
+                        (piece_owner or not keeps_bare_select_related)
+                        and _joins_to_one(queryset.model, piece_owner, piece)
+                        for piece_owner, piece in pieces
+                    ):
+                        for piece_owner, piece in pieces:
+                            place(piece_owner, piece)
+                    else:
+                        # A join cannot reach the parent rows through a to-many relation, or it would
+                        # replace a bare select_related(). Django still follows a string lookup
+                        # through a cached back reference, at one query per relation.
+                        back_reference_lookups.append(f"{prefix}{owner}__{join}")
+            if from_plan:
+                plan_prefetches[path] = (len(placed_lookups), lookup.queryset, joins_under, nested_paths)
             if nested_queryset is not lookup.queryset:
                 lookup = Prefetch(path, queryset=nested_queryset)
                 changed = True
         placed_lookups.append(lookup)
 
+    # A back reference can send a join to a plan Prefetch that is already placed, because that
+    # Prefetch is shallower. Its queryset is built again with the join. The join was split at every
+    # prefetched path, so the second build hands out nothing new.
+    for path, (index, plan_queryset, joins_under, nested_paths) in plan_prefetches.items():
+        late_joins = prefetch_joins.pop(path, None)
+        if late_joins:
+            nested_queryset, _ = _place_prefetch_plan(plan_queryset, [*joins_under, *late_joins], [], nested_paths)
+            placed_lookups[index] = Prefetch(path, queryset=nested_queryset)
+
     if not changed:
         return queryset, outer_joins
 
     placed_lookups.extend(f"{owner}__{join}" for owner, joins_under in prefetch_joins.items() for join in joins_under)
+    placed_lookups.extend(back_reference_lookups)
 
     if isinstance(existing_select_related, dict):
         queryset = queryset.select_related(None)

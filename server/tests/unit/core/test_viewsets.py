@@ -44,6 +44,7 @@ from vueda.core.models import FormattedNameManager
 from vueda.core.serializers import VuedaListSerializer
 from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
+from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.utils import implemented_builtin_actions
 from vueda.core.viewsets import NoExtraFieldsForViewSetMixin
 from vueda.core.viewsets import VuedaReadOnlyViewSet
@@ -620,8 +621,10 @@ class TestToOneExpandAnnotatedFormattedName:
         assert len(set(counts.values())) == 1, f"to-one expand query count grows with row count: {counts}"
 
     def test_list_returns_expanded_formatted_name_under_a_to_many_expand(self, authenticated_client, settings):
-        """The `cart_set` Prefetch queryset comes from Cart's manager, which joins `customer__user`,
-        and `cart_set.customer` prefetches `customer` on that same queryset."""
+        """The `cart_set` Prefetch queryset comes from Cart's manager, which joins `customer__user`.
+        Django points each cart back at the customer that `cart_set` loaded it for, so
+        `cart_set.customer` renders the Customer rows of the list query, and `user` joins onto that
+        query."""
         settings.ROOT_URLCONF = "tests.unit.core.urls_customer_with_annotated_carts"
         query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_set,cart_set.customer"}
 
@@ -775,11 +778,20 @@ class TestToOneExpandAnnotatedFormattedName:
 
         assert len(set(counts.values())) == 1, f"nested to-many expand query count grows with row count: {counts}"
 
-    @pytest.mark.parametrize("own_prefetch", [False, True])
-    def test_back_reference_join_under_a_prefetched_parent(self, own_prefetch):
+    @pytest.mark.parametrize(
+        ("own_prefetch", "expected_query_count"),
+        [
+            # The orders, the customers with their users joined, and the carts.
+            (False, 3),
+            # The viewset's own customer Prefetch keeps its queryset, so the users load after it.
+            (True, 4),
+        ],
+    )
+    def test_back_reference_join_under_a_prefetched_parent(self, own_prefetch, expected_query_count):
         """Django sets each cart's `customer` to the customer that `customer.cart_set` loaded it for,
         so the `customer.cart_set.customer` prefetch never runs. Cart's `customer__user` join moves
-        to the customers instead, and each cart's get_formatted_name() reads a loaded user."""
+        to whichever Prefetch loads the customers, and each cart's built `formatted_name` reads a
+        loaded user."""
         serializer = expanded_serializer(
             store_serializers.CustomerOrderAnnotatedCustomerCartsSerializer,
             "customer,customer.cart_set,customer.cart_set.customer",
@@ -790,8 +802,8 @@ class TestToOneExpandAnnotatedFormattedName:
             viewset_queryset = viewset_queryset.prefetch_related(
                 Prefetch("customer", queryset=store_models.Customer.objects.all())
             )
+        formatted_name_field = FormattedNameField()
 
-        counts = {}
         for row_count in (2, 10):
             store_models.CartItem.objects.all().delete()
             store_models.Cart.objects.all().delete()
@@ -802,14 +814,12 @@ class TestToOneExpandAnnotatedFormattedName:
 
             with CaptureQueriesContext(connection) as captured:
                 actual = {
-                    order.pk: [cart._get_formatted_name() for cart in order.customer.cart_set.all()]
+                    order.pk: [formatted_name_field.get_attribute(cart) for cart in order.customer.cart_set.all()]
                     for order in queryset
                 }
 
             assert actual == {pk: [email] for pk, email in expected.items()}
-            counts[row_count] = len(captured)
-
-        assert len(set(counts.values())) == 1, f"back-reference join query count grows with row count: {counts}"
+            assert len(captured) == expected_query_count, [query["sql"] for query in captured]
 
     def test_join_through_a_plain_prefetch_stays_a_join(self):
         """Cart's manager joins `customer__user`. A plain `prefetch_related("customer")` loads the same
@@ -913,6 +923,117 @@ def test_apply_prefetch_plan_splits_the_joins_inside_the_querysets_own_prefetch(
     assert queryset.query.select_related == {"user": {}}
     customer_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "cart_set__customer")
     assert not customer_prefetch.queryset.query.select_related
+
+
+def test_apply_prefetch_plan_joins_a_back_reference_part_onto_the_plan_prefetch_that_loads_the_parent():
+    # Each cart that `customer__cart_set` loads points back at its customer, which the plan's
+    # `customer` Prefetch loads. That Prefetch is placed before the carts' join reaches it, and the
+    # `user` part still joins onto its queryset rather than costing a lookup of its own.
+    serializer = expanded_serializer(
+        store_serializers.CustomerOrderAnnotatedCustomerCartsSerializer,
+        "customer,customer.cart_set,customer.cart_set.customer",
+    )
+    select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+
+    queryset = apply_prefetch_plan(store_models.CustomerOrder.objects.all(), select_related, prefetch_related)
+
+    assert all(isinstance(lookup, Prefetch) for lookup in queryset._prefetch_related_lookups)
+    customer_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "customer")
+    assert customer_prefetch.queryset.query.select_related == {"user": {}}
+
+
+def test_apply_prefetch_plan_loads_a_back_reference_part_after_the_viewsets_own_prefetch_of_the_parent():
+    # Each cart that `customer__cart_set` loads points back at its customer, which the viewset's own
+    # `customer` Prefetch loads. That Prefetch keeps its queryset as declared, and the `user` part
+    # loads through a string lookup after it.
+    serializer = expanded_serializer(
+        store_serializers.CustomerOrderAnnotatedCustomerCartsSerializer,
+        "customer,customer.cart_set,customer.cart_set.customer",
+    )
+    select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+    own_prefetch = Prefetch("customer", queryset=store_models.Customer.objects.all())
+
+    queryset = apply_prefetch_plan(
+        store_models.CustomerOrder.objects.prefetch_related(own_prefetch), select_related, prefetch_related
+    )
+
+    assert find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "customer") is own_prefetch
+    assert "customer__user" in queryset._prefetch_related_lookups
+
+
+def test_apply_prefetch_plan_leaves_a_join_under_a_deeper_prefetch_past_the_back_reference():
+    # Each item that `order_items` loads joins its order, and Django runs the plan's
+    # `order_items__customer_order__customer` Prefetch on those orders. The `user` part stays on that
+    # Prefetch queryset. A `customer__user` join on the CustomerOrder query would cache plain
+    # customers on the parent orders instead.
+    own_prefetch = Prefetch(
+        "order_items", queryset=store_models.OrderItem.objects.select_related("customer_order__customer__user")
+    )
+    plan_prefetch = Prefetch(
+        "order_items__customer_order__customer", queryset=store_models.Customer._base_manager.all()
+    )
+
+    queryset = apply_prefetch_plan(
+        store_models.CustomerOrder.objects.prefetch_related(own_prefetch), [], [plan_prefetch]
+    )
+
+    assert not queryset.query.select_related
+    customer_prefetch = find_prefetch_for_or_fail(
+        queryset._prefetch_related_lookups, "order_items__customer_order__customer"
+    )
+    assert customer_prefetch.queryset.query.select_related == {"user": {}}
+
+
+def test_apply_prefetch_plan_loads_a_back_reference_part_past_a_to_many_relation_with_a_string_lookup():
+    # The viewset's own `cart_set__cart_items` Prefetch loads `cart_set` with Django's default
+    # queryset, so no queryset can join `customer` onto the carts. Each item points back at its cart,
+    # and a string lookup through that back reference loads the customers.
+    own_lookups = (
+        Prefetch("cart_set__cart_items", queryset=store_models.CartItem.objects.select_related("cart__customer")),
+        Prefetch("cart_set__cart_items__cart", queryset=store_models.Cart.objects.all()),
+    )
+
+    queryset = apply_prefetch_plan(store_models.Customer.objects.prefetch_related(*own_lookups), [], [])
+
+    assert not queryset.query.select_related
+    assert "cart_set__cart_items__cart__customer" in queryset._prefetch_related_lookups
+
+
+def test_apply_prefetch_plan_keeps_a_bare_select_related_under_a_back_reference_part():
+    # A join on the Customer query would replace its bare select_related(), so the `user` part of
+    # Cart's join loads through a string lookup through the carts' back reference instead.
+    own_prefetch = Prefetch("cart_set", queryset=store_models.Cart.objects.all())
+    plan_prefetch = Prefetch("cart_set__customer", queryset=store_models.Customer._base_manager.all())
+
+    queryset = apply_prefetch_plan(
+        store_models.Customer.objects.select_related().prefetch_related(own_prefetch), [], [plan_prefetch]
+    )
+
+    assert queryset.query.select_related is True
+    assert "cart_set__customer__user" in queryset._prefetch_related_lookups
+
+
+def test_apply_prefetch_plan_joins_a_reverse_one_to_one_back_reference_part_onto_the_parent():
+    # Each CustomerData row that the reverse one-to-one `data` loads points back at its customer, so
+    # the `data__customer` Prefetch never runs, and `user` joins onto the Customer query.
+    own_prefetch = Prefetch("data", queryset=store_models.CustomerData.objects.select_related("customer__user"))
+    plan_prefetch = Prefetch("data__customer", queryset=store_models.Customer._base_manager.all())
+
+    queryset = apply_prefetch_plan(store_models.Customer.objects.prefetch_related(own_prefetch), [], [plan_prefetch])
+
+    assert queryset.query.select_related == {"user": {}}
+
+
+def test_apply_prefetch_plan_joins_a_forward_one_to_one_back_reference_part_onto_the_parent():
+    # Each user that the forward one-to-one `user` loads points back at its customer as its
+    # `customer`, so the `user__customer` Prefetch never runs, and `data` joins onto the Customer
+    # query.
+    own_prefetch = Prefetch("user", queryset=get_user_model().objects.select_related("customer__data"))
+    plan_prefetch = Prefetch("user__customer", queryset=store_models.Customer._base_manager.all())
+
+    queryset = apply_prefetch_plan(store_models.Customer.objects.prefetch_related(own_prefetch), [], [plan_prefetch])
+
+    assert queryset.query.select_related == {"data": {}}
 
 
 @pytest.mark.django_db
@@ -1043,8 +1164,9 @@ class TestNestedExpandUnderAnotherPrefetch:
 
     def test_nested_formatted_name_under_the_viewsets_to_many_prefetch(self, authenticated_client, settings):
         """The viewset's own `cart_set` Prefetch comes from Cart's manager, which joins
-        `customer__user`. The join is split at `customer`, so the expand's own prefetch loads each
-        cart's `customer` with its `formatted_name` annotation."""
+        `customer__user`. The join is split at `customer`. Django points each cart back at the
+        customer that `cart_set` loaded it for, so each cart's `customer` is a Customer row of the
+        list query, with its `formatted_name` annotation, and `user` joins onto that query."""
         settings.ROOT_URLCONF = "tests.unit.core.urls_customer_prefetched_annotated_carts"
         query = {settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "cart_set,cart_set.customer"}
 
