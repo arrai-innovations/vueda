@@ -1013,6 +1013,48 @@ def test_apply_prefetch_plan_keeps_a_bare_select_related_under_a_back_reference_
     assert "cart_set__customer__user" in queryset._prefetch_related_lookups
 
 
+def test_apply_prefetch_plan_keeps_a_bare_select_related_on_a_plan_prefetch_under_a_back_reference_part():
+    # Each cart that `customer__cart_set` loads points back at its customer, which the plan's
+    # `customer` Prefetch loads. A join on that Prefetch queryset would replace its bare
+    # select_related(), so the `user` part loads through a string lookup after it.
+    plan_prefetches = [
+        Prefetch("customer", queryset=store_models.Customer._base_manager.select_related()),
+        Prefetch("customer__cart_set", queryset=store_models.Cart.objects.all()),
+        Prefetch("customer__cart_set__customer", queryset=store_models.Customer._base_manager.all()),
+    ]
+
+    queryset = apply_prefetch_plan(store_models.CustomerOrder.objects.all(), [], plan_prefetches)
+
+    customer_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "customer")
+    assert customer_prefetch.queryset.query.select_related is True
+    assert "customer__user" in queryset._prefetch_related_lookups
+
+
+def test_apply_prefetch_plan_joins_a_back_reference_part_inside_the_viewsets_prefetch_that_loads_the_relation():
+    # The viewset's own `customer` Prefetch queryset prefetches `cart_set` itself, so the plan's
+    # `customer__cart_set` Prefetch never runs. The `user` part joins onto the viewset's Customer
+    # queryset, which loads the rows that the carts point back to, and the plan adds no lookup for it.
+    serializer = expanded_serializer(
+        store_serializers.CustomerOrderAnnotatedCustomerCartsSerializer,
+        "customer,customer.cart_set,customer.cart_set.customer",
+    )
+    select_related, prefetch_related = build_prefetch_plan(serializer, store_models.CustomerOrder)
+    own_prefetch = Prefetch(
+        "customer",
+        queryset=store_models.Customer.objects.prefetch_related(
+            Prefetch("cart_set", queryset=store_models.Cart.objects.all())
+        ),
+    )
+
+    queryset = apply_prefetch_plan(
+        store_models.CustomerOrder.objects.prefetch_related(own_prefetch), select_related, prefetch_related
+    )
+
+    assert all(isinstance(lookup, Prefetch) for lookup in queryset._prefetch_related_lookups)
+    customer_prefetch = find_prefetch_for_or_fail(queryset._prefetch_related_lookups, "customer")
+    assert customer_prefetch.queryset.query.select_related == {"user": {}}
+
+
 def test_apply_prefetch_plan_joins_a_reverse_one_to_one_back_reference_part_onto_the_parent():
     # Each CustomerData row that the reverse one-to-one `data` loads points back at its customer, so
     # the `data__customer` Prefetch never runs, and `user` joins onto the Customer query.

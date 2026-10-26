@@ -825,20 +825,16 @@ def _resolve_relation_segment(model, segment):
     Match ``segment`` against one of ``model``'s relations by its accessor name (see
     :func:`_relation_field`).
 
-    Returns ``(related_model, is_to_one)`` for a matching relation, or ``None`` when ``segment``
-    names a plain column, a Python property or method, or a ``GenericForeignKey`` (a relation with
-    no fixed ``related_model`` to plan against).
+    Returns ``(related_model, is_to_one)`` for a matching relation. The result is ``None`` when
+    ``segment`` names a plain column, a Python property or method, or a ``GenericForeignKey`` (a
+    relation with no fixed ``related_model`` to plan against).
     """
     field = _relation_field(model, segment)
-    if field is None:
+    if field is None or field.related_model is None:
         return None
 
-    related_model = getattr(field, "related_model", None)
-    if related_model is None:
-        return None
-
-    is_to_one = bool(getattr(field, "one_to_one", False) or getattr(field, "many_to_one", False))
-    return related_model, is_to_one
+    is_to_one = bool(field.one_to_one or field.many_to_one)
+    return field.related_model, is_to_one
 
 
 def resolve_relation_path(model, source):
@@ -1170,17 +1166,23 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     ``user`` join on the Customer rows:
 
     - When ``queryset`` or a plan ``Prefetch`` loads those rows, the part joins onto that queryset.
-      On a plan ``Prefetch`` queryset, the join replaces a bare ``select_related()``, as every other
-      plan join there does.
     - When a viewset's own ``Prefetch`` loads them, the part becomes a string lookup after it.
-    - When the rows are reached through a to-many relation that no ``Prefetch`` queryset loads, or
-      when the join would replace a bare ``select_related()`` on ``queryset``, the part becomes a
-      string lookup through the back reference, such as ``cart_set__customer__user``. Django follows
-      the cached back reference and loads ``user`` with one query.
+    - When the rows are reached through a to-many relation that no ``Prefetch`` queryset loads, the
+      part becomes a string lookup through the back reference, such as ``cart_set__customer__user``.
+      Django follows the cached back reference and loads ``user`` with one query.
+
+    The part never replaces a bare ``select_related()`` on the queryset that loads the rows. It
+    becomes a string lookup instead, after the ``Prefetch`` that loads the rows or through the back
+    reference.
 
     A join part deeper under the back reference, such as one under a ``Prefetch`` for
     ``cart_set__customer__user``, stays with that deeper relation, because Django runs that
     ``Prefetch`` on the cached rows.
+
+    A viewset's own ``Prefetch`` queryset for ``customer`` can prefetch ``cart_set`` itself, with a
+    ``Prefetch`` of its own. That queryset loads the carts while it runs, so the plan's own lookup
+    for ``customer__cart_set`` never runs. The part then joins onto the viewset's Customer queryset,
+    which loads the rows that the carts point back to, and the plan adds no lookup for it.
 
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
@@ -1270,6 +1272,49 @@ def _joins_to_one(model, owner, join):
     return resolved is not None and resolved[2]
 
 
+def _parent_join_pieces(model, path, join, split_paths, keeps_bare_select_related):
+    """
+    Split a join part that follows the back reference of the prefetch at ``path`` into pieces that
+    load with the rows that the back reference points to. Those are the rows at ``path``'s parent
+    path on ``model``.
+
+    Returns ``(owner, join)`` pairs, as :func:`_split_join_at_prefetches` does. The result is
+    ``None`` when a piece cannot load as a join. A piece cannot when it crosses a to-many relation,
+    or when it would replace a bare ``select_related()`` on ``model``'s queryset, which
+    ``keeps_bare_select_related`` reports.
+    """
+    parent_join = "__".join(part for part in (path.rpartition("__")[0], join) if part)
+    pieces = _split_join_at_prefetches(parent_join, split_paths)
+    for owner, piece in pieces:
+        if not owner and keeps_bare_select_related:
+            return None
+        if not _joins_to_one(model, owner, piece):
+            return None
+    return pieces
+
+
+def _add_late_joins_to_plan_prefetches(placed_lookups, plan_prefetches, prefetch_joins):
+    """
+    Build a plan ``Prefetch`` again for each join that a back reference sent to it after it was
+    placed. A back reference sends a join to a shallower ``Prefetch``, which the placement loop has
+    already processed.
+
+    ``plan_prefetches`` maps each plan ``Prefetch`` path to ``(index, queryset, joins_under,
+    nested_paths, kept_bare)``. ``index`` is the ``Prefetch``'s position in ``placed_lookups``, and
+    the other values are what its first build used and kept. The join was split at every prefetched
+    path, so the second build hands out nothing new.
+
+    A queryset that kept a bare ``select_related()`` keeps it. Its join stays in ``prefetch_joins``
+    and becomes a string lookup after the ``Prefetch``.
+    """
+    for path, (index, plan_queryset, joins_under, nested_paths, kept_bare) in plan_prefetches.items():
+        if kept_bare or path not in prefetch_joins:
+            continue
+        late_joins = prefetch_joins.pop(path)
+        nested_queryset, _ = _place_prefetch_plan(plan_queryset, [*joins_under, *late_joins], [], nested_paths)
+        placed_lookups[index] = Prefetch(path, queryset=nested_queryset)
+
+
 def _loads_relation_through_queryset(lookup):
     """Whether ``lookup`` is a ``Prefetch`` that stores the rows of its own queryset under the relation's attribute."""
     return (
@@ -1331,6 +1376,8 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
     placed_lookups = []
     back_reference_lookups = []
     plan_prefetches = {}
+    # Paths that a Prefetch queryset loads while it runs, through prefetches of its own.
+    loaded_inside = set()
     for lookup, from_plan in lookups:
         if _loads_relation_through_queryset(lookup):
             path = lookup.prefetch_through
@@ -1340,45 +1387,46 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
             joins_under = list(prefetch_joins.pop(path, {})) if from_plan else []
             nested_paths = frozenset(p.removeprefix(prefix) for p in split_paths if p.startswith(prefix))
             nested_queryset, handed_out = _place_prefetch_plan(lookup.queryset, joins_under, [], nested_paths)
+            loaded_inside.update(
+                f"{prefix}{key}"
+                for inner_lookup in nested_queryset._prefetch_related_lookups
+                for key in _prefetch_cache_keys(inner_lookup)
+            )
             back_reference = _prefetch_back_reference(queryset.model, path) if handed_out else None
             for owner, joins_after in handed_out.items():
                 for join in joins_after:
                     if owner != back_reference:
                         place(f"{prefix}{owner}", join)
                         continue
+                    # A shallower Prefetch queryset already loads this relation, so Django never runs
+                    # this lookup, and that queryset places the joins of its own rows.
+                    if path in loaded_inside:
+                        continue
                     # Django points each prefetched row's back reference at the row that it was
                     # loaded for, so the lookup through the back reference never runs. The join
                     # loads with those parent rows instead.
-                    changed = True
-                    parent_join = "__".join(part for part in (path.rpartition("__")[0], join) if part)
-                    pieces = _split_join_at_prefetches(parent_join, split_paths)
-                    if all(
-                        (piece_owner or not keeps_bare_select_related)
-                        and _joins_to_one(queryset.model, piece_owner, piece)
-                        for piece_owner, piece in pieces
-                    ):
-                        for piece_owner, piece in pieces:
-                            place(piece_owner, piece)
-                    else:
-                        # A join cannot reach the parent rows through a to-many relation, or it would
-                        # replace a bare select_related(). Django still follows a string lookup
-                        # through a cached back reference, at one query per relation.
+                    pieces = _parent_join_pieces(queryset.model, path, join, split_paths, keeps_bare_select_related)
+                    if pieces is None:
+                        # Django still follows a string lookup through a cached back reference, at one
+                        # query per relation.
                         back_reference_lookups.append(f"{prefix}{owner}__{join}")
+                        continue
+                    for piece_owner, piece in pieces:
+                        place(piece_owner, piece)
             if from_plan:
-                plan_prefetches[path] = (len(placed_lookups), lookup.queryset, joins_under, nested_paths)
+                plan_prefetches[path] = (
+                    len(placed_lookups),
+                    lookup.queryset,
+                    joins_under,
+                    nested_paths,
+                    nested_queryset.query.select_related is True,
+                )
             if nested_queryset is not lookup.queryset:
                 lookup = Prefetch(path, queryset=nested_queryset)
                 changed = True
         placed_lookups.append(lookup)
 
-    # A back reference can send a join to a plan Prefetch that is already placed, because that
-    # Prefetch is shallower. Its queryset is built again with the join. The join was split at every
-    # prefetched path, so the second build hands out nothing new.
-    for path, (index, plan_queryset, joins_under, nested_paths) in plan_prefetches.items():
-        late_joins = prefetch_joins.pop(path, None)
-        if late_joins:
-            nested_queryset, _ = _place_prefetch_plan(plan_queryset, [*joins_under, *late_joins], [], nested_paths)
-            placed_lookups[index] = Prefetch(path, queryset=nested_queryset)
+    _add_late_joins_to_plan_prefetches(placed_lookups, plan_prefetches, prefetch_joins)
 
     if not changed:
         return queryset, outer_joins
