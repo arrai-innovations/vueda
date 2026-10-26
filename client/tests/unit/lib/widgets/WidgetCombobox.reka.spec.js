@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { mount } from "@vue/test-utils";
+import { enableAutoUnmount, mount } from "@vue/test-utils";
 import { nextTick, reactive } from "vue";
 
 /* ------------------------------------------------------------------ */
@@ -58,16 +58,45 @@ vi.mock("@vueda/use/useComboboxSearch.js", () => ({
 
 const importComponent = () => import("@vueda/widgets/WidgetCombobox.vue");
 
+// A failing test still unmounts, so its portal never leaks into the next test.
+enableAutoUnmount(afterEach);
+
 const STATIC_OPTIONS = [
     { label: "Red", value: "red" },
     { label: "Green", value: "green" },
     { label: "Blue", value: "blue" },
 ];
 
+const searchInput = () => document.querySelector("[data-slot='combobox-input']");
+
+// Reka resets the search term on a 1 ms timer after the popup closes.
+const settleClose = () => new Promise((resolve) => setTimeout(resolve, 10));
+
+// jsdom runs no CSS animations, so Reka's Presence unmounts the list as soon as it closes.
+// Reporting an exit animation on the closed list keeps the list, and the search input inside
+// it, mounted through the close timer, as a browser does while the exit animation plays.
+const mockExitAnimation = () => {
+    const getComputedStyle = window.getComputedStyle;
+    return vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
+        const style = getComputedStyle(el, pseudo);
+        const list = el.matches("[data-slot='combobox-list']") ? el : el.querySelector("[data-slot='combobox-list']");
+        if (list?.dataset.state !== "closed") {
+            return style;
+        }
+        return new Proxy(style, {
+            get: (target, key) => {
+                if (key === "animationName") {
+                    return "exit";
+                }
+                return typeof target[key] === "function" ? target[key].bind(target) : target[key];
+            },
+        });
+    });
+};
+
 // Uses the real Reka Combobox/ComboboxInput controls, unlike WidgetCombobox.spec.js which
-// stubs the control layer. WidgetCombobox no longer writes to the search box itself; it
-// only toggles `reset-search-term-on-select` (`!isApiMode`) and leaves the resulting DOM
-// input text entirely up to Reka, so a stub can't confirm what actually ends up in the box.
+// stubs the control layer. Reka writes the selected value into the search box on select and
+// again shortly after the popup closes, so only the real controls show what ends up in the box.
 describe("lib/widgets/WidgetCombobox.vue", () => {
     let WidgetCombobox;
 
@@ -83,7 +112,17 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
     });
 
     describe("Input display value", () => {
-        scopedIt("leaves the API-mode search box empty after selecting a value and reopening", async () => {
+        let getComputedStyleSpy;
+
+        beforeEach(() => {
+            getComputedStyleSpy = mockExitAnimation();
+        });
+
+        afterEach(() => {
+            getComputedStyleSpy.mockRestore();
+        });
+
+        scopedIt("keeps the API-mode search box empty on every open when a value is selected", async () => {
             searchState.singleSelectedLabel = "Apple";
 
             const wrapper = mount(WidgetCombobox, {
@@ -96,19 +135,18 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             const trigger = wrapper.get("[data-qa='widget-combobox']");
 
             await trigger.trigger("click");
-            expect(document.querySelector("[data-slot='combobox-input']").value).toBe("");
-
-            // ComboboxList (and the input inside it) unmounts while closed.
-            await trigger.trigger("click");
-            expect(document.querySelector("[data-slot='combobox-input']")).toBeNull();
+            expect(searchInput().value).toBe("");
 
             await trigger.trigger("click");
-            expect(document.querySelector("[data-slot='combobox-input']").value).toBe("");
+            await settleClose();
+            expect(searchState.query).toBe("");
+            expect(searchInput().value).toBe("");
 
-            wrapper.unmount();
+            await trigger.trigger("click");
+            expect(searchInput().value).toBe("");
         });
 
-        scopedIt("fills the static-mode search box with the selected option on reopen", async () => {
+        scopedIt("keeps the static-mode search box empty on every open when a value is selected", async () => {
             const wrapper = mount(WidgetCombobox, {
                 attachTo: document.body,
                 props: { options: STATIC_OPTIONS, optionLabel: "label", optionValue: "value" },
@@ -119,15 +157,15 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             const trigger = wrapper.get("[data-qa='widget-combobox']");
 
             await trigger.trigger("click");
-            expect(document.querySelector("[data-slot='combobox-input']").value).toBe("green");
+            expect(searchInput().value).toBe("");
 
             await trigger.trigger("click");
-            expect(document.querySelector("[data-slot='combobox-input']")).toBeNull();
+            await settleClose();
+            expect(searchState.query).toBe("");
+            expect(searchInput().value).toBe("");
 
             await trigger.trigger("click");
-            expect(document.querySelector("[data-slot='combobox-input']").value).toBe("green");
-
-            wrapper.unmount();
+            expect(searchInput().value).toBe("");
         });
     });
 });
