@@ -61,11 +61,19 @@ inventory model from end to end.
 To add the server to an existing project, install from public PyPI with uv:
 
 ```console
-uv add --prerelease allow vueda
+uv add "vueda>=3.0.0b1,<4" "psycopg[binary]"
 ```
 
-The v3 series is currently a prerelease. Use the documentation for the major
-version installed in your application.
+The v3 series is currently a prerelease. The version range selects it, and
+every other package resolves to a final release. Use the documentation for the
+major version installed in your application.
+
+VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its
+build. `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL
+client library. `psycopg[c]` compiles against the client library that is
+installed on the system. The
+[psycopg installation guide](https://www.psycopg.org/psycopg3/docs/basic/install.html)
+compares the two builds.
 
 Installation is followed by Django settings, user-model, URL, and client setup.
 Use the [architecture overview](https://vueda.dev/v3/core-concepts/architecture-overview.html)

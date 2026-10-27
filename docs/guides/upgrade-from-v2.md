@@ -30,11 +30,13 @@ Export every `Historical*` table before you apply those migrations. A user histo
 
 ### Update Python, Django, and Dependencies
 
-Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.18 or later. It installs from the public PyPI index as `vueda`. Remove any private index and source binding for `vueda` from your `pyproject.toml`. The beta is a prerelease, so opt in when you add it:
+Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.18 or later. It installs from the public PyPI index as `vueda`. Remove any private index and source binding for `vueda` from your `pyproject.toml`. The beta is a prerelease. A version range selects it, and every other package resolves to a final release:
 
 ```bash
-uv add --prerelease allow vueda
+uv add "vueda>=3.0.0b1,<4" "psycopg[binary]"
 ```
+
+VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its build. `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL client library. `psycopg[c]` compiles against the client library that is installed on the system. If your project already depends on `psycopg2`, add a psycopg 3 build as well, because VUEDA imports psycopg 3.
 
 These dependencies changed:
 
