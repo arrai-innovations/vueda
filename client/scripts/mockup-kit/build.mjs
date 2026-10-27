@@ -1,7 +1,11 @@
 /**
  * Builds the mockup kit: the HTML snapshots and the stylesheet that they use.
  *
- * Usage: node scripts/mockup-kit/build.mjs <output-dir>
+ * Usage: node scripts/mockup-kit/build.mjs <skill-dir>
+ *
+ * Writes `assets/vueda-mockups.css`, `snapshots/`, `page.html`, and
+ * `gallery.html` into the skill directory. Other files there, such as
+ * `SKILL.md`, are left alone.
  *
  * 1. Compile the kit stylesheet on its own. Its utilities layer tells the
  *    snapshot step which class tokens are utilities.
@@ -18,7 +22,7 @@ import { fileURLToPath } from "node:url";
 
 const [outArg] = process.argv.slice(2);
 if (!outArg) {
-    console.error("Usage: node scripts/mockup-kit/build.mjs <output-dir>");
+    console.error("Usage: node scripts/mockup-kit/build.mjs <skill-dir>");
     process.exit(2);
 }
 const out = resolve(outArg);
@@ -51,7 +55,8 @@ try {
     if (result.status !== 0) {
         process.exitCode = result.status ?? 1;
     } else {
-        await compileCss(join(out, "vueda-mockups.css"), [componentsCss]);
+        mkdirSync(join(out, "assets"), { recursive: true });
+        await compileCss(join(out, "assets", "vueda-mockups.css"), [componentsCss]);
     }
 } finally {
     rmSync(work, { recursive: true, force: true });

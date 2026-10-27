@@ -5,7 +5,8 @@
  * Runs under vitest (jsdom) through `vitest.config.js` in this folder, driven
  * by `build.mjs`, which sets three environment variables:
  *
- * - `MOCKUP_KIT_OUT`: directory that the snapshots are written to.
+ * - `MOCKUP_KIT_OUT`: the skill directory. The snapshots and their catalog go
+ *   in its `snapshots/` folder, beside `page.html` and `gallery.html`.
  * - `MOCKUP_KIT_BASE_CSS`: the kit stylesheet compiled without named classes,
  *   which decides which class tokens are utilities.
  * - `MOCKUP_KIT_COMPONENTS_CSS`: file that the named-class rules are written to.
@@ -13,6 +14,8 @@
 import DemoPageChrome from "../../../docs/.vitepress/theme/components/DemoPageChrome.vue";
 import { bootDemoSubApp, installDefaultCrud } from "../../../docs/.vitepress/theme/components/demoSubApp.js";
 import { registerDemoRoutes } from "../../../docs/.vitepress/theme/fixtures/demoApi.js";
+import { customerModelInfo } from "../../../docs/.vitepress/theme/fixtures/showcaseCustomer.js";
+import { fieldTypesModelInfo } from "../../../docs/.vitepress/theme/fixtures/showcaseFieldTypes.js";
 import {
     CUSTOMER_RECORDS,
     FIELD_TYPE_RECORDS,
@@ -20,11 +23,12 @@ import {
     fieldTypesScenario,
 } from "../../../docs/.vitepress/theme/fixtures/showcaseRecords.js";
 import { hoistClasses, hoistedClassesCss, utilityClassNames } from "./hoistClasses.js";
+import { galleryPage, starterPage } from "./pages.js";
 import fontAwesomeFreeIcons from "@vueda/theme/vueda-tailwind/icons/fontAwesomeFree.js";
 import "@vueda/theme/vueda-tailwind/index.js";
 import { setIcons } from "@vueda/use/useIcons.js";
 import flushPromises from "flush-promises";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { format } from "prettier";
 import { afterAll, beforeAll, describe, test } from "vitest";
@@ -65,13 +69,20 @@ const FIELD_TYPE_VIEW_CONFIGS = {
     update: { displayFields: FIELD_TYPE_FIELDS },
 };
 
+/** Frame width for snapshots of the narrow card layout. */
+const NARROW_WIDTH = 420;
+const WIDE_WIDTH = 1280;
+
 /**
  * One snapshot. Each takes its own app label, because the demo API matches
- * routes globally in registration order.
+ * routes globally in registration order. `title` describes the snapshot in
+ * the catalog and the gallery.
  */
 const SNAPSHOTS = [
     {
         file: "view-list-table.html",
+        title: "Customer list, table layout",
+        modelInfo: customerModelInfo,
         view: () => import("@vueda/views/ViewList.vue"),
         scenario: customerScenario({ app: "kitlisttable", records: CUSTOMER_RECORDS.slice(0, LIST_ROWS) }),
         action: "list",
@@ -80,12 +91,17 @@ const SNAPSHOTS = [
     {
         // jsdom matches no media query, so the default breakpoint renders cards.
         file: "view-list-cards.html",
+        title: "Customer list, card layout for narrow screens",
+        modelInfo: customerModelInfo,
+        width: NARROW_WIDTH,
         view: () => import("@vueda/views/ViewList.vue"),
         scenario: customerScenario({ app: "kitlistcards", records: CUSTOMER_RECORDS.slice(0, 4) }),
         action: "list",
     },
     {
         file: "view-read.html",
+        title: "Customer read view",
+        modelInfo: customerModelInfo,
         view: () => import("@vueda/views/ViewRead.vue"),
         scenario: customerScenario({ app: "kitread" }),
         action: "read",
@@ -93,12 +109,16 @@ const SNAPSHOTS = [
     },
     {
         file: "view-create.html",
+        title: "Customer create form",
+        modelInfo: customerModelInfo,
         view: () => import("@vueda/views/ViewCreate.vue"),
         scenario: customerScenario({ app: "kitcreate" }),
         action: "create",
     },
     {
         file: "view-update.html",
+        title: "Customer update form",
+        modelInfo: customerModelInfo,
         view: () => import("@vueda/views/ViewUpdate.vue"),
         scenario: customerScenario({ app: "kitupdate" }),
         action: "update",
@@ -106,6 +126,8 @@ const SNAPSHOTS = [
     },
     {
         file: "view-destroy.html",
+        title: "Delete confirmation for two customers",
+        modelInfo: customerModelInfo,
         view: () => import("@vueda/views/ViewDestroy.vue"),
         scenario: customerScenario({ app: "kitdestroy" }),
         action: "destroy",
@@ -120,6 +142,8 @@ const SNAPSHOTS = [
     },
     {
         file: "fields-list-table.html",
+        title: "List cells for each field type",
+        modelInfo: fieldTypesModelInfo,
         view: () => import("@vueda/views/ViewList.vue"),
         scenario: fieldTypesScenario({
             app: "kitfieldslist",
@@ -131,6 +155,8 @@ const SNAPSHOTS = [
     },
     {
         file: "fields-read.html",
+        title: "Read-only display for each field type",
+        modelInfo: fieldTypesModelInfo,
         view: () => import("@vueda/views/ViewRead.vue"),
         scenario: fieldTypesScenario({ app: "kitfieldsread", viewConfigs: FIELD_TYPE_VIEW_CONFIGS }),
         action: "read",
@@ -138,6 +164,8 @@ const SNAPSHOTS = [
     },
     {
         file: "fields-update.html",
+        title: "Form widget for each field type",
+        modelInfo: fieldTypesModelInfo,
         view: () => import("@vueda/views/ViewUpdate.vue"),
         scenario: fieldTypesScenario({ app: "kitfieldsupdate", viewConfigs: FIELD_TYPE_VIEW_CONFIGS }),
         action: "update",
@@ -241,7 +269,9 @@ const ID_REFERENCES = ["aria-controls", "aria-labelledby", "aria-describedby", "
 
 /**
  * Remove what only matters to a running app: comments, generated ids and the
- * attributes that point at them, and empty class and style attributes.
+ * attributes that point at them, and empty class and style attributes. Also
+ * remove attributes whose value is `[object Object]`: an object prop that fell
+ * through to the DOM, which no page can use.
  *
  * @param {Element} root - The rendered subtree; modified in place.
  * @returns {void}
@@ -256,6 +286,11 @@ function stripRuntimeDetail(root) {
 
     for (const element of [root, ...root.querySelectorAll("*")]) {
         element.removeAttribute("data-v-app");
+        for (const { name, value } of [...element.attributes]) {
+            if (value === "[object Object]") {
+                element.removeAttribute(name);
+            }
+        }
         if (GENERATED_ID.test(element.id)) {
             element.removeAttribute("id");
         }
@@ -271,6 +306,102 @@ function stripRuntimeDetail(root) {
             }
         }
     }
+}
+
+/**
+ * Mark each form and read field with the name of the field that it shows, the
+ * way list cells already carry `data-field`. The name comes from the anchor
+ * that each field renders for scrolling to it.
+ *
+ * @param {Element} root - The rendered subtree; modified in place.
+ * @returns {void}
+ */
+function markFields(root) {
+    for (const field of root.querySelectorAll('[data-slot="field"]')) {
+        const anchor = field.querySelector(':scope > [data-slot="field-content"] > a[name]');
+        if (anchor) {
+            field.setAttribute("data-field", anchor.getAttribute("name"));
+        }
+    }
+}
+
+/**
+ * Describe the widget that a field renders, by the `data-qa` of its root.
+ *
+ * @param {Element} field
+ * @returns {string}
+ */
+function widgetOf(field) {
+    return field.querySelector('[data-qa^="widget-"]')?.getAttribute("data-qa") ?? "";
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function tableCell(value) {
+    return String(value ?? "").replace(/\|/g, "\\|");
+}
+
+/**
+ * Write the catalog: what each snapshot shows, and for every field, its types
+ * and the widget that it renders in each snapshot that contains it.
+ *
+ * @param {{ file: string, title: string, action: string, modelInfo: object, snapshot: Element }[]} captured
+ * @returns {string}
+ */
+function catalog(captured) {
+    const lines = [
+        "# Snapshot catalog",
+        "",
+        "Generated by `client/scripts/mockup-kit`. Do not edit.",
+        "",
+        "## Files",
+        "",
+        "| File | Shows | Model | View action |",
+        "| --- | --- | --- | --- |",
+        ...captured.map(
+            ({ file, title, modelInfo, action }) =>
+                `| \`${file}\` | ${tableCell(title)} | \`${modelInfo.appLabel}.${modelInfo.model}\` | ${action} |`,
+        ),
+    ];
+
+    const models = [...new Map(captured.map(({ modelInfo }) => [modelInfo.model, modelInfo])).values()];
+    for (const modelInfo of models) {
+        const snapshots = captured.filter((entry) => entry.modelInfo === modelInfo);
+        lines.push(
+            "",
+            `## Fields of \`${modelInfo.appLabel}.${modelInfo.model}\``,
+            "",
+            "Each field's element carries `data-field` with the field name in every snapshot.",
+            "The widget column gives the `data-qa` of the widget root in the snapshots listed.",
+            "",
+            "| Field | Label | Serializer type | Model type | Notes | Widget |",
+            "| --- | --- | --- | --- | --- | --- |",
+        );
+        for (const [name, field] of Object.entries(modelInfo.fields)) {
+            const widgets = snapshots
+                .map(({ file, snapshot }) => {
+                    const element = snapshot.querySelector(`[data-slot="field"][data-field="${name}"]`);
+                    const widget = element && widgetOf(element);
+                    return widget ? `\`${widget}\` (${file})` : null;
+                })
+                .filter(Boolean);
+            if (!widgets.length) {
+                continue;
+            }
+            const notes = [
+                field.required && "required",
+                field.readOnly && "read-only",
+                field.many && "many",
+                field.choices && "choices",
+            ].filter(Boolean);
+            lines.push(
+                `| \`${name}\` | ${tableCell(field.label)} | ${field.typeSerializer} | ${field.typeModel} | ${notes.join(", ")} | ${widgets.join("<br>")} |`,
+            );
+        }
+    }
+    return `${lines.join("\n")}\n`;
 }
 
 // Elements whose stylesheet sets `white-space: pre`, so reindenting their
@@ -308,14 +439,15 @@ function requireEnv(name) {
 }
 
 describe("mockup kit snapshots", () => {
-    /** @type {{ file: string, snapshot: Element }[]} */
+    /** @type {{ file: string, title: string, action: string, width: number, modelInfo: object, snapshot: Element }[]} */
     const captured = [];
 
     beforeAll(async () => {
         await installDefaultCrud();
     });
 
-    test.each(SNAPSHOTS)("$file", async ({ file, view, scenario, action, pk, viewProps = {} }) => {
+    test.each(SNAPSHOTS)("$file", async (entry) => {
+        const { file, title, modelInfo, width = WIDE_WIDTH, view, scenario, action, pk, viewProps = {} } = entry;
         const unregister = registerDemoRoutes(scenario.api);
         const headBefore = new Set(document.head.children);
         const mountPoint = document.createElement("div");
@@ -350,6 +482,7 @@ describe("mockup kit snapshots", () => {
             const snapshot = document.body.cloneNode(true);
             stripRuntimeDetail(snapshot);
             replaceFixtureImages(snapshot);
+            markFields(snapshot);
             // Styles that components add at runtime (CodeMirror's, for one) are
             // not in the kit stylesheet, so each snapshot carries its own. Font
             // Awesome's runtime copy is skipped, because kit.css imports it.
@@ -358,7 +491,7 @@ describe("mockup kit snapshots", () => {
                     node.tagName === "STYLE" && !headBefore.has(node) && !node.textContent.includes("--fa-font-solid"),
             );
             snapshot.prepend(...runtimeStyles.map((node) => node.cloneNode(true)));
-            captured.push({ file, snapshot });
+            captured.push({ file, title, action, width, modelInfo, snapshot });
         } finally {
             app.unmount();
             unregister();
@@ -377,10 +510,22 @@ describe("mockup kit snapshots", () => {
             captured.map(({ snapshot }) => snapshot),
             utilities,
         );
-        mkdirSync(out, { recursive: true });
-        for (const { file, snapshot } of captured) {
-            writeFileSync(join(out, file), await formatSnapshot(snapshot));
+        // The catalog reads the snapshots before formatting marks them up.
+        const catalogText = catalog(captured);
+
+        // Recreate the folder, so a snapshot dropped from the list leaves no file.
+        const snapshotsDir = join(out, "snapshots");
+        rmSync(snapshotsDir, { recursive: true, force: true });
+        mkdirSync(snapshotsDir, { recursive: true });
+        const sections = [];
+        for (const { file, title, width, snapshot } of captured) {
+            const html = await formatSnapshot(snapshot);
+            writeFileSync(join(snapshotsDir, file), html);
+            sections.push({ file, title, width, html });
         }
+        writeFileSync(join(snapshotsDir, "catalog.md"), catalogText);
+        writeFileSync(join(out, "page.html"), starterPage());
+        writeFileSync(join(out, "gallery.html"), galleryPage(sections));
         writeFileSync(requireEnv("MOCKUP_KIT_COMPONENTS_CSS"), hoistedClassesCss(hoisted));
     });
 });

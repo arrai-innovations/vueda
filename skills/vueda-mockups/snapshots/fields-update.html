@@ -1,0 +1,1819 @@
+<style>
+	.ͼ1.cm-focused {
+		outline: 1px dotted #212121;
+	}
+	.ͼ1 {
+		position: relative !important;
+		box-sizing: border-box;
+		display: flex !important;
+		flex-direction: column;
+	}
+	.ͼ1 .cm-scroller {
+		display: flex !important;
+		align-items: flex-start !important;
+		font-family: monospace;
+		line-height: 1.4;
+		height: 100%;
+		overflow-x: auto;
+		position: relative;
+		z-index: 0;
+		overflow-anchor: none;
+	}
+	.ͼ1 .cm-content[contenteditable="true"] {
+		-webkit-user-modify: read-write-plaintext-only;
+	}
+	.ͼ1 .cm-content {
+		margin: 0;
+		flex-grow: 2;
+		flex-shrink: 0;
+		display: block;
+		white-space: pre;
+		word-wrap: normal;
+		box-sizing: border-box;
+		min-height: 100%;
+		padding: 4px 0;
+		outline: none;
+	}
+	.ͼ1 .cm-lineWrapping {
+		white-space: pre-wrap;
+		white-space: break-spaces;
+		word-break: break-word;
+		overflow-wrap: anywhere;
+		flex-shrink: 1;
+	}
+	.ͼ2 .cm-content {
+		caret-color: black;
+	}
+	.ͼ3 .cm-content {
+		caret-color: white;
+	}
+	.ͼ1 .cm-line {
+		display: block;
+		padding: 0 2px 0 6px;
+	}
+	.ͼ1 .cm-layer > * {
+		position: absolute;
+	}
+	.ͼ1 .cm-layer {
+		position: absolute;
+		left: 0;
+		top: 0;
+		contain: size style;
+	}
+	.ͼ2 .cm-selectionBackground {
+		background: #d9d9d9;
+	}
+	.ͼ3 .cm-selectionBackground {
+		background: #222;
+	}
+	.ͼ2.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+		background: #d7d4f0;
+	}
+	.ͼ3.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+		background: #233;
+	}
+	.ͼ1 .cm-cursorLayer {
+		pointer-events: none;
+	}
+	.ͼ1.cm-focused > .cm-scroller > .cm-cursorLayer {
+		animation: steps(1) cm-blink 1.2s infinite;
+	}
+	@keyframes cm-blink {
+		50% {
+			opacity: 0;
+		}
+	}
+	@keyframes cm-blink2 {
+		50% {
+			opacity: 0;
+		}
+	}
+	.ͼ1 .cm-cursor,
+	.ͼ1 .cm-dropCursor {
+		border-left: 1.2px solid black;
+		margin-left: -0.6px;
+		pointer-events: none;
+	}
+	.ͼ1 .cm-cursor {
+		display: none;
+	}
+	.ͼ3 .cm-cursor {
+		border-left-color: #ddd;
+	}
+	.ͼ1 .cm-selectionHandle {
+		background-color: currentColor;
+		width: 1.5px;
+	}
+	.ͼ1 .cm-selectionHandle-start::before,
+	.ͼ1 .cm-selectionHandle-end::before {
+		content: "";
+		background-color: inherit;
+		border-radius: 50%;
+		width: 8px;
+		height: 8px;
+		position: absolute;
+		left: -3.25px;
+	}
+	.ͼ1 .cm-selectionHandle-start::before {
+		top: -8px;
+	}
+	.ͼ1 .cm-selectionHandle-end::before {
+		bottom: -8px;
+	}
+	.ͼ1 .cm-dropCursor {
+		position: absolute;
+	}
+	.ͼ1.cm-focused > .cm-scroller > .cm-cursorLayer .cm-cursor {
+		display: block;
+	}
+	.ͼ1 .cm-iso {
+		unicode-bidi: isolate;
+	}
+	.ͼ1 .cm-announced {
+		position: fixed;
+		top: -10000px;
+	}
+	@media print {
+		.ͼ1 .cm-announced {
+			display: none;
+		}
+	}
+	.ͼ2 .cm-activeLine {
+		background-color: #cceeff44;
+	}
+	.ͼ3 .cm-activeLine {
+		background-color: #99eeff33;
+	}
+	.ͼ2 .cm-specialChar {
+		color: red;
+	}
+	.ͼ3 .cm-specialChar {
+		color: #f78;
+	}
+	.ͼ1 .cm-gutters {
+		flex-shrink: 0;
+		display: flex;
+		height: 100%;
+		box-sizing: border-box;
+		z-index: 200;
+	}
+	.ͼ1 .cm-gutters-before {
+		inset-inline-start: 0;
+	}
+	.ͼ1 .cm-gutters-after {
+		inset-inline-end: 0;
+	}
+	.ͼ2 .cm-gutters.cm-gutters-before {
+		border-right-width: 1px;
+	}
+	.ͼ2 .cm-gutters.cm-gutters-after {
+		border-left-width: 1px;
+	}
+	.ͼ2 .cm-gutters {
+		background-color: #f5f5f5;
+		color: #6c6c6c;
+		border: 0px solid #ddd;
+	}
+	.ͼ3 .cm-gutters {
+		background-color: #333338;
+		color: #ccc;
+	}
+	.ͼ1 .cm-gutter {
+		display: flex !important;
+		flex-direction: column;
+		flex-shrink: 0;
+		box-sizing: border-box;
+		min-height: 100%;
+		overflow: hidden;
+	}
+	.ͼ1 .cm-gutterElement {
+		box-sizing: border-box;
+	}
+	.ͼ1 .cm-lineNumbers .cm-gutterElement {
+		padding: 0 3px 0 5px;
+		min-width: 20px;
+		text-align: right;
+		white-space: nowrap;
+	}
+	.ͼ2 .cm-activeLineGutter {
+		background-color: #e2f2ff;
+	}
+	.ͼ3 .cm-activeLineGutter {
+		background-color: #222227;
+	}
+	.ͼ1 .cm-panels {
+		box-sizing: border-box;
+		position: sticky;
+		left: 0;
+		right: 0;
+		z-index: 300;
+	}
+	.ͼ2 .cm-panels {
+		background-color: #f5f5f5;
+		color: black;
+	}
+	.ͼ2 .cm-panels-top {
+		border-bottom: 1px solid #ddd;
+	}
+	.ͼ2 .cm-panels-bottom {
+		border-top: 1px solid #ddd;
+	}
+	.ͼ3 .cm-panels {
+		background-color: #333338;
+		color: white;
+	}
+	.ͼ1 .cm-dialog label {
+		font-size: 80%;
+	}
+	.ͼ1 .cm-dialog {
+		padding: 2px 19px 4px 6px;
+		position: relative;
+	}
+	.ͼ1 .cm-dialog-close {
+		position: absolute;
+		top: 3px;
+		right: 4px;
+		background-color: inherit;
+		border: none;
+		font: inherit;
+		font-size: 14px;
+		padding: 0;
+	}
+	.ͼ1 .cm-tab {
+		display: inline-block;
+		overflow: hidden;
+		vertical-align: bottom;
+	}
+	.ͼ1 .cm-widgetBuffer {
+		vertical-align: text-top;
+		height: 1em;
+		width: 0;
+		display: inline;
+	}
+	.ͼ1 .cm-placeholder {
+		color: #888;
+		display: inline-block;
+		vertical-align: top;
+		user-select: none;
+	}
+	.ͼ1 .cm-highlightSpace {
+		background-image: radial-gradient(circle at 50% 55%, #aaa 20%, transparent 5%);
+		background-position: center;
+	}
+	.ͼ1 .cm-highlightTab {
+		background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="20"><path stroke="%23888" stroke-width="1" fill="none" d="M1 10H196L190 5M190 15L196 10M197 4L197 16"/></svg>');
+		background-size: auto 100%;
+		background-position: right 90%;
+		background-repeat: no-repeat;
+	}
+	.ͼ1 .cm-trailingSpace {
+		background-color: #ff332255;
+	}
+	.ͼ1 .cm-button {
+		vertical-align: middle;
+		color: inherit;
+		font-size: 70%;
+		padding: 0.2em 1em;
+		border-radius: 1px;
+	}
+	.ͼ2 .cm-button:active {
+		background-image: linear-gradient(#b4b4b4, #d0d3d6);
+	}
+	.ͼ2 .cm-button {
+		background-image: linear-gradient(#eff1f5, #d9d9df);
+		border: 1px solid #888;
+	}
+	.ͼ3 .cm-button:active {
+		background-image: linear-gradient(#111, #333);
+	}
+	.ͼ3 .cm-button {
+		background-image: linear-gradient(#393939, #111);
+		border: 1px solid #888;
+	}
+	.ͼ1 .cm-textfield {
+		vertical-align: middle;
+		color: inherit;
+		font-size: 70%;
+		border: 1px solid silver;
+		padding: 0.2em 0.5em;
+	}
+	.ͼ2 .cm-textfield {
+		background-color: white;
+	}
+	.ͼ3 .cm-textfield {
+		border: 1px solid #555;
+		background-color: inherit;
+	}
+	.ͼq .cm-editor {
+		min-height: 4rem;
+		background-color: transparent;
+		outline: none;
+	}
+	.ͼq .cm-content {
+		min-height: 4rem;
+		padding: 0.5rem 0.75rem;
+		font-family: var(--vueda-font-mono);
+		caret-color: var(--foreground);
+	}
+	.ͼq .cm-line {
+		padding: 0;
+	}
+	.ͼq .cm-scroller {
+		font-family: var(--vueda-font-mono);
+	}
+	.ͼo {
+		color: var(--foreground);
+		font-weight: var(--vueda-font-weight-label);
+	}
+	.ͼp {
+		color: var(--muted-foreground);
+	}
+</style>
+<div>
+	<div class="flex flex-col">
+		<div class="border-b-hairline">
+			<div class="flex flex-col">
+				<div class="vk-div">
+					<div class="flex flex-col gap-1 min-w-min">
+						<div class="vk-div-2">
+							<h1 class="vk-h1">Update Field Type</h1>
+							<span class="vk-page-title-loading" data-qa="page-title-loading"></span>
+						</div>
+					</div>
+					<div class="vk-page-title-actions" data-qa="page-title-actions">
+						<a
+							data-slot="button"
+							data-tone="neutral"
+							data-emphasis="outline"
+							class="vk-button-neutral-outline"
+							disabled="false"
+							href="/kitfieldsupdate/fieldtypes/create/"
+							>Create </a
+						><a
+							data-slot="button"
+							data-tone="neutral"
+							data-emphasis="outline"
+							class="vk-button-neutral-outline"
+							disabled="false"
+							href="/kitfieldsupdate/fieldtypes/list/"
+							>List
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div data-qa="update-form-root">
+			<div class="vk-sticky-bar-inner" data-qa="sticky-bar-inner">
+				<div class="flex flex-wrap gap-1.5 mr-auto" data-qa="sticky-bar-primary">
+					<div class="vk-read-action-buttons" data-qa="update-action-buttons">
+						<button
+							data-slot="button"
+							data-tone="primary"
+							data-emphasis="fill"
+							class="vk-button-primary-fill"
+							form="kitfieldsupdate-fieldtypes-1-update"
+							type="submit"
+						>
+							Update</button
+						><button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							Retrieve
+						</button>
+					</div>
+				</div>
+				<div class="flex flex-wrap gap-1.5 items-center" data-qa="sticky-bar-secondary"></div>
+			</div>
+			<div class="px-5 py-5" data-qa="update-form">
+				<form id="kitfieldsupdate-fieldtypes-1-update">
+					<div data-qa="form-model">
+						<div class="flex w-full flex-col gap-7">
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="releaseDate"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Release date <span aria-hidden="true" class="text-destructive font-medium">*</span></label
+								>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="releaseDate" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div
+											data-slot="date-field"
+											class="vk-date-field"
+											aria-required="true"
+											data-qa="widget-date-field"
+											role="group"
+											dir="ltr"
+										>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="month, "
+												aria-valuemin="1"
+												aria-valuemax="12"
+												aria-valuenow="1"
+												aria-valuetext="1 - January"
+												data-reka-date-field-segment="month"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												1
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="day,"
+												aria-valuemin="1"
+												aria-valuemax="31"
+												aria-valuenow="15"
+												aria-valuetext="15"
+												data-reka-date-field-segment="day"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												15
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="year, "
+												aria-valuemin="1"
+												aria-valuemax="9999"
+												aria-valuenow="2026"
+												aria-valuetext="2026"
+												data-reka-date-field-segment="year"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												2026
+											</div>
+											<button
+												data-slot="popover-trigger"
+												type="button"
+												aria-haspopup="dialog"
+												aria-expanded="false"
+												data-state="closed"
+												class="vk-popover-trigger"
+												tabindex="-1"
+												data-qa="widget-date-field-trigger"
+											>
+												<svg
+													class="vk-popover-trigger-svg svg-inline--fa fa-calendar-days"
+													data-prefix="fas"
+													data-icon="calendar-days"
+													role="img"
+													viewBox="0 0 448 512"
+													aria-hidden="true"
+												>
+													<path
+														fill="currentColor"
+														d="M128 0c17.7 0 32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 32 0c35.3 0 64 28.7 64 64l0 288c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 128C0 92.7 28.7 64 64 64l32 0 0-32c0-17.7 14.3-32 32-32zM64 240l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm128 0l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zM64 368l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zm112 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16z"
+													></path>
+												</svg></button
+											><input
+												aria-hidden="true"
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												type="date"
+												name="releaseDate"
+												value="2026-01-15"
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="publishedAt"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Published at
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="publishedAt" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div
+											data-slot="date-field"
+											class="vk-date-field"
+											data-qa="widget-date-field"
+											role="group"
+											dir="ltr"
+										>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="month, "
+												aria-valuemin="1"
+												aria-valuemax="12"
+												aria-valuenow="10"
+												aria-valuetext="Empty"
+												data-placeholder=""
+												data-reka-date-field-segment="month"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												mm
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="day,"
+												aria-valuemin="1"
+												aria-valuemax="31"
+												aria-valuenow="27"
+												aria-valuetext="Empty"
+												data-placeholder=""
+												data-reka-date-field-segment="day"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												dd
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="year, "
+												aria-valuemin="1"
+												aria-valuemax="9999"
+												aria-valuenow="2026"
+												aria-valuetext="Empty"
+												data-placeholder=""
+												data-reka-date-field-segment="year"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												yyyy
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												,
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="hour, "
+												aria-valuemin="0"
+												aria-valuemax="23"
+												aria-valuenow="0"
+												aria-valuetext="Empty"
+												data-placeholder=""
+												data-reka-date-field-segment="hour"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												––
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												:
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="minute, "
+												aria-valuemin="0"
+												aria-valuemax="59"
+												aria-valuenow="0"
+												aria-valuetext="Empty"
+												data-placeholder=""
+												data-reka-date-field-segment="minute"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												––
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												 
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="text"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="AM/PM"
+												aria-valuemin="0"
+												aria-valuemax="12"
+												aria-valuenow="0"
+												aria-valuetext="AM"
+												data-reka-date-field-segment="dayPeriod"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											>
+												AM
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-slot="date-field-input"
+												class="vk-date-field-input"
+											></div>
+											<button
+												data-slot="popover-trigger"
+												type="button"
+												aria-haspopup="dialog"
+												aria-expanded="false"
+												data-state="closed"
+												class="vk-popover-trigger"
+												tabindex="-1"
+												data-qa="widget-date-field-trigger"
+											>
+												<svg
+													class="vk-popover-trigger-svg svg-inline--fa fa-calendar-days"
+													data-prefix="fas"
+													data-icon="calendar-days"
+													role="img"
+													viewBox="0 0 448 512"
+													aria-hidden="true"
+												>
+													<path
+														fill="currentColor"
+														d="M128 0c17.7 0 32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 32 0c35.3 0 64 28.7 64 64l0 288c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 128C0 92.7 28.7 64 64 64l32 0 0-32c0-17.7 14.3-32 32-32zM64 240l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm128 0l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zM64 368l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zm112 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16z"
+													></path>
+												</svg></button
+											><input
+												aria-hidden="true"
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												type="datetime-local"
+												name="publishedAt"
+												value=""
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="campaignWindow"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Campaign window
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="campaignWindow" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div
+											data-slot="date-range-field"
+											class="vk-date-field"
+											data-qa="widget-date-range-field"
+											role="group"
+											dir="ltr"
+										>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="month, "
+												aria-valuemin="1"
+												aria-valuemax="12"
+												aria-valuenow="1"
+												aria-valuetext="1 - January"
+												data-reka-date-field-segment="month"
+												data-reka-date-range-field-segment-type="start"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												1
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-reka-date-range-field-segment-type="start"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="day,"
+												aria-valuemin="1"
+												aria-valuemax="31"
+												aria-valuenow="15"
+												aria-valuetext="15"
+												data-reka-date-field-segment="day"
+												data-reka-date-range-field-segment-type="start"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												15
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-reka-date-range-field-segment-type="start"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="year, "
+												aria-valuemin="1"
+												aria-valuemax="9999"
+												aria-valuenow="2026"
+												aria-valuetext="2026"
+												data-reka-date-field-segment="year"
+												data-reka-date-range-field-segment-type="start"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												2026
+											</div>
+											<span class="px-1 text-muted-foreground" aria-hidden="true">–</span>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="month, "
+												aria-valuemin="1"
+												aria-valuemax="12"
+												aria-valuenow="3"
+												aria-valuetext="3 - March"
+												data-reka-date-field-segment="month"
+												data-reka-date-range-field-segment-type="end"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												3
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-reka-date-range-field-segment-type="end"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="day,"
+												aria-valuemin="1"
+												aria-valuemax="31"
+												aria-valuenow="31"
+												aria-valuetext="31"
+												data-reka-date-field-segment="day"
+												data-reka-date-range-field-segment-type="end"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												31
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-date-field-segment="literal"
+												data-reka-date-range-field-segment-type="end"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												/
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="year, "
+												aria-valuemin="1"
+												aria-valuemax="9999"
+												aria-valuenow="2026"
+												aria-valuetext="2026"
+												data-reka-date-field-segment="year"
+												data-reka-date-range-field-segment-type="end"
+												data-slot="date-range-field-input"
+												class="vk-date-field-input"
+											>
+												2026
+											</div>
+											<button
+												data-slot="popover-trigger"
+												type="button"
+												aria-haspopup="dialog"
+												aria-expanded="false"
+												data-state="closed"
+												class="vk-popover-trigger"
+												tabindex="-1"
+												data-qa="widget-date-range-field-trigger"
+											>
+												<svg
+													class="vk-popover-trigger-svg svg-inline--fa fa-calendar-days"
+													data-prefix="fas"
+													data-icon="calendar-days"
+													role="img"
+													viewBox="0 0 448 512"
+													aria-hidden="true"
+												>
+													<path
+														fill="currentColor"
+														d="M128 0c17.7 0 32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 32 0c35.3 0 64 28.7 64 64l0 288c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 128C0 92.7 28.7 64 64 64l32 0 0-32c0-17.7 14.3-32 32-32zM64 240l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm128 0l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zM64 368l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zm112 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16z"
+													></path>
+												</svg></button
+											><input
+												aria-hidden="true"
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="campaignWindow"
+												value="2026-01-15 - 2026-03-31"
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="opensAt"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Opens at
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="opensAt" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div
+											data-slot="time-field"
+											class="vk-time-field"
+											data-qa="widget-time-field"
+											role="group"
+											dir="ltr"
+										>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="hour, "
+												aria-valuemin="0"
+												aria-valuemax="23"
+												aria-valuenow="9"
+												aria-valuetext="9 AM"
+												data-reka-time-field-segment="hour"
+												data-slot="time-field-input"
+												class="vk-date-field-input"
+											>
+												9
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-time-field-segment="literal"
+												data-slot="time-field-input"
+												class="vk-time-field-input"
+											>
+												:
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="numeric"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="minute, "
+												aria-valuemin="0"
+												aria-valuemax="59"
+												aria-valuenow="0"
+												aria-valuetext="0"
+												data-reka-time-field-segment="minute"
+												data-slot="time-field-input"
+												class="vk-date-field-input"
+											>
+												00
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-time-field-segment="literal"
+												data-slot="time-field-input"
+												class="vk-time-field-input"
+											>
+												 
+											</div>
+											<div
+												role="spinbutton"
+												contenteditable="true"
+												tabindex="0"
+												spellcheck="false"
+												inputmode="text"
+												autocorrect="off"
+												enterkeyhint="next"
+												style="caret-color: transparent"
+												aria-label="AM/PM"
+												aria-valuemin="0"
+												aria-valuemax="12"
+												aria-valuenow="9"
+												aria-valuetext="AM"
+												data-reka-time-field-segment="dayPeriod"
+												data-slot="time-field-input"
+												class="vk-date-field-input"
+											>
+												AM
+											</div>
+											<div
+												aria-hidden="true"
+												data-segment="literal"
+												contenteditable="false"
+												data-reka-time-field-segment="literal"
+												data-slot="time-field-input"
+												class="vk-time-field-input"
+											></div>
+											<input
+												aria-hidden="true"
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="opensAt"
+												value="09:00:00"
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="serviceWindow"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Service window
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="serviceWindow" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div class="flex w-full items-center gap-2" data-qa="widget-time-range-field">
+											<div data-slot="time-field" class="vk-time-field-2" role="group" dir="ltr">
+												<div
+													role="spinbutton"
+													contenteditable="true"
+													tabindex="0"
+													spellcheck="false"
+													inputmode="numeric"
+													autocorrect="off"
+													enterkeyhint="next"
+													style="caret-color: transparent"
+													aria-label="hour, "
+													aria-valuemin="0"
+													aria-valuemax="23"
+													aria-valuenow="8"
+													aria-valuetext="8 AM"
+													data-reka-time-field-segment="hour"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													8
+												</div>
+												<div
+													aria-hidden="true"
+													data-segment="literal"
+													contenteditable="false"
+													data-reka-time-field-segment="literal"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													:
+												</div>
+												<div
+													role="spinbutton"
+													contenteditable="true"
+													tabindex="0"
+													spellcheck="false"
+													inputmode="numeric"
+													autocorrect="off"
+													enterkeyhint="next"
+													style="caret-color: transparent"
+													aria-label="minute, "
+													aria-valuemin="0"
+													aria-valuemax="59"
+													aria-valuenow="0"
+													aria-valuetext="0"
+													data-reka-time-field-segment="minute"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													00
+												</div>
+												<div
+													aria-hidden="true"
+													data-segment="literal"
+													contenteditable="false"
+													data-reka-time-field-segment="literal"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													 
+												</div>
+												<div
+													role="spinbutton"
+													contenteditable="true"
+													tabindex="0"
+													spellcheck="false"
+													inputmode="text"
+													autocorrect="off"
+													enterkeyhint="next"
+													style="caret-color: transparent"
+													aria-label="AM/PM"
+													aria-valuemin="0"
+													aria-valuemax="12"
+													aria-valuenow="8"
+													aria-valuetext="AM"
+													data-reka-time-field-segment="dayPeriod"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													AM
+												</div>
+												<div
+													aria-hidden="true"
+													data-segment="literal"
+													contenteditable="false"
+													data-reka-time-field-segment="literal"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												></div>
+												<input
+													aria-hidden="true"
+													tabindex="-1"
+													style="
+														position: absolute;
+														border: 0px;
+														width: 1px;
+														height: 1px;
+														padding: 0px;
+														margin: -1px;
+														overflow: hidden;
+														clip: rect(0px, 0px, 0px, 0px);
+														clip-path: inset(50%);
+														white-space: nowrap;
+														word-wrap: normal;
+														top: -1px;
+														left: -1px;
+													"
+													name="serviceWindow_lower"
+													value="08:00:00"
+												/>
+											</div>
+											<span class="shrink-0 text-muted-foreground" aria-hidden="true">–</span>
+											<div data-slot="time-field" class="vk-time-field-2" role="group" dir="ltr">
+												<div
+													role="spinbutton"
+													contenteditable="true"
+													tabindex="0"
+													spellcheck="false"
+													inputmode="numeric"
+													autocorrect="off"
+													enterkeyhint="next"
+													style="caret-color: transparent"
+													aria-label="hour, "
+													aria-valuemin="0"
+													aria-valuemax="23"
+													aria-valuenow="18"
+													aria-valuetext="18 PM"
+													data-reka-time-field-segment="hour"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													6
+												</div>
+												<div
+													aria-hidden="true"
+													data-segment="literal"
+													contenteditable="false"
+													data-reka-time-field-segment="literal"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													:
+												</div>
+												<div
+													role="spinbutton"
+													contenteditable="true"
+													tabindex="0"
+													spellcheck="false"
+													inputmode="numeric"
+													autocorrect="off"
+													enterkeyhint="next"
+													style="caret-color: transparent"
+													aria-label="minute, "
+													aria-valuemin="0"
+													aria-valuemax="59"
+													aria-valuenow="0"
+													aria-valuetext="0"
+													data-reka-time-field-segment="minute"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													00
+												</div>
+												<div
+													aria-hidden="true"
+													data-segment="literal"
+													contenteditable="false"
+													data-reka-time-field-segment="literal"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													 
+												</div>
+												<div
+													role="spinbutton"
+													contenteditable="true"
+													tabindex="0"
+													spellcheck="false"
+													inputmode="text"
+													autocorrect="off"
+													enterkeyhint="next"
+													style="caret-color: transparent"
+													aria-label="AM/PM"
+													aria-valuemin="0"
+													aria-valuemax="12"
+													aria-valuenow="6"
+													aria-valuetext="PM"
+													data-reka-time-field-segment="dayPeriod"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												>
+													PM
+												</div>
+												<div
+													aria-hidden="true"
+													data-segment="literal"
+													contenteditable="false"
+													data-reka-time-field-segment="literal"
+													data-slot="time-field-input"
+													class="vk-date-field-input"
+												></div>
+												<input
+													aria-hidden="true"
+													tabindex="-1"
+													style="
+														position: absolute;
+														border: 0px;
+														width: 1px;
+														height: 1px;
+														padding: 0px;
+														margin: -1px;
+														overflow: hidden;
+														clip: rect(0px, 0px, 0px, 0px);
+														clip-path: inset(50%);
+														white-space: nowrap;
+														word-wrap: normal;
+														top: -1px;
+														left: -1px;
+													"
+													name="serviceWindow_upper"
+													value="18:00:00"
+												/>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="leadTime"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Lead time
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="leadTime" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div>
+											<div class="flex flex-row gap-2 flex-wrap" data-qa="widget-duration-inner">
+												<div class="flex flex-col flex-grow gap-1">
+													<label class="text-xs text-muted-foreground">Minutes</label>
+													<div data-slot="number-field" class="grid gap-1.5" role="group">
+														<div data-slot="number-field-content" class="vk-number-field-content">
+															<button
+																tabindex="-1"
+																aria-label="Decrease"
+																type="button"
+																data-slot="decrement"
+																class="vk-decrement"
+															>
+																<svg
+																	class="svg-inline--fa fa-minus"
+																	data-prefix="fas"
+																	data-icon="minus"
+																	role="img"
+																	viewBox="0 0 448 512"
+																	aria-hidden="true"
+																>
+																	<path
+																		fill="currentColor"
+																		d="M0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32z"
+																	></path>
+																</svg></button
+															><input
+																role="spinbutton"
+																type="text"
+																tabindex="0"
+																inputmode="decimal"
+																autocomplete="off"
+																autocorrect="off"
+																spellcheck="false"
+																aria-roledescription="Number field"
+																aria-valuenow="3360"
+																aria-valuemin="0"
+																data-slot="input"
+																class="vk-input-2"
+																data-qa="duration-minutes"
+																value="3,360"
+															/><button
+																tabindex="-1"
+																aria-label="Increase"
+																type="button"
+																data-slot="increment"
+																class="vk-increment"
+															>
+																<svg
+																	class="svg-inline--fa fa-plus"
+																	data-prefix="fas"
+																	data-icon="plus"
+																	role="img"
+																	viewBox="0 0 448 512"
+																	aria-hidden="true"
+																>
+																	<path
+																		fill="currentColor"
+																		d="M256 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 160-160 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l160 0 0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160 160 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-160 0 0-160z"
+																	></path>
+																</svg>
+															</button>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="regions"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Regions
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="regions" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div dir="ltr" data-slot="combobox">
+											<div data-slot="combobox-anchor" class="w-[200px] w-full">
+												<button
+													type="button"
+													tabindex="0"
+													aria-label="Show popup"
+													aria-haspopup="listbox"
+													aria-expanded="false"
+													data-state="closed"
+													aria-disabled="false"
+													data-slot="combobox-trigger"
+													class="vk-combobox-trigger"
+													data-qa="widget-combobox"
+												>
+													<span>, </span
+													><svg
+														class="svg-inline--fa fa-caret-down opacity-50"
+														data-prefix="fas"
+														data-icon="caret-down"
+														role="img"
+														viewBox="0 0 320 512"
+														aria-hidden="true"
+													>
+														<path
+															fill="currentColor"
+															d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+														></path>
+													</svg>
+												</button>
+											</div>
+											<input
+												data-hidden=""
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="regions[0]"
+												value="na"
+											/><input
+												data-hidden=""
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="regions[1]"
+												value="eu"
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="expedited"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Handling
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="expedited" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div
+											data-slot="radio-group"
+											class="grid gap-3"
+											style="outline: none"
+											aria-required="false"
+											data-qa="widget-radio-group"
+											tabindex="0"
+											dir="ltr"
+											role="radiogroup"
+										>
+											<div class="flex items-center gap-2" data-qa="widget-radio-group-option">
+												<button
+													data-reka-collection-item=""
+													tabindex="-1"
+													data-active=""
+													data-slot="radio-group-item"
+													class="vk-radio-group-item"
+													role="radio"
+													type="button"
+													aria-checked="true"
+													data-state="checked"
+													required="false"
+													value="false"
+													aria-label="false"
+												>
+													<span data-state="checked" data-slot="radio-group-indicator" class="vk-radio-group-indicator"
+														><span aria-hidden="true" class="size-3 rounded-full bg-current"></span
+													></span></button
+												><label data-qa="widget-radio-group-label">Standard handling</label>
+											</div>
+											<div class="flex items-center gap-2" data-qa="widget-radio-group-option">
+												<button
+													data-reka-collection-item=""
+													tabindex="-1"
+													data-slot="radio-group-item"
+													class="vk-radio-group-item"
+													role="radio"
+													type="button"
+													aria-checked="false"
+													data-state="unchecked"
+													required="false"
+													value="true"
+													aria-label="true"
+												></button
+												><label data-qa="widget-radio-group-label">Expedited handling</label>
+											</div>
+											<input
+												data-hidden=""
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="expedited"
+												value="false"
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="metadata"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Metadata
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="metadata" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div class="vk-widget-json" data-qa="widget-json">
+											<div class="min-h-16 text-base md:text-sm" data-qa="widget-json-editor">
+												<div class="cm-editor ͼ1 ͼ2 ͼq"><div class="cm-announced" aria-live="polite"></div><div tabindex="-1" class="cm-scroller"><div style="tab-size: 4;" spellcheck="false" autocorrect="off" autocapitalize="off" writingsuggestions="false" translate="no" contenteditable="true" class="cm-content cm-lineWrapping" role="textbox" aria-multiline="true" data-language="json"><div class="cm-line"><span class="ͼp">{</span></div><div class="cm-line">  <span class="ͼo">"sku"</span><span class="ͼp">:</span> "BRG-6204"<span class="ͼp">,</span></div><div class="cm-line">  <span class="ͼo">"revision"</span><span class="ͼp">:</span> 3<span class="ͼp">,</span></div><div class="cm-line">  <span class="ͼo">"channels"</span><span class="ͼp">:</span> <span class="ͼp">[</span></div><div class="cm-line">    "direct"<span class="ͼp">,</span></div><div class="cm-line">    "partner"</div><div class="cm-line">  <span class="ͼp">]</span></div><div class="cm-line"><span class="ͼp">}</span></div></div></div></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="datasheet"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Datasheet
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="datasheet" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div>
+											<div class="flex flex-col" data-qa="widget-file-inner">
+												<div class="flex flex-wrap justify-between">
+													<a class="vk-widget-file-inner-a" href="https://files.domain.invalid/brg-6204.pdf"
+														>datasheets/brg-6204.pdf</a
+													>
+													<div class="flex gap-4">
+														<button
+															data-slot="button"
+															data-tone="neutral"
+															data-emphasis="ghost"
+															data-size="icon-sm"
+															class="vk-button-neutral-ghost-icon-sm"
+															data-qa="file-remove"
+														>
+															<svg
+																class="svg-inline--fa fa-xmark"
+																data-prefix="fas"
+																data-icon="xmark"
+																role="img"
+																viewBox="0 0 384 512"
+																aria-hidden="true"
+															>
+																<path
+																	fill="currentColor"
+																	d="M55.1 73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L147.2 256 9.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192.5 301.3 329.9 438.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.8 256 375.1 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192.5 210.7 55.1 73.4z"
+																></path></svg
+															><span class="sr-only">Remove file</span></button
+														><a
+															data-slot="button"
+															data-tone="neutral"
+															data-emphasis="ghost"
+															data-size="icon-sm"
+															class="vk-button-neutral-ghost-icon-sm"
+															data-qa="file-download"
+															download=""
+															href="https://files.domain.invalid/brg-6204.pdf"
+															rel="noopener"
+															target="_blank"
+															><svg
+																class="svg-inline--fa fa-download"
+																data-prefix="fas"
+																data-icon="download"
+																role="img"
+																viewBox="0 0 448 512"
+																aria-hidden="true"
+															>
+																<path
+																	fill="currentColor"
+																	d="M256 32c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 210.7-41.4-41.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l96 96c12.5 12.5 32.8 12.5 45.3 0l96-96c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 242.7 256 32zM64 320c-35.3 0-64 28.7-64 64l0 32c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-32c0-35.3-28.7-64-64-64l-46.9 0-56.6 56.6c-31.2 31.2-81.9 31.2-113.1 0L110.9 320 64 320zm304 56a24 24 0 1 1 0 48 24 24 0 1 1 0-48z"
+																></path></svg
+															><span class="sr-only">Download file</span></a
+														>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="heroImage"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Hero image
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="heroImage" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div>
+											<div class="flex flex-col" data-qa="widget-image-inner">
+												<div class="flex flex-wrap justify-between">
+													<img
+														alt="Image"
+														src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%2290%22%20viewBox%3D%220%200%20160%2090%22%3E%3Crect%20width%3D%22160%22%20height%3D%2290%22%20fill%3D%22%23e5e5e5%22%2F%3E%3C%2Fsvg%3E"
+														width="250"
+														data-qa="image-preview"
+													/><button
+														data-slot="button"
+														data-tone="neutral"
+														data-emphasis="ghost"
+														data-size="icon-sm"
+														class="vk-button-neutral-ghost-icon-sm"
+														data-qa="image-remove"
+													>
+														<svg
+															class="svg-inline--fa fa-xmark"
+															data-prefix="fas"
+															data-icon="xmark"
+															role="img"
+															viewBox="0 0 384 512"
+															aria-hidden="true"
+														>
+															<path
+																fill="currentColor"
+																d="M55.1 73.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L147.2 256 9.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192.5 301.3 329.9 438.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.8 256 375.1 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192.5 210.7 55.1 73.4z"
+															></path></svg
+														><span class="sr-only">Remove image</span>
+													</button>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
