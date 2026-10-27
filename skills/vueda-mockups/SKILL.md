@@ -116,12 +116,16 @@ that component.
 
 ## Known differences
 
-The snapshots show VUEDA's current output, including these defects:
+The snapshots show VUEDA's current output, including these defects. A fix in
+VUEDA changes the snapshots when the kit is rebuilt.
 
 - The many-valued choice field (`regions`) shows a lone comma instead of the
-  selected labels. Type the intended labels into the trigger text.
+  selected labels. Type the intended labels into the trigger text. See
+  [issue 596](https://github.com/arrai-innovations/vueda/issues/596).
 - The date-and-time field (`publishedAt`) in `fields-update.html` shows empty
   date and time segments. Fill in the intended value, following the date
-  field (`releaseDate`) above it.
+  field (`releaseDate`) above it. See
+  [issue 595](https://github.com/arrai-innovations/vueda/issues/595).
 - The list's row checkboxes carry leftover attributes, such as `rowindex` and
-  `pkkey`. They have no effect on the page; you can delete them.
+  `pkkey`. They have no effect on the page, and you can delete them. See
+  [issue 597](https://github.com/arrai-innovations/vueda/issues/597).
