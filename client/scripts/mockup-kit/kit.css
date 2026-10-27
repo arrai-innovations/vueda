@@ -1,0 +1,5 @@
+/* Entry stylesheet for the mockup kit. base.css sources the whole client
+ * library, so the output carries every class the theme can emit. */
+@import "tailwindcss";
+@import "../../lib/theme/vueda-tailwind/base.css";
+@import "@fortawesome/fontawesome-svg-core/styles.css";
