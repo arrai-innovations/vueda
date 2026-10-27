@@ -36,7 +36,12 @@ Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.
 uv add "vueda>=3.0.0b1,<4" "psycopg[binary]"
 ```
 
-VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its build. `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL client library. `psycopg[c]` compiles against the client library that is installed on the system. If your project already depends on `psycopg2`, add a psycopg 3 build as well, because VUEDA imports psycopg 3.
+VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its build:
+
+- `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL client library. It needs no compiler, so it suits development and any server where a prebuilt wheel is available.
+- `psycopg[c]` compiles against the client library that is installed on the system. The server needs a compiler and the PostgreSQL client headers. The build then uses the system library, which receives the operating system's security updates, and it works where no prebuilt wheel exists. psycopg recommends this build for production.
+
+The [psycopg installation guide](https://www.psycopg.org/psycopg3/docs/basic/install.html) compares the two builds in detail. If your project already depends on `psycopg2`, add a psycopg 3 build as well, because VUEDA imports psycopg 3.
 
 These dependencies changed:
 

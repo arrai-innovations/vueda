@@ -69,11 +69,20 @@ every other package resolves to a final release. Use the documentation for the
 major version installed in your application.
 
 VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its
-build. `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL
-client library. `psycopg[c]` compiles against the client library that is
-installed on the system. The
+build:
+
+- `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL client
+  library. It needs no compiler, so it suits development and any server where a
+  prebuilt wheel is available.
+- `psycopg[c]` compiles against the client library that is installed on the
+  system. The server needs a compiler and the PostgreSQL client headers. The
+  build then uses the system library, which receives the operating system's
+  security updates, and it works where no prebuilt wheel exists. psycopg
+  recommends this build for production.
+
+The
 [psycopg installation guide](https://www.psycopg.org/psycopg3/docs/basic/install.html)
-compares the two builds.
+compares the two builds in detail.
 
 Installation is followed by Django settings, user-model, URL, and client setup.
 Use the [architecture overview](https://vueda.dev/v3/core-concepts/architecture-overview.html)
