@@ -76,6 +76,25 @@ describe("lib/use/useFieldRenderer.js", () => {
         expect(result.widgetProps.value).not.toHaveProperty("hideLabel");
     });
 
+    scopedIt("passes the grid cell's slot props to the widget without the cell value", async () => {
+        const props = vue.reactive({
+            formModelName: "description",
+            formModel: {
+                fieldComponents: {},
+                widgetComponents: {},
+                fieldDetails: { description: { label: "Description" } },
+                fieldProps: {},
+                widgetProps: {},
+            },
+            objectGridFieldSlotProps: { value: "Saved", rowIndex: 0, pk: 1 },
+        });
+        const result = await withSetup(() => useFieldRenderer(props, {}, {}));
+        // A widget reads its value from its field. A `value` attr would land on the native input and
+        // overwrite what the user typed whenever the row re-renders.
+        expect(result.widgetProps.value).not.toHaveProperty("value");
+        expect(result.widgetProps.value).toMatchObject({ rowIndex: 0, pk: 1 });
+    });
+
     scopedIt("reports a component resolution failure as field error state", async () => {
         const props = vue.reactive({
             formModelName: "foo",
