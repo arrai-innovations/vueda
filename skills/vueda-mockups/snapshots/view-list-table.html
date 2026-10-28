@@ -1,0 +1,674 @@
+<div>
+	<div class="flex flex-col">
+		<div class="border-b-hairline">
+			<div class="flex flex-col">
+				<div class="vk-div">
+					<div class="flex flex-col gap-1 min-w-min">
+						<div class="vk-div-2">
+							<h1 class="vk-h1">List Customers</h1>
+							<span class="vk-page-title-loading" data-qa="page-title-loading"></span>
+						</div>
+					</div>
+					<div class="vk-page-title-actions" data-qa="page-title-actions">
+						<a
+							data-slot="button"
+							data-tone="primary"
+							data-emphasis="fill"
+							class="vk-button-primary-fill"
+							disabled="false"
+							href="/kitlisttable/customer/create/"
+							>Create
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<div class="vk-view-list-under-actions" data-qa="view-list-under-actions">
+				<div class="flex items-center gap-2" data-qa="view-list-filter-controls">
+					<div class="contents" data-qa="view-list-filter-trigger">
+						<button
+							data-slot="popover-trigger"
+							data-tone="neutral"
+							data-emphasis="outline"
+							data-size="sm"
+							class="vk-popover-trigger-neutral-outline-sm"
+							type="button"
+							aria-haspopup="dialog"
+							aria-expanded="false"
+							data-state="closed"
+							data-qa="filter-menu-trigger"
+						>
+							<svg
+								class="svg-inline--fa fa-filter"
+								data-prefix="fas"
+								data-icon="filter"
+								role="img"
+								viewBox="0 0 512 512"
+								aria-hidden="true"
+							>
+								<path
+									fill="currentColor"
+									d="M32 64C19.1 64 7.4 71.8 2.4 83.8S.2 109.5 9.4 118.6L192 301.3 192 416c0 8.5 3.4 16.6 9.4 22.6l64 64c9.2 9.2 22.9 11.9 34.9 6.9S320 492.9 320 480l0-178.7 182.6-182.6c9.2-9.2 11.9-22.9 6.9-34.9S492.9 64 480 64L32 64z"
+								></path>
+							</svg>
+							Filters
+							<svg
+								class="svg-inline--fa fa-caret-down"
+								data-prefix="fas"
+								data-icon="caret-down"
+								role="img"
+								viewBox="0 0 320 512"
+								aria-hidden="true"
+							>
+								<path
+									fill="currentColor"
+									d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+								></path>
+							</svg>
+						</button>
+					</div>
+					<button
+						data-slot="popover-trigger"
+						data-tone="neutral"
+						data-emphasis="outline"
+						data-size="sm"
+						class="vk-popover-trigger-neutral-outline-sm"
+						type="button"
+						aria-haspopup="dialog"
+						aria-expanded="false"
+						data-state="closed"
+						data-qa="sort-control-trigger"
+					>
+						<svg
+							class="svg-inline--fa fa-sort"
+							data-prefix="fas"
+							data-icon="sort"
+							role="img"
+							viewBox="0 0 384 512"
+							aria-hidden="true"
+						>
+							<path
+								fill="currentColor"
+								d="M2.4 204.2c5 12 16.6 19.8 29.6 19.8l320 0c12.9 0 24.6-7.8 29.6-19.8s2.2-25.7-6.9-34.9l-160-160c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-9.2 9.2-11.9 22.9-6.9 34.9zm0 103.5c-5 12-2.2 25.7 6.9 34.9l160 160c12.5 12.5 32.8 12.5 45.3 0l160-160c9.2-9.2 11.9-22.9 6.9-34.9S364.9 288 352 288L32 288c-12.9 0-24.6 7.8-29.6 19.8z"
+							></path>
+						</svg>
+						Sort
+						<svg
+							class="svg-inline--fa fa-caret-down"
+							data-prefix="fas"
+							data-icon="caret-down"
+							role="img"
+							viewBox="0 0 320 512"
+							aria-hidden="true"
+						>
+							<path
+								fill="currentColor"
+								d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+							></path>
+						</svg>
+					</button>
+				</div>
+				<div class="vk-view-list-under-actions-div">
+					<div data-slot="input-group" role="group" class="vk-input-group group/input-group">
+						<input
+							data-slot="input-group-control"
+							name="search"
+							placeholder="Search"
+							type="search"
+							class="vk-input-group-control"
+						/><button
+							data-slot="button"
+							data-tone="neutral"
+							data-emphasis="ghost"
+							data-size="xs"
+							class="vk-button-neutral-ghost-xs"
+						>
+							Search
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="vk-constraints-bar" style="grid-template-rows: 1fr" data-open="true" data-qa="constraints-bar">
+				<div class="overflow-hidden min-h-0">
+					<div class="vk-constraints-bar-div">
+						<div class="contents"></div>
+						<div class="flex flex-wrap items-center gap-2" data-qa="sort-group-strip">
+							<span class="vk-sort-group-strip-span">Sort</span>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								handle=".drag-handle"
+								force-fallback="true"
+								data-qa="sort-group-draggable"
+							>
+								<span class="vk-sort-chip" data-qa="sort-chip"
+									><button
+										type="button"
+										class="vk-sort-chip-toggle"
+										aria-label="Sort Account name descending (currently ascending)"
+										data-qa="sort-chip-toggle"
+									>
+										<span class="font-semibold">Account name</span
+										><svg
+											class="svg-inline--fa fa-sort-down text-muted-foreground rotate-180"
+											data-prefix="fas"
+											data-icon="sort-down"
+											role="img"
+											viewBox="0 0 384 512"
+											aria-hidden="true"
+										>
+											<path
+												fill="currentColor"
+												d="M32 288c-12.9 0-24.6 7.8-29.6 19.8S.2 333.5 9.4 342.6l160 160c12.5 12.5 32.8 12.5 45.3 0l160-160c9.2-9.2 11.9-22.9 6.9-34.9S364.9 288 352 288L32 288z"
+											></path>
+										</svg></button
+								></span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="vk-div-3"></div>
+			<div class="vk-objects-grid-root" data-density="default" data-qa="objects-grid-root">
+				<div class="vk-objects-grid-table" data-qa="objects-grid-table" role="table">
+					<div class="vk-objects-grid-header-row-group" data-qa="objects-grid-header-row-group" role="rowgroup">
+						<div class="!table-row [&amp;>*]:border-b-hairline" data-qa="objects-grid-header-row" role="row">
+							<div
+								class="vk-objects-grid-header"
+								data-header="selected_"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label"><div data-card-header="selected_"></div></span>
+								</div>
+							</div>
+							<div
+								class="vk-objects-grid-header"
+								data-header="account"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Account name</span>
+								</div>
+							</div>
+							<div
+								class="vk-objects-grid-header"
+								data-header="domain"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Primary domain</span>
+								</div>
+							</div>
+							<div class="vk-objects-grid-header" data-header="owner" data-qa="objects-grid-header" role="columnheader">
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Owner</span>
+								</div>
+							</div>
+							<div class="vk-objects-grid-header" data-header="tier" data-qa="objects-grid-header" role="columnheader">
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Plan tier</span>
+								</div>
+							</div>
+							<div class="vk-objects-grid-header" data-header="mrr" data-qa="objects-grid-header" role="columnheader">
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">MRR</span>
+								</div>
+							</div>
+							<div
+								class="vk-objects-grid-header"
+								data-header="currency"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Currency</span>
+								</div>
+							</div>
+							<div
+								class="vk-objects-grid-header"
+								data-header="taxExempt"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Tax-exempt</span>
+								</div>
+							</div>
+							<div class="vk-objects-grid-header" data-header="notes" data-qa="objects-grid-header" role="columnheader">
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Internal note</span>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="vk-objects-grid-body-row-group" data-qa="objects-grid-body-row-group" role="rowgroup">
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="1"
+									pkkey="id"
+									rowindex="0"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-1"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Northwind Logistics</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://northwind.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">mt</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">enterprise</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">18400.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell">Renewal review each March.</div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="2"
+									pkkey="id"
+									rowindex="1"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-2"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Granger Holdings</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://granger.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">jr</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">enterprise</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">12250.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell">
+								Consolidated billing across four subsidiaries.
+							</div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="3"
+									pkkey="id"
+									rowindex="2"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-3"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Aldergrove Foods</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://aldergrove.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">ps</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">4300.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">cad</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell"></div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="4"
+									pkkey="id"
+									rowindex="3"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-4"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Vellum Press</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://vellumpress.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">lb</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">2875.50</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">gbp</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">Yes</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell">
+								Registered charity; tax exemption on file.
+							</div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="5"
+									pkkey="id"
+									rowindex="4"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-5"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Harbourline Marine</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://harbourline.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">mt</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">3960.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">eur</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell"></div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="6"
+									pkkey="id"
+									rowindex="5"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-6"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Kestrel Analytics</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://kestrel.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">jr</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">trial</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">0.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell">
+								Trial ends at the end of the quarter.
+							</div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="7"
+									pkkey="id"
+									rowindex="6"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-7"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Ossington Dental</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://ossington.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">ps</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">1180.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">cad</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell"></div>
+						</div>
+						<div class="vk-objects-grid-row group/row" data-qa="objects-grid-row" role="row">
+							<div class="vk-objects-grid-row-div" data-field="selected_" role="cell">
+								<button
+									data-slot="checkbox"
+									class="vk-checkbox peer"
+									columnindex="0"
+									istablelayout="true"
+									iscardlayout="false"
+									pk="8"
+									pkkey="id"
+									rowindex="7"
+									rowcount="8"
+									columncount="9"
+									id="selected-row-8"
+									role="checkbox"
+									type="button"
+									aria-checked="false"
+									aria-required="false"
+									data-state="unchecked"
+								></button>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Brightwater Utilities</div>
+							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
+								https://brightwater.domain.invalid
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">lb</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">enterprise</div>
+							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">22100.00</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
+								<div><span data-qa="boolean-display-value">No</span></div>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="notes" role="cell">
+								Procurement requires a signed DPA before each renewal.
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div data-slot="pagination-bar" data-qa="view-list-pagination" class="vk-pagination-bar">
+				<div class="vk-pagination-layout" data-qa="pagination-layout">
+					<div class="vk-pagination-summary" data-qa="pagination-summary">
+						<span data-slot="pagination-meta" data-qa="pagination-meta" class="vk-pagination-meta"
+							>Showing <span class="font-medium text-foreground">1 to 8</span> of
+							<span class="font-medium text-foreground">8</span></span
+						><label class="vk-pagination-summary-label">
+							Rows per page
+							<div class="vk-native-select-wrapper group/native-select" data-slot="native-select-wrapper">
+								<select aria-label="Rows per page" modelvalue="25" data-slot="native-select" class="vk-native-select">
+									<option
+										data-slot="native-select-option"
+										class="bg-popover text-popover-foreground"
+										value="25"
+										selected=""
+									>
+										25
+									</option>
+									<option data-slot="native-select-option" class="bg-popover text-popover-foreground" value="50">
+										50
+									</option>
+									<option data-slot="native-select-option" class="bg-popover text-popover-foreground" value="100">
+										100
+									</option>
+									<option data-slot="native-select-option" class="bg-popover text-popover-foreground" value="200">
+										200
+									</option>
+									<option data-slot="native-select-option" class="bg-popover text-popover-foreground" value="all">
+										All
+									</option></select
+								><span class="vk-native-select-icon" aria-hidden="true" data-slot="native-select-icon"
+									><svg
+										class="svg-inline--fa fa-caret-down"
+										data-prefix="fas"
+										data-icon="caret-down"
+										role="img"
+										viewBox="0 0 320 512"
+										aria-hidden="true"
+									>
+										<path
+											fill="currentColor"
+											d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+										></path></svg
+								></span></div
+						></label>
+					</div>
+					<nav data-slot="pagination" data-qa="pagination" class="mx-auto flex justify-center shrink-0">
+						<div data-slot="pagination-content" data-qa="pagination-content" class="flex flex-row items-center gap-1">
+							<button
+								aria-label="First Page"
+								type="button"
+								disabled=""
+								data-slot="pagination-first"
+								data-qa="pagination-first"
+								class="vk-pagination-first"
+							>
+								<svg
+									class="svg-inline--fa fa-angles-left"
+									data-prefix="fas"
+									data-icon="angles-left"
+									role="img"
+									viewBox="0 0 448 512"
+									aria-hidden="true"
+								>
+									<path
+										fill="currentColor"
+										d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256 214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160zm352-160l-160 160c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L269.3 256 406.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0z"
+									></path></svg
+								><span class="sr-only">First</span></button
+							><button
+								aria-label="Previous Page"
+								type="button"
+								disabled=""
+								data-slot="pagination-previous"
+								data-qa="pagination-previous"
+								class="vk-pagination-first"
+							>
+								<svg
+									class="svg-inline--fa fa-chevron-left"
+									data-prefix="fas"
+									data-icon="chevron-left"
+									role="img"
+									viewBox="0 0 320 512"
+									aria-hidden="true"
+								>
+									<path
+										fill="currentColor"
+										d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l192 192c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256 246.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-192 192z"
+									></path></svg
+								><span class="sr-only">Previous</span></button
+							><span class="vk-pagination-content-span">Page 1 of 1</span
+							><button
+								aria-label="Next Page"
+								type="button"
+								disabled=""
+								data-slot="pagination-next"
+								data-qa="pagination-next"
+								class="vk-pagination-first"
+							>
+								<span class="sr-only">Next</span
+								><svg
+									class="svg-inline--fa fa-chevron-right"
+									data-prefix="fas"
+									data-icon="chevron-right"
+									role="img"
+									viewBox="0 0 320 512"
+									aria-hidden="true"
+								>
+									<path
+										fill="currentColor"
+										d="M311.1 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L243.2 256 73.9 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z"
+									></path>
+								</svg></button
+							><button
+								aria-label="Last Page"
+								type="button"
+								disabled=""
+								data-slot="pagination-last"
+								data-qa="pagination-last"
+								class="vk-pagination-first"
+							>
+								<span class="sr-only">Last</span
+								><svg
+									class="svg-inline--fa fa-angles-right"
+									data-prefix="fas"
+									data-icon="angles-right"
+									role="img"
+									viewBox="0 0 448 512"
+									aria-hidden="true"
+								>
+									<path
+										fill="currentColor"
+										d="M439.1 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L371.2 256 233.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160zm-352 160l160-160c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L179.2 256 41.9 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0z"
+									></path>
+								</svg>
+							</button>
+						</div>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
