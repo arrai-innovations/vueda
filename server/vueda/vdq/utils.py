@@ -38,7 +38,7 @@ def lock_queue_item(pk, skip_locked=True) -> AbstractContextManager[QueueItem | 
     the item does not exist, or when ``skip_locked`` is true and another transaction holds the lock.
     """
     with transaction.atomic():
-        qi = QueueItem.objects.select_for_update(skip_locked=skip_locked).filter(pk=pk).first()
+        qi = QueueItem.objects.select_for_update(skip_locked=skip_locked, of=("self",)).filter(pk=pk).first()
         yield qi
 
 
@@ -58,7 +58,7 @@ def with_locked_queue_item[T](pk, operation: Callable[[QueueItem | None], T]) ->
             with transaction.atomic():
                 with connection.cursor() as cursor:
                     cursor.execute("SET LOCAL lock_timeout = %s", [LOCK_TIMEOUT])
-                queue_item = QueueItem.objects.select_for_update().filter(pk=pk).first()
+                queue_item = QueueItem.objects.select_for_update(of=("self",)).filter(pk=pk).first()
                 return operation(queue_item)
         except OperationalError as exc:
             if not isinstance(exc.__cause__, _RETRYABLE_ERRORS):

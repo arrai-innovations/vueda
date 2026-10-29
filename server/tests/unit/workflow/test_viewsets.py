@@ -532,6 +532,52 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/{object_id}/", "patch"
         )
 
+    def test_execute_transition_locks_only_the_model_row_when_formatted_name_joins_a_nullable_relation(
+        self, api_client, workflow_user, customer_order, monkeypatch
+    ):
+        # The reverse one-to-one "shipment" relation joins as an outer join on every CustomerOrder
+        # query, and Postgres refuses to lock the nullable side of an outer join. No order in this
+        # test has a shipment, but Postgres decides from the query, not the data.
+        monkeypatch.setattr(store_models.CustomerOrder, "formatted_name_select_related", ("shipment",))
+        api_client.force_authenticate(workflow_user)
+        detail_url = reverse(
+            "workflow.workflow-execute-transition",
+            kwargs={"app_label": "store", "model": "customerorder", "object_id": customer_order.pk},
+        )
+
+        response = api_client.patch(detail_url, {"transition_code": "pack_order"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        customer_order.refresh_from_db()
+        assert customer_order.workflow_state.code == "packed"
+
+    def test_execute_transition_locks_only_the_model_row_when_formatted_name_lookup_joins_a_nullable_relation(
+        self, api_client, workflow_user
+    ):
+        # Parcel's formatted_name_lookup_expression follows the reverse one-to-one "label" relation, so
+        # the formatted_name annotation joins it as an outer join on every Parcel query. Postgres refuses
+        # to lock the nullable side of an outer join, and it decides from the query, not the data, so
+        # this parcel has a label.
+        workflow_user.user_permissions.add(
+            *Permission.objects.filter(content_type__app_label="store", codename__in=["read_parcel", "update_parcel"])
+        )
+        user = get_user_model().objects.get(pk=workflow_user.pk)
+        parcel = store_models.Parcel.objects.create(reference="P-1")
+        store_models.ParcelLabel.objects.create(parcel=parcel, tracking_number="TRACK-1")
+        api_client.force_authenticate(user)
+        detail_url = reverse(
+            "workflow.workflow-execute-transition",
+            kwargs={"app_label": "store", "model": "parcel", "object_id": parcel.pk},
+        )
+
+        response = api_client.patch(detail_url, {"transition_code": "deliver"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK, response_body(response)
+        assert response.data["new_state"]["code"] == "delivered"
+        parcel = store_models.Parcel.objects.get(pk=parcel.pk)
+        assert parcel.formatted_name == "TRACK-1"
+        assert parcel.workflow_state.code == "delivered"
+
     def test_execute_transition_detail_returns_validation_error_when_locked(
         self, api_client, workflow_user, customer_order
     ):
