@@ -2,6 +2,8 @@
 node_modules
 # uv
 .venv*
+# Python bytecode
+__pycache__/
 # jetbrains
 .idea
 # local gunicorn overrides (machine-specific paths, e.g. TLS cert/key)
