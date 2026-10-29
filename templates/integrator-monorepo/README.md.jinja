@@ -18,7 +18,7 @@ pnpm install
 ```bash
 cd server
 uv run python manage.py migrate
-uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
+uv run uvicorn config.asgi:application --reload --host {{ bind_ip }} --port {{ server_port }}
 ```
 
 ### Client

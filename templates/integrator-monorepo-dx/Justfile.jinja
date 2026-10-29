@@ -47,8 +47,9 @@ manage *args:
 serve:
   cd {% raw %}{{justfile_directory()}}{% endraw %} && {{ js_exec }} concurrently -n server,client -c green,cyan "just serve-server" "just serve-client"
 
+# Serves over HTTPS when server/localhost.pem exists; see the Local HTTPS Development guide.
 serve-server:
-  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind {{ bind_ip }}:{{ server_port }}
+  cd {% raw %}{{justfile_directory()}}{% endraw %}/server && uv run --no-sync uvicorn config.asgi:application --reload --host {{ bind_ip }} --port {{ server_port }} $([ -f localhost.pem ] && echo --ssl-certfile localhost.pem --ssl-keyfile localhost-key.pem)
 
 serve-client:
   cd {% raw %}{{justfile_directory()}}{% endraw %}/client && {{ js_exec }} vite --host {{ bind_ip }} --port {{ client_port }}

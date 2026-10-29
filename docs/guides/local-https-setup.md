@@ -37,22 +37,13 @@ If your `bind_ip` is not one of these names, add it to the end of the command.
 
 The generated project's `.gitignore` lists `server/*.pem`, so git ignores both files.
 
-## Configure gunicorn
+## Configure the Server
 
-Both templates include `server/gunicorn.conf.py.example`. Copy it:
+The development server is uvicorn, which takes the certificate and key as command-line options. With the DX template, `just serve` adds them when `server/localhost.pem` exists, so it needs no change. With the minimal template, add them to the server command, which runs from `server/`:
 
 ```console
-cp server/gunicorn.conf.py.example server/gunicorn.conf.py
+uv run uvicorn config.asgi:application --reload --host localhost --port 8000 --ssl-certfile localhost.pem --ssl-keyfile localhost-key.pem
 ```
-
-In `server/gunicorn.conf.py`, uncomment `certfile` and `keyfile` and set the paths:
-
-```python
-certfile = "localhost.pem"
-keyfile  = "localhost-key.pem"
-```
-
-gunicorn resolves these paths from `server/`, where it runs, and reads `gunicorn.conf.py` from that folder on startup. `server/gunicorn.conf.py` is already gitignored.
 
 ## Configure Vite
 
@@ -128,7 +119,7 @@ The file's `CSRF_COOKIE_SAMESITE = "Lax"` and `SESSION_COOKIE_SAMESITE = "Lax"` 
 Start both servers. With the DX template, run `just serve`. With the minimal template, run each in its own terminal:
 
 ```console
-cd server && uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
+cd server && uv run uvicorn config.asgi:application --reload --host localhost --port 8000 --ssl-certfile localhost.pem --ssl-keyfile localhost-key.pem
 cd client && pnpm dev
 ```
 
