@@ -192,6 +192,36 @@ class CustomerOrder(VuedaModel):
         return last_order_number + 1
 
 
+class CustomerOrderShipment(models.Model):
+    """A shipment that an order may have. The reverse ``shipment`` relation is nullable, so a test can
+    join it into ``CustomerOrder`` queries as an outer join."""
+
+    customer_order = models.OneToOneField(CustomerOrder, on_delete=models.CASCADE, related_name="shipment")
+    tracking_number = models.CharField(max_length=255)
+
+
+class Parcel(VuedaModel):
+    """A parcel that takes its formatted name from its label's tracking number. ``label`` is a reverse
+    one-to-one relation, so the ``formatted_name`` annotation joins it as an outer join on every
+    ``Parcel`` query, which is the query shape the workflow row lock must handle."""
+
+    reference = models.CharField(max_length=255)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "label__tracking_number"
+
+    class Vueda:
+        class Workflow:
+            enabled = True
+
+
+class ParcelLabel(models.Model):
+    """A shipping label that a parcel may have."""
+
+    parcel = models.OneToOneField(Parcel, on_delete=models.CASCADE, related_name="label")
+    tracking_number = models.CharField(max_length=255)
+
+
 class OrderItem(VuedaModel):
     customer_order = models.ForeignKey(CustomerOrder, on_delete=models.PROTECT)
     product_option = models.ForeignKey(ProductOption, on_delete=models.PROTECT)

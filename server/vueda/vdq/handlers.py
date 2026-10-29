@@ -256,7 +256,7 @@ class TwilioQueueItemHandler:
                         QueueItem.objects.select_related(
                             "sms",
                         )
-                        .select_for_update(skip_locked=True)
+                        .select_for_update(skip_locked=True, of=("self",))
                         .prefetch_related("object_states_proxy")
                         .filter(sms__message_sid=message.sid, object_states_proxy__state__code="awaiting", method="sms")
                         .first()
@@ -368,7 +368,7 @@ def _find_queue_item_by_tracking_data(event):
     found = get_email_tracking_strategy().find_queue_item(event)
     qi = None
     if found is not None:
-        qi = QueueItem.objects.select_for_update().filter(pk=found.pk, method="email").first()
+        qi = QueueItem.objects.select_for_update(of=("self",)).filter(pk=found.pk, method="email").first()
     if qi is None:
         logger.warning("Tracking event %s for unknown message_id=%s", event.event_type, event.message_id)
         return None
@@ -401,7 +401,11 @@ def handle_bounce(sender, event, esp_name, **kwargs) -> None:
         with transaction.atomic():
             qi = None
             if event.message_id:
-                qi = QueueItem.objects.select_for_update().filter(anymail__message_id=event.message_id).first()
+                qi = (
+                    QueueItem.objects.select_for_update(of=("self",))
+                    .filter(anymail__message_id=event.message_id)
+                    .first()
+                )
             if not qi:
                 qi = _find_queue_item_by_tracking_data(event)
             if not qi:
