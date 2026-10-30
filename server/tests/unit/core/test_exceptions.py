@@ -1,8 +1,10 @@
 from http import HTTPStatus
+from unittest import mock
 
 import pytest
 from django.contrib.auth.models import Group
 from django.urls import path
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -28,9 +30,18 @@ class WriteThenGateView(APIView):
         return Response(status=HTTPStatus.CREATED)
 
 
+class RejectInputView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        raise ValidationError({"name": ["This field is invalid."]})
+
+
 urlpatterns = [
     path("write-then-raise/", WriteThenRaiseView.as_view()),
     path("write-then-gate/", WriteThenGateView.as_view()),
+    path("reject-input/", RejectInputView.as_view()),
 ]
 
 
@@ -50,3 +61,19 @@ class TestExceptionHandlerRollback:
 
         assert response.status_code == HTTPStatus.CONFLICT
         assert not Group.objects.filter(name="written-before-gate").exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.urls(__name__)
+class TestExceptionHandlerSentry:
+    """The handler leaves validation errors out of Sentry."""
+
+    def test_does_not_send_validation_errors_to_sentry(self, client, settings):
+        settings.DEBUG = False
+        settings.IN_TESTS = False
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            response = client.post("/reject-input/")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        capture_exception.assert_not_called()
