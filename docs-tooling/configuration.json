@@ -283,7 +283,7 @@
             "description": "Assembled from DJANGO_APPS, VUEDA_APPS, THIRD_PARTY_APPS, and LOCAL_APPS. VUEDA uses it to detect optional application behavior."
         },
         "IN_TESTS": {
-            "description": "Treat exception handling as a test environment even when DEBUG is false. Includes diagnostic tracebacks in responses and suppresses Sentry capture of ValidationError exceptions."
+            "description": "Treat exception handling as a test environment even when DEBUG is false. Includes diagnostic tracebacks in responses."
         },
         "LOCAL_APPS": {
             "configKey": "LOCAL_APPS"
