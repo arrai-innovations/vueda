@@ -21,6 +21,8 @@ from tests.product.models import ProductCascadeOrderedNote
 from tests.product.models import ProductCascadeOwner
 from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
+from tests.store import models as store_models
+from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.formatted_name import formatted_name_annotation_path
 from vueda.core.models import FormattedNameManager
 
@@ -213,3 +215,44 @@ class TestCascadeDeleteThroughTheBaseManager:
         errors = [error for error in ProductCascadeOrderedByFormattedName.check() if error.id == "vueda_core.E017"]
 
         assert len(errors) == 1
+
+
+class TestFormattedNameSelectRelated:
+    """`annotate_formatted_name` joins `formatted_name_select_related` only for a `get_formatted_name()` model.
+
+    A model without the method, or one with a lookup expression, gets no joins. Its name is already
+    in the query, so the joins would load related rows that nothing reads.
+    """
+
+    def test_a_get_formatted_name_model_joins_its_relations(self):
+        """Cart computes its name from customer.user, and declares the matching formatted_name_select_related."""
+        queryset = annotate_formatted_name(store_models.Cart._base_manager.all())
+
+        assert queryset.query.select_related == {"customer": {"user": {}}}
+
+    def test_a_lookup_expression_model_skips_the_joins(self, monkeypatch):
+        """CartItem reads its name through `formatted_name_lookup_expression = "data__formatted_name"`."""
+        monkeypatch.setattr(store_models.CartItem, "formatted_name_select_related", ("cart",), raising=False)
+
+        queryset = annotate_formatted_name(store_models.CartItem._base_manager.all())
+
+        assert queryset.query.select_related is False
+
+    def test_a_column_model_with_get_formatted_name_keeps_the_joins(self, monkeypatch):
+        """The choice endpoints call get_formatted_name() whenever a model has it, even beside a column."""
+        monkeypatch.setattr(
+            store_models.Product, "get_formatted_name", lambda self: self.distributor.name, raising=False
+        )
+        monkeypatch.setattr(store_models.Product, "formatted_name_select_related", ("distributor",), raising=False)
+
+        queryset = annotate_formatted_name(store_models.Product._base_manager.all())
+
+        assert queryset.query.select_related == {"distributor": {}}
+
+    def test_a_formatted_name_column_model_skips_the_joins(self, monkeypatch):
+        """Product keeps the default formatted_name GeneratedField column."""
+        monkeypatch.setattr(store_models.Product, "formatted_name_select_related", ("distributor",), raising=False)
+
+        queryset = annotate_formatted_name(store_models.Product._base_manager.all())
+
+        assert queryset.query.select_related is False

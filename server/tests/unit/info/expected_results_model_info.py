@@ -575,7 +575,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
-                    "hidden": False,
+                    "hidden": True,
                 },
                 "number_of_ordered_products": {
                     "label": "Number Of Ordered Products",
@@ -936,7 +936,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
-                    "hidden": False,
+                    "hidden": True,
                 },
                 "last_modified": {
                     "label": "Last Modified",
@@ -3119,7 +3119,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
-                    "hidden": False,
+                    "hidden": True,
                 },
                 "product_option": {
                     "app_label": "store",
@@ -3741,7 +3741,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
-                    "hidden": False,
+                    "hidden": True,
                 },
                 "is_added": {
                     "label": "Is Added",
@@ -4326,7 +4326,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
-                    "hidden": False,
+                    "hidden": True,
                 },
                 "product_option": {
                     "app_label": "store",
@@ -5726,8 +5726,8 @@ EXPECTED_RESULTS = [
                 },
                 "formatted_name": {
                     "label": "Formatted Name",
-                    "type_db": "TextField",
-                    "type_model": "TextField",
+                    "type_db": "CharField",
+                    "type_model": "CharField",
                     "type_serializer": "CharField",
                     "many": False,
                     "read_only": True,
@@ -5760,6 +5760,18 @@ EXPECTED_RESULTS = [
                     "hidden": False,
                     "max_value": 2147483647,
                     "min_value": 0,
+                },
+                "subject": {
+                    "label": "Subject",
+                    "type_db": "CharField",
+                    "type_model": "CharField",
+                    "type_serializer": "CharField",
+                    "many": False,
+                    "read_only": False,
+                    "required": True,
+                    "max_length": 255,
+                    "choices": False,
+                    "hidden": False,
                 },
                 "text": {
                     "label": "Text",

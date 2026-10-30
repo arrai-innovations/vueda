@@ -6,6 +6,9 @@ __all__ = (
     "FORMATTED_NAME_SELECT_RELATED",
     "annotate_formatted_name",
     "formatted_name_annotation_path",
+    "formatted_name_is_python_only",
+    "formatted_name_of",
+    "formatted_name_select_related_paths",
     "path_multiplies_rows",
     "resolve_formatted_name_path",
     "resolve_formatted_name_transform_path",
@@ -74,11 +77,88 @@ def formatted_name_annotation_path(model):
     return None
 
 
+def formatted_name_is_python_only(model):
+    """
+    Whether ``model``'s ``formatted_name`` is computed in Python by ``get_formatted_name()``.
+
+    Such a model gives the database nothing to read or sort by. It has no ``formatted_name`` column
+    of its own, and it has no ``formatted_name_lookup_expression`` for VUEDA to annotate onto its
+    querysets. A serializer must call the method to get the value, and ordering by the value is not
+    possible.
+
+    :param model: The model to inspect.
+    :type model: Type[django.db.models.Model]
+    :return: True when ``get_formatted_name()`` is the only source of the model's formatted name.
+    :rtype: bool
+    """
+    try:
+        model._meta.get_field(FORMATTED_NAME)
+    except FieldDoesNotExist:
+        pass
+    else:
+        return False
+
+    if isinstance(getattr(model, FORMATTED_NAME_LOOKUP_EXPRESSION, None), str):
+        return False
+
+    return callable(getattr(model, "get_formatted_name", None))
+
+
+def formatted_name_of(instance):
+    """
+    The formatted name of one model instance.
+
+    A VUEDA model, and a Django model that VUEDA patches, provides ``_get_formatted_name()``, which
+    reads the column or annotation. When neither has a value, that method follows the lookup
+    expression or calls the model's method. A plain Django model has no ``_get_formatted_name()``.
+    For one of those, this calls the model's own ``get_formatted_name()``. A plain model without
+    that method gets its ``formatted_name`` attribute read, which may be a property.
+
+    :param instance: The model instance to name.
+    :type instance: django.db.models.Model
+    :return: The formatted name. ``None`` when the instance has no formatted name, or none of its
+        methods applies.
+    :rtype: Optional[str]
+    """
+    get_formatted_name = getattr(instance, "_get_formatted_name", None)
+    if not callable(get_formatted_name):
+        get_formatted_name = getattr(instance, "get_formatted_name", None)
+    if not callable(get_formatted_name):
+        # A plain model may still name its rows with a formatted_name property, attribute, or method.
+        formatted_name = getattr(instance, FORMATTED_NAME, None)
+        if callable(formatted_name):
+            formatted_name = formatted_name()
+        return formatted_name or None
+    return get_formatted_name() or None
+
+
+def formatted_name_select_related_paths(model):
+    """
+    The relation paths to join for ``model``'s ``get_formatted_name()``.
+
+    These are the paths that ``formatted_name_select_related`` declares. The tuple is empty for a
+    model with no ``get_formatted_name()`` method, and for one with a lookup expression. A
+    ``formatted_name`` column or a lookup expression already puts the name in the query, so the joins
+    would load related rows that nothing reads and would only slow the query down. A model that has
+    both a column and the method keeps its joins, because the choice endpoints call the method.
+
+    :param model: The model whose querysets are being built.
+    :type model: Type[django.db.models.Model]
+    :return: The relation paths to pass to ``select_related()``.
+    :rtype: Tuple[str, ...]
+    """
+    if not callable(getattr(model, "get_formatted_name", None)):
+        return ()
+    if isinstance(getattr(model, FORMATTED_NAME_LOOKUP_EXPRESSION, None), str):
+        return ()
+    return tuple(getattr(model, FORMATTED_NAME_SELECT_RELATED, None) or ())
+
+
 def annotate_formatted_name(queryset):
     """
     Annotate ``formatted_name`` on ``queryset`` when its model has a path to annotate, apply
-    ``formatted_name_select_related`` when its model declares one, and return ``queryset`` unchanged
-    when neither applies.
+    ``formatted_name_select_related`` when its model's ``get_formatted_name()`` needs it, and return
+    ``queryset`` unchanged when neither applies.
 
     Shared by ``FormattedNameManager.get_queryset`` (every queryset the model itself builds),
     ``VuedaViewSet.get_queryset`` (the root queryset DRF builds),
@@ -92,16 +172,21 @@ def annotate_formatted_name(queryset):
     rewrite instead of leaving on a column — see that function for the two shapes that need no
     annotation and would raise if annotated anyway.
 
-    The ``select_related`` half is independent of the annotation: a model resolving
-    ``formatted_name`` through ``get_formatted_name()`` has no database path to annotate at all, but
-    may still declare ``formatted_name_select_related`` as a tuple of relation paths — the same paths
-    it would pass to ``queryset.select_related()`` itself — so the relations that method traverses
-    are joined in the same query instead of one extra query per row per relation.
+    The ``select_related`` half serves a model whose ``formatted_name`` comes from
+    ``get_formatted_name()``. Such a model has no database path to annotate, but may declare
+    ``formatted_name_select_related`` as a tuple of relation paths, the same paths it would pass to
+    ``queryset.select_related()`` itself. The relations that the method traverses are then joined in
+    the same query, instead of one extra query per row per relation.
+
+    ``formatted_name_select_related_paths`` decides which models get the joins. A model with no
+    ``get_formatted_name()`` method, or one with a lookup expression, gets none, even when it
+    declares ``formatted_name_select_related``. ``vueda_info.E011`` reports a model that declares
+    both a lookup expression and ``formatted_name_select_related``.
 
     :param queryset: The queryset to annotate.
     :type queryset: django.db.models.QuerySet
     :return: The queryset with whichever of the annotation and the ``select_related`` its model
-        declares applied, or ``queryset`` itself when it declares neither.
+        needs applied, or ``queryset`` itself when it needs neither.
     :rtype: django.db.models.QuerySet
     """
     model = queryset.model
@@ -110,7 +195,7 @@ def annotate_formatted_name(queryset):
     if annotation_path is not None:
         queryset = queryset.annotate(**{FORMATTED_NAME: F(annotation_path)})
 
-    select_related = getattr(model, FORMATTED_NAME_SELECT_RELATED, None)
+    select_related = formatted_name_select_related_paths(model)
     if select_related:
         queryset = queryset.select_related(*select_related)
 

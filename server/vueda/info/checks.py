@@ -11,7 +11,9 @@ from django.core.checks import Warning as CheckWarning
 from django.core.exceptions import FieldDoesNotExist
 from django.core.exceptions import FieldError
 from django.db import DEFAULT_DB_ALIAS
+from django.db.models import CharField
 from django.db.models import F
+from django.db.models import GeneratedField
 from django.db.models import QuerySet
 from django.db.models.constants import LOOKUP_SEP
 from django.db.models.expressions import OrderBy
@@ -23,6 +25,7 @@ from rest_framework.filters import OrderingFilter
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import FORMATTED_NAME_LOOKUP_EXPRESSION
 from vueda.core.formatted_name import FORMATTED_NAME_SELECT_RELATED
+from vueda.core.formatted_name import formatted_name_is_python_only
 from vueda.core.formatted_name import path_multiplies_rows
 from vueda.core.formatted_name import resolve_formatted_name_transform_path
 from vueda.core.ordering import NULLS_PLACEMENTS
@@ -43,6 +46,7 @@ from vueda.core.paths import path_annotation_name
 from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import query_path_field
 from vueda.core.paths import query_path_multiplies_rows
+from vueda.core.serializers.fields import FormattedNameField
 
 
 # The column types `Sum` means something for. Numeric columns, plus `DurationField` -- an interval,
@@ -136,10 +140,10 @@ def _validate_select_related_pairing(model):
     Report a model that declares both ``formatted_name_lookup_expression`` and
     ``formatted_name_select_related``.
 
-    ``formatted_name_select_related`` only has an effect alongside ``get_formatted_name()``: a
-    lookup expression resolves ``formatted_name`` entirely through the database annotation, so there
-    is no per-instance Python method for a ``select_related`` to prepare relations for. Declaring
-    both suggests the model meant to use one and left the other behind.
+    ``formatted_name_select_related`` only takes effect alongside ``get_formatted_name()``. A
+    lookup expression already reads ``formatted_name`` through the database annotation, so
+    ``annotate_formatted_name`` skips the joins, which would load related rows that nothing reads.
+    Declaring both suggests the model meant to use one and left the other behind.
     """
     lookup_expression = getattr(model, FORMATTED_NAME_LOOKUP_EXPRESSION, None)
     select_related = getattr(model, FORMATTED_NAME_SELECT_RELATED, None)
@@ -150,10 +154,10 @@ def _validate_select_related_pairing(model):
         Error(
             f"{model.__name__} defines both formatted_name_lookup_expression and formatted_name_select_related.",
             hint=(
-                "formatted_name_select_related only has an effect alongside a get_formatted_name() "
-                "method: formatted_name_lookup_expression resolves entirely through a database "
-                "annotation, so there is no per-instance computation for select_related to prepare "
-                "relations for. Remove whichever one the model doesn't use."
+                "formatted_name_select_related only takes effect alongside a get_formatted_name() method. "
+                "formatted_name_lookup_expression already reads the name through a database annotation, "
+                "so VUEDA skips the joins, which would load related rows that nothing reads. "
+                "Remove whichever one the model doesn't use."
             ),
             obj=model,
             id="vueda_info.E011",
@@ -234,23 +238,122 @@ def _validate_model_formatted_name(model):
     return errors
 
 
-def _formatted_name_is_python_only(model):
+# Why vueda_info.E016 holds formatted_name to a CharField, shared by its model and serializer hints.
+FORMATTED_NAME_TYPE_REASON = (
+    "formatted_name must be a one-line string, because the client shows it as a label and "
+    "VUEDA filters and orders it as text."
+)
+
+FORMATTED_NAME_TYPE_HINT = (
+    f"{FORMATTED_NAME_TYPE_REASON} Point formatted_name_lookup_expression at a "
+    "CharField, or give the formatted_name GeneratedField an output_field=CharField() and "
+    'an expression that produces one, such as Cast(F("number"), output_field=CharField()).'
+)
+
+
+def _non_char_value_field(field):
     """
-    Return True when the model's formatted_name is computed by get_formatted_name(), leaving the
-    database nothing to sort by: no formatted_name column of its own, and no
-    formatted_name_lookup_expression for VuedaViewSet.get_queryset to annotate onto the queryset.
+    The field whose values ``field`` stores, when that field is not a ``CharField``.
+
+    A ``GeneratedField`` stores values of its ``output_field``, so its output field is judged. Both
+    halves of ``vueda_info.E016`` apply this one rule. Returns ``None`` when there is nothing to
+    report: no field, or a ``CharField``.
     """
+    if isinstance(field, GeneratedField):
+        field = field.output_field
+    if field is None or isinstance(field, CharField):
+        return None
+    return field
+
+
+def _formatted_name_value_field(model):
+    """
+    The model field whose values a model's ``formatted_name`` takes, and how the model names it.
+
+    Returns a ``(field, source)`` pair. The field is the ``formatted_name`` column, or the field that
+    ``formatted_name_lookup_expression`` ends at. A ``GeneratedField`` is returned as it is, and
+    ``_non_char_value_field`` judges its ``output_field``. The pair is ``(None, None)`` for a
+    ``get_formatted_name()`` model, whose values only the method knows. It is also ``(None, None)``
+    for a lookup expression that resolves to nothing, which ``vueda_info.W001`` reports.
+    """
+    from vueda.info.field_resolution import resolve_lookup_expression
+
     try:
-        model._meta.get_field("formatted_name")
+        field = model._meta.get_field(FORMATTED_NAME)
     except FieldDoesNotExist:
-        pass
+        lookup_expression = getattr(model, FORMATTED_NAME_LOOKUP_EXPRESSION, None)
+        if not isinstance(lookup_expression, str) or not lookup_expression:
+            return None, None
+        field = resolve_lookup_expression(model, lookup_expression)
+        if field is None:
+            return None, None
+        source = f"formatted_name_lookup_expression '{lookup_expression}'"
     else:
-        return False
+        source = "its formatted_name column"
 
-    if isinstance(getattr(model, "formatted_name_lookup_expression", None), str):
-        return False
+    return field, source
 
-    return callable(getattr(model, "get_formatted_name", None))
+
+def _validate_formatted_name_type(model):
+    """
+    Report a model whose ``formatted_name`` takes its values from a field that is not a ``CharField``.
+
+    The client shows ``formatted_name`` as a one-line label, and VUEDA filters and orders it as
+    text. A number, date, JSON, or relation value breaks text filters in the database. A
+    ``TextField`` is refused too, because its values can span several lines.
+
+    A ``get_formatted_name()`` method is not checked. Only running it shows what it returns, and it
+    must return a string.
+    """
+    field, source = _formatted_name_value_field(model)
+    field = _non_char_value_field(field)
+    if field is None:
+        return []
+
+    return [
+        Error(
+            f"{model.__name__} takes formatted_name from {source}, whose field type is {type(field).__name__}, "
+            "not CharField.",
+            hint=FORMATTED_NAME_TYPE_HINT,
+            obj=model,
+            id="vueda_info.E016",
+        )
+    ]
+
+
+def _validate_declared_formatted_name_type(serializer_class):
+    """
+    Report a serializer whose own ``formatted_name`` field reads a ``source`` that is not a ``CharField``.
+
+    This holds a declared field, such as ``FormattedNameField(source="data.formatted_name")``, to
+    the same rule that ``_validate_formatted_name_type`` holds the model to. A ``source`` that
+    resolves to nothing is left to ``vueda_info.W001``. A field with ``source="*"``, such as a
+    ``SerializerMethodField``, is not checked, because only running it shows what it returns.
+    """
+    from vueda.info.field_resolution import resolve_serializer_field_model_field
+
+    field = getattr(serializer_class, "_declared_fields", {}).get(FORMATTED_NAME)
+    if field is None or field.source in (None, "*", FORMATTED_NAME):
+        return []
+
+    model = serializer_class.Meta.model
+    model_field, _unresolved_path = resolve_serializer_field_model_field(model, FORMATTED_NAME, field)
+    model_field = _non_char_value_field(model_field)
+    if model_field is None:
+        return []
+
+    return [
+        Error(
+            f"{serializer_class.__name__}.formatted_name reads source '{field.source}', whose field type is "
+            f"{type(model_field).__name__}, not CharField.",
+            hint=(
+                f"{FORMATTED_NAME_TYPE_REASON} Point the field's source at a CharField, or remove "
+                "the declaration so that VuedaSerializer builds the field from the model."
+            ),
+            obj=serializer_class,
+            id="vueda_info.E016",
+        )
+    ]
 
 
 def _names_formatted_name(ordering):
@@ -288,7 +391,7 @@ def _validate_formatted_name_ordering(model, viewset, *, include_model_ordering=
     registration. The viewset half has to run for every registration, because two viewsets on the
     same model can declare different orderings, but the model half is the same answer every time.
     """
-    if not _formatted_name_is_python_only(model):
+    if not formatted_name_is_python_only(model):
         return []
 
     declarations = []
@@ -467,7 +570,7 @@ def _validate_ordering_declarations(model, viewset):
                 # A path that starts with an annotation, such as `formatted_name__lower` on a queryset
                 # that annotates `formatted_name`, is resolved against the annotation below instead.
                 if path_annotation_name(query.annotations, path) is None and (
-                    _names_formatted_name((path,)) and _formatted_name_is_python_only(model)
+                    _names_formatted_name((path,)) and formatted_name_is_python_only(model)
                 ):
                     continue
 
@@ -529,11 +632,12 @@ def _validate_ordering_declarations(model, viewset):
 
 def check_formatted_name_configuration(app_configs, **kwargs):
     """Report models whose ``formatted_name`` or ``<field>_lookup_expression`` configuration cannot resolve
-    (``vueda_info.E001`` to ``E005``, ``E008``, ``E011``)."""
+    (``vueda_info.E001`` to ``E005``, ``E008``, ``E011``, ``E016``)."""
     from vueda.info.registration import get_all_registrations
 
     errors = []
     checked_models = set()
+    checked_serializers = set()
     models_with_ordering_checked = set()
 
     for _key, registration in get_all_registrations().items():
@@ -542,6 +646,10 @@ def check_formatted_name_configuration(app_configs, **kwargs):
         if model not in checked_models:
             checked_models.add(model)
             errors.extend(_validate_model_formatted_name(model))
+            errors.extend(_validate_formatted_name_type(model))
+        if serializer_class not in checked_serializers:
+            checked_serializers.add(serializer_class)
+            errors.extend(_validate_declared_formatted_name_type(serializer_class))
 
         # Ordering is validated per registration rather than per model, because the declaration being
         # checked can live on the registered viewset as well as on the model. Only the model's own
@@ -567,6 +675,11 @@ def check_formatted_name_configuration(app_configs, **kwargs):
             if child_model and child_model not in checked_models:
                 checked_models.add(child_model)
                 errors.extend(_validate_model_formatted_name(child_model))
+                errors.extend(_validate_formatted_name_type(child_model))
+            # An expanded relation serves the child serializer's own formatted_name declaration.
+            if child_model and child_serializer_class not in checked_serializers:
+                checked_serializers.add(child_serializer_class)
+                errors.extend(_validate_declared_formatted_name_type(child_serializer_class))
 
     return errors
 
@@ -2301,7 +2414,14 @@ def _validate_field_source_resolution(serializer_class, model):
         # admin's lookup_field(); neither can reach a @property or method, so it has no legitimate
         # non-model-backed reading the way a field's source= does -- get_field_model_info only
         # corrects the metadata dict, it cannot fix what those runtime consumers will also break.
-        is_lookup_expression = isinstance(getattr(model, f"{field_name}_lookup_expression", None), str)
+        # A field with its own source reads that path, not the lookup expression. A
+        # FormattedNameField under another name reads formatted_name's lookup expression.
+        resolved_name = field_name
+        if isinstance(field, FormattedNameField) and field.source in (None, FORMATTED_NAME):
+            resolved_name = FORMATTED_NAME
+        is_lookup_expression = field.source in (None, field_name, resolved_name) and isinstance(
+            getattr(model, f"{resolved_name}_lookup_expression", None), str
+        )
 
         if not is_lookup_expression:
             if corrected_fields is None:

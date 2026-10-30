@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from tests.erring import models as my_models
 from vueda.core.serializers import VuedaSerializer
+from vueda.core.serializers.fields import FormattedNameField
 
 
 class NoExpandableFieldsDataSerializer(VuedaSerializer):
@@ -183,6 +184,42 @@ class FormattedNameExpressionNotStringSerializer(VuedaSerializer):
 class ValidGetFormattedNameSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = my_models.ValidGetFormattedName
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class DeclaredReadOnlyGetFormattedNameSerializer(VuedaSerializer):
+    """Declares formatted_name as a ReadOnlyField, whose source names no field on its get_formatted_name() model."""
+
+    formatted_name = serializers.ReadOnlyField(style={"hidden": True})
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ValidGetFormattedName
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class DeclaredSourceGetFormattedNameSerializer(VuedaSerializer):
+    """Declares formatted_name with a source through a relation that ValidGetFormattedName does not have."""
+
+    formatted_name = FormattedNameField(source="data.formatted_name")
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ValidGetFormattedName
+        fields = [
+            "id",
+        ] + VuedaSerializer.Meta.fields
+
+
+class DeclaredSourceLookupExpressionSerializer(VuedaSerializer):
+    """Declares formatted_name with a source that names no field on ValidLookupExpression."""
+
+    formatted_name = FormattedNameField(source="no_such_field")
+
+    class Meta(VuedaSerializer.Meta):
+        model = my_models.ValidLookupExpression
         fields = [
             "id",
         ] + VuedaSerializer.Meta.fields

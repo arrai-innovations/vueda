@@ -17,13 +17,20 @@ mechanisms, because they have different runtime semantics:
   broken when the ORM would actually accept it (a relation, or a transform such as ``"__year"``).
 """
 
-__all__ = ("resolve_serializer_field_model_field",)
+__all__ = (
+    "resolve_lookup_expression",
+    "resolve_serializer_field_model_field",
+)
 
 from django.contrib.admin.utils import NotRelationField
 from django.contrib.admin.utils import get_model_from_relation
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import F
 from django.db.models.sql import Query
+from django.utils.functional import cached_property
+
+from vueda.core.formatted_name import FORMATTED_NAME
+from vueda.core.serializers.fields import FormattedNameField
 
 
 def _walk_source(model, source):
@@ -64,7 +71,29 @@ def _walk_source(model, source):
     return field
 
 
-def _resolve_lookup_expression(model, lookup_expression):
+def _source_ends_at_method(model, source):
+    """
+    Whether a dotted ``source`` ends at a method or property of the model that its other segments reach.
+
+    DRF calls a callable that a source reaches, and reads a property, so ``"get_formatted_name"``,
+    ``"customer.get_formatted_name"``, and a property name are valid sources even though no model
+    field backs them.
+    """
+    head, _, tail = source.rpartition(".")
+    target = model
+    if head:
+        relation = _walk_source(model, head)
+        if relation is None:
+            return False
+        try:
+            target = get_model_from_relation(relation)
+        except NotRelationField:
+            return False
+    attribute = getattr(target, tail, None)
+    return callable(attribute) or isinstance(attribute, (property, cached_property))
+
+
+def resolve_lookup_expression(model, lookup_expression):
     """
     Resolve a ``<field>_lookup_expression`` through Django's own query-expression semantics: the
     exact mechanism ``annotate_formatted_name`` (``vueda.core.models``) uses to feed it to
@@ -99,11 +128,15 @@ def resolve_serializer_field_model_field(model, field_name, field):
       from the instance can set it explicitly the same way (``ObjectRevisionField`` in
       ``vueda.history.revision`` does). Returns ``(None, None)`` -- callers must not treat this as
       an unresolved path worth a warning.
+    - A field whose ``source`` names something other than ``field_name`` reads that path, so the
+      path is walked via DRF's own attribute-lookup semantics (see ``_walk_source``). Neither
+      opt-out below applies to it: a ``<field_name>_lookup_expression`` or a ``get_<field_name>()``
+      method on the model is not what the field reads. A ``source`` that names a method on the
+      model, such as ``source="get_formatted_name"``, is not reported, because DRF calls it.
     - A model declaring ``<field_name>_lookup_expression`` (the ``formatted_name`` mechanism)
-      takes priority over ``field.source`` and is resolved via Django's own query-expression
-      semantics (see ``_resolve_lookup_expression``).
-    - Otherwise, ``field.source`` (a dotted path for a nested/traversing source, or a plain field
-      name for the common case) is walked via DRF's own attribute-lookup semantics (see
+      takes priority over the default source and is resolved via Django's own query-expression
+      semantics (see ``resolve_lookup_expression``).
+    - Otherwise, ``field_name`` is walked via DRF's own attribute-lookup semantics (see
       ``_walk_source``).
 
     ``unresolved_path`` carries the path that failed to resolve, for the system check to name in
@@ -126,7 +159,7 @@ def resolve_serializer_field_model_field(model, field_name, field):
     relation, and DRF's default gives no way to tell the difference from the outside.
 
     ``<field>_lookup_expression`` is resolved through Django's own query-expression semantics (see
-    ``_resolve_lookup_expression``) rather than ``_walk_source``, since it is fed directly to
+    ``resolve_lookup_expression``) rather than ``_walk_source``, since it is fed directly to
     ``models.F()`` for queryset annotation and to Django admin's ``lookup_field()``, both of which
     resolve purely at the database level and cannot reach a ``@property`` or method.
 
@@ -137,17 +170,31 @@ def resolve_serializer_field_model_field(model, field_name, field):
     if field.source == "*":
         return None, None
 
+    source = field.source
+    # A FormattedNameField serves the formatted name under any field name, unless it has its own source.
+    if isinstance(field, FormattedNameField) and source in (None, FORMATTED_NAME):
+        field_name = FORMATTED_NAME
+        source = None
+
+    if source is not None and source != field_name:
+        model_field = _walk_source(model, source)
+        if model_field is not None:
+            return model_field, None
+        # DRF calls a method and reads a property, so either at the end of the path is a valid source.
+        if _source_ends_at_method(model, source):
+            return None, None
+        return None, source
+
     lookup_expression = getattr(model, f"{field_name}_lookup_expression", None)
     if isinstance(lookup_expression, str):
-        model_field = _resolve_lookup_expression(model, lookup_expression)
+        model_field = resolve_lookup_expression(model, lookup_expression)
         return model_field, (None if model_field is not None else lookup_expression)
 
-    source = field.source if field.source is not None else field_name
-    model_field = _walk_source(model, source)
+    model_field = _walk_source(model, field_name)
     if model_field is not None:
         return model_field, None
 
     if callable(getattr(model, f"get_{field_name}", None)):
         return None, None
 
-    return None, source
+    return None, field_name

@@ -30,9 +30,16 @@ class Migration(migrations.Migration):
                 ("batch", models.IntegerField()),
                 ("number", models.IntegerField()),
                 ("name", models.CharField(max_length=255)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
             ],
             options={
                 "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
         migrations.CreateModel(
@@ -49,10 +56,17 @@ class Migration(migrations.Migration):
                 ),
                 ("is_active", models.BooleanField(default=True, verbose_name="active")),
                 ("name", models.CharField(max_length=255)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
                 ("locked", models.BooleanField(default=False)),
             ],
             options={
                 "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
         migrations.CreateModel(
@@ -64,9 +78,16 @@ class Migration(migrations.Migration):
                     models.CharField(max_length=50, primary_key=True, serialize=False),
                 ),
                 ("name", models.CharField(max_length=255)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
             ],
             options={
                 "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
         migrations.CreateModel(
@@ -78,9 +99,16 @@ class Migration(migrations.Migration):
                     models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False),
                 ),
                 ("name", models.CharField(max_length=255)),
+                (
+                    "formatted_name",
+                    models.GeneratedField(
+                        db_persist=True, expression=models.F("name"), output_field=models.CharField()
+                    ),
+                ),
             ],
             options={
                 "abstract": False,
+                "default_permissions": ("create", "read", "update", "delete", "list"),
             },
         ),
     ]

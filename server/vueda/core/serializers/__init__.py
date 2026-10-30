@@ -49,10 +49,15 @@ from rest_framework.exceptions import PermissionDenied
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.fields.serializers import FileField as VuedaFileField
 from vueda.core.fields.serializers import ImageField as VuedaImageField
+from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import annotate_formatted_name
+from vueda.core.formatted_name import formatted_name_annotation_path
+from vueda.core.formatted_name import formatted_name_of
 from vueda.core.installed_apps import workflow_enabled
+from vueda.core.open_api import conditional_extend_schema_field_decorator
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.serializers.fields import CompositePrimaryKeyField
+from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
 from vueda.history.revision import REVISION_ANNOTATION
@@ -890,8 +895,45 @@ class VuedaExpandableFieldsSerializerMixin:
 
 
 class FormattedNameSerializerMixin:
+    """
+    Builds a model serializer's ``formatted_name`` field from the model's formatted name source.
+
+    Every model gets a ``FormattedNameField``, which reads the ``formatted_name`` column or the
+    annotation that ``formatted_name_lookup_expression`` adds. When a row has neither value loaded,
+    the field falls back to the model's methods. A serializer that declares its own
+    ``formatted_name`` field keeps that declaration.
+
+    List this mixin before ``ModelSerializer`` in the class's bases. Otherwise DRF's own
+    ``build_field()`` and ``get_default_field_names()`` run instead of this mixin's.
+    """
+
+    def get_default_field_names(self, declared_fields, model_info):
+        """
+        Add ``formatted_name`` to the fields that ``Meta.fields = "__all__"`` selects.
+
+        DRF selects the declared fields and the model's own fields. A model whose formatted name
+        comes from a lookup expression or a method has no ``formatted_name`` column, so DRF would
+        leave the field out.
+        """
+        field_names = super().get_default_field_names(declared_fields, model_info)
+        if FORMATTED_NAME not in field_names:
+            field_names.append(FORMATTED_NAME)
+        return field_names
+
+    def build_field(self, field_name, info, model_class, nested_depth):
+        """
+        Build ``formatted_name`` as a ``FormattedNameField``.
+
+        DRF calls this only for a name in ``Meta.fields`` that the serializer does not declare, so
+        a declared ``formatted_name`` field always takes precedence.
+        """
+        if field_name != FORMATTED_NAME:
+            return super().build_field(field_name, info, model_class, nested_depth)
+        return FormattedNameField, {}
+
+    @conditional_extend_schema_field_decorator({"type": "string", "nullable": True})
     def get_formatted_name(self, obj):
-        return obj._get_formatted_name()
+        return formatted_name_of(obj)
 
 
 class VuedaListSerializer(serializers.ListSerializer):
@@ -991,10 +1033,13 @@ class VuedaSerializer(
     Standard serializer base for all VUEDA models. Combines extra-field rejection,
     flex-fields expansion, writable nested relations, and an ``available_actions``
     field that exposes permitted actions for the current user.
+
+    ``Meta.fields`` lists ``formatted_name``, and ``FormattedNameSerializerMixin`` builds the field
+    from the model. A subclass keeps the name in its own ``Meta.fields`` and needs no
+    ``formatted_name`` field declaration.
     """
 
     available_actions = AvailableActionsField()
-    formatted_name = serializers.ReadOnlyField(style={"hidden": True})
     object_revision = ObjectRevisionField()
 
     def get_fields(self):
@@ -1036,7 +1081,13 @@ class VuedaSerializer(
         return self._reload_with_revision(super().create(validated_data))
 
     def update(self, instance, validated_data):
-        return self._reload_with_revision(super().update(instance, validated_data))
+        instance = super().update(instance, validated_data)
+        # The formatted_name annotation was read before the write, so it may name the old values.
+        # Dropping it makes FormattedNameField follow the lookup expression on the updated instance,
+        # unless the reload below annotates it again.
+        if formatted_name_annotation_path(type(instance)) is not None:
+            instance.__dict__.pop(FORMATTED_NAME, None)
+        return self._reload_with_revision(instance)
 
     def get_warnings(self):
         """
@@ -1319,6 +1370,6 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
         results["app_label"] = meta.app_label
         results["model"] = meta.model_name
         if "formatted_name" not in results or results["formatted_name"] is None:
-            results["formatted_name"] = instance._get_formatted_name()
+            results["formatted_name"] = formatted_name_of(instance)
 
         return results

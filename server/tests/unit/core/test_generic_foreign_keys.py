@@ -110,11 +110,13 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Distributor),
                 object_id=distributor.pk,
+                subject="Distributor note",
                 text="Note on a distributor.",
             ),
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Product),
                 object_id=product.pk,
+                subject="Product note",
                 text="Note on a product.",
             ),
         ]
@@ -134,8 +136,8 @@ class TestViewSetContentObjectExpand(BaseTestAssertResponseMixin, BaseTestUserMi
         assert response.data["totalRecords"] == 2  # noqa: PLR2004
 
         formatted_names = frozenset(r["formatted_name"] for r in response.data["results"])
-        assert "Note on a distributor." in formatted_names
-        assert "Note on a product." in formatted_names
+        assert "Distributor note" in formatted_names
+        assert "Product note" in formatted_names
 
         expanded_data = {
             f"{r['content_object']['app_label']}.{r['content_object']['model']}": r["content_object"]
@@ -291,11 +293,13 @@ class TestViewSetAnotherNoteContentObjectExpand(BaseTestAssertResponseMixin, Bas
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Distributor),
                 object_id=distributor.pk,
+                subject="Distributor note",
                 text="Note on a distributor.",
             ),
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Product),
                 object_id=product.pk,
+                subject="Product note",
                 text="Note on a product.",
             ),
         ]
@@ -377,11 +381,13 @@ class TestViewSetNoteStaticOmitContentObjectExpand(BaseTestAssertResponseMixin, 
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Distributor),
                 object_id=distributor.pk,
+                subject="Distributor note",
                 text="Note on a distributor.",
             ),
             store_models.Note.objects.create(
                 content_type=ContentType.objects.get_for_model(store_models.Product),
                 object_id=product.pk,
+                subject="Product note",
                 text="Note on a product.",
             ),
         ]

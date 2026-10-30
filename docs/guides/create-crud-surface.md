@@ -41,7 +41,7 @@ Run `python manage.py makemigrations` and `python manage.py migrate`. The migrat
 
 VUEDA shows a row by its `formatted_name` wherever the client needs a label for it, such as a choice list or an expanded relation. By default `formatted_name` is a stored {@api ext:django:django.db.models.GeneratedField} that copies the model's `name` field, so `Widget` needs nothing more.
 
-A model without a suitable `name` field supplies the value in one of three other ways.
+The value must be a one-line string, because the client shows it as a label and VUEDA filters and orders it as text. A model without a suitable `name` field supplies the value in one of three other ways.
 
 **Another generated expression.** Redeclare the field with your own expression:
 
@@ -58,6 +58,8 @@ class Order(VuedaModel):
         db_persist=True,
     )
 ```
+
+The column holds text, so sorting by `formatted_name` puts `"10"` before `"9"`. To sort a list by the number, order it by `order_number` instead.
 
 **A lookup expression.** Set `formatted_name = None` and name a column in [`formatted_name_lookup_expression`]{@api py:property:vueda.core.models.FormattedNameBaseModel.formatted_name_lookup_expression}:
 
@@ -90,7 +92,7 @@ A choice list takes each label from the first source that the related model prov
 
 The database can sort by a generated field or a lookup expression. It cannot sort by a method. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics.md#formatted-name-as-an-ordering-and-filter-target) describes ordering and filtering by `formatted_name`, and [Declare List Ordering](./declare-list-ordering.md) gives the steps.
 
-Run `python manage.py check`. [`check_formatted_name_configuration`]{@api py:function:vueda.info.checks.check_formatted_name_configuration} reports a formatted name that cannot resolve, such as `formatted_name = None` with neither a lookup expression nor a method (`vueda_info.E001`). It checks registered models and the models that their expands reach.
+Run `python manage.py check`. [`check_formatted_name_configuration`]{@api py:function:vueda.info.checks.check_formatted_name_configuration} reports a formatted name that cannot resolve, such as `formatted_name = None` with neither a lookup expression nor a method (`vueda_info.E001`). It also reports a `formatted_name` column or lookup expression that ends at a field other than a `CharField` (`vueda_info.E016`). A `TextField` is reported too, because its values can span several lines. A `get_formatted_name()` method must return a string. No check can confirm that, because only running the method shows what it returns. It checks registered models and the models that their expands reach.
 
 ### Replace the Default Manager
 
@@ -134,25 +136,37 @@ class WidgetSerializer(VuedaSerializer):
 
 This becomes the model's {@term Canonical Serializer}. Model info lists only the fields in `Meta.fields`, so a model field that you leave out does not exist for the client. The base fields are:
 
-- `formatted_name`, read-only.
+- `formatted_name`, read-only and hidden.
 - [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions}, present only when a request's {@term Sparse Fields} name it.
 - `object_revision`, only for a model that records {@term Model History}.
 
-For a model whose `formatted_name` comes from `get_formatted_name()`, declare the field as a {@api ext:drf:rest_framework.fields.SerializerMethodField}. Without the declaration, responses carry `formatted_name: null`:
+`VuedaSerializer.Meta.fields` lists `formatted_name`, and `VuedaSerializer` builds the field itself. So the serializer needs no `formatted_name = ...` declaration, only the name in `Meta.fields`. Model info reports the field as a hidden `CharField`. The value that the field returns depends on where the model's formatted name comes from:
+
+| The model's formatted name comes from                          | Value that the built field returns                                                                                         |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| A `formatted_name` column, such as the default generated field | The column's value.                                                                                                        |
+| `formatted_name_lookup_expression`                             | The annotation that the lookup expression adds. A row loaded without the annotation follows the lookup expression instead. |
+| `get_formatted_name()`                                         | The method's return value.                                                                                                 |
+
+### Override `formatted_name` on the Serializer
+
+Declare your own `formatted_name` field when a serializer must serve a different value than the model's formatted name. A declared field replaces the one that `VuedaSerializer` builds. Declare it as a {@api py:class:vueda.core.serializers.fields.FormattedNameField} with your own `source`. The field is read-only and hidden, as the built one is. For example, this serializer labels each customer with the user's name, instead of the model's own formatted name:
 
 ```python
-from rest_framework import serializers
+from vueda.core.serializers.fields import FormattedNameField
 
 
-class CartSerializer(VuedaSerializer):
-    formatted_name = serializers.SerializerMethodField()
+class CustomerSerializer(VuedaSerializer):
+    formatted_name = FormattedNameField(source="user.name")
 
     class Meta(VuedaSerializer.Meta):
-        model = Cart
-        fields = ["id", "customer"] + VuedaSerializer.Meta.fields
+        model = Customer
+        fields = ["id", "user"] + VuedaSerializer.Meta.fields
 ```
 
-`VuedaSerializer` already supplies the matching `get_formatted_name(self, obj)`.
+The `source` must reach a one-line string on every row. Model info reports the field as a `CharField`. `python manage.py check` reports a `source` that resolves to no model field (`vueda_info.W001`), and a `source` that ends at a field other than a `CharField` (`vueda_info.E016`). A `source` that names a relation that the model does not have makes rows show no label. A `source` that crosses a relation, as `user.name` does, costs one query per row unless the viewset's queryset joins the relation with `select_related()`.
+
+You can declare another field class instead, such as a `SerializerMethodField`. Make it read-only, because the client never writes `formatted_name`. Pass `style={"hidden": True}`. Without it, the client's default views show `formatted_name` as one more field, such as a list column.
 
 A write that sends a field that the serializer does not declare fails validation. To let clients load related objects inline, declare them in `Meta.expandable_fields`, as [Field and Expand Semantics](../core-concepts/field-and-expand-semantics.md) describes.
 
@@ -329,7 +343,7 @@ Sign in as the test user and check each piece:
 
 **Every route shows "Action Not Found".** The user lacks the model's permissions, so `model_actions` is empty. Grant them as [Grant Permissions](#grant-permissions) describes. If the model config sets `routeActions`, check that it uses `retrieve` for the read route, as [Configure CRUD Views](./configure-crud-views.md#limit-which-routes-open) describes.
 
-**Rows show no label.** A method-backed model's serializer lacks `formatted_name = serializers.SerializerMethodField()`, so `formatted_name` is `null`.
+**Rows show no label.** The serializer declares its own `formatted_name` field, and that field reads no value. An example is a `source` that names a relation that the model does not have. Remove the declaration, so that `VuedaSerializer` builds the field from the model.
 
 **The `list` endpoint returns `400`.** A request sent a query parameter that the endpoint does not accept. The response names the accepted filters.
 

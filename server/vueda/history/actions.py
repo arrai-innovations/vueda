@@ -13,8 +13,8 @@ from collections import defaultdict
 from django.apps import apps
 from django.contrib.auth import get_user_model
 
-from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import annotate_formatted_name
+from vueda.core.formatted_name import formatted_name_of
 
 
 #: pghistory labels its triggers by operation. The response publishes readable names instead.
@@ -36,10 +36,7 @@ def _display_of(instance):
     A model outside the VUEDA model family has no ``_get_formatted_name``, but its lookup expression
     still annotates ``formatted_name``, which is how a workflow ``State`` resolves to its name.
     """
-    formatted_name = getattr(instance, "_get_formatted_name", None)
-    if callable(formatted_name):
-        return formatted_name() or str(instance)
-    return getattr(instance, FORMATTED_NAME, None) or str(instance)
+    return formatted_name_of(instance) or str(instance)
 
 
 class _References:
