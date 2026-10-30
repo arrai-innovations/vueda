@@ -45,7 +45,7 @@ watch(
     () => widgetContext.state.combinedValue,
     (value) => {
         if (editor.value && editor.value.getHTML() !== value) {
-            editor.value.commands.setContent(value || "", false);
+            editor.value.commands.setContent(value || "", { emitUpdate: false });
         }
     },
 );
@@ -53,7 +53,7 @@ watch(
 watch(
     () => widgetContext.state.disabled,
     (disabled) => {
-        editor.value?.setEditable(!disabled);
+        editor.value?.setEditable(!disabled, false);
     },
 );
 
