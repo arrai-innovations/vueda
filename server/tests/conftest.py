@@ -12,6 +12,7 @@ from typing import ClassVar
 import pytest
 from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from django import db
+from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -205,6 +206,73 @@ def discard_orphaned_event_models():
             pgtrigger_registry.delete(uri)
 
 
+def drop_test_database(db_name):
+    """Drop the database named ``db_name``, closing any connections that are still open to it."""
+    conn = connect(settings.TEST_POSTGRES_DB)
+    try:
+        conn.autocommit = True
+        cur = conn.cursor()
+        sql_str = sql.SQL("DROP DATABASE {} with (force);").format(sql.Identifier(db_name))
+        cur.execute(sql_str)
+        cur.close()
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+@pytest.fixture(scope="session")
+def lean_template_database(django_db_setup, django_db_blocker):
+    """
+    Build a template database that has the migrations of every app applied except the test apps', and return its name.
+
+    A test marked ``lean_database`` gets a copy of this template from ``suffix_each_test`` instead of a copy of the
+    full test database. Running ``migrate`` costs more the more migrations are already applied, because Django replays
+    the model state of every applied migration. The test apps' migrations hold most of the suite's models, so a test
+    that runs ``migrate`` itself is much faster here. For example, reversing ``vueda_vdq`` to ``0001`` against the full
+    test database replays every test app's migrations first, because their app labels sort before ``vueda_vdq``.
+
+    The test apps stay installed. Their migrations are only left unapplied, so their tables do not exist in this
+    database. The app that holds ``AUTH_USER_MODEL`` is migrated anyway, because VUEDA's own migrations depend on it.
+
+    The template is built the first time a marked test asks for it, once per xdist worker, and dropped when the session
+    ends.
+    """
+    default = settings.DATABASES["default"]
+    full_name = default["NAME"]
+    lean_name = f"{full_name}_lean"
+    user_app_label = get_user_model()._meta.app_label
+    unmigrated_test_apps = {
+        app_config.label: None
+        for app_config in apps.get_app_configs()
+        if app_config.name.startswith("tests.") and app_config.label != user_app_label
+    }
+
+    with django_db_blocker.unblock():
+        db.connections.close_all()
+        connection = db.connections["default"]
+        # Create it through Django's own connection, the way Django creates the test database, so it is owned by the
+        # same user that runs the migrations.
+        with connection._nodb_cursor() as cursor:
+            cursor.execute(f"CREATE DATABASE {connection.ops.quote_name(lean_name)};")
+        default["NAME"] = lean_name
+        try:
+            with pytest.MonkeyPatch.context() as monkeypatch:
+                # An app whose migration module is None is treated as having no migrations, so migrate skips it.
+                monkeypatch.setattr(
+                    settings, "MIGRATION_MODULES", {**settings.MIGRATION_MODULES, **unmigrated_test_apps}
+                )
+                call_command("migrate", verbosity=0)
+        finally:
+            # PostgreSQL only copies a template that has no open connections.
+            db.connections.close_all()
+            default["NAME"] = full_name
+
+    yield lean_name
+
+    with django_db_blocker.unblock():
+        drop_test_database(lean_name)
+
+
 @pytest.fixture(autouse=True, scope="function")
 def suffix_each_test(request):
     """
@@ -220,6 +288,9 @@ def suffix_each_test(request):
     a new database for the test and drops it afterward. This is managed using PostgreSQL commands, with a consideration
     for the PostgreSQL limit of 63 characters on database names.
 
+    The new database is a copy of the full test database. A test that is also marked ``lean_database`` gets a copy of
+    the lean template database instead. See ``lean_template_database`` for what that template leaves out.
+
     Database connections are closed after each test to maintain a clean state.
 
     You must configure your Django settings to use the 'TEST_POSTGRES_DB' setting for the PostgreSQL server connection.
@@ -227,6 +298,14 @@ def suffix_each_test(request):
 
     marker = request.node.get_closest_marker("django_db")
     is_transactional = marker.kwargs.get("transaction", False) if marker else False
+    is_lean = request.node.get_closest_marker("lean_database") is not None
+
+    if is_lean and not is_transactional:
+        pytest.fail(
+            "A test marked lean_database must also be marked django_db(transaction=True). Only a transactional test "
+            "gets its own copy of a template database. Any other test runs inside the full test database.",
+            pytrace=False,
+        )
 
     if not asyncio.iscoroutinefunction(request.function) and not is_transactional:
         # Skip synchronous tests
@@ -235,6 +314,7 @@ def suffix_each_test(request):
     db.connections.close_all()
 
     template_name = settings.DATABASES.get("default").get("NAME")
+    source_name = request.getfixturevalue("lean_template_database") if is_lean else template_name
     suffix = hashlib.sha1(request.function.__name__.encode("utf-8")).hexdigest()
     db_name = f"{template_name}_{suffix}"
     # PostgreSQL has a limit of 63 characters on db names.
@@ -246,29 +326,32 @@ def suffix_each_test(request):
         from django import db
 
         db.connections.close_all()
-        conn = connect(settings.TEST_POSTGRES_DB)
-        try:
-            conn.autocommit = True
-            cur = conn.cursor()
-            sql_str = sql.SQL("DROP DATABASE {} with (force);").format(sql.Identifier(db_name))
-            cur.execute(sql_str)
-            cur.close()
-        finally:
-            if conn is not None:
-                conn.close()
+        drop_test_database(db_name)
 
         settings.DATABASES.get("default")["NAME"] = template_name
+        if is_lean:
+            # The cached content types carry the lean database's ids, which name other models in the full database.
+            ContentType.objects.clear_cache()
 
     conn = connect(settings.TEST_POSTGRES_DB)
     try:
         conn.autocommit = True
         cur = conn.cursor()
-        sql_str = sql.SQL("CREATE DATABASE {} TEMPLATE {};").format(
-            sql.Identifier(db_name), sql.Identifier(template_name)
+        # The copy is owned by the user that the tests connect as, not by the TEST_POSTGRES_DB user that creates it.
+        # Since PostgreSQL 15 the public schema belongs to the database owner, so otherwise the tests could not create
+        # tables in the copy, as a test that runs migrate does.
+        sql_str = sql.SQL("CREATE DATABASE {} TEMPLATE {} OWNER {};").format(
+            sql.Identifier(db_name),
+            sql.Identifier(source_name),
+            sql.Identifier(settings.DATABASES["default"]["USER"]),
         )
         cur.execute(sql_str)
         cur.close()
         request.addfinalizer(clean_up_db)
+        if is_lean:
+            # The lean database gives content types other ids than the full database does, so the ids cached so far
+            # name other models here.
+            ContentType.objects.clear_cache()
     finally:
         if conn is not None:
             conn.close()

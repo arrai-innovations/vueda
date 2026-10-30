@@ -417,7 +417,8 @@ class TestMigrationPaths(BaseTestCallCommand):
     """
 
     @clear_info_registry_before_test()
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_the_event_migration_rolls_back_and_forward_again(self, settings):
         append_installed_apps(settings, "tests.history_migrations")
         # Imported here, because the app is only installed for this test.

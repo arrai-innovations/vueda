@@ -156,6 +156,9 @@ testpaths = ["tests"]
 python_files = [
     "test_*.py"
 ]
+markers = [
+    "lean_database: run a transactional test against a copy of a database that has no test app migrations applied (see lean_template_database in tests/conftest.py)",
+]
 filterwarnings = [
     "ignore:Passing None for the middleware get_response argument is deprecated:DeprecationWarning",
     "ignore:The providing_args argument is deprecated:DeprecationWarning",
