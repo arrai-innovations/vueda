@@ -265,6 +265,33 @@ describe("lib/router/makeCrud.js", () => {
         });
     });
 
+    describe("detail URL round trip", () => {
+        let getCRUDForTo;
+        let realRouter;
+        let detail;
+
+        beforeEach(async () => {
+            ({ getCRUDForTo } = await import("@vueda/router/getCrud.js"));
+            const routes = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
+            [detail] = routes;
+            realRouter = createRouter({ history: createMemoryHistory(), routes });
+        });
+
+        // The server sends a composite primary key as a JSON list, and the detail route puts that
+        // whole list in one path segment.
+        scopedIt.each([
+            ["a composite key", '["1", "2"]'],
+            ["a composite key with a slash in one part", '["a/b", "c"]'],
+            ["a composite key with URL delimiters in its parts", '["50%", "x?y#z"]'],
+        ])("keeps %s intact", async (_label, pk) => {
+            const url = realRouter.resolve(await getCRUDForTo({ app: "a", model: "m", pk, view: "read" })).fullPath;
+            const resolved = realRouter.resolve(url);
+
+            expect(resolved.name).toBe("actionrouter.detailview");
+            expect(detail.props(resolved).pk).toBe(pk);
+        });
+    });
+
     scopedIt("detail route props read from params", () => {
         const [detail] = makeCRUDRoutes({ component, vueApp, router, pinia, actionRedirect });
 
