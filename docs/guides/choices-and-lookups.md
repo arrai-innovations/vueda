@@ -106,6 +106,19 @@ The default widgets cover most choice-backed fields. Write a custom widget when 
 
 The client asks for one page of 200 options per field. Issue [#381](https://github.com/arrai-innovations/vueda/issues/381) tracks reaching rows past the first 200. Each new fetch sends a new request, and components that ask at the same time share one. [Reactive Data Flow](../core-concepts/reactive-data-flow.md#cached-results) describes the choice store.
 
+## Show a Choice-Backed Value Read-Only
+
+A field that renders read-only shows the label of its value. A field renders read-only on a read view and on an action or transition page. It also renders read-only on a create or update form when field props or model config set `readOnly: true`, and when the form lists the field as a computed field. The field's type mapping picks the read-only widget, and the widget decides where the label comes from:
+
+- **A `SlugRelatedField`** renders with `WidgetModelReadOnly`, which the `SlugRelatedField` type mapping names as its read-only widget. It reads the label from the field choices endpoint, the same source as the edit options. It requests only the values that it shows, with a `value` filter such as `?value=CT&value=ON`. The related model needs no viewset, and the value can be a slug.
+- **A primary key relation**, which edits with `WidgetCombobox`, renders with `WidgetReadOnly`. It loads the related row from the related model's routes and links to it. The related model needs a registered viewset.
+
+A field that the server marks read-only has no `choices` in its model info, so it has no choices endpoint. The form passes such a field no related model either, so `WidgetModelReadOnly` hands it to `WidgetReadOnly`, which shows the raw value.
+
+Read-only widgets on one page that show values of the same field share one choices request. When the field's complete list of edit options is already loaded, a value in that list needs no request. When no option matches a value, the field shows the raw value.
+
+A `widgetComponents` entry changes only the edit widget. A field whose edit widget is overridden to `WidgetModel` keeps the read-only widget of its type mapping.
+
 ## Declare a Lookup Model
 
 [`Lookup`]{@api py:class:vueda.core.models.Lookup} is an abstract base for tables of codes and names, such as order states. It subclasses [`FormattedNameBaseModel`]{@api py:class:vueda.core.models.FormattedNameBaseModel}, the base that it shares with `VuedaModel`. It adds a unique `code`, a `name`, and a `formatted_name` column that copies `name`.
