@@ -8,11 +8,10 @@ const mockedEventListeners = mockEventListener(vi);
 
 const confirm = vi.fn(() => true);
 vi.stubGlobal("confirm", confirm);
-vi.stubGlobal("window", {
-    ...window,
-    addEventListener: mockedEventListeners.mockedAddEventListener,
-    removeEventListener: mockedEventListeners.mockedRemoveEventListener,
-});
+// Spy on jsdom's window rather than replacing it. Some test pools make the
+// global window read-only, so vi.stubGlobal("window", ...) throws there.
+vi.spyOn(window, "addEventListener").mockImplementation(mockedEventListeners.mockedAddEventListener);
+vi.spyOn(window, "removeEventListener").mockImplementation(mockedEventListeners.mockedRemoveEventListener);
 
 vi.mock("vue", async () => {
     const actual = await vi.importActual("vue");
