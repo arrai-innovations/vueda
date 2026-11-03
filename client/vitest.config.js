@@ -14,13 +14,13 @@ export default defineConfig((configEnv) => {
                 watch: false,
                 globals: true,
                 environment: "jsdom",
-                // Node 25 and later define a global `localStorage` that is
-                // undefined without `--localstorage-file`. Vitest 4 does not
-                // replace an existing global with jsdom's `localStorage`, so
-                // tests would see undefined. Turning off Node's web storage
-                // leaves the global free for jsdom. Vitest 5 handles this
-                // itself, so this flag can go once the client moves to it.
-                execArgv: ["--no-experimental-webstorage"],
+                // vmThreads builds the jsdom environment once per worker and
+                // still runs each spec file in its own VM context. The default
+                // pool builds jsdom again for every file, which took about half
+                // of the suite's run time. Specs must not replace the global
+                // window or document, because a VM context makes them
+                // read-only. Spy on their methods instead.
+                pool: "vmThreads",
                 coverage: {
                     reportOnFailure: true,
                     provider: "istanbul",
