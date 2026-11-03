@@ -139,6 +139,21 @@ describe("lib/use/useObjectForm.js", () => {
         expect(toastMock.warning).not.toHaveBeenCalled();
     });
 
+    scopedIt("defaultOnSubmitAnyError skips errors on a path submitted as null and its children", async () => {
+        const formContext = {
+            state: {
+                anyIgnored: false,
+                ignored: {},
+                submittedAsNull: { contact: true },
+                errors: { contact: { validate: "bad" }, "contact.note": { required: "missing" } },
+            },
+        };
+        const state = { firstErrorField: "contact.note" };
+        const result = await defaultOnSubmitAnyError({ state, formContext, toast: toastMock });
+        expect(result).toBe(false);
+        expect(toastMock.warning).not.toHaveBeenCalled();
+    });
+
     scopedIt("defaultOnSubmissionSuccess pushes router", async () => {
         const state = reactive({
             redirectAfter: "list",

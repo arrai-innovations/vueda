@@ -37,6 +37,8 @@ Warnings sit in their own map so that they never block a submit: the client's pr
 
 **Ignored fields.** [`ignored`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.ignored} maps each {@term Ignored Field} path to `true`. [Ignored Fields and Submitting Values](#ignored-fields-and-submitting-values) describes its effect.
 
+**Fields submitted as null.** [`submittedAsNull`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submittedAsNull} maps each path that [`submitAsNull`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.submitAsNull} marks to `true`. The same section describes its effect.
+
 ## Field Context Responsibilities
 
 `useField` projects the form context onto one field. It keeps no values of its own: reads come from the form state, and writes go through the form context's methods. A field keeps a local state of the same shape when it has the [`contextless`]{@api vue:component:FormField:prop:contextless} prop or no form context above it. It then emits [`update:modelValue`]{@api vue:component:FormField:event:update:modelValue}, so it also works outside a form.
@@ -102,6 +104,15 @@ For an array item path such as `items[2]`, VUEDA removes the item and closes the
 
 An ignored field is never required and never counts as modified. `useObjectForm`'s default pre-submit check also skips errors on ignored paths and their children. It finds children by a `.` separator only, so ignoring `items` skips `items.name` but not `items[0].quantity`.
 
+`submitAsNull(path)` makes `submittingValues` hold `null` at that path. The path keeps its value in `values`, so the widgets that show it do not change. [`removeSubmitAsNull(path)`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.removeSubmitAsNull} sends the value again. The form writes `null` only at a path that has a value.
+
+A field submitted as null differs from an ignored field in two ways:
+
+- The request still carries the field's key, with the value `null`. The request leaves an ignored field's key out.
+- The field still counts as modified when `null` differs from its initial value, and it keeps its required state.
+
+The default pre-submit check skips errors on a path submitted as null and on its children. It finds children by the same `.` separator. {@api vue:component:FieldSetSingularStackedInline} uses this mark for a saved row that the user marks for removal.
+
 ## Submission Gating Semantics
 
 ### Object form submission
@@ -111,7 +122,7 @@ An ignored field is never required and never counts as modified. `useObjectForm`
 1. Set [`loading`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.loading}, which views use to disable the submit button.
 2. Call `setAllTouched()` and wait one tick so that local validation runs.
 3. If `anyModified` is `false`, call `onSubmitNotAnyModified`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitNotAnyModified}, shows a "No Changes Detected" toast and stops.
-4. If `anyError` is `true`, call `onSubmitAnyError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitAnyError}, drops errors on ignored paths and removes the `server` code from the rest. If any error remains, it shows a "Pre-save Validation Failed" toast, scrolls to the first error, and stops. If only `server` codes remain, the submit continues.
+4. If `anyError` is `true`, call `onSubmitAnyError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmitAnyError}, drops errors on ignored paths and on paths submitted as null. It removes the `server` code from the rest. If any error remains, it shows a "Pre-save Validation Failed" toast, scrolls to the first error, and stops. If only `server` codes remain, the submit continues.
 5. Send `submittingValues` to create or update. With the [`submitFields`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawProps.submitFields} prop, only those paths are sent. An update body also carries the object's primary key, which names the object to save.
 6. On a `ConfirmationRequiredError` that carries a digest, run [the warning confirmation](#the-warning-confirmation).
 7. On any other failure, call `onSubmissionError`. The default, {@api js:function:@arrai-innovations/vueda/use/useObjectForm#defaultOnSubmissionError}, ingests a `ServerFeedbackError`, shows a "Save Validation Failed" toast, and scrolls to the first error. For any other error it returns `false`, and the error becomes the form's [`state.error`]{@api js:property:@arrai-innovations/vueda/use/useObjectForm#ObjectFormRawState.error}.

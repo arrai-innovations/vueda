@@ -158,6 +158,11 @@ export function defaultIsRequiredViolation(value) {
  * // *** Field Ignoring ***
  * @property {(name?:string) => void} ignore - Marks the field as ignored, so validation does not apply.
  * @property {(name?:string) => void} removeIgnore - Removes the ignore status, making the field active again.
+ * @property {(name?:string) => void} submitAsNull - Marks the field to be submitted as `null`. The field keeps its
+ *  value, so its widgets still show that value. Unlike `ignore`, the field still counts as modified and keeps its
+ *  required state.
+ * @property {(name?:string) => void} removeSubmitAsNull - Removes the mark that `submitAsNull` set, so the field's value
+ *  is submitted again.
  *
  * // *** Hook Registration ***
  * @property {(hook: () => boolean) => string} registerIsModifiedHook - Registers a hook that determines if the field is modified.
@@ -325,6 +330,7 @@ export function useField(props, emit, options = {}) {
         messages: {},
         touched: false,
         ignored: {},
+        submittedAsNull: {},
         initialValue: cloneDeep(props.modelValue),
         focused: false,
     });
@@ -414,6 +420,9 @@ export function useField(props, emit, options = {}) {
                 }
                 if (localFormContext.ignored[state.name]) {
                     return undefined; // If entire field is ignored, exclude it
+                }
+                if (localFormContext.submittedAsNull[state.name]) {
+                    return null;
                 }
 
                 const rawValue = unref(state.value);
@@ -757,6 +766,24 @@ export function useField(props, emit, options = {}) {
                 if (localFormContext.ignored[localName]) {
                     delete localFormContext.ignored[localName];
                 }
+            }
+        },
+        submitAsNull: (name) => {
+            const fc = unref(formContext);
+            const localName = name || state.name;
+            if (fc) {
+                fc.submitAsNull(localName);
+            } else {
+                localFormContext.submittedAsNull[localName] = true;
+            }
+        },
+        removeSubmitAsNull: (name) => {
+            const fc = unref(formContext);
+            const localName = name || state.name;
+            if (fc) {
+                fc.removeSubmitAsNull(localName);
+            } else {
+                delete localFormContext.submittedAsNull[localName];
             }
         },
 

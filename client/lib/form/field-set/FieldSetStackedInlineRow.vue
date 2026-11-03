@@ -1,5 +1,6 @@
 <script setup>
 import Button from "@vueda/controls/button/Button.vue";
+import Toggle from "@vueda/controls/toggle/Toggle.vue";
 import FieldSetInlineActionButton from "@vueda/form/field-set/FieldSetInlineActionButton.vue";
 import FieldRenderer from "@vueda/form/form-model/FieldRenderer.vue";
 import "@vueda/theme/vueda-tailwind/form/FieldSetStackedInlineRow.theme.js";
@@ -14,8 +15,9 @@ import { computed, inject, unref, useSlots } from "vue";
  * Renders a single row within a stacked inline field set, including all
  * non-action fields and a row-level action bar. The action bar shows a delete
  * button for editable new (unsaved) rows, even without a destroy action.
- * Editable existing rows show a destroy checkbox supplied by the parent inline.
- * Slot overrides are available for each.
+ * Editable existing rows offer the parent inline's destroy action. That action
+ * is a "Delete?" checkbox, or a toggle button when `savedRowRemoval` is
+ * `"toggle"`. Slot overrides are available for each.
  */
 defineOptions({});
 
@@ -50,6 +52,25 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    /** When false, the row shows no Delete button, destroy checkbox, or destroy toggle. */
+    removable: {
+        type: Boolean,
+        default: true,
+    },
+    /**
+     * The control that a saved row uses for the destroy action. `"checkbox"` shows a "Delete?" checkbox that emits
+     * `update:selected`. `"toggle"` shows a toggle button that emits `update:markedForRemoval`.
+     */
+    savedRowRemoval: {
+        type: String,
+        default: "checkbox",
+        validator: (value) => ["checkbox", "toggle"].includes(value),
+    },
+    /** Whether the destroy toggle is pressed. The row reads this prop only when `savedRowRemoval` is `"toggle"`. */
+    markedForRemoval: {
+        type: Boolean,
+        default: false,
+    },
     ...THEME_OVERRIDE_PROPS,
     ...ICON_OVERRIDE_PROPS,
 });
@@ -57,12 +78,19 @@ const formModel = inject(FormModelSymbol, null);
 const theme = useTheme("FieldSetStackedInlineRow", props);
 const icon = useIcons("FieldSetStackedInlineRow", props);
 
-const emit = defineEmits(["destroy-row", "update:selected", "update:model-value"]);
+const emit = defineEmits(["destroy-row", "update:selected", "update:model-value", "update:markedForRemoval"]);
 const onDelete = () => emit("destroy-row", props.index);
 const rowValueName = computed(() => (props.index == null ? props.fieldName : `${props.fieldName}[${props.index}]`));
 
 const slots = useSlots();
-const slotNames = ["before-fields", "after-fields", "destroy-button", "destroy-checkbox", "item-action-button"];
+const slotNames = [
+    "before-fields",
+    "after-fields",
+    "destroy-button",
+    "destroy-checkbox",
+    "destroy-toggle",
+    "item-action-button",
+];
 const fieldSetSlotNames = slotNames.reduce((acc, name) => {
     acc[name] = useSlotNameResolver(
         computed(() => [`fieldset-${name}`, name]),
@@ -77,13 +105,23 @@ const remainingSlotNames = computed(() => {
 });
 
 const isUnsaved = computed(() => props.pk === undefined || props.pk === null);
-const canRemove = computed(() => isUnsaved.value && !props.readOnly);
+const canRemove = computed(() => isUnsaved.value && !props.readOnly && props.removable);
 const destroyAction = computed(() =>
     props.fieldSetContextState.actions.find((action) => action.fieldName === "destroy"),
 );
+const canDestroySaved = computed(() => !isUnsaved.value && !props.readOnly && props.removable && !!destroyAction.value);
+const showDestroyCheckbox = computed(() => canDestroySaved.value && props.savedRowRemoval === "checkbox");
+const showDestroyToggle = computed(() => canDestroySaved.value && props.savedRowRemoval === "toggle");
+const otherActions = computed(() =>
+    props.fieldSetContextState.actions.filter((action) => action.fieldName !== "destroy"),
+);
+const showActionBar = computed(() => canRemove.value || canDestroySaved.value || otherActions.value.length > 0);
 
 const rowState = computed(() => {
     if (props.fieldSetContextState?.selected?.includes?.(props.index)) {
+        return "selected-for-destroy";
+    }
+    if (showDestroyToggle.value && props.markedForRemoval) {
         return "selected-for-destroy";
     }
     if (isUnsaved.value) {
@@ -136,7 +174,7 @@ const rowState = computed(() => {
         </div>
         <slot name="item-action-bar">
             <div
-                v-if="canRemove || fieldSetContextState.actions.length"
+                v-if="showActionBar"
                 :class="theme('actionBarOuter')"
                 data-qa="field-set-tabular-inline-item-action-bar"
             >
@@ -173,7 +211,7 @@ const rowState = computed(() => {
                     <template v-if="action.fieldName === 'destroy'">
                         <!-- @slot [destroy-checkbox, fieldset-destroy-checkbox] Checkbox used to mark an existing inline row for deletion. -->
                         <slot
-                            v-if="!isUnsaved && !readOnly"
+                            v-if="showDestroyCheckbox"
                             :skip-feedback="true"
                             :action="action"
                             :contextless="true"
@@ -202,6 +240,33 @@ const rowState = computed(() => {
                                 />
                                 Delete?
                             </label>
+                        </slot>
+                        <!-- @slot [destroy-toggle, fieldset-destroy-toggle] Toggle button used to mark an existing inline row for deletion on save, when `savedRowRemoval` is `"toggle"`. -->
+                        <slot
+                            v-if="showDestroyToggle"
+                            :action="action"
+                            label="Delete on save"
+                            :name="fieldSetSlotNames['destroy-toggle'].name"
+                            :pressed="markedForRemoval"
+                            :theme="theme"
+                            @update:pressed="emit('update:markedForRemoval', $event)"
+                        >
+                            <Toggle
+                                :key="action.fieldName"
+                                variant="outline"
+                                size="sm"
+                                :class="theme('destroyToggle')"
+                                :pressed="markedForRemoval"
+                                @update:pressed="emit('update:markedForRemoval', $event)"
+                            >
+                                <component
+                                    :is="icon('typeDeleted').component"
+                                    v-if="icon('typeDeleted')"
+                                    v-bind="icon('typeDeleted').props"
+                                    aria-hidden="true"
+                                />
+                                Delete on save
+                            </Toggle>
                         </slot>
                     </template>
                     <template v-else>
