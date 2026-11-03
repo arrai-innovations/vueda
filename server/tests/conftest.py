@@ -221,6 +221,22 @@ def drop_test_database(db_name):
 
 
 @pytest.fixture(scope="session")
+def test_database_user(django_db_blocker):
+    """
+    Return the name of the PostgreSQL user that the tests connect as.
+
+    The name comes from the server, not from the ``USER`` setting. ``USER`` is empty when ``DATABASE_URL`` names no
+    user, for example ``postgresql:///vueda`` with peer authentication.
+    """
+    with django_db_blocker.unblock():
+        # The no-database cursor connects to the maintenance database, so it leaves no connection open to the test
+        # database, which suffix_each_test copies.
+        with db.connections["default"]._nodb_cursor() as cursor:
+            cursor.execute("SELECT current_user;")
+            return cursor.fetchone()[0]
+
+
+@pytest.fixture(scope="session")
 def lean_template_database(django_db_setup, django_db_blocker):
     """
     Build a template database that has the migrations of every app applied except the test apps', and return its name.
@@ -235,7 +251,8 @@ def lean_template_database(django_db_setup, django_db_blocker):
     database. The app that holds ``AUTH_USER_MODEL`` is migrated anyway, because VUEDA's own migrations depend on it.
 
     The template is built the first time a marked test asks for it, once per xdist worker, and dropped when the session
-    ends.
+    ends. A template that an earlier run left behind is dropped and built again. A run leaves one behind when it is
+    killed before the session ends. A template whose ``migrate`` fails part-way is dropped straight away.
     """
     default = settings.DATABASES["default"]
     full_name = default["NAME"]
@@ -253,8 +270,11 @@ def lean_template_database(django_db_setup, django_db_blocker):
         # Create it through Django's own connection, the way Django creates the test database, so it is owned by the
         # same user that runs the migrations.
         with connection._nodb_cursor() as cursor:
-            cursor.execute(f"CREATE DATABASE {connection.ops.quote_name(lean_name)};")
+            quoted_lean_name = connection.ops.quote_name(lean_name)
+            cursor.execute(f"DROP DATABASE IF EXISTS {quoted_lean_name} WITH (FORCE);")
+            cursor.execute(f"CREATE DATABASE {quoted_lean_name};")
         default["NAME"] = lean_name
+        migrated = False
         try:
             with pytest.MonkeyPatch.context() as monkeypatch:
                 # An app whose migration module is None is treated as having no migrations, so migrate skips it.
@@ -262,10 +282,13 @@ def lean_template_database(django_db_setup, django_db_blocker):
                     settings, "MIGRATION_MODULES", {**settings.MIGRATION_MODULES, **unmigrated_test_apps}
                 )
                 call_command("migrate", verbosity=0)
+            migrated = True
         finally:
             # PostgreSQL only copies a template that has no open connections.
             db.connections.close_all()
             default["NAME"] = full_name
+            if not migrated:
+                drop_test_database(lean_name)
 
     yield lean_name
 
@@ -315,6 +338,7 @@ def suffix_each_test(request):
 
     template_name = settings.DATABASES.get("default").get("NAME")
     source_name = request.getfixturevalue("lean_template_database") if is_lean else template_name
+    owner = request.getfixturevalue("test_database_user")
     suffix = hashlib.sha1(request.function.__name__.encode("utf-8")).hexdigest()
     db_name = f"{template_name}_{suffix}"
     # PostgreSQL has a limit of 63 characters on db names.
@@ -343,7 +367,7 @@ def suffix_each_test(request):
         sql_str = sql.SQL("CREATE DATABASE {} TEMPLATE {} OWNER {};").format(
             sql.Identifier(db_name),
             sql.Identifier(source_name),
-            sql.Identifier(settings.DATABASES["default"]["USER"]),
+            sql.Identifier(owner),
         )
         cur.execute(sql_str)
         cur.close()
