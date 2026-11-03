@@ -14,6 +14,13 @@ export default defineConfig((configEnv) => {
                 watch: false,
                 globals: true,
                 environment: "jsdom",
+                // Node 25 and later define a global `localStorage` that is
+                // undefined without `--localstorage-file`. Vitest 4 does not
+                // replace an existing global with jsdom's `localStorage`, so
+                // tests would see undefined. Turning off Node's web storage
+                // leaves the global free for jsdom. Vitest 5 handles this
+                // itself, so this flag can go once the client moves to it.
+                execArgv: ["--no-experimental-webstorage"],
                 coverage: {
                     reportOnFailure: true,
                     provider: "istanbul",
