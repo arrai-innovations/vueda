@@ -1,8 +1,3 @@
-import "@testing-library/jest-dom/vitest";
-import { configure } from "@testing-library/vue";
-
-configure({ testIdAttribute: "data-qa" });
-
 global.window = global.window || {};
 // jsdom implements no `matchMedia` at all, so this stub is what every spec gets rather than a
 // fallback for an odd environment. It has to answer the whole `MediaQueryList` interface: anything
