@@ -30,7 +30,8 @@ const ShellSeparatorStub = defineComponent({
 
 const InlineRowStub = defineComponent({
     name: "InlineRowStub",
-    emits: ["destroy-row", "update:selected"],
+    props: ["removable", "savedRowRemoval", "markedForRemoval"],
+    emits: ["destroy-row", "update:markedForRemoval"],
     setup(_, { slots }) {
         return () => h("div", { "data-qa": "inline-row-stub" }, slots.default ? slots.default() : null);
     },
@@ -70,7 +71,6 @@ const inlineState = reactive({
     showCreateButton: true,
     computedFieldProps: {},
     remainingSlotNames: [],
-    selected: { value: [] },
 });
 const emptyObject = { empty: true };
 const setVisibility = vi.fn();
@@ -100,21 +100,27 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
 
     beforeEach(async () => {
         vue = await vi.importActual("vue");
-        fieldState = vue.reactive({ name: "fs", label: "FS", value: null, help: "", errors: {}, messages: {} });
+        fieldState = vue.reactive({
+            name: "fs",
+            label: "FS",
+            value: null,
+            initialValue: null,
+            required: false,
+            help: "",
+            errors: {},
+            messages: {},
+        });
         fieldSetContext = {
             state: fieldState,
             blur: vi.fn(),
-            ignore: vi.fn(),
-            removeIgnore: vi.fn(),
+            submitAsNull: vi.fn(),
+            removeSubmitAsNull: vi.fn(),
             updateInitialValue,
         };
         FieldSetSingularStackedInline = (await import("@vueda/form/field-set/FieldSetSingularStackedInline.vue"))
             .default;
         logger.warn.mockClear();
         fieldSetContext.blur.mockClear();
-        fieldSetContext.ignore.mockClear();
-        fieldSetContext.removeIgnore.mockClear();
-        inlineState.selected.value = [];
     });
 
     scopedIt("creates inline object when fieldObjects is ready", async () => {
@@ -133,10 +139,22 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(updateInitialValue).toHaveBeenCalled();
     });
 
-    scopedIt("does not request a default destroy action for the singular row", () => {
+    scopedIt("requests a default destroy action for the singular row", () => {
         mount(FieldSetSingularStackedInline);
         expect(mockedUseFieldSetInline).toHaveBeenCalled();
-        expect(mockedUseFieldSetInline.mock.lastCall[0].addDestroyAction).toBeFalsy();
+        expect(mockedUseFieldSetInline.mock.lastCall[0].addDestroyAction).toBe(true);
+    });
+
+    scopedIt("offers row removal only when the field is not required", async () => {
+        fieldState.value = { id: 1 };
+        const wrapper = mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        const row = wrapper.getComponent(InlineRowStub);
+        expect(row.props("removable")).toBe(true);
+        expect(row.props("savedRowRemoval")).toBe("toggle");
+
+        fieldState.required = true;
+        await vue.nextTick();
+        expect(row.props("removable")).toBe(false);
     });
 
     scopedIt("clearField clears value and blurs", () => {
@@ -158,13 +176,45 @@ describe("lib/form/field-set/FieldSetSingularStackedInline.vue", () => {
         expect(wrapper.get('[data-qa="button-stub"]').text()).toBe("Create");
     });
 
-    scopedIt("handleDeleteSingle toggles ignore", () => {
-        const wrapper = mount(FieldSetSingularStackedInline);
-        wrapper.vm.handleDeleteSingle([2]);
-        expect(fieldSetContext.ignore).toHaveBeenCalled();
-        expect(inlineState.selected.value).toEqual([2]);
-        wrapper.vm.handleDeleteSingle([]);
-        expect(fieldSetContext.removeIgnore).toHaveBeenCalled();
+    scopedIt("submits the field as null while the row's destroy toggle is pressed", async () => {
+        fieldState.value = { id: 1 };
+        const wrapper = mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        const row = wrapper.getComponent(InlineRowStub);
+
+        row.vm.$emit("update:markedForRemoval", true);
+        await vue.nextTick();
+        expect(fieldSetContext.submitAsNull).toHaveBeenCalledTimes(1);
+        expect(row.props("markedForRemoval")).toBe(true);
+        expect(fieldState.value).toEqual({ id: 1 });
+
+        row.vm.$emit("update:markedForRemoval", false);
+        await vue.nextTick();
+        expect(fieldSetContext.removeSubmitAsNull).toHaveBeenCalledTimes(1);
+        expect(row.props("markedForRemoval")).toBe(false);
+    });
+
+    scopedIt.each([
+        ["a new initial value loads", () => (fieldState.initialValue = { id: 1, note: "Saved" })],
+        ["the field becomes required", () => (fieldState.required = true)],
+        ["the value is cleared", () => (fieldState.value = null)],
+    ])("clears the mark when %s", async (_, change) => {
+        fieldState.value = { id: 1 };
+        const wrapper = mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        wrapper.getComponent(InlineRowStub).vm.$emit("update:markedForRemoval", true);
+        await vue.nextTick();
+
+        change();
+        await vue.nextTick();
+        expect(fieldSetContext.removeSubmitAsNull).toHaveBeenCalledTimes(1);
+    });
+
+    scopedIt("clears the mark when the inline unmounts", async () => {
+        fieldState.value = { id: 1 };
+        const wrapper = mount(FieldSetSingularStackedInline, { props: { autoCreateWhenEmpty: false } });
+        wrapper.getComponent(InlineRowStub).vm.$emit("update:markedForRemoval", true);
+        await vue.nextTick();
+        wrapper.unmount();
+        expect(fieldSetContext.removeSubmitAsNull).toHaveBeenCalledTimes(1);
     });
 
     scopedIt("warns when value is not object", async () => {

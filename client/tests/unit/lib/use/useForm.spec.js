@@ -756,6 +756,18 @@ describe("lib/use/useForm.js", () => {
                     expect(form.state.anyIgnored).toBe(false);
                 });
 
+                scopedIt("moves submit-as-null marks with the remaining entries", () => {
+                    const { formContext: form } = getForm({
+                        initialValues: { rows: [{ contact: { note: "a" } }, { contact: { note: "b" } }] },
+                    });
+                    form.submitAsNull("rows[0].contact");
+                    form.submitAsNull("rows[1].contact");
+                    form.removeArrayItem("rows", 0);
+                    expect(form.state.submittedAsNull).toEqual({ "rows[0].contact": true });
+                    form.removeArrayItem("rows", 0);
+                    expect(form.state.submittedAsNull).toEqual({});
+                });
+
                 scopedIt(
                     "does not shift registered labels; each field's own hook stays keyed to its own name",
                     async () => {
@@ -2142,6 +2154,50 @@ describe("lib/use/useForm.js", () => {
                         stop();
                     }
                 });
+            });
+        });
+        describe("Submit-as-null State Management", () => {
+            scopedIt("submitAsNull and removeSubmitAsNull require a name", () => {
+                const { formContext } = getForm({});
+                expect(() => formContext.submitAsNull()).toThrow("No name provided");
+                expect(() => formContext.removeSubmitAsNull()).toThrow("No name provided");
+            });
+
+            scopedIt("submits a marked field as null and keeps its value in values", () => {
+                const contact = { id: 1, note: "Keep" };
+                const { formContext } = getForm({ initialValues: { contact: cloneDeep(contact), name: "A" } });
+
+                formContext.submitAsNull("contact");
+
+                expect(formContext.state.submittedAsNull).toEqual({ contact: true });
+                expect(formContext.state.values.contact).toEqual(contact);
+                expect(formContext.state.submittingValues).toEqual({ contact: null, name: "A" });
+                expect(formContext.state.anyIgnored).toBe(false);
+
+                formContext.removeSubmitAsNull("contact");
+
+                expect(formContext.state.submittedAsNull).toEqual({});
+                expect(formContext.state.submittingValues).toEqual({ contact, name: "A" });
+            });
+
+            scopedIt("does not create a marked path that has no value", () => {
+                const { formContext } = getForm({ initialValues: { name: "A" } });
+                formContext.submitAsNull("contact");
+                expect(formContext.state.submittingValues).toEqual({ name: "A" });
+            });
+
+            scopedIt("writes null into an array item before an ignored item closes its gap", () => {
+                const { formContext } = getForm({
+                    initialValues: {
+                        rows: [
+                            { name: "Dropped", contact: { note: "x" } },
+                            { name: "Kept", contact: { note: "y" } },
+                        ],
+                    },
+                });
+                formContext.ignore("rows[0]");
+                formContext.submitAsNull("rows[1].contact");
+                expect(formContext.state.submittingValues).toEqual({ rows: [{ name: "Kept", contact: null }] });
             });
         });
         describe("Field Metadata", () => {

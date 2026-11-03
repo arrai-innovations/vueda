@@ -60,6 +60,8 @@ Removal applies only to a reverse relation whose key is in the body. A body that
 - A foreign key with {@api ext:django:django.db.models.SET_NULL} or `SET_DEFAULT` is set to null or to its default.
 - Any other foreign key has its row deleted. When {@api ext:django:django.db.models.PROTECT} blocks the delete, the response is a `400` with "Cannot delete ... because protected relation exists" under `non_field_errors`.
 
+A reverse one-to-one relation takes one row or `null`, not a list. A body that sends `null` removes the parent's row, by the same rules. A body that omits the key leaves the row in place.
+
 The update removes rows before it writes the body's rows, which is the reverse of drf-writable-nested's order. When the body is HTML form data, DRF rebuilds the nested row list each time the serializer reads its submitted data. Form data is a form-encoded body or a multipart body without the manifest that [CRUD Adapter Layer](./crud-adapter-layer#multipart-saves) describes. The library records a new row's primary key in one copy of that list, and its removal step reads a fresh copy without it. Run in the library's order, the removal step would delete the rows that the request had just created.
 
 After a create or an update, `VuedaSerializer` reads the saved row again when its model keeps {@term Model History}, so the response carries the row's [`object_revision`]{@api py:property:vueda.core.serializers.VuedaSerializer.object_revision}. A nested row saved by a `VuedaSerializer` child is read again the same way.

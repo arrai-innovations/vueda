@@ -25,6 +25,7 @@ const getFormContextMock = (vue) => {
             required: {},
             valid: {},
             ignored: {},
+            submittedAsNull: {},
             dependencyValues: {},
             labels: {},
             showsErrors: {},
@@ -61,6 +62,8 @@ const getFormContextMock = (vue) => {
         blur: vi.fn(),
         ignore: vi.fn(),
         removeIgnore: vi.fn(),
+        submitAsNull: vi.fn(),
+        removeSubmitAsNull: vi.fn(),
         registerIsModifiedHook: vi.fn(),
         unregisterIsModifiedHook: vi.fn(),
         registerIsRequiredHook: vi.fn(),
@@ -140,6 +143,10 @@ describe("lib/use/useSubForm.js", () => {
         expect(fc.updateValue).toHaveBeenCalledWith("child.foo", 1);
         expect(fc.updateValue).toHaveBeenCalledWith("child[0]", 2);
         expect(fc.removeArrayItem).toHaveBeenCalledWith("child.emails", 1);
+        subForm.submitAsNull("contact");
+        subForm.removeSubmitAsNull("contact");
+        expect(fc.submitAsNull).toHaveBeenCalledWith("child.contact");
+        expect(fc.removeSubmitAsNull).toHaveBeenCalledWith("child.contact");
     });
 
     scopedIt("registers labels under the prefixed path and unregisters by the parent's id", () => {
