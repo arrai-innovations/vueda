@@ -186,7 +186,12 @@ class CustomerOrder(VuedaModel):
 
     @classmethod
     def get_next_order_number(cls):
-        # This is a poor way to do this, but is sufficient for testing.
+        # Reads the highest order number and adds one. Do not copy this into a real application:
+        # two concurrent requests can read the same maximum and save duplicate numbers, because
+        # order_number has no unique constraint. It also fails on an empty table (Max returns None)
+        # and reuses the number of a deleted latest order. Production code should use a database
+        # sequence or a locked counter row. The tests run one request at a time against fixtures
+        # that already contain orders, so this simple version is enough here.
         customer_order_data = CustomerOrder.objects.aggregate(last_order_number=Max("order_number"))
         last_order_number = customer_order_data["last_order_number"]
         return last_order_number + 1
