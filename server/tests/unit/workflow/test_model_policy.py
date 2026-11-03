@@ -5,7 +5,6 @@ from typing import ClassVar
 from unittest.mock import Mock
 
 import pytest
-from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -267,13 +266,6 @@ class TestFilterSetFilter:
                 model = store_models.CustomerOrder
                 fields = []
 
-        # An order in a state is what makes narrowing run for the default filter.
-        user = get_user_model().objects.create(email="filter-probe@domain.invalid", name="Filter Probe")
-        store_models.CustomerOrder.objects.create(
-            order_number=Decimal("3001"),
-            customer=store_models.Customer.objects.create(user=user),
-            order_state=store_models.OrderState.objects.create(code="order_state_probe", name="Probe"),
-        )
         filterset = OrderFilterSet(queryset=store_models.CustomerOrder.objects.all())
 
         # The filterset works on a deep copy of its filters, so compare what the queryset selects.

@@ -223,15 +223,8 @@ class WorkflowStateFilterSetMixin:
             from vueda.workflow.filtersets import WORKFLOW_STATE_FILTER
             from vueda.workflow.filtersets import workflow_state_filter
 
-            filters.setdefault(WORKFLOW_STATE_FILTER, workflow_state_filter())
+            filters.setdefault(WORKFLOW_STATE_FILTER, workflow_state_filter(model))
         return filters
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if workflow_enabled(self.queryset.model):
-            from vueda.workflow.filtersets import narrow_workflow_state_filter
-
-            narrow_workflow_state_filter(self)
 
 
 class IdInFilterSet(rest_framework.FilterSet):
