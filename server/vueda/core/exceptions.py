@@ -19,7 +19,6 @@ from traceback import format_exception
 from traceback import format_exception_only
 from traceback import format_tb
 
-import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.http import JsonResponse
@@ -58,8 +57,8 @@ def debug_stack_exception_handler(exc, context):
 
     if isinstance(exc, ConfirmationRequired):
         # An expected control-flow response, not an error: the request is valid but carries
-        # unacknowledged advisory warnings. Return it directly so it skips the error logging,
-        # Sentry capture, and serverStack augmentation below.
+        # unacknowledged advisory warnings. Return it directly so it skips the logging and the
+        # serverStack augmentation below.
         return Response(
             {"confirmation_required": True, "digest": exc.digest, "warnings": exc.warnings},
             status=exc.status_code,
@@ -91,10 +90,6 @@ def debug_stack_exception_handler(exc, context):
         django_requests_logger.exception("Exception in DRF view", extra={"request": context["request"]})
     else:
         django_requests_logger.error("Exception in DRF view", extra={"request": context["request"]})
-
-    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False) and isinstance(exc, ValidationError):
-        # Capture the exception with Sentry
-        sentry_sdk.capture_exception(exc)
 
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
         response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
