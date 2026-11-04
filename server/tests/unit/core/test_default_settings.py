@@ -198,3 +198,26 @@ def test_account_reauthentication_timeout_defaults_to_five_minutes():
     defaults = get_defaults(_env())
 
     assert defaults["ACCOUNT_REAUTHENTICATION_TIMEOUT"] == 300  # noqa PLR2004
+
+
+STREAMS_BASE_APPS = "vueda.core,vueda.history,vueda.info,vueda.user,vueda.release,vueda.streams"
+
+
+def test_streams_adds_the_object_streams_app():
+    defaults = get_defaults(_env(VUEDA_APPS=STREAMS_BASE_APPS))
+
+    assert "object_streams" in defaults["THIRD_PARTY_APPS"]
+    assert "vueda.workflow.streams" not in defaults["VUEDA_APPS"]
+
+
+def test_streams_with_workflow_adds_workflow_capture():
+    defaults = get_defaults(_env(VUEDA_APPS=f"{STREAMS_BASE_APPS},vueda.workflow"))
+
+    assert "vueda.workflow.streams" in defaults["VUEDA_APPS"]
+
+
+def test_workflow_without_streams_adds_no_stream_apps():
+    defaults = get_defaults(_env(VUEDA_APPS="vueda.core,vueda.history,vueda.info,vueda.user,vueda.workflow"))
+
+    assert "object_streams" not in defaults["THIRD_PARTY_APPS"]
+    assert "vueda.workflow.streams" not in defaults["VUEDA_APPS"]
