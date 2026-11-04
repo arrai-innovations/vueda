@@ -124,6 +124,10 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     `VUEDA_APPS` must include `vueda.history`. VUEDA ships pghistory event models and trigger operations in
     the migrations of every app that owns a tracked model, so a configuration without the app cannot load
     the migration graph. Omitting it raises `ImproperlyConfigured`.
+
+    `VUEDA_APPS` may include `vueda.streams` for websocket subscriptions, which needs VUEDA's `streams`
+    extra. When it does, `THIRD_PARTY_APPS` gains `object_streams`. When `VUEDA_APPS` also includes
+    `vueda.workflow`, it gains `vueda.workflow.streams`, which captures workflow transitions.
     """
     email_backend = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
     # most envs will not have defaults, so we force them to be set
@@ -509,6 +513,12 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
             "section setting 'enabled = False' on it."
         )
     return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "pgtrigger", "pghistory"]
+    # Websocket subscriptions are optional. Their workflow capture lives in its own app, because its
+    # proxy model and trigger migration must exist exactly when both streams and workflow are installed.
+    if "vueda.streams" in return_dict["VUEDA_APPS"]:
+        return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "object_streams"]
+        if "vueda.workflow" in return_dict["VUEDA_APPS"]:
+            return_dict["VUEDA_APPS"] = [*return_dict["VUEDA_APPS"], "vueda.workflow.streams"]
     # Names the acting user and request behind every event a request produces. Position is part of
     # the contract: it reads request.user, so it must follow AuthenticationMiddleware, and
     # everything it should attribute has to run inside it. vueda_history.W001 and W002 report a

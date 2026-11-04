@@ -170,6 +170,9 @@ class CustomerOrder(VuedaModel):
         class Workflow:
             enabled = True
 
+        class Streams:
+            enabled = True
+
     class Meta(VuedaModel.Meta):
         permissions = [("fulfill_orders", "Can fulfill orders")]
 
