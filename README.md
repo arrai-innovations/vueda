@@ -139,6 +139,9 @@ Some tests also use `TEST_POSTGRES_DB`, the connection string for the PostgreSQL
 maintenance database. Set it in the same file if the default local `postgres`
 connection does not work in your environment.
 
+[server/tests/README.md](server/tests/README.md) explains which database each
+test gets, and which tests must not run in parallel.
+
 ### Repository layout
 
 | Directory                               | Contents                      |
@@ -150,6 +153,8 @@ connection does not work in your environment.
 | [docs-tooling/](docs-tooling/README.md) | API documentation generation  |
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
+Its [Make a change](CONTRIBUTING.md#make-a-change) section follows one change
+from setup through tests and documentation to the pull request.
 Documentation annotation conventions live in the
 [client contract](docs-tooling/briefings/client-annotations.md) and
 [server contract](docs-tooling/briefings/server-annotations.md).
