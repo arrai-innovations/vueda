@@ -50,8 +50,9 @@ def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
 
-    An exception that DRF's ``exception_handler`` does not handle becomes a 500 response, and the
-    handler sends the exception to Sentry. Because the handler answers it, the exception never
+    An exception that DRF's ``exception_handler`` does not handle becomes a 500 response. The
+    handler sends Sentry each exception that gets a 5xx response, which includes an ``APIException``
+    whose status is 500 or higher. Because the handler answers it, the exception never
     reaches Django's ``got_request_exception`` signal, which is what Sentry's Django integration
     reports from. The event uses the same mechanism as that integration, so Sentry shows it as
     unhandled, as it shows a 500 from a plain Django view. The handler sends no event for an
@@ -85,6 +86,8 @@ def debug_stack_exception_handler(exc, context):
             {"detail": "Internal server error."},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
+    if response.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
+        # DRF answers a bare APIException with a 500 itself, so check the status, not the None result.
         _capture_unhandled_exception(exc)
 
     # The rest frameworks exception_handler doesn't handle ImpropertyConfigured errors, even though they

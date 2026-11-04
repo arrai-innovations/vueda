@@ -8,6 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import AsyncClient
 from django.test import Client
 from django.urls import path
+from rest_framework.exceptions import APIException
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -65,6 +66,7 @@ urlpatterns = [
     path("reject-input/", RejectInputView.as_view()),
     path("raise-runtime-error/", raising_view(lambda: RuntimeError("view failure"))),
     path("raise-improperly-configured/", raising_view(lambda: ImproperlyConfigured("bad configuration"))),
+    path("raise-api-exception/", raising_view(APIException)),
     path("raise-permission-denied/", raising_view(PermissionDenied)),
     path(
         "raise-confirmation-required/",
@@ -167,6 +169,15 @@ class TestExceptionHandlerSentry:
         assert response.json()["detail"] == ["bad configuration"]
         [event] = sentry_transport.events
         assert self.exception_of(event)["type"] == "ImproperlyConfigured"
+
+    def test_sends_an_api_exception_to_sentry_once(self, sentry_transport):
+        response = Client(raise_request_exception=False).get("/raise-api-exception/")
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert response.json()["detail"] == "A server error occurred."
+        [event] = sentry_transport.events
+        assert self.exception_of(event)["type"] == "APIException"
+        assert self.exception_of(event)["mechanism"] == {"type": "django", "handled": False}
 
     @pytest.mark.parametrize(
         ("url", "status"),
