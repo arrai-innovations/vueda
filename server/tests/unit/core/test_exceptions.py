@@ -2,14 +2,21 @@ from http import HTTPStatus
 
 import pytest
 import sentry_sdk
+from asgiref.sync import async_to_sync
 from django.contrib.auth.models import Group
+from django.core.exceptions import ImproperlyConfigured
+from django.test import AsyncClient
+from django.test import Client
 from django.urls import path
+from rest_framework.exceptions import APIException
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.transport import Transport
 
+from vueda.core.exceptions import ConfirmationRequired
 from vueda.core.exceptions import gate_warnings
 
 
@@ -40,10 +47,31 @@ class RejectInputView(APIView):
         raise ValidationError({"name": ["This field is invalid."]})
 
 
+def raising_view(build_exception):
+    """Return a DRF view whose ``get`` raises the exception that ``build_exception`` returns."""
+
+    class RaisingView(APIView):
+        authentication_classes = []
+        permission_classes = []
+
+        def get(self, request):
+            raise build_exception()
+
+    return RaisingView.as_view()
+
+
 urlpatterns = [
     path("write-then-raise/", WriteThenRaiseView.as_view()),
     path("write-then-gate/", WriteThenGateView.as_view()),
     path("reject-input/", RejectInputView.as_view()),
+    path("raise-runtime-error/", raising_view(lambda: RuntimeError("view failure"))),
+    path("raise-improperly-configured/", raising_view(lambda: ImproperlyConfigured("bad configuration"))),
+    path("raise-api-exception/", raising_view(APIException)),
+    path("raise-permission-denied/", raising_view(PermissionDenied)),
+    path(
+        "raise-confirmation-required/",
+        raising_view(lambda: ConfirmationRequired({"non_field_errors": ["Are you sure?"]}, "digest")),
+    ),
 ]
 
 
@@ -105,12 +133,67 @@ def sentry_transport():
 @pytest.mark.django_db
 @pytest.mark.urls(__name__)
 class TestExceptionHandlerSentry:
-    """The handler leaves validation errors out of Sentry."""
+    """The handler sends each 500 to Sentry once and leaves 4xx responses out."""
 
-    def test_does_not_send_validation_errors_to_sentry(self, client, settings, sentry_transport):
+    @pytest.fixture(autouse=True)
+    def deployed_settings(self, settings):
         settings.DEBUG = False
         settings.IN_TESTS = False
 
+    @staticmethod
+    def exception_of(event):
+        return event["exception"]["values"][-1]
+
+    def test_sends_a_runtime_error_to_sentry_once(self, sentry_transport):
+        response = Client(raise_request_exception=False).get("/raise-runtime-error/")
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert response.json()["detail"] == "Internal server error."
+        [event] = sentry_transport.events
+        assert event["transaction"] == "/raise-runtime-error/"
+        assert self.exception_of(event)["type"] == "RuntimeError"
+        assert self.exception_of(event)["mechanism"] == {"type": "django", "handled": False}
+
+    def test_sends_a_runtime_error_to_sentry_once_under_asgi(self, sentry_transport):
+        response = async_to_sync(AsyncClient(raise_request_exception=False).get)("/raise-runtime-error/")
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        [event] = sentry_transport.events
+        assert event["transaction"] == "/raise-runtime-error/"
+        assert self.exception_of(event)["type"] == "RuntimeError"
+
+    def test_sends_an_improperly_configured_error_to_sentry_once(self, sentry_transport):
+        response = Client(raise_request_exception=False).get("/raise-improperly-configured/")
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert response.json()["detail"] == ["bad configuration"]
+        [event] = sentry_transport.events
+        assert self.exception_of(event)["type"] == "ImproperlyConfigured"
+
+    def test_sends_an_api_exception_to_sentry_once(self, sentry_transport):
+        response = Client(raise_request_exception=False).get("/raise-api-exception/")
+
+        assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert response.json()["detail"] == "A server error occurred."
+        [event] = sentry_transport.events
+        assert self.exception_of(event)["type"] == "APIException"
+        assert self.exception_of(event)["mechanism"] == {"type": "django", "handled": False}
+
+    @pytest.mark.parametrize(
+        ("url", "status"),
+        [
+            ("/raise-permission-denied/", HTTPStatus.FORBIDDEN),
+            ("/raise-confirmation-required/", HTTPStatus.CONFLICT),
+        ],
+        ids=["permission-denied", "confirmation-required"],
+    )
+    def test_does_not_send_4xx_responses_to_sentry(self, client, sentry_transport, url, status):
+        response = client.get(url)
+
+        assert response.status_code == status
+        assert sentry_transport.events == []
+
+    def test_does_not_send_validation_errors_to_sentry(self, client, sentry_transport):
         response = client.post("/reject-input/")
 
         assert response.status_code == HTTPStatus.BAD_REQUEST
