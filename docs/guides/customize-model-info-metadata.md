@@ -73,6 +73,8 @@ class SubmissionSerializer(VuedaSerializer):
 
 The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels only when it shows the field read-only. They do not change serializer validation, model choices, or the editable widget.
 
+A field that declares its own choices, such as a model field with `choices`, needs no `field_display_choices`. Its `choices` entry already holds the labels, and the client shows them when the field is read-only. When a serializer sets `field_display_choices` for such a field, the `display_choices` labels take precedence in read-only views.
+
 If you also override `get_field_model_info`, call `super()` in it. Otherwise the base implementation does not apply the labels.
 
 ## Correct an Expand Descriptor

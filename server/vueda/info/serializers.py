@@ -388,19 +388,21 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 field_data["list_default"] = bool(field.style["list_default"])
             widget = getattr(field, "widget", None)
             obj = serializer
-            if not field.read_only:
+            if field.read_only and isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
+                # A read-only relation field has no queryset to list, so it reports the related model
+                # without choices.
+                ro_meta = self._get_readonly_relation_meta(model_field)
+                if ro_meta is not None:
+                    field_data["app_label"] = ro_meta.app_label
+                    field_data["model"] = ro_meta.model_name
+            else:
+                # Static choices need no queryset, so a field reports them whether it is read-only or writable.
                 if hasattr(field, "queryset"):
                     obj = field.queryset.model
                 choices, extra_data = self.get_model_field_choices(field, widget, obj)
                 field_data["choices"] = choices
                 if extra_data:
                     field_data.update(extra_data)
-            elif isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
-                # For read-only relation fields, emit app_label + model without offering choices.
-                ro_meta = self._get_readonly_relation_meta(model_field)
-                if ro_meta is not None:
-                    field_data["app_label"] = ro_meta.app_label
-                    field_data["model"] = ro_meta.model_name
             self._apply_field_constraints(field_data, field, model_field, field_name, pk_field)
             fields[field_name] = field_data
         return fields
