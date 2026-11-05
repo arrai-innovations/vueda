@@ -1,6 +1,8 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { shallowMount } from "@vue/test-utils";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
+import { VIEW_FORM_PROPS } from "@vueda/use/useFormModelProps.js";
+import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import { createPinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
@@ -128,8 +130,25 @@ async function mountView(name, extraProps = {}) {
         props: { app: "shop", model, ...VIEWS[name].props(), ...extraProps },
         global: { provide: { [FormContextSymbol]: formContext } },
     });
-    return { formModel: wrapper.findComponent(FormModel), model };
+    return { wrapper, formModel: wrapper.findComponent(FormModel), model };
 }
+
+// A value for every view form prop, so a mount can check that each one reaches the form and none renders as an attribute.
+const EVERY_FORM_PROP = {
+    formModelVariant: "passed",
+    fields: ["name"],
+    fieldDetails: { name: { label: "Passed" } },
+    expand: ["parts"],
+    expandDetails: { parts: { label: "Passed" } },
+    fieldComponents: { name: () => null },
+    widgetComponents: { name: () => null },
+    formProps: { computedFields: ["passed_total"] },
+    fieldProps: { name: { source: "view" } },
+    widgetProps: { name: { source: "view" } },
+};
+
+// The props object that the view's composable last passed to useObject, which holds the retrieve request parameters.
+const lastUseObjectProps = () => mockedUseObject.mock.calls.at(-1)[0].props;
 
 describe("formProps precedence across the form views", () => {
     describe.each(Object.keys(VIEWS))("%s", (name) => {
@@ -166,7 +185,36 @@ describe("formProps precedence across the form views", () => {
         });
     });
 
-    describe.each(["ViewCreate", "ViewUpdate", "DetailView"])("%s with form props passed", (name) => {
+    describe.each(Object.keys(VIEWS))("%s with form props passed", (name) => {
+        scopedIt("declares every view form prop", async () => {
+            const { default: component } = await VIEWS[name].load();
+            for (const key of Object.keys(VIEW_FORM_PROPS)) {
+                expect(component.props).toHaveProperty(key);
+            }
+        });
+
+        scopedIt("passes fields, expand, and their details to the form", async () => {
+            const { formModel } = await mountView(name, EVERY_FORM_PROP);
+            expect(formModel.props("fields")).toEqual(["name"]);
+            expect(formModel.props("fieldDetails")).toEqual({ name: { label: "Passed" } });
+            expect(formModel.props("expand")).toEqual(["parts"]);
+            expect(formModel.props("expandDetails")).toEqual({ parts: { label: "Passed" } });
+            expect(formModel.props("computedFields")).toEqual(["passed_total"]);
+        });
+
+        scopedIt("renders no view form prop as an attribute", async () => {
+            const { wrapper } = await mountView(name, EVERY_FORM_PROP);
+            const formPropNames = new Set(Object.keys(VIEW_FORM_PROPS).map((key) => key.toLowerCase()));
+            // shallowMount renders each stubbed child's props as attributes, so only the view's own elements count.
+            const ownElements = [wrapper.element, ...wrapper.element.querySelectorAll("*")].filter(
+                (element) => !element.tagName.toLowerCase().endsWith("-stub"),
+            );
+            const attributeNames = ownElements.flatMap((element) =>
+                [...element.attributes].map((attribute) => attribute.name.toLowerCase()),
+            );
+            expect(attributeNames.filter((attributeName) => formPropNames.has(attributeName))).toEqual([]);
+        });
+
         scopedIt("lets the view's own form props win over model config formProps", async () => {
             const { formModel } = await mountView(name, PASSED_PROPS);
             expect(formModel.props("fieldProps")).toEqual({ name: { source: "view" } });
@@ -211,11 +259,35 @@ describe("formProps precedence across the form views", () => {
         });
     });
 
-    describe.each(["ViewUpdate", "DetailView"])("%s with a calculated object and widgetProps passed", (name) => {
-        scopedIt("keeps the configured map cleared when the view passes null widgetProps", async () => {
-            instanceState.calculatedObject = { total: 3 };
-            const { formModel } = await mountView(name, { widgetProps: null });
-            expect(formModel.props("widgetProps")).toEqual({ total: 3 });
+    describe.each(["ViewUpdate", "ViewRead", "DetailView"])(
+        "%s with a calculated object and widgetProps passed",
+        (name) => {
+            scopedIt("keeps the configured map cleared when the view passes null widgetProps", async () => {
+                instanceState.calculatedObject = { total: 3 };
+                const { formModel } = await mountView(name, { widgetProps: null });
+                expect(formModel.props("widgetProps")).toEqual({ total: 3 });
+            });
+        },
+    );
+
+    describe("ViewRead retrieve request", () => {
+        scopedIt("requests the fetchFields prop when the page passes one", async () => {
+            await mountView("ViewRead", { fetchFields: ["id", "price"] });
+            expect(lastUseObjectProps().params[FIELDS_PARAM].flat()).toEqual(
+                expect.arrayContaining(["id", "price", "available_actions"]),
+            );
+            expect(lastUseObjectProps().params[FIELDS_PARAM].flat()).not.toContain("name");
+        });
+
+        scopedIt("requests the model config fetchFields when the page passes none", async () => {
+            await mountView("ViewRead");
+            expect(lastUseObjectProps().params[FIELDS_PARAM].flat()).toEqual(expect.arrayContaining(["id", "name"]));
+        });
+
+        scopedIt("expands the relations that the expand prop names", async () => {
+            modelConfig.config.expand = ["configured_relation"];
+            await mountView("ViewRead", { expand: ["parts"] });
+            expect(lastUseObjectProps().params[EXPAND_PARAM]).toEqual(["parts"]);
         });
     });
 });
