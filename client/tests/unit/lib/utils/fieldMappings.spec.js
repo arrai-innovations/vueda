@@ -105,6 +105,15 @@ describe("lib/utils/fieldMappings.js", () => {
         },
     );
 
+    it("maps a read-only SlugRelatedField to the widget that labels it through the choices endpoint", async () => {
+        const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+        const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+        expect(defaultFieldMappings.SlugRelatedField.ForeignKey.readOnlyWidget).toBe(
+            availableWidgets.WidgetModelReadOnly,
+        );
+    });
+
     it.each(["DateField", "DateTimeField", "TimeField"])(
         "gives a read-only %s the display options its list column uses",
         async (type) => {
