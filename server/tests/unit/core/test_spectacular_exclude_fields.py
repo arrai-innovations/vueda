@@ -78,9 +78,9 @@ class TestSpectacularExcludeFieldsSerializerMixin(BaseSpectacularExcludeFieldsTe
     def test_used_as_an_expandable_field_generates_schema(self, monkeypatch, settings):
         """ExcludeFieldsAsExpandableFieldSerializer only reaches ExcludeFieldsSerializer through
         expandable_fields, like store.CustomerSerializer expanding UserSerializer.
-        generate_expand_model_info() instantiates the expand target with no context to build its
-        /info/-style field metadata. The mixin excludes nothing without a view, so schema generation
-        succeeds. vueda_core.E008 still rejects this configuration.
+        generate_expand_model_info() instantiates the expand target with a context that holds only the
+        request to build its /info/-style field metadata. The mixin excludes nothing without a view, so
+        schema generation succeeds. vueda_core.E008 still rejects this configuration.
         """
         with self.temporary_migration_module(settings, app_label="erring") as migration_dir:
             schema_path = os.path.join(os.path.dirname(migration_dir), "schema.json")
