@@ -387,11 +387,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             if "list_default" in field.style:
                 field_data["list_default"] = bool(field.style["list_default"])
             widget = getattr(field, "widget", None)
-            obj = serializer
             if not field.read_only:
-                if hasattr(field, "queryset"):
-                    obj = field.queryset.model
-                choices, extra_data = self.get_model_field_choices(field, widget, obj)
+                if isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
+                    # get_choices_meta calls the relation's get_queryset(), which may read
+                    # self.context["request"]. A field from get_fields() is not bound, so its context is
+                    # empty until it is bound to the serializer that holds the context. Binding also sets
+                    # field.label, so effective_label above must be read first.
+                    field.bind(field_name, serializer_instance)
+                choices, extra_data = self.get_model_field_choices(field, widget, serializer)
                 field_data["choices"] = choices
                 if extra_data:
                     field_data.update(extra_data)
@@ -544,7 +547,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
         serializer = self.canonical["serializer"]  # type: type[serializers.ModelSerializer]
 
-        serializer_instance = serializer()
+        # self.context carries this request, which generate_expand_model_info passes on to each expand's
+        # serializer.
+        serializer_instance = serializer(context=self.context)
 
         # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
         # so neither hook may exist. A serializer with no concept of expandable fields simply has no expands to
@@ -1215,6 +1220,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``model`` attribute: ``BaseFilterSet.__init__`` assigns ``model`` to *every* filter it holds, so
         that test passes for all filters on an instantiated filterset.
 
+        A DRF relation field gets its related model from ``get_queryset()``, which is what DRF calls to list
+        and validate the field's values. A relation may override ``get_queryset()`` and pass no ``queryset``,
+        so its ``queryset`` attribute is ``None``. An override may read ``self.context["request"]``, so the
+        caller must bind the field to a serializer that holds the request.
+
         :param field: The field that the choices are attached to.
         :type field: Union[django_filters.filters.Filter, rest_framework.fields.Field]
         :param choices: The choices data or True if the choices are queryset-based or False if there are no choices.
@@ -1225,10 +1235,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         meta = None
         if choices is True:
             # queryset based choices
-            if hasattr(field, "queryset"):
+            if isinstance(field, serializers.ManyRelatedField):
+                meta = field.child_relation.get_queryset().model._meta
+            elif isinstance(field, serializers.RelatedField):
+                meta = field.get_queryset().model._meta
+            elif hasattr(field, "queryset"):
                 meta = field.queryset.model._meta
-            elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
-                meta = field.child_relation.queryset.model._meta
         return meta
 
     def get_model_field_choices(self, field, widget, serializer):
