@@ -325,7 +325,8 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_comment_removed(self, settings):
         """
         This test doesn't use --import-instead, so we can verify that
@@ -370,7 +371,8 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_changed_data_follows_the_migrations_project_settings(self, settings):
         """The formatter reads the settings that apply to the migration's own path.
 
@@ -422,7 +424,8 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
 class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, BaseTestCallCommand):
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_added(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -455,7 +458,8 @@ class TestManagementCommandWorkflowAdded(BaseAddedWorkflow, BaseTestMigrations, 
 class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallCommand):
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_changed(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -860,7 +864,8 @@ class TestManagementCommandWorkflowChanged(BaseTestMigrations, BaseTestCallComma
 class TestManagementCommandWorkflowDeleted(BaseTestMigrations, BaseTestCallCommand):
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_deleted(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -1198,7 +1203,8 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_duplicates(self, settings):
         """
         This test validates the matching of historical records to existing workflow migration
@@ -1386,7 +1392,8 @@ class TestManagementCommandWorkflowDuplicates(BaseTestMigrations, BaseTestCallCo
 class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCallCommand):
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_object_states_created(self, settings):
         """
         This test validates that workflow object state objects are
@@ -1469,7 +1476,8 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_dry_run_creates_no_object_states(self, settings):
         """A dry run reports the migration it would write and leaves objects without a state as they are."""
         settings.MIGRATION_MODULES = {
@@ -1497,7 +1505,8 @@ class TestManagementCommandWorkflowInitialState(BaseTestMigrations, BaseTestCall
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_initial_state_changed(self, settings):
         """
         This test validates that when an initial state changes, any objects that haven't been
@@ -2866,7 +2875,8 @@ class TestManagementCommandWorkflowReusedCodes(GeneratesWorkflowMigrations, Base
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_reused_codes(self, settings, monkeypatch):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -3102,7 +3112,8 @@ class TestManagementCommandWorkflowReceivedCodes(BaseTestMigrations, BaseTestCal
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_received_codes(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -3228,7 +3239,8 @@ class TestManagementCommandWorkflowMovedCodes(GeneratesWorkflowMigrations, BaseT
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_moved_codes(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -3271,7 +3283,8 @@ class TestManagementCommandWorkflowMovedCodes(GeneratesWorkflowMigrations, BaseT
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_renamed_code_then_new_transition(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
@@ -3327,7 +3340,8 @@ class TestManagementCommandWorkflowMovedCodes(GeneratesWorkflowMigrations, BaseT
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
     def test_workflow_faked_migration_rolled_back_and_reapplied(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,

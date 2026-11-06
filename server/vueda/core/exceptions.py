@@ -36,6 +36,7 @@ from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.utils.serializer_helpers import ReturnList
 from rest_framework.views import exception_handler
 from rest_framework.views import set_rollback
+from sentry_sdk.utils import event_from_exception
 
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,14 @@ def debug_stack_exception_handler(exc, context):
     """
     Custom exception handler which adds the exception class name to the response.
 
+    An exception that DRF's ``exception_handler`` does not handle becomes a 500 response. The
+    handler sends Sentry each exception that gets a 5xx response, which includes an ``APIException``
+    whose status is 500 or higher. Because the handler answers it, the exception never
+    reaches Django's ``got_request_exception`` signal, which is what Sentry's Django integration
+    reports from. The event uses the same mechanism as that integration, so Sentry shows it as
+    unhandled, as it shows a 500 from a plain Django view. The handler sends no event for an
+    exception that DRF answers with a 4xx response.
+
     Every response built here is an error or a withheld write, so the request's atomic block is
     marked for rollback first. DRF's own handler does this only for the exceptions it handles;
     without it, ``ATOMIC_REQUESTS`` would commit writes made before an unhandled exception or a
@@ -58,8 +67,8 @@ def debug_stack_exception_handler(exc, context):
 
     if isinstance(exc, ConfirmationRequired):
         # An expected control-flow response, not an error: the request is valid but carries
-        # unacknowledged advisory warnings. Return it directly so it skips the error logging,
-        # Sentry capture, and serverStack augmentation below.
+        # unacknowledged advisory warnings. Return it directly so it skips the logging and the
+        # serverStack augmentation below.
         return Response(
             {"confirmation_required": True, "digest": exc.digest, "warnings": exc.warnings},
             status=exc.status_code,
@@ -77,6 +86,9 @@ def debug_stack_exception_handler(exc, context):
             {"detail": "Internal server error."},
             status=HTTPStatus.INTERNAL_SERVER_ERROR,
         )
+    if response.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
+        # DRF answers a bare APIException with a 500 itself, so check the status, not the None result.
+        _capture_unhandled_exception(exc)
 
     # The rest frameworks exception_handler doesn't handle ImpropertyConfigured errors, even though they
     # raise them internally in a number of places, so this adds them to the response as the client expects.
@@ -92,15 +104,22 @@ def debug_stack_exception_handler(exc, context):
     else:
         django_requests_logger.error("Exception in DRF view", extra={"request": context["request"]})
 
-    if not settings.DEBUG and not getattr(settings, "IN_TESTS", False) and isinstance(exc, ValidationError):
-        # Capture the exception with Sentry
-        sentry_sdk.capture_exception(exc)
-
     if settings.DEBUG or getattr(settings, "IN_TESTS", False):
         response.data["serverStack"] = "".join(format_exception(type(exc), exc, exc.__traceback__))
     else:
         response.data["serverStack"] = "".join(format_exception_only(type(exc), exc))
     return response
+
+
+def _capture_unhandled_exception(exc):
+    """Send ``exc`` to Sentry as an unhandled exception. Does nothing when no Sentry client is active."""
+    client = sentry_sdk.get_client()
+    if not client.is_active():
+        return
+    event, hint = event_from_exception(
+        exc, client_options=client.options, mechanism={"type": "django", "handled": False}
+    )
+    sentry_sdk.capture_event(event, hint=hint)
 
 
 class BadRequestException(APIException):

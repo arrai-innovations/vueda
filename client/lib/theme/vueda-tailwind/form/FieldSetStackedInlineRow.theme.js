@@ -18,10 +18,10 @@ patchTheme({
         destroyButton: {
             class: [],
         },
-        /** Bordered row card with dirty and selected-for-destroy state chrome. */
+        /** Bordered row card with dirty and selected-for-destroy state chrome. The row wraps so that the action bar can take its own line below the fields. */
         root: {
             class: [
-                "flex items-start gap-3 hairline hairline-border rounded-vueda-card p-2.5",
+                "flex flex-wrap items-start gap-3 hairline hairline-border rounded-vueda-card p-2.5",
                 // Data attribute states.
                 "data-[state=dirty]:border-l-2 data-[state=dirty]:border-l-primary",
                 "data-[state=selected-for-destroy]:bg-destructive/5 data-[state=selected-for-destroy]:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
@@ -49,9 +49,17 @@ patchTheme({
         fields: {
             class: ["flex flex-col flex-1 min-w-0 gap-4"],
         },
-        /** Outer action group for row controls, pinned to the row start edge. */
+        /** Outer action group for row controls. In a row list narrower than the `md` container size, it is a full-width footer below the fields, with its controls at the end. From `md` up, it sits beside the fields at the top end of the row. */
         actionBarOuter: {
-            class: ["flex gap-1 2xs:gap-2 items-start shrink-0"],
+            class: [
+                "flex gap-1 2xs:gap-2 items-start shrink-0",
+
+                // Footer below the fields in a narrow row list.
+                "basis-full justify-end pt-2 border-t-hairline",
+
+                // Beside the fields from the `md` container size up.
+                "@md/inline-rows:basis-auto @md/inline-rows:justify-start @md/inline-rows:pt-0 @md/inline-rows:border-t-0",
+            ],
         },
     },
 });

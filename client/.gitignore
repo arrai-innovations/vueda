@@ -30,3 +30,6 @@ arrai-innovations-vueda-*.tgz
 
 # TypeScript build artifacts
 types/
+
+# mockup kit build entry, left behind if a build fails
+scripts/mockup-kit/.kit-entry.css

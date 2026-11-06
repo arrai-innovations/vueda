@@ -1,0 +1,248 @@
+<div>
+	<div class="flex flex-col">
+		<div class="border-b-hairline">
+			<div class="flex flex-col">
+				<div class="vk-div">
+					<div class="flex flex-col gap-1 min-w-min">
+						<div class="vk-div-2">
+							<h1 class="vk-h1">Read Customer</h1>
+							<span class="vk-page-title-loading" data-qa="page-title-loading"></span>
+						</div>
+					</div>
+					<div class="vk-page-title-actions" data-qa="page-title-actions">
+						<a
+							data-slot="button"
+							data-tone="neutral"
+							data-emphasis="outline"
+							class="vk-button-neutral-outline"
+							disabled="false"
+							href="/kitread/customer/create/"
+							>Create </a
+						><a
+							data-slot="button"
+							data-tone="neutral"
+							data-emphasis="outline"
+							class="vk-button-neutral-outline"
+							disabled="false"
+							href="/kitread/customer/list/"
+							>List
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div data-qa="read-form-root">
+			<div class="vk-sticky-bar-inner" data-qa="sticky-bar-inner">
+				<div class="flex flex-wrap gap-1.5 mr-auto" data-qa="sticky-bar-primary">
+					<div class="vk-read-action-buttons" data-qa="read-action-buttons">
+						<button
+							data-slot="button"
+							data-tone="destructive"
+							data-emphasis="outline"
+							class="vk-button-destructive-outline"
+						>
+							Destroy</button
+						><button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							Partial Update</button
+						><button data-slot="button" data-tone="primary" data-emphasis="fill" class="vk-button-primary-fill">
+							Update
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="px-5 py-5" data-qa="read-form">
+				<h2 class="vk-record-name" data-qa="record-name">Northwind Logistics</h2>
+				<div data-qa="form-model">
+					<div class="flex w-full flex-col gap-7">
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="account"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+								>Account name
+							</label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="account" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>Northwind Logistics</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="domain"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+								>Primary domain
+							</label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="domain" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div type="url" class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>https://northwind.domain.invalid</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="owner"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label">Owner </label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="owner" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>Mara Tani</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="tier"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+								>Plan tier
+							</label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="tier" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>Enterprise</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="mrr"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label">MRR </label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="mrr" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>18400.00</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="currency"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label">Currency </label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="currency" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>USD</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="taxExempt"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+								>Tax-exempt
+							</label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="taxExempt" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span><span data-qa="boolean-display-value">No</span></span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="notes"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+								>Internal note
+							</label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="notes" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span>Renewal review each March.</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

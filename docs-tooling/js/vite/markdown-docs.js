@@ -89,7 +89,7 @@ export function markdownDocsPlugin({ docsRoot, repoRoot, siteUrl }) {
                 } catch {
                     return next();
                 }
-                if (!relative.endsWith(".md") && !["llms.txt", "llms-full.txt"].includes(relative)) {
+                if (!relative.endsWith(".md") && !["llms.txt", "llms-full.txt", "symbols.json"].includes(relative)) {
                     return next();
                 }
                 try {
@@ -98,10 +98,12 @@ export function markdownDocsPlugin({ docsRoot, repoRoot, siteUrl }) {
                     if (content === undefined) {
                         return next();
                     }
-                    res.setHeader(
-                        "Content-Type",
-                        `${relative.endsWith(".md") ? "text/markdown" : "text/plain"}; charset=utf-8`,
-                    );
+                    const contentType = relative.endsWith(".md")
+                        ? "text/markdown"
+                        : relative.endsWith(".json")
+                          ? "application/json"
+                          : "text/plain";
+                    res.setHeader("Content-Type", `${contentType}; charset=utf-8`);
                     res.setHeader("Cache-Control", "no-cache");
                     res.end(content);
                 } catch (error) {

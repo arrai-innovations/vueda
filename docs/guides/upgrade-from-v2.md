@@ -14,7 +14,7 @@ Upgrade the server and the client together. A v3 client cannot read the metadata
 ## Before You Begin
 
 - Take a full database backup.
-- Archive the django-simple-history tables. The upgrade deletes them, and VUEDA does not copy their rows into the v3 history. [Archive v2 History](#archive-v2-history) lists the tables.
+- Archive your own django-simple-history tables. The upgrade deletes them, and VUEDA copies only its workflow history into the v3 history. [Archive v2 History](#archive-v2-history) lists the tables.
 - Read [Assess v2 Security Exposure](#assess-v2-security-exposure). Several v2 defects need a review of existing data or accounts.
 - Plan a test upgrade on a copy of the production database before you upgrade production.
 
@@ -22,19 +22,32 @@ Upgrade the server and the client together. A v3 client cannot read the metadata
 
 Server v2 recorded history in django-simple-history tables. VUEDA's nine workflow models wrote `vueda_workflow_historical*` tables. Your models wrote a `Historical*` table when they subclassed `VuedaHistoryBaseModel`, `SimpleHistoryModelMixin`, or `AbstractVUEDAUserWithHistory`, or when they declared `HistoricalRecords`.
 
-Server v3 records history with django-pghistory event models. The `vueda_workflow` migration `0009` deletes the nine workflow history tables. When you run `makemigrations`, Django generates `DeleteModel` operations for your own `Historical*` tables. After the upgrade, history lists start empty, and an object's workflow state history starts at its next state change.
+Server v3 records history with django-pghistory event models. Starting with the next release after server 3.0.0b1, the `vueda_workflow` migration `0009` copies the rows of the nine workflow history tables into the workflow event models, and then deletes those tables. Workflow history carries over, including each object's workflow state history. `makeworkflowmigrations` relies on it, because it finds the states, permissions, and transitions of a workflow through their events.
 
-Export every `Historical*` table before you apply those migrations. A user history table from `AbstractVUEDAUserWithHistory` holds password hashes. Protect that export the same way you protect the user table. [#511](https://github.com/arrai-innovations/vueda/issues/511) tracks a conversion of v2 history rows into v3 events.
+A database that applied `0009` with server 3.0.0b1 or earlier has no copied workflow history, and upgrading again does not copy it.
+
+Each copied row keeps the time that v2 recorded it, the acting user, and the change reason. A row that a v2-generated workflow migration wrote counts as a migration write, so `makeworkflowmigrations` does not export it again.
+
+VUEDA does not copy your own `Historical*` tables, and nothing in v3 reads them. When you run `makemigrations`, Django generates `DeleteModel` operations for them. After the upgrade, the history lists of your models start empty, and v3 records every change from then on.
+
+Export your own `Historical*` tables before you apply those migrations, so that you keep the v2 history outside the database. A user history table from `AbstractVUEDAUserWithHistory` holds password hashes. Protect that export the same way you protect the user table.
 
 ## Upgrade the Server
 
 ### Update Python, Django, and Dependencies
 
-Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.18 or later. It installs from the public PyPI index as `vueda`. Remove any private index and source binding for `vueda` from your `pyproject.toml`. The beta is a prerelease, so opt in when you add it:
+Server v3 requires Python 3.12 to 3.14, Django 6.1, and Django REST framework 3.18 or later. It installs from the public PyPI index as `vueda`. Remove any private index and source binding for `vueda` from your `pyproject.toml`. The beta is a prerelease. A version range selects it, and every other package resolves to a final release:
 
 ```bash
-uv add --prerelease allow vueda
+uv add "vueda>=3.0.0b1,<4" "psycopg[binary]"
 ```
+
+VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its build:
+
+- `psycopg[binary]` installs a prebuilt build that bundles the PostgreSQL client library. It needs no compiler, so it suits development and any server where a prebuilt wheel is available.
+- `psycopg[c]` compiles against the client library that is installed on the system. The server needs a compiler and the PostgreSQL client headers. The build then uses the system library, which receives the operating system's security updates, and it works where no prebuilt wheel exists. psycopg recommends this build for production.
+
+The [psycopg installation guide](https://www.psycopg.org/psycopg3/docs/basic/install.html) compares the two builds in detail. If your project already depends on `psycopg2`, add a psycopg 3 build as well, because VUEDA imports psycopg 3.
 
 These dependencies changed:
 
@@ -78,7 +91,7 @@ These dependencies changed:
 
 ### Run the Migrations
 
-Object states carried over from v2 keep their current states when a current v3-generated workflow migration runs, even though they have no v3 events. [How Object States Are Updated](manage-workflows.md#how-object-states-are-updated) describes the rules and how to refresh older v3-generated files.
+Object states carried over from v2 follow the same rules as v3 object states when a current v3-generated workflow migration runs, because `vueda_workflow` migration `0009` copies their v2 history. [How Object States Are Updated](manage-workflows.md#how-object-states-are-updated) describes the rules and how to refresh older v3-generated files.
 
 ::: warning
 Upgrade VUEDA before running `makeworkflowmigrations` on the upgraded database. Older v3 versions reset object states with no events even when the command reports no workflow changes. Before applying an older v3-generated workflow migration, refresh its embedded functions with `updateworkflowmigrations`, review the changes, and commit them. A package upgrade alone does not change those copies. Migrations generated with `--import-instead` receive the fix through the package upgrade. The fix does not restore states that were already reset.

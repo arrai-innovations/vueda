@@ -1,0 +1,477 @@
+<div>
+	<div class="flex flex-col">
+		<div class="border-b-hairline">
+			<div class="flex flex-col">
+				<div class="vk-div">
+					<div class="flex flex-col gap-1 min-w-min">
+						<div class="vk-div-2">
+							<h1 class="vk-h1">Create Customer</h1>
+							<span class="vk-page-title-loading" data-qa="page-title-loading"></span>
+						</div>
+					</div>
+					<div class="vk-page-title-actions" data-qa="page-title-actions">
+						<a
+							data-slot="button"
+							data-tone="neutral"
+							data-emphasis="outline"
+							class="vk-button-neutral-outline"
+							disabled="false"
+							href="/kitcreate/customer/list/"
+							>List
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div data-qa="create-form-root">
+			<div class="vk-sticky-bar-inner" data-qa="sticky-bar-inner">
+				<div class="flex flex-wrap gap-1.5 mr-auto" data-qa="sticky-bar-primary">
+					<div class="vk-read-action-buttons" data-qa="create-action-buttons">
+						<button
+							data-slot="button"
+							data-tone="primary"
+							data-emphasis="fill"
+							class="vk-button-primary-fill"
+							form="form-kitcreate-customer-create"
+							type="submit"
+						>
+							Create
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="px-5 py-5" data-qa="create-form">
+				<form id="form-kitcreate-customer-create">
+					<div data-qa="form-model">
+						<div class="flex w-full flex-col gap-7">
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="account"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Account name <span aria-hidden="true" class="text-destructive font-medium">*</span></label
+								>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="account" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<input
+											data-slot="input"
+											aria-required="true"
+											name="account"
+											data-qa="widget-text-input"
+											class="vk-input"
+										/>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="domain"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Primary domain
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="domain" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<input data-slot="input" name="domain" type="url" data-qa="widget-text-input" class="vk-input" />
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="owner"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Owner <span aria-hidden="true" class="text-destructive font-medium">*</span></label
+								>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="owner" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<button
+											data-slot="select-trigger"
+											data-size="default"
+											class="vk-select-trigger-default"
+											aria-required="false"
+											data-qa="widget-select-dropdown"
+											role="combobox"
+											type="button"
+											aria-expanded="false"
+											aria-autocomplete="none"
+											dir="ltr"
+											data-state="closed"
+											data-placeholder=""
+										>
+											<span style="pointer-events: none" data-placeholder="" data-slot="select-value"></span
+											><svg
+												class="svg-inline--fa fa-caret-down size-4 opacity-50"
+												data-prefix="fas"
+												data-icon="caret-down"
+												role="img"
+												viewBox="0 0 320 512"
+												aria-hidden="true"
+											>
+												<path
+													fill="currentColor"
+													d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+												></path>
+											</svg></button
+										><select
+											aria-hidden="true"
+											tabindex="-1"
+											style="
+												position: absolute;
+												border: 0px;
+												width: 1px;
+												height: 1px;
+												padding: 0px;
+												margin: -1px;
+												overflow: hidden;
+												clip: rect(0px, 0px, 0px, 0px);
+												clip-path: inset(50%);
+												white-space: nowrap;
+												word-wrap: normal;
+												top: -1px;
+												left: -1px;
+											"
+											name="owner"
+										>
+											<option value="" selected=""></option>
+											<option value="mt">Mara Tani</option>
+											<option value="jr">Jordan Reyes</option>
+											<option value="ps">Priya Subramanian</option>
+											<option value="lb">Linnea Borg</option>
+										</select>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="tier"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Plan tier
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="tier" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<button
+											data-slot="select-trigger"
+											data-size="default"
+											class="vk-select-trigger-default"
+											aria-required="false"
+											data-qa="widget-select-dropdown"
+											role="combobox"
+											type="button"
+											aria-expanded="false"
+											aria-autocomplete="none"
+											dir="ltr"
+											data-state="closed"
+											data-placeholder=""
+										>
+											<span style="pointer-events: none" data-placeholder="" data-slot="select-value"></span
+											><svg
+												class="svg-inline--fa fa-caret-down size-4 opacity-50"
+												data-prefix="fas"
+												data-icon="caret-down"
+												role="img"
+												viewBox="0 0 320 512"
+												aria-hidden="true"
+											>
+												<path
+													fill="currentColor"
+													d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+												></path>
+											</svg></button
+										><select
+											aria-hidden="true"
+											tabindex="-1"
+											style="
+												position: absolute;
+												border: 0px;
+												width: 1px;
+												height: 1px;
+												padding: 0px;
+												margin: -1px;
+												overflow: hidden;
+												clip: rect(0px, 0px, 0px, 0px);
+												clip-path: inset(50%);
+												white-space: nowrap;
+												word-wrap: normal;
+												top: -1px;
+												left: -1px;
+											"
+											name="tier"
+										>
+											<option value="" selected=""></option>
+											<option value="trial">Trial</option>
+											<option value="standard">Standard</option>
+											<option value="enterprise">Enterprise</option>
+										</select>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="mrr"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label">MRR </label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="mrr" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<div data-slot="number-field" class="grid gap-1.5" role="group">
+											<div data-slot="number-field-content" class="vk-number-field-content">
+												<button
+													tabindex="-1"
+													aria-label="Decrease"
+													type="button"
+													data-slot="decrement"
+													class="vk-decrement"
+												>
+													<svg
+														class="svg-inline--fa fa-minus"
+														data-prefix="fas"
+														data-icon="minus"
+														role="img"
+														viewBox="0 0 448 512"
+														aria-hidden="true"
+													>
+														<path
+															fill="currentColor"
+															d="M0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32z"
+														></path>
+													</svg></button
+												><input
+													role="spinbutton"
+													type="text"
+													tabindex="0"
+													inputmode="decimal"
+													autocomplete="off"
+													autocorrect="off"
+													spellcheck="false"
+													aria-roledescription="Number field"
+													data-slot="input"
+													class="vk-input-2"
+													data-qa="widget-number-input"
+													value=""
+												/><button
+													tabindex="-1"
+													aria-label="Increase"
+													type="button"
+													data-slot="increment"
+													class="vk-increment"
+												>
+													<svg
+														class="svg-inline--fa fa-plus"
+														data-prefix="fas"
+														data-icon="plus"
+														role="img"
+														viewBox="0 0 448 512"
+														aria-hidden="true"
+													>
+														<path
+															fill="currentColor"
+															d="M256 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 160-160 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l160 0 0 160c0 17.7 14.3 32 32 32s32-14.3 32-32l0-160 160 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-160 0 0-160z"
+														></path>
+													</svg>
+												</button>
+											</div>
+											<input
+												data-hidden=""
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="mrr"
+												type="text"
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="currency"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Currency
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="currency" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<button
+											data-slot="select-trigger"
+											data-size="default"
+											class="vk-select-trigger-default"
+											aria-required="false"
+											data-qa="widget-select-dropdown"
+											role="combobox"
+											type="button"
+											aria-expanded="false"
+											aria-autocomplete="none"
+											dir="ltr"
+											data-state="closed"
+											data-placeholder=""
+										>
+											<span style="pointer-events: none" data-placeholder="" data-slot="select-value"></span
+											><svg
+												class="svg-inline--fa fa-caret-down size-4 opacity-50"
+												data-prefix="fas"
+												data-icon="caret-down"
+												role="img"
+												viewBox="0 0 320 512"
+												aria-hidden="true"
+											>
+												<path
+													fill="currentColor"
+													d="M140.3 376.8c12.6 10.2 31.1 9.5 42.8-2.2l128-128c9.2-9.2 11.9-22.9 6.9-34.9S301.4 192 288.5 192l-256 0c-12.9 0-24.6 7.8-29.6 19.8S.7 237.5 9.9 246.6l128 128 2.4 2.2z"
+												></path>
+											</svg></button
+										><select
+											aria-hidden="true"
+											tabindex="-1"
+											style="
+												position: absolute;
+												border: 0px;
+												width: 1px;
+												height: 1px;
+												padding: 0px;
+												margin: -1px;
+												overflow: hidden;
+												clip: rect(0px, 0px, 0px, 0px);
+												clip-path: inset(50%);
+												white-space: nowrap;
+												word-wrap: normal;
+												top: -1px;
+												left: -1px;
+											"
+											name="currency"
+										>
+											<option value="" selected=""></option>
+											<option value="usd">USD</option>
+											<option value="eur">EUR</option>
+											<option value="gbp">GBP</option>
+										</select>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="taxExempt"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Tax-exempt
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="taxExempt" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<button
+											data-slot="switch"
+											class="vk-switch peer"
+											data-qa="widget-toggle"
+											role="switch"
+											type="button"
+											aria-checked="false"
+											data-state="unchecked"
+											value="on"
+										>
+											<span data-state="unchecked" data-slot="switch-thumb" class="vk-switch-thumb"></span
+											><input
+												data-hidden=""
+												tabindex="-1"
+												style="
+													position: absolute;
+													border: 0px;
+													width: 1px;
+													height: 1px;
+													padding: 0px;
+													margin: -1px;
+													overflow: hidden;
+													clip: rect(0px, 0px, 0px, 0px);
+													clip-path: inset(50%);
+													white-space: nowrap;
+													word-wrap: normal;
+													top: -1px;
+													left: -1px;
+												"
+												name="taxExempt"
+												type="checkbox"
+												value="on"
+											/>
+										</button>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="notes"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Internal note
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="notes" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<textarea
+											data-slot="textarea"
+											name="notes"
+											data-qa="widget-text-textarea"
+											class="vk-textarea"
+										></textarea>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<div></div>
+<div></div>
+<div></div>

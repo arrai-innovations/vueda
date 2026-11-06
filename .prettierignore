@@ -38,6 +38,13 @@ docs/.vitepress/.temp
 docs/public/assets/mermaid/mermaid.min.js
 docs-tooling/.generated
 
+# generated mockup kit (client/scripts/mockup-kit); `just check-mockup-kit`
+# compares these files byte for byte with a fresh build
+skills/vueda-mockups/assets
+skills/vueda-mockups/snapshots
+skills/vueda-mockups/page.html
+skills/vueda-mockups/gallery.html
+
 # changelog fragment template (Jinja, not Markdown)
 changelog.d/template.md
 

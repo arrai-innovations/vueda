@@ -186,10 +186,45 @@ class CustomerOrder(VuedaModel):
 
     @classmethod
     def get_next_order_number(cls):
-        # This is a poor way to do this, but is sufficient for testing.
+        # Reads the highest order number and adds one. Do not copy this into a real application:
+        # two concurrent requests can read the same maximum and save duplicate numbers, because
+        # order_number has no unique constraint. It also fails on an empty table (Max returns None)
+        # and reuses the number of a deleted latest order. Production code should use a database
+        # sequence or a locked counter row. The tests run one request at a time against fixtures
+        # that already contain orders, so this simple version is enough here.
         customer_order_data = CustomerOrder.objects.aggregate(last_order_number=Max("order_number"))
         last_order_number = customer_order_data["last_order_number"]
         return last_order_number + 1
+
+
+class CustomerOrderShipment(models.Model):
+    """A shipment that an order may have. The reverse ``shipment`` relation is nullable, so a test can
+    join it into ``CustomerOrder`` queries as an outer join."""
+
+    customer_order = models.OneToOneField(CustomerOrder, on_delete=models.CASCADE, related_name="shipment")
+    tracking_number = models.CharField(max_length=255)
+
+
+class Parcel(VuedaModel):
+    """A parcel that takes its formatted name from its label's tracking number. ``label`` is a reverse
+    one-to-one relation, so the ``formatted_name`` annotation joins it as an outer join on every
+    ``Parcel`` query, which is the query shape the workflow row lock must handle."""
+
+    reference = models.CharField(max_length=255)
+
+    formatted_name = None
+    formatted_name_lookup_expression = "label__tracking_number"
+
+    class Vueda:
+        class Workflow:
+            enabled = True
+
+
+class ParcelLabel(models.Model):
+    """A shipping label that a parcel may have."""
+
+    parcel = models.OneToOneField(Parcel, on_delete=models.CASCADE, related_name="label")
+    tracking_number = models.CharField(max_length=255)
 
 
 class OrderItem(VuedaModel):

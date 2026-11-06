@@ -87,6 +87,31 @@ fix-eslint:
 fix-prettier:
   cd {{justfile_directory()}} && pnpm run fix:prettier | sed '/unchanged/d'
 
+# Mockup kit: static snapshots of the default theme's CRUDL views, in
+# skills/vueda-mockups/. Rebuild after changing the theme, the views, or the
+# docs fixtures that the snapshots render.
+build-mockup-kit:
+  cd {{justfile_directory()}}/client && node scripts/mockup-kit/build.mjs ../skills/vueda-mockups
+
+# Fail when the committed mockup kit differs from a fresh build.
+check-mockup-kit:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  fresh="$(mktemp -d)"
+  trap 'rm -rf "$fresh"' EXIT
+  cd {{justfile_directory()}}/client
+  node scripts/mockup-kit/build.mjs "$fresh" > "$fresh.log" 2>&1 || { cat "$fresh.log"; rm -f "$fresh.log"; exit 1; }
+  rm -f "$fresh.log"
+  kit={{justfile_directory()}}/skills/vueda-mockups
+  status=0
+  for path in assets snapshots page.html gallery.html; do
+    diff -rq "$fresh/$path" "$kit/$path" || status=1
+  done
+  if [ "$status" -ne 0 ]; then
+    echo "The mockup kit is out of date. Run: just build-mockup-kit"
+  fi
+  exit "$status"
+
 types-client:
   cd {{justfile_directory()}}/client && pnpm run build:types
 

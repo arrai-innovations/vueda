@@ -3,6 +3,42 @@
 Thank you for contributing to VUEDA. The root [README](README.md) explains how
 to install the workspace and run its checks and tests.
 
+## Make a change
+
+These steps follow one change from a working checkout to a pull request. Each
+step links to the rules that it relies on.
+
+1. Set up the workspace. Follow [Develop VUEDA](README.md#develop-vueda) in
+   the root README to install the tools, run `just bootstrap`, and configure
+   the server test database. Run `just test` to confirm that the suite passes
+   before you change anything.
+2. Write a test that fails without the change. Server tests live under
+   `server/tests/unit/` and run with `just test-server <path>`. Client tests
+   live under `client/tests/unit/` and run with `just test-client <path>`. A
+   path is relative to its package directory. Before you write a server test,
+   read [server/tests/README.md](server/tests/README.md). It explains which
+   database a test gets, how to test commands that write migrations, and which
+   tests must not run in parallel.
+3. Make the change until the test passes. Run `just fix`, then `just check`.
+   Run the server suite the way CI does, with
+   `just test-server -n2 --dist loadgroup`.
+4. Update the documentation that the change affects. Authored pages live under
+   `docs/`, and [docs/README.md](docs/README.md) covers their frontmatter,
+   topic owners, and link syntax. Docstrings and JSDoc feed the generated API
+   reference. They follow the
+   [client contract](docs-tooling/briefings/client-annotations.md) and the
+   [server contract](docs-tooling/briefings/server-annotations.md). Pages,
+   docstrings, and JSDoc all follow the
+   [language guardrails](AGENTS.md#documentation-language-guardrails). Run
+   `just docs-validate` to check references, and `just docs-serve` to read the
+   result.
+5. Add a changelog fragment when the change needs one. See
+   [Changelog entries](#changelog-entries).
+6. Commit, then open the pull request. Follow
+   [Commit messages](#commit-messages),
+   [Pull request titles](#pull-request-titles), and
+   [Pull request labels](#pull-request-labels).
+
 ## Issue and pull request titles
 
 A title should identify the affected behavior and the intended outcome. It

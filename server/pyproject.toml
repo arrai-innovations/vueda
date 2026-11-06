@@ -58,6 +58,8 @@ dependencies = [
     "twilio>=9.8.0",
     "phonenumbers>=9.0.15",
     "starlette>=1.3.1",
+    # The project picks the psycopg build by adding psycopg[binary] or psycopg[c] itself.
+    "psycopg>=3.2.0,<4",
 ]
 
 # CACHE_URL selects the cache backend, so the Redis client is only needed by a deployment whose
@@ -153,6 +155,9 @@ addopts = "--ds=tests.settings --create-db"
 testpaths = ["tests"]
 python_files = [
     "test_*.py"
+]
+markers = [
+    "lean_database: run a transactional test against a copy of a database that has no test app migrations applied (see lean_template_database in tests/conftest.py)",
 ]
 filterwarnings = [
     "ignore:Passing None for the middleware get_response argument is deprecated:DeprecationWarning",

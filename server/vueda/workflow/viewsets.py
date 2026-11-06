@@ -333,8 +333,12 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
 
     def _apply_transition_to_instance(self, instance, transition_code, request):
         if not request.dry_run:
+            # Lock only the model's own row. The default manager can join related tables for
+            # formatted_name, and Postgres refuses to lock the nullable side of an outer join.
             locked_instance = (
-                instance.__class__.objects.select_for_update(skip_locked=True).filter(pk=instance.pk).first()
+                instance.__class__.objects.select_for_update(skip_locked=True, of=("self",))
+                .filter(pk=instance.pk)
+                .first()
             )
             if not locked_instance:
                 raise VuedaValidationError("This object cannot be updated right now. Please try again.")

@@ -167,7 +167,7 @@ export function useFieldRenderer(props, attrs, slots, fieldSetContext) {
             ),
         }));
         const widgetProps = computed(() => ({
-            ...props.objectGridFieldSlotProps,
+            ...omit(props.objectGridFieldSlotProps, ["value"]),
             ...omit(props.formModel.widgetProps[props.formModelName], ["themeOverride"]),
             ...omit(attrs, ["class"]),
             ...props.widgetProps,

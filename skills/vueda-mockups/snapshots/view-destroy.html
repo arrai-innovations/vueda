@@ -1,0 +1,205 @@
+<div>
+	<div class="flex flex-col">
+		<div class="border-b-hairline">
+			<div class="flex flex-col">
+				<div class="vk-div">
+					<div class="flex flex-col gap-1 min-w-min">
+						<div class="vk-div-2">
+							<h1 class="vk-h1">Delete 2 Customers</h1>
+							<span class="vk-page-title-loading" data-qa="page-title-loading"></span>
+						</div>
+					</div>
+					<div class="vk-page-title-actions" data-qa="page-title-actions">
+						<button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							Go Back
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div>
+			<div data-qa="action-form-root">
+				<div class="vk-sticky-bar-inner" data-qa="sticky-bar-inner">
+					<div class="vk-action-form-buttons" data-qa="action-form-buttons">
+						<button
+							data-slot="button"
+							data-tone="destructive"
+							data-emphasis="fill"
+							class="vk-button-destructive-fill"
+							type="submit"
+							form="vueda-action-form-1"
+							disabled=""
+						>
+							Delete
+						</button>
+					</div>
+				</div>
+				<div class="px-5 py-5 max-w-7xl" data-qa="action-form-content">
+					<div class="flex flex-col gap-1 md:gap-2 2xl:gap-4" data-qa="action-form-inner">
+						<div></div>
+						<form id="vueda-action-form-1">
+							<section
+								class="group/model-action-form flex flex-col gap-4"
+								data-tone="danger"
+								data-qa="model-action-form-card"
+							>
+								<div class="flex items-start gap-3" data-qa="view-destroy-banner">
+									<div class="vk-view-destroy-banner-div" aria-hidden="true">
+										<svg
+											class="svg-inline--fa fa-triangle-exclamation"
+											data-prefix="fas"
+											data-icon="triangle-exclamation"
+											role="img"
+											viewBox="0 0 512 512"
+											aria-hidden="true"
+										>
+											<path
+												fill="currentColor"
+												d="M256 0c14.7 0 28.2 8.1 35.2 21l216 400c6.7 12.4 6.4 27.4-.8 39.5S486.1 480 472 480L40 480c-14.1 0-27.2-7.4-34.4-19.5s-7.5-27.1-.8-39.5l216-400c7-12.9 20.5-21 35.2-21zm0 352a32 32 0 1 0 0 64 32 32 0 1 0 0-64zm0-192c-18.2 0-32.7 15.5-31.4 33.7l7.4 104c.9 12.5 11.4 22.3 23.9 22.3 12.6 0 23-9.7 23.9-22.3l7.4-104c1.3-18.2-13.1-33.7-31.4-33.7z"
+											></path>
+										</svg>
+									</div>
+									<div class="flex flex-col gap-1 min-w-0">
+										<div class="vk-view-destroy-banner-title" data-qa="view-destroy-banner-title">
+											This will permanently delete 2 Customers.
+										</div>
+										<ul
+											data-slot="consequences-bullets"
+											class="flex flex-col gap-2 m-0 p-0 list-none"
+											data-qa="view-destroy-cascade"
+										>
+											<li
+												data-tone="danger"
+												class="vk-consequences-bullets-item-danger"
+												data-qa="consequences-bullets-item"
+											>
+												<span
+													class="vk-consequences-bullets-icon"
+													aria-hidden="true"
+													data-qa="consequences-bullets-icon"
+												></span
+												><span class="flex flex-col gap-0.5 min-w-0" data-qa="consequences-bullets-text"
+													><span class="vk-consequences-bullets-label" data-qa="consequences-bullets-label"
+														>26 contacts</span
+													><span class="vk-consequences-bullets-description" data-qa="consequences-bullets-description"
+														>will also be removed</span
+													></span
+												>
+											</li>
+											<li
+												data-tone="danger"
+												class="vk-consequences-bullets-item-danger"
+												data-qa="consequences-bullets-item"
+											>
+												<span
+													class="vk-consequences-bullets-icon"
+													aria-hidden="true"
+													data-qa="consequences-bullets-icon"
+												></span
+												><span class="flex flex-col gap-0.5 min-w-0" data-qa="consequences-bullets-text"
+													><span class="vk-consequences-bullets-label" data-qa="consequences-bullets-label"
+														>112 invoices</span
+													><span class="vk-consequences-bullets-description" data-qa="consequences-bullets-description"
+														>will also be removed</span
+													></span
+												>
+											</li>
+										</ul>
+									</div>
+								</div>
+								<div class="flex flex-col gap-3" data-qa="model-action-form-body">
+									<div
+										class="vk-action-form-selected-objects-neutral"
+										data-qa="action-form-selected-objects"
+										data-tone="neutral"
+									>
+										<div class="vk-action-form-selected-objects-div">
+											<span class="vk-sort-group-strip-span"> Selected Customers</span
+											><span class="vk-action-form-selected-count" data-qa="action-form-selected-count"
+												>2 of 2 selected
+											</span>
+										</div>
+										<ul class="flex flex-row flex-wrap gap-2" data-qa="action-form-list">
+											<li class="vk-action-form-list-item" data-qa="action-form-list-item">
+												<div
+													role="group"
+													data-slot="field"
+													data-orientation="vertical"
+													class="vk-field-2 group/field"
+													data-qa="form-field"
+												>
+													<div data-slot="field-content" class="vk-field-content group/field-content">
+														<div data-qa="widget-read-only-root">
+															<div class="flex flex-col" data-qa="widget-read-only-inner">
+																<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+																	<a
+																		data-slot="button"
+																		data-tone="primary"
+																		data-emphasis="link"
+																		class="vk-button-primary-link"
+																		disabled="false"
+																		href="/kitdestroy/customer/read/2"
+																		>Granger Holdings
+																	</a>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</li>
+											<li class="vk-action-form-list-item" data-qa="action-form-list-item">
+												<div
+													role="group"
+													data-slot="field"
+													data-orientation="vertical"
+													class="vk-field-2 group/field"
+													data-qa="form-field"
+												>
+													<div data-slot="field-content" class="vk-field-content group/field-content">
+														<div data-qa="widget-read-only-root">
+															<div class="flex flex-col" data-qa="widget-read-only-inner">
+																<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+																	<a
+																		data-slot="button"
+																		data-tone="primary"
+																		data-emphasis="link"
+																		class="vk-button-primary-link"
+																		disabled="false"
+																		href="/kitdestroy/customer/read/5"
+																		>Harbourline Marine
+																	</a>
+																</div>
+															</div>
+														</div>
+													</div>
+												</div>
+											</li>
+										</ul>
+									</div>
+									<div class="flex flex-col gap-1.5" data-qa="action-form-message">
+										<p class="vk-action-form-message-p">Are you sure you want to delete the selected Customers?</p>
+									</div>
+									<label data-slot="typed-confirm-field" data-match="false" class="vk-typed-confirm-field"
+										><span class="vk-typed-confirm-field-label" data-qa="typed-confirm-field-label"
+											>Type
+											<code class="vk-typed-confirm-field-chip" data-qa="typed-confirm-field-chip"
+												>delete 2 customers</code
+											>
+											to confirm</span
+										><input
+											type="text"
+											autocomplete="off"
+											spellcheck="false"
+											placeholder="delete 2 customers"
+											class="vk-typed-confirm-field-input"
+											data-qa="typed-confirm-field-input"
+									/></label>
+								</div>
+							</section>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

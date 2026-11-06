@@ -14,6 +14,13 @@ export default defineConfig((configEnv) => {
                 watch: false,
                 globals: true,
                 environment: "jsdom",
+                // vmThreads builds the jsdom environment once per worker and
+                // still runs each spec file in its own VM context. The default
+                // pool builds jsdom again for every file, which took about half
+                // of the suite's run time. Specs must not replace the global
+                // window or document, because a VM context makes them
+                // read-only. Spy on their methods instead.
+                pool: "vmThreads",
                 coverage: {
                     reportOnFailure: true,
                     provider: "istanbul",

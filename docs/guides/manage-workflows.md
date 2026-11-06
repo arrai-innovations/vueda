@@ -96,7 +96,7 @@ The generated file is a standard Django migration with these additions:
 
 After applying its recorded changes, a workflow migration checks the objects of every workflow. An object without an object state gets its workflow's initial state. An existing object state moves to the current initial state only when its event history contains an `insert` event and no other event. A state with any later event stays where it is.
 
-An object state with no events also stays where it is, even when the initial state changes. Object states carried over from v2 predate the event triggers, so their empty event history cannot show whether they moved. Preserving those states does not depend on converting or retaining v2 history.
+An object state with no events also stays where it is, even when the initial state changes, because its history cannot show whether it moved. An object state carried over from v2 has events when `vueda_workflow` migration `0009` copied its v2 history. A database upgraded with server 3.0.0b1 or earlier has no copied history, so its v2 object states have no events.
 
 `makeworkflowmigrations` performs the same checks on the local database, even when it detects no workflow changes. Its `--dry-run` leaves object states unchanged.
 

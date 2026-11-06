@@ -90,15 +90,16 @@ An action is the pghistory context that was open when the write happened. Every 
 
 A group's `kind` says what started the action, and its `label` names the operation:
 
-| Source                                                                 | `kind`      | `label`                                                 |
-| ---------------------------------------------------------------------- | ----------- | ------------------------------------------------------- |
-| A request to a {@api py:class:vueda.core.viewsets.VuedaViewSet} action | `request`   | The DRF action name, such as `update` or `destroy`      |
-| A request to `execute-transition`                                      | `request`   | The transition code, such as `approve`                  |
-| A request to any other view                                            | `request`   | `null`                                                  |
-| A VDQ task                                                             | `task`      | The task name, such as `vdq.send_message`               |
-| A generated workflow migration                                         | `migration` | The migration's change reason                           |
-| An {@api py:function:vueda.core.audit.audited_action} block            | Its `kind`  | Its `action` argument. Its `kind` defaults to `system`. |
-| A transition run with no action open                                   | `system`    | The transition code                                     |
+| Source                                                                   | `kind`      | `label`                                                               |
+| ------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------------- |
+| A request to a {@api py:class:vueda.core.viewsets.VuedaViewSet} action   | `request`   | The DRF action name, such as `update` or `destroy`                    |
+| A request to `execute-transition`                                        | `request`   | The transition code, such as `approve`                                |
+| A request to any other view                                              | `request`   | `null`                                                                |
+| A VDQ task                                                               | `task`      | The task name, such as `vdq.send_message`                             |
+| A generated workflow migration                                           | `migration` | The migration's change reason                                         |
+| Workflow history copied from server v2 that no generated migration wrote | `legacy`    | Its v2 change reason. It is `workflow history` when v2 recorded none. |
+| An {@api py:function:vueda.core.audit.audited_action} block              | Its `kind`  | Its `action` argument. Its `kind` defaults to `system`.               |
+| A transition run with no action open                                     | `system`    | The transition code                                                   |
 
 `kind` is an open vocabulary. A project can add its own through `audited_action`, so a client must render a value that it does not recognize.
 

@@ -36,10 +36,33 @@ VUEDA publishes one evolving documentation site per major at
 `https://vueda.dev/v3/llms.txt`. Substitute the established major for other
 release lines; do not invent minor or patch documentation URLs.
 
-Search the index for the task and fetch the relevant Markdown links before
-choosing VUEDA APIs. Fetch individual pages rather than loading
-`llms-full.txt` by default. The index supplies exact filenames, including
-directory `index.md` files and generated API paths.
+Search the grouped index for the task and fetch the relevant Markdown links
+before choosing VUEDA APIs. Reference entries lead to section indexes; follow
+those links to individual APIs. Fetch individual pages rather than loading
+`llms-full.txt` by default.
+
+For a known symbol, use the bundled [symbol lookup helper](scripts/search-symbols.mjs)
+with Node.js 22 or newer. Resolve the script path relative to this `SKILL.md`,
+not the application's working directory:
+
+```bash
+node /path/to/using-vueda/scripts/search-symbols.mjs --major 3 --language js useModelInfo
+```
+
+Substitute the application's established major. Omit `--language` to search
+all references, or select `js`, `py`, `vue`, `rest`, or `theme`. Pass `--`
+before a query that starts with a dash, such as `--radius`.
+
+The helper downloads `symbols.json` from the selected major's documentation
+site and searches it locally. It returns JSON with qualified identifiers,
+names, and exact Markdown URLs, including member anchors. Exact matches come
+first; the default limit is 10. When `truncated` is true, narrow the query or
+use `--limit` to request up to 50 results. Fetch the relevant result's URL
+before using the API. Do not load the entire symbol index into context.
+
+If Node.js or the symbol index is unavailable, follow the reference indexes
+from `llms.txt`. No matches means no documented identifier matched the query;
+it does not establish that an API is absent from the installed package.
 
 Use these page titles to narrow the search; read only what the task needs:
 

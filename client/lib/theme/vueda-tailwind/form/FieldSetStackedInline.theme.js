@@ -72,9 +72,9 @@ patchTheme({
                 "min-w-1",
             ],
         },
-        /** Vertical list of inline object rows. */
+        /** Vertical list of inline object rows. It is the `inline-rows` size container, so each row lays out its action bar by the width of the list rather than the viewport. */
         inlineRows: {
-            class: ["flex flex-col gap-2"],
+            class: ["@container/inline-rows flex flex-col gap-2"],
         },
         /** Pass-through hook for each rendered row component. Row chrome lives on {@api theme-key:FieldSetStackedInlineRow.root}. */
         inlineRow: {},

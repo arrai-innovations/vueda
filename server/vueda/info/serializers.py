@@ -397,7 +397,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                     field_data.update(extra_data)
             elif isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
                 # For read-only relation fields, emit app_label + model without offering choices.
-                ro_meta = self._get_readonly_relation_meta(field, model_field)
+                ro_meta = self._get_readonly_relation_meta(model_field)
                 if ro_meta is not None:
                     field_data["app_label"] = ro_meta.app_label
                     field_data["model"] = ro_meta.model_name
@@ -1179,45 +1179,25 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return False
 
     @staticmethod
-    def _get_readonly_relation_meta(field, model_field):
+    def _get_readonly_relation_meta(model_field):
         """
         Resolve the related-model ``_meta`` for a read-only relation field.
 
-        Tries three sources in order:
+        A read-only relation field has no queryset, so the related model comes from the resolved
+        model field's ``related_model``. That attribute names the model on the other side of the
+        relation for forward fields (``ForeignKey``, ``ManyToManyField``, ``OneToOneField``) and for
+        reverse relations (``ManyToOneRel``, ``ManyToManyRel``, ``OneToOneRel``) alike.
 
-        1. ``field.queryset.model._meta``: read-only PrimaryKeyRelatedField/SlugRelatedField
-           that still carries a queryset (rare but valid).
-        2. ``field.child_relation.queryset.model._meta``: read-only ManyRelatedField
-           whose child carries a queryset.
-        3. ``model_field.related_model._meta`` (or ``model_field.field.related_model._meta`` when
-           ``model_field`` is still a descriptor rather than the resolved Field itself): no
-           queryset available; derive from the underlying Django model field.
+        Returns ``None`` when the field is not backed by a model relation.
 
-        Returns ``None`` when no related model can be determined.
-
-        :param field: A read-only DRF field.
-        :type field: rest_framework.fields.Field
         :param model_field: The resolved model field, from ``resolve_serializer_field_model_field``.
         :return: The ``Options`` (_meta) of the related model, or ``None``.
         :rtype: Optional[django.db.models.options.Options]
         """
-        # 1. Field carries its own queryset (e.g. PrimaryKeyRelatedField(read_only=True, queryset=...)).
-        if hasattr(field, "queryset") and field.queryset is not None:
-            return field.queryset.model._meta
-        # 2. ManyRelatedField with a child that has a queryset.
-        if (
-            hasattr(field, "child_relation")
-            and hasattr(field.child_relation, "queryset")
-            and field.child_relation.queryset is not None
-        ):
-            return field.child_relation.queryset.model._meta
-        # 3. Derive from the Django model field, unwrapping a descriptor if that's what we got.
-        if model_field is not None:
-            target = model_field.field if hasattr(model_field, "field") else model_field
-            related_model = getattr(target, "related_model", None)
-            if related_model is not None:
-                return related_model._meta
-        return None
+        related_model = getattr(model_field, "related_model", None)
+        if related_model is None:
+            return None
+        return related_model._meta
 
     @staticmethod
     def get_choices_meta(field, choices):

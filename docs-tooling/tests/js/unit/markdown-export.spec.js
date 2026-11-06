@@ -134,10 +134,81 @@ describe("Markdown publishing", () => {
             write(name, "Internal {@api missing}\n");
         }
         const { outputs } = await run();
-        expect([...outputs.keys()]).toHaveLength(7);
+        expect([...outputs.keys()]).toHaveLength(8);
         expect(outputs.get("llms.txt")).toContain("https://vueda.dev/v3/reference/api/index.md");
         expect(markdownDiscoveryHead("reference/api/index.md", "/v3/")[0][1].href).toBe("/v3/reference/api/index.md");
         expect(markdownDiscoveryHead("README.md", "/v3/")).toEqual([]);
+    });
+
+    it("keeps task guides discoverable while replacing detailed reference listings with indexes", async () => {
+        write("tutorials/start-building.md", "# Start Building\n");
+        write("tutorials/add-workflow.md", "# Add Workflow\n");
+        write("guides/use-coding-agents.md", "# Use Coding Agents\n");
+        write("guides/customize.md", "---\ndescription: Customize a view.\n---\n# Customize\n");
+        write("core-concepts/permissions.md", "# Permissions\n");
+        write("reference/components/index.md", "# Components\n\n[Buttons](./buttons.md)\n");
+        write("reference/components/buttons.md", "# Buttons\n");
+        write("reference/theming/keys.md", "# Theme Keys\n\n[Button](./keys/Button.md)\n");
+        write("reference/theming/keys/Button.md", "# Button\n");
+        write("reference/changelog/client.md", "# Client Changelog\n");
+        const { outputs } = await run();
+        const index = outputs.get("llms.txt");
+        const links = [...index.matchAll(/^- \[.*?\]\((.*?)\)/gm)].map((match) => match[1]);
+        expect(links.slice(0, 3)).toEqual([
+            "https://vueda.dev/v3/tutorials/start-building.md",
+            "https://vueda.dev/v3/guides/use-coding-agents.md",
+            "https://vueda.dev/v3/index.md",
+        ]);
+        expect(index).toContain("## Core Concepts\n\n- [Permissions]");
+        expect(index).toContain(
+            "## Guides\n\n- [Customize](https://vueda.dev/v3/guides/customize.md): Customize a view.",
+        );
+        expect(links).toContain("https://vueda.dev/v3/reference/api/js/index.md");
+        expect(links).toContain("https://vueda.dev/v3/reference/theming/keys.md");
+        expect(links).toContain("https://vueda.dev/v3/reference/components/index.md");
+        for (const relative of [
+            "reference/api/js/Widget.md",
+            "reference/theming/keys/Button.md",
+            "reference/components/buttons.md",
+        ]) {
+            expect(links).not.toContain(`https://vueda.dev/v3/${relative}`);
+            expect(outputs.has(relative)).toBe(true);
+            expect(outputs.get("llms-full.txt")).toContain(`url: "https://vueda.dev/v3/${relative}"`);
+        }
+        expect(index.slice(index.indexOf("## Optional"))).toContain("reference/changelog/client.md");
+        for (const link of links) {
+            expect(outputs.has(link.replace("https://vueda.dev/v3/", ""))).toBe(true);
+        }
+    });
+
+    it("exports local identifiers with versioned Markdown member URLs and removes stale entries", async () => {
+        write("reference/api/js/index.md", "---\nid: js:index\n---\n# JavaScript\n");
+        write("reference/api/README.md", "---\nid: js:internal\n---\n# Internal\n");
+        write("reference/api/js/Spaced name.md", "---\nid: js:class:Spaced\n---\n# `Spaced`\n");
+        const external = path.join(root, "docs-tooling/.generated/external-ids.json");
+        fs.mkdirSync(path.dirname(external), { recursive: true });
+        fs.writeFileSync(
+            external,
+            JSON.stringify({ "ext:Widget": { title: "Widget", href: "https://example.com/Widget" } }),
+        );
+        const options = { base: "/v4/", siteUrl: "https://example.com/" };
+        const { outputs } = await run(options);
+        const index = JSON.parse(outputs.get("symbols.json"));
+        expect(index.version).toBe(1);
+        expect(index.symbols).toEqual([
+            { id: "js:class:Spaced", name: "Spaced", url: "https://example.com/v4/reference/api/js/Spaced%20name.md" },
+            { id: "js:class:Widget", name: "Widget", url: "https://example.com/v4/reference/api/js/Widget.md" },
+            {
+                id: "js:method:Widget.save",
+                name: "Widget.save",
+                url: "https://example.com/v4/reference/api/js/Widget.md#save",
+            },
+        ]);
+        expect(outputs.get("llms.txt")).toContain("https://example.com/v4/symbols.json");
+        expect(outputs.get("llms-full.txt")).not.toContain('"symbols":');
+        fs.unlinkSync(path.join(docsRoot, "reference/api/js/Widget.md"));
+        const changed = await run(options);
+        expect(JSON.parse(changed.outputs.get("symbols.json")).symbols).toHaveLength(1);
     });
 
     it("fails for unknown references and broken documentation links before writing", async () => {
@@ -146,6 +217,17 @@ describe("Markdown publishing", () => {
         expect(fs.existsSync(outDir)).toBe(false);
         write("guide.md", "# Guide\n\n[Missing](missing.html)\n");
         await expect(run()).rejects.toThrow('Unknown documentation link "missing.html" in guide.md');
+    });
+
+    it("preserves underscores in symbol names, including Python dunder methods", async () => {
+        write(
+            "reference/api/py/_Widget.md",
+            '---\nid: py:class:_Widget\nmember_ids: ["py:method:_Widget.__init__"]\n---\n# `_Widget`\n',
+        );
+        const { outputs } = await run();
+        const { symbols } = JSON.parse(outputs.get("symbols.json"));
+        expect(symbols.find(({ id }) => id === "py:class:_Widget").name).toBe("_Widget");
+        expect(symbols.find(({ id }) => id === "py:method:_Widget.__init__").name).toBe("_Widget.__init__");
     });
 
     it("preserves indented code, escaped references, and image alt text", async () => {

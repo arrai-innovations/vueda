@@ -30,7 +30,7 @@ For a more complete example, try [Widget Warehouse](https://www.widgetwarehouse.
 - [just](https://just.systems/man/en/introduction.html): for common developer CLI tooling (included in the DX template)
 
 ::: tip
-Run the server under an ASGI server instead of Django's `runserver`. The DX template's `just serve` runs gunicorn with uvicorn workers, the same setup as production. VUEDA's planned websocket support will also need ASGI. Both templates already depend on `gunicorn` and `uvicorn`. With the minimal template, run this from `server/`: `uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000`.
+Run the server under an ASGI server instead of Django's `runserver`. VUEDA's planned websocket support will also need ASGI. The DX template's `just serve` runs uvicorn, which restarts the server when a Python file changes. With the minimal template, run this from `server/`: `uv run uvicorn config.asgi:application --reload --host localhost --port 8000`. Both templates also depend on `gunicorn` for production, where it runs uvicorn workers. Do not use gunicorn's `--reload` with uvicorn workers during development: after the first change, the worker keeps serving the old code.
 :::
 
 ## Environment Setup
@@ -41,7 +41,7 @@ This guide assumes access to a [bash](https://www.gnu.org/software/bash/)-like s
 
 VUEDA is available from [public PyPI](https://pypi.org/project/vueda/) and [public npm](https://www.npmjs.com/package/@arrai-innovations/vueda). No registry credentials are needed.
 
-The v3 series is a prerelease, and the templates select it with version ranges. To add VUEDA to an existing project, use the same ranges. For the server, run `uv add "vueda[redis]>=3.0.0b1,<4"`. For the client, run `pnpm add "@arrai-innovations/vueda@^3.0.0-beta.1"`. A range names the release series directly, so it does not depend on which version a registry tag such as `latest` points to.
+The v3 series is a prerelease, and the templates select it with version ranges. To add VUEDA to an existing project, use the same ranges. For the server, run `uv add "vueda[redis]>=3.0.0b1,<4" "psycopg[binary]"`. VUEDA requires psycopg 3, the PostgreSQL driver, and your project chooses its build. `psycopg[binary]` bundles the PostgreSQL client library, and `psycopg[c]` compiles against the one installed on the system. For the client, run `pnpm add "@arrai-innovations/vueda@^3.0.0-beta.1"`. A range names the release series directly, so it does not depend on which version a registry tag such as `latest` points to.
 
 ## Scaffold a New Project
 
@@ -157,7 +157,7 @@ With the minimal template, start each in its own terminal:
 ```console
 # Terminal 1: server
 cd server
-uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
+uv run uvicorn config.asgi:application --reload --host localhost --port 8000
 ```
 
 ```console
@@ -211,7 +211,7 @@ VUEDA provides its own extensions of Django's `Model` class:
 - **{@api py:class:vueda.core.models.Lookup}**: extends {@api py:class:vueda.core.models.VuedaModel} with a unique `code` field, intended for lightweight, potentially user-defined, reference data tables.
 
 ::: info IMPORTANT
-VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaModel} to ensure proper permission handling, and must have a `class Meta(VuedaModel.Meta)` (or equivalently, `class Meta({@api py:class:vueda.core.models.BaseModelMeta})`) by default.
+VUEDA uses create, read, update, delete, and list permissions, which aligns better with `djangorestframework`'s viewset actions than Django's default add, change, delete, and view permissions. All VUEDA models must therefore inherit from {@api py:class:vueda.core.models.VuedaModel} to ensure proper permission handling, and must have a `class Meta(VuedaModel.Meta)` (or equivalently, `class Meta(BaseModelMeta)`) by default.
 :::
 
 `server/your_project/inventory/models.py`:
@@ -252,7 +252,7 @@ class ProductOption(VuedaModel):
 VUEDA provides {@api py:class:vueda.core.serializers.VuedaSerializer} and {@api py:class:vueda.core.serializers.VuedaLookupSerializer} base classes for DRF serializers. {@api py:class:vueda.core.serializers.VuedaLookupSerializer} handles the boilerplate around the `code` field for {@api py:class:vueda.core.models.Lookup} models.
 
 ::: info IMPORTANT
-As with models, all VUEDA serializers should have a `class Meta({@api py:class:vueda.core.serializers.VuedaSerializer}.Meta)` or `class Meta({@api py:class:vueda.core.serializers.VuedaLookupSerializer}.Meta)` to ensure proper default behavior.
+As with models, all VUEDA serializers should have a `class Meta(VuedaSerializer.Meta)` or `class Meta(VuedaLookupSerializer.Meta)` to ensure proper default behavior.
 :::
 
 `server/your_project/inventory/serializers.py`:
@@ -644,7 +644,7 @@ Start both servers if they are not already running:
 just serve
 
 # Minimal template (two terminals)
-cd server && uv run gunicorn config.asgi -k uvicorn.workers.UvicornWorker --reload --bind localhost:8000
+cd server && uv run uvicorn config.asgi:application --reload --host localhost --port 8000
 cd client && pnpm dev
 ```
 
