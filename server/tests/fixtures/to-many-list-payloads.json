@@ -1,0 +1,63 @@
+[
+    {
+        "scenario": "many-to-many",
+        "model": "product",
+        "field": "special_care",
+        "row_ids": [9001, 9002, 9003],
+        "model_info": {
+            "type_serializer": "ManyRelatedField",
+            "type_model": "ManyToManyField",
+            "many": true,
+            "app_label": "store",
+            "model": "specialcare"
+        },
+        "unexpanded_rows": [
+            { "id": 9001, "special_care": [] },
+            { "id": 9002, "special_care": [3] },
+            { "id": 9003, "special_care": [1, 2, 3, 5, 6] }
+        ],
+        "expanded_rows": [
+            { "id": 9001, "special_care": [] },
+            { "id": 9002, "special_care": [{ "id": 3, "formatted_name": "Fragile" }] },
+            {
+                "id": 9003,
+                "special_care": [
+                    { "id": 1, "formatted_name": "Alcohol" },
+                    { "id": 2, "formatted_name": "Dangerous" },
+                    { "id": 3, "formatted_name": "Fragile" },
+                    { "id": 5, "formatted_name": "Perishable" },
+                    { "id": 6, "formatted_name": "Temperature Controlled" }
+                ]
+            }
+        ]
+    },
+    {
+        "scenario": "reverse-foreign-key",
+        "model": "cart",
+        "field": "cart_items",
+        "row_ids": [9201, 9202],
+        "model_info": {
+            "type_serializer": "ManyRelatedField",
+            "type_model": "ForeignKey",
+            "many": true,
+            "app_label": "store",
+            "model": "cartitem"
+        },
+        "unexpanded_rows": [
+            { "id": 9201, "cart_items": [] },
+            { "id": 9202, "cart_items": [9301, 9302, 9303, 9304] }
+        ],
+        "expanded_rows": [
+            { "id": 9201, "cart_items": [] },
+            {
+                "id": 9202,
+                "cart_items": [
+                    { "id": 9301, "formatted_name": "1x Small" },
+                    { "id": 9302, "formatted_name": "2x Medium" },
+                    { "id": 9303, "formatted_name": "3x Large" },
+                    { "id": 9304, "formatted_name": "4x Huge" }
+                ]
+            }
+        ]
+    }
+]

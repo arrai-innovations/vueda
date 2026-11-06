@@ -110,6 +110,15 @@ class DistributorSerializer(VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
 
 
+class SpecialCareSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.SpecialCare
+        fields = [
+            "id",
+            "code",
+        ] + VuedaSerializer.Meta.fields
+
+
 class ProductSerializer(VuedaSerializer):
     internal_comments = serializers.ListField(child=serializers.CharField(), required=False)
     current_sale_date = RangeField(required=False)  # This mimics the range field in integration, with no children.
@@ -137,7 +146,11 @@ class ProductSerializer(VuedaSerializer):
             "distributor": (
                 DistributorSerializer,
                 {},
-            )
+            ),
+            "special_care": (
+                SpecialCareSerializer,
+                {"many": True},
+            ),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
 
