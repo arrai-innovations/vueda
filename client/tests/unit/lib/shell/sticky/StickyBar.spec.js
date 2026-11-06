@@ -16,12 +16,11 @@ vi.mock("@vueda/use/useTheme.js", () => ({
 
 const mockedListeners = mockEventListener(vi);
 
-vi.stubGlobal("window", {
-    ...window,
-    scrollY: 0,
-    addEventListener: mockedListeners.mockedAddEventListener,
-    removeEventListener: mockedListeners.mockedRemoveEventListener,
-});
+// Spy on jsdom's window rather than replacing it. Some test pools make the
+// global window read-only, so vi.stubGlobal("window", ...) throws there.
+window.scrollY = 0;
+vi.spyOn(window, "addEventListener").mockImplementation(mockedListeners.mockedAddEventListener);
+vi.spyOn(window, "removeEventListener").mockImplementation(mockedListeners.mockedRemoveEventListener);
 
 const importComponent = () => import("@vueda/shell/sticky/StickyBar.vue");
 
