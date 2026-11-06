@@ -3,6 +3,7 @@ import { crudComponents } from "@vueda/router/routerComponent.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
+import { warnUnmatchedActionViews } from "@vueda/utils/actionViewOverrides.js";
 import { getPascalCaseName } from "@vueda/utils/case.js";
 import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
@@ -83,6 +84,17 @@ watch(
         }
 
         const target = snapshotProps();
+        if (import.meta.env.DEV && modelConfig.info?.actions) {
+            // A file name is the only link between an override and its action, so report one that matches
+            // nothing. The glob is root-relative because a glob through an `@` alias that the project does
+            // not define fails the build; `@` normally points at `<root>/src`.
+            warnUnmatchedActionViews(Object.keys(import.meta.glob("/src/views/ViewAction*.vue")), {
+                app: target.app,
+                model: target.model,
+                actionNames: modelConfig.info.actions.map((action) => action.name),
+                transitionCodes: (workflow.transitions || []).map((transition) => transition.code),
+            });
+        }
         const actionName = getActionName(target.action);
         const action = modelConfig.info?.actions?.find((action) => action.name === actionName);
         const transition = workflow.transitions?.find((transition) => transition.code === actionName);
