@@ -182,7 +182,7 @@ describe("lib/views/ActionForm.vue", () => {
         });
         vue = await import("vue");
         ActionForm = (await import("@vueda/views/ActionForm.vue")).default;
-        vi.unmock("vue");
+        vi.doUnmock("vue");
         Object.values(toastMock).forEach((fn) => fn.mockClear());
         routerPush.mockClear();
         defaultOnSubmitNotAnyModified.mockClear();

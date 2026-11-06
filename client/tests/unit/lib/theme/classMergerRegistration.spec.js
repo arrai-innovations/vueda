@@ -4,7 +4,10 @@ import { normalizeClass, reactive } from "vue";
 
 // Each case starts with fresh module evaluation, as an application does. This
 // catches registration that accidentally works only after an aggregate import.
-describe("lib/theme/vueda-tailwind/**/*.js", () => {
+// The aggregate path evaluates the whole theme, which can take longer than the
+// default 5s timeout when the full suite runs in parallel. This timeout only
+// guards against hangs. It does not measure load cost.
+describe("lib/theme/vueda-tailwind/**/*.js", { timeout: 30_000 }, () => {
     beforeEach(() => vi.resetModules());
 
     for (const path of ["aggregate", "family", "component", "lazy"]) {
