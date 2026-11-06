@@ -9,7 +9,7 @@ import "@vueda/theme/vueda-tailwind/views/ViewActionNotFound.theme.js";
 import { ICON_OVERRIDE_PROPS, useIconsOverride } from "@vueda/use/useIcons.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { viewToActionNameMap } from "@vueda/utils/actionMap.js";
+import { getViewName, unroutedActionNames } from "@vueda/utils/actionMap.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { stringSimilarity } from "string-similarity-js";
 import { computed, inject, toRef } from "vue";
@@ -97,11 +97,6 @@ const closestEntry = computed(() => {
 
 const closestModel = computed(() => closestEntry.value?.model || null);
 
-// Server action names whose route segment differs: `retrieve` is routed as `read`, and
-// `partial_update` has no route of its own because `update` serves it.
-const actionToRouteName = Object.fromEntries(Object.entries(viewToActionNameMap).map(([view, name]) => [name, view]));
-const unroutedActions = new Set(["partial_update"]);
-
 const suggestions = computed(() => {
     if (!closestEntry.value) {
         return [];
@@ -109,9 +104,9 @@ const suggestions = computed(() => {
     const pk = route.params.pk;
     const base = `/${closestApp.value}/${closestModel.value}`;
     return (modelInfoStore.infos[closestEntry.value.key]?.actions || [])
-        .filter(({ name, detail }) => !unroutedActions.has(name) && (!detail || pk))
+        .filter(({ name, detail }) => !unroutedActionNames.has(name) && (!detail || pk))
         .map(({ name, detail }) => {
-            const routeName = actionToRouteName[name] || name;
+            const routeName = getViewName(name);
             const path = detail ? `${base}/${routeName}/${pk}` : `${base}/${routeName}`;
             return { name: routeName, path, score: stringSimilarity(action.value || "", routeName) };
         })

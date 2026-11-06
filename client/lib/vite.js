@@ -121,7 +121,7 @@ const collectPeerDependencies = (packageJsonPaths) => {
 
 /**
  * Returns a Vite config fragment for vueda, covering `define`, `resolve.alias`, `resolve.dedupe`, and
- * (optionally) `optimizeDeps`, `server.fs.allow`, and action-view import transforms. Spread the result into
+ * (optionally) `optimizeDeps`, `server.fs.allow`, and project-view import transforms. Spread the result into
  * your Vite `defineConfig` or merge it with `mergeConfig`.
  *
  * The fragment guarantees a single copy of VUEDA, reactive-helpers, and their shared peer dependencies by
@@ -144,7 +144,8 @@ const collectPeerDependencies = (packageJsonPaths) => {
  * @param {string[]} [options.excludeFromDedupe] - Peer dependency names to leave out of `resolve.dedupe`.
  * @param {string[]} [options.extraDedupe] - Additional package names to add to `resolve.dedupe`.
  * @param {object} [options.extraAliases] - Additional aliases to include.
- *   Pass `@` pointing to the consumer's `src` directory to discover convention-named action views.
+ *   Pass `@` pointing to the consumer's `src` directory so that `ViewActionRouter` finds the project's view files
+ *   in `src/views`. These files replace VUEDA's views for built-in actions, custom actions, and transitions.
  * @param {boolean} [options.manageLinkedOptimizeDeps] - Manage dep pre-bundling for linked packages: pre-bundle
  *   linked reactive-helpers (single instance) and keep linked VUEDA as source. Defaults to true.
  * @param {object} [options.optimizeDeps] - Vite optimizeDeps overrides (merged with the computed include/exclude).
