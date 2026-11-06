@@ -37,4 +37,7 @@ export const availableColumns = {
     ColumnModelLink: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLink.vue")).default),
     ),
+    ColumnModelLinks: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLinks.vue")).default),
+    ),
 };
