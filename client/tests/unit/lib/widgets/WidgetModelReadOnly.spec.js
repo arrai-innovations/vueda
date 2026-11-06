@@ -293,5 +293,18 @@ describe("lib/widgets/WidgetModelReadOnly.vue", () => {
             expect(wrapper.find("a").exists()).toBe(false);
             expect(wrapper.get('[data-qa="widget-read-only-value"]').attributes("type")).toBeUndefined();
         });
+
+        scopedIt("keeps its own option keys when widgetProps set optionLabel and optionValue", async () => {
+            fieldState.value = "CT";
+            fetchHelper.mockResolvedValue({ results: [{ label: "Connecticut", value: "CT" }] });
+
+            const wrapper = mount(WidgetModelReadOnly, {
+                ...mountOptions,
+                attrs: { optionLabel: "name", optionValue: "code" },
+            });
+            await settle();
+
+            expect(shownValue(wrapper)).toBe("Connecticut");
+        });
     });
 });

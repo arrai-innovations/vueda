@@ -284,6 +284,24 @@ describe("lib/stores/storeModelChoices.js", () => {
             expect(store.getChoiceLabel("geo", "address", "stateProvince", "ON")).toBe("Ontario (CA)");
         });
 
+        scopedIt("prefers a complete option list over a stored label, since it is never requested again", async () => {
+            // A read view stores the label, then the row is renamed and an edit form loads the full list.
+            fetchHelperMock.mockResolvedValueOnce({ results: [{ label: "Ontario", value: "ON" }] });
+            const stored = store.fetchChoiceLabels("geo", "address", "stateProvince", ["ON"]);
+            await vi.runAllTimersAsync();
+            await stored;
+            store.setChoices("geo", "address", "stateProvince", {
+                results: [{ label: "Ontario (CA)", value: "ON" }],
+                totalRecords: 1,
+            });
+
+            const labels = await store.fetchChoiceLabels("geo", "address", "stateProvince", ["ON"]);
+
+            expect(labels).toEqual({ ON: "Ontario (CA)" });
+            expect(store.getChoiceLabel("geo", "address", "stateProvince", "ON")).toBe("Ontario (CA)");
+            expect(fetchHelperMock).toHaveBeenCalledTimes(1);
+        });
+
         scopedIt("waits for a choice list request in flight and reads the labels from it", async () => {
             let resolveList;
             fetchHelperMock.mockReturnValueOnce(
