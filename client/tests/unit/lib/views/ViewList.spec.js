@@ -513,6 +513,17 @@ describe("lib/views/ViewList.vue", () => {
             await vue.nextTick();
             expect(wrapper.vm.list.titleStr).toBe("List Widgets");
         });
+
+        scopedIt("renders targetless actions as buttons", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.actionDetails = { create: { detail: false, bulk: false } };
+            mockedUseFilteredActions.mockReturnValue(vue.reactive({ actions: ["create"] }));
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            const create = wrapper.get('[data-qa="page-actions"] [data-view="create"]');
+            expect(create.attributes("button")).toBe("");
+            wrapper.unmount();
+        });
     });
 
     describe("Lookup context", () => {

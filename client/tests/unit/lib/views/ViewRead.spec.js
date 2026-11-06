@@ -134,6 +134,16 @@ describe("lib/views/ViewRead.vue", () => {
     });
 
     describe("rendering", () => {
+        scopedIt("renders page-title actions as buttons", async () => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            mockDetailViewResult.actions.nonDetailActions = ["create"];
+            const wrapper = mount(ViewRead, { props: { app: "a", model: "m", pk: "1" } });
+            const create = wrapper
+                .findAllComponents({ name: "LinkModelView" })
+                .find((link) => link.attributes("view") === "create");
+            expect(create.attributes("button")).toBe("");
+        });
+
         scopedIt("names the record in a heading above the body", async () => {
             const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
             mockDetailViewResult.instance.recordName = "Widget 42";

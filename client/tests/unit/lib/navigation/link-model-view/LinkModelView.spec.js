@@ -1,8 +1,19 @@
 import { scopedIt } from "@tests/unit/utils.js";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h, ref } from "vue";
+import { computed, defineComponent, h, ref } from "vue";
 
 const mockedUseLinkModelView = vi.fn();
+
+// The composable state that LinkModelView reads. The target view is the `view` prop.
+const linkState = (props, overrides = {}) => ({
+    view: computed(() => props.view),
+    linkable: ref(true),
+    href: ref("/path"),
+    navigate: vi.fn(),
+    actionDisabled: ref(false),
+    actionDetail: ref(undefined),
+    ...overrides,
+});
 vi.mock("@vueda/use/useLinkModelView.js", () => ({
     useLinkModelView: mockedUseLinkModelView,
 }));
@@ -39,12 +50,7 @@ describe("lib/navigation/link-model-view/LinkModelView.vue", () => {
     let LinkModelView;
 
     beforeEach(async () => {
-        mockedUseLinkModelView.mockReturnValue({
-            href: ref("/path"),
-            navigate: vi.fn(),
-            actionDisabled: ref(false),
-            actionDetail: ref(undefined),
-        });
+        mockedUseLinkModelView.mockImplementation((props) => linkState(props));
         LinkModelView = (await import("@vueda/navigation/link-model-view/LinkModelView.vue")).default;
     });
 
@@ -83,11 +89,7 @@ describe("lib/navigation/link-model-view/LinkModelView.vue", () => {
 
     scopedIt("calls navigate when clicked", async () => {
         const navigate = vi.fn();
-        mockedUseLinkModelView.mockReturnValueOnce({
-            href: ref("/path"),
-            navigate,
-            actionDisabled: ref(false),
-        });
+        mockedUseLinkModelView.mockImplementationOnce((props) => linkState(props, { navigate }));
         const wrapper = mount(LinkModelView, {
             props: { app: "a", model: "m", pk: "1", view: "detail" },
         });
@@ -96,11 +98,6 @@ describe("lib/navigation/link-model-view/LinkModelView.vue", () => {
     });
 
     scopedIt("behaves as button when button prop true", () => {
-        mockedUseLinkModelView.mockReturnValueOnce({
-            href: ref("/path"),
-            navigate: vi.fn(),
-            actionDisabled: ref(false),
-        });
         const wrapper = mount(LinkModelView, {
             props: { app: "a", model: "m", view: "v", button: true },
         });
@@ -110,16 +107,68 @@ describe("lib/navigation/link-model-view/LinkModelView.vue", () => {
     });
 
     scopedIt("sets disabled when actionDisabled is true", () => {
-        mockedUseLinkModelView.mockReturnValueOnce({
-            href: ref("/path"),
-            navigate: vi.fn(),
-            actionDisabled: ref(true),
-            actionDetail: ref(undefined),
-        });
+        mockedUseLinkModelView.mockImplementationOnce((props) => linkState(props, { actionDisabled: ref(true) }));
         const wrapper = mount(LinkModelView, {
             props: { app: "a", model: "m", view: "v" },
         });
         expect(wrapper.get('[data-qa="prime-button"]').attributes("data-disabled")).toBe("true");
+    });
+
+    describe("plain text", () => {
+        scopedIt("renders the label and slot as text without a link when no view is linkable", () => {
+            mockedUseLinkModelView.mockImplementationOnce((props) =>
+                linkState(props, { linkable: ref(false), href: ref(undefined) }),
+            );
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", pk: "1", view: "read", label: "go" },
+                slots: { default: "<em>slot</em>" },
+            });
+            expect(wrapper.find('[data-qa="prime-button"]').exists()).toBe(false);
+            expect(wrapper.find("a").exists()).toBe(false);
+            expect(wrapper.element.tagName).toBe("SPAN");
+            expect(wrapper.text()).toBe("go slot");
+        });
+
+        scopedIt("falls through class to the text", () => {
+            mockedUseLinkModelView.mockImplementationOnce((props) => linkState(props, { linkable: ref(false) }));
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", pk: "1", view: "read", label: "go" },
+                attrs: { class: "cls" },
+            });
+            expect(wrapper.classes()).toContain("cls");
+        });
+
+        scopedIt("renders the label as a link once a view becomes linkable", async () => {
+            const linkable = ref(false);
+            mockedUseLinkModelView.mockImplementationOnce((props) => linkState(props, { linkable }));
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", pk: "1", view: "read", label: "go" },
+            });
+            expect(wrapper.find('[data-qa="prime-button"]').exists()).toBe(false);
+            linkable.value = true;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.get('[data-qa="prime-button"]').attributes("data-href")).toBe("/path");
+        });
+
+        scopedIt("keeps a button when no view is linkable", () => {
+            mockedUseLinkModelView.mockImplementationOnce((props) =>
+                linkState(props, { linkable: ref(false), actionDisabled: ref(true) }),
+            );
+            const wrapper = mount(LinkModelView, {
+                props: { app: "a", model: "m", view: "approve", label: "Approve", button: true },
+            });
+            const btn = wrapper.get('[data-qa="prime-button"]');
+            expect(btn.attributes("data-disabled")).toBe("true");
+            expect(btn.attributes("data-label")).toBe("Approve");
+        });
+    });
+
+    scopedIt("styles the button from the target view that the composable picks", () => {
+        mockedUseLinkModelView.mockImplementationOnce((props) => linkState(props, { view: ref("delete") }));
+        const wrapper = mount(LinkModelView, {
+            props: { app: "a", model: "m", view: ["delete", "read"], button: true, emphasis: "ghost" },
+        });
+        expect(wrapper.get('[data-qa="prime-button"]').attributes("data-tone")).toBe("destructive");
     });
 
     describe("action styling mode", () => {
