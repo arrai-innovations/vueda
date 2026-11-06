@@ -7,6 +7,7 @@ import { useSlotNameResolver } from "@vueda/use/useSlotNameResolver.js";
 import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
+import { choiceDisplay } from "@vueda/utils/choiceLabels.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, inject, reactive, toRef, unref, watch } from "vue";
@@ -175,39 +176,14 @@ const theme = useWidgetTheme("WidgetReadOnly", props, widgetContext.state, {
 
 const choiceOptions = computed(() => (Array.isArray(props.options) ? props.options : []));
 
-const valuesMatch = (optionValue, fieldValue) => {
-    if (optionValue === fieldValue) {
-        return true;
-    }
-    if (optionValue === null || optionValue === undefined || fieldValue === null || fieldValue === undefined) {
-        return false;
-    }
-    const optionString = String(optionValue);
-    const fieldString = String(fieldValue);
-    const normalizeBooleanString = (value) => {
-        const lowerValue = value.toLowerCase();
-        return lowerValue === "true" || lowerValue === "false" ? lowerValue : value;
-    };
-    return normalizeBooleanString(optionString) === normalizeBooleanString(fieldString);
-};
-
-const getChoiceLabel = (fieldValue) => {
-    const choice = choiceOptions.value.find((option) => valuesMatch(option?.[props.optionValue], fieldValue));
-    if (!choice) {
-        return fieldValue;
-    }
-    return choice[props.optionLabel] ?? fieldValue;
-};
-
 const choiceValue = computed(() => {
     if (!choiceOptions.value.length) {
         return undefined;
     }
-    const fieldValue = widgetContext.state.combinedValue;
-    if (Array.isArray(fieldValue)) {
-        return fieldValue.map((value) => getChoiceLabel(value)).join(", ");
-    }
-    return getChoiceLabel(fieldValue);
+    return choiceDisplay(widgetContext.state.combinedValue, choiceOptions.value, {
+        optionLabel: props.optionLabel,
+        optionValue: props.optionValue,
+    });
 });
 
 const readonlyValue = computed(() => {
