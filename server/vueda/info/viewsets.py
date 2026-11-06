@@ -18,8 +18,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldError
 from django.core.exceptions import ValidationError
 from django.core.validators import EMPTY_VALUES
-from django.core.validators import MaxValueValidator
-from django.core.validators import MinValueValidator
 from django.db.models import CharField
 from django.db.models import F
 from django.db.models.constants import LOOKUP_SEP
@@ -384,12 +382,12 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
         """
         Narrow ``queryset`` to the rows whose ``key_field`` matches one of ``values``.
 
-        Each value is converted with the key's model field first, and checked against the field's
-        range validators. A value that fails cannot match a row, so it is dropped instead of raising.
-        Examples are ``abc`` for an integer primary key, a number outside the column's integer range,
-        and a value that contains a NUL character. The database would reject the last two. The
-        field's other validators do not run, because a stored row can hold a value that a validator
-        added later rejects.
+        Each value is converted with the key's model field first. A value that the field cannot
+        convert cannot match a row, so it is dropped instead of raising. An example is ``abc`` for an
+        integer primary key. A value that contains a NUL character is dropped too, because PostgreSQL
+        would reject the query. The field's validators do not run, because a stored row can hold a
+        value that a validator added later rejects. A number outside the column's integer range needs
+        no check: PostgreSQL compares the column with it and finds no match.
 
         A ``key_field`` that ends in a transform after a field, such as ``created__year`` or a JSON
         key, is filtered in the database too. The transform's output field converts the values, so
@@ -420,11 +418,6 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             key_model_field = queryset.all().query.resolve_ref(key_field).output_field
         else:
             key_model_field = targets[0]
-        range_validators = tuple(
-            validator
-            for validator in key_model_field.validators
-            if isinstance(validator, (MinValueValidator, MaxValueValidator))
-        )
         cleaned_values = []
         for value in values:
             if "\x00" in value:
@@ -433,8 +426,6 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
                 continue
             try:
                 cleaned_value = key_model_field.to_python(value)
-                for validator in range_validators:
-                    validator(cleaned_value)
             except (ValidationError, ValueError, TypeError):
                 # Most fields raise ValidationError for a value they cannot convert. Some raise a
                 # ValueError subclass instead, such as binascii.Error from a BinaryField.
