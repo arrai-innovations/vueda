@@ -34,7 +34,7 @@ The view an action form opens after its action succeeds or you cancel it. You se
 
 ## Action View Resolution
 
-How `ViewActionRouter` picks the view component for a route that passed {@term Route Admission}. It renders `ViewActionNotFound` when neither {@term Model Info} nor the {@term Permitted Transitions} list the action. Otherwise it tries the built-in view registry, then a project view named by convention, then a generic view for the action or transition. A transition code skips the built-in registry.
+How `ViewActionRouter` picks the view component for a route that passed {@term Route Admission}. It renders `ViewActionNotFound` when neither {@term Model Info} nor the {@term Permitted Transitions} list the action. Otherwise it tries the built-in view registry, then a project view named by convention, then the project-wide view, then the VUEDA view for the action or transition. A transition code skips the built-in registry. Each default registry entry tries a project view for the route's model, then the project-wide view, then the VUEDA view.
 
 - Names: [`ViewActionRouter`]{@api vue:component:ViewActionRouter}; [`setCrudComponents`]{@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}; [`crudComponents`]{@api js:property:@arrai-innovations/vueda/router/routerComponent#crudComponents}; [`ViewAction`]{@api vue:component:ViewAction}; [`ViewExecuteTransition`]{@api vue:component:ViewExecuteTransition}; [`ViewActionNotFound`]{@api vue:component:ViewActionNotFound}
 - Described in: [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order)
