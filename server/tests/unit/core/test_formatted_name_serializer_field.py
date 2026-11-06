@@ -133,6 +133,21 @@ def test_an_unreadable_formatted_name_leaves_the_field_out():
         FormattedNameField().get_attribute(store_models.Product(name="Widget"))
 
 
+def test_an_attribute_error_from_get_formatted_name_reaches_the_caller(monkeypatch):
+    """A bug in the model's own method must show up, rather than drop formatted_name from the row.
+
+    A typical case is reading self.customer.user on a cart whose customer is None.
+    """
+
+    def get_formatted_name(self):
+        raise AttributeError("'NoneType' object has no attribute 'user'")
+
+    monkeypatch.setattr(store_models.Cart, "get_formatted_name", get_formatted_name)
+
+    with pytest.raises(AttributeError, match="has no attribute 'user'"):
+        CartMethodSerializer().fields["formatted_name"].get_attribute(store_models.Cart())
+
+
 def test_a_none_style_keeps_the_field_hidden():
     """DRF accepts style=None as no style."""
     assert FormattedNameField(style=None).style == {"hidden": True}
