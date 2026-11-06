@@ -2240,10 +2240,14 @@ class Command(BaseCommand):
         ]
 
         date_string = datetime.datetime.now().date().isoformat().replace("-", "_")
-        results = call_management_command(
-            self, "makemigrations", app_label, "--empty", f"--name=workflow_migrations_{date_string}", "--noinput"
-        )
-        migrations.Migration.operations = []  # Reset the operations in the class.
+        try:
+            results = call_management_command(
+                self, "makemigrations", app_label, "--empty", f"--name=workflow_migrations_{date_string}", "--noinput"
+            )
+        finally:
+            # Reset the operations in the class, even when makemigrations raises. Every Migration subclass
+            # that doesn't set its own operations would otherwise inherit these placeholders.
+            migrations.Migration.operations = []
 
         if not results:  # Erred.
             return False
