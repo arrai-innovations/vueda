@@ -202,7 +202,7 @@ const icon = useIcons("WidgetCombobox", props);
             :label="comboboxSearch.singleSelectedLabel"
             :model="model"
             :pk="widgetContext.state.combinedValue"
-            view="update"
+            :view="['update', 'read']"
         />
         <span v-else>{{ closedStateLabel }}</span>
     </template>
