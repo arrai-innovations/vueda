@@ -3,10 +3,10 @@ import { mockEventListener, mockLifecycle, scopedIt } from "@tests/unit/utils.js
 const mockedLifecycle = mockLifecycle(vi);
 const mockedEventListener = mockEventListener(vi);
 
-vi.stubGlobal("document", {
-    addEventListener: mockedEventListener.mockedAddEventListener,
-    removeEventListener: mockedEventListener.mockedRemoveEventListener,
-});
+// Spy on jsdom's document rather than replacing it. Vue's DOM runtime calls
+// document.createElement when it loads, so a stand-in object breaks the import.
+vi.spyOn(document, "addEventListener").mockImplementation(mockedEventListener.mockedAddEventListener);
+vi.spyOn(document, "removeEventListener").mockImplementation(mockedEventListener.mockedRemoveEventListener);
 
 vi.mock("platform-detect/os.mjs", () => ({
     default: { macos: false, windows: true }, // mock as Windows by default

@@ -5,12 +5,11 @@ import { defineComponent, h, nextTick, ref } from "vue";
 
 const mockedListeners = mockEventListener(vi);
 
-vi.stubGlobal("window", {
-    ...window,
-    scrollY: 0,
-    addEventListener: mockedListeners.mockedAddEventListener,
-    removeEventListener: mockedListeners.mockedRemoveEventListener,
-});
+// Spy on jsdom's window rather than replacing it. Some test pools make the
+// global window read-only, so vi.stubGlobal("window", ...) throws there.
+window.scrollY = 0;
+vi.spyOn(window, "addEventListener").mockImplementation(mockedListeners.mockedAddEventListener);
+vi.spyOn(window, "removeEventListener").mockImplementation(mockedListeners.mockedRemoveEventListener);
 
 // Mount a tiny host that wires `useScrollReveal` to a real element ref and exposes the result, so
 // the composable runs inside a component effect scope the way StickyBar uses it.

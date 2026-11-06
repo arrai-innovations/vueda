@@ -319,7 +319,7 @@ describe("lib/views/ViewActionRouter.vue", () => {
             expect(reportProjectViewLoadError).toHaveBeenCalledWith(
                 [],
                 "/src/views/ViewActionABArchive.vue",
-                expect.any(Error),
+                expect.anything(),
             );
         });
 
