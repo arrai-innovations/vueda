@@ -9,14 +9,18 @@ __all__ = (
 )
 
 import hashlib
+import logging
 from collections.abc import Mapping
 
 from django.apps import apps
 from object_streams.transports.channels import ObjectStreamConsumer
 
 
-#: The event keys that a client receives. The rest of an event stays on the server: the changed column names,
-#: which can name fields that the REST API hides from the user, the source row, and the transaction id.
+logger = logging.getLogger(__name__)
+
+
+#: The event keys that a client receives. The rest of an event stays on the server: the source row, the transaction
+#: id, and the changed column names. Those column names can name fields that the REST API hides from the user.
 EVENT_KEYS = ("type", "subscription_id", "subject", "facet", "op", "list_action", "cursor")
 
 #: The Channels message type that closes every socket of a session that logged out.
@@ -106,4 +110,10 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
     async def receive_json(self, content, **kwargs):
         if isinstance(content, Mapping) and content.get("op") == "subscribe":
             content = {**content, "model": canonical_model_label(content.get("model"))}
-        await super().receive_json(content, **kwargs)
+        try:
+            await super().receive_json(content, **kwargs)
+        except Exception:
+            # One failing message must not close the socket that every view in the tab shares. The
+            # client would reconnect, send the same subscription, and fail again.
+            logger.exception("An object stream message failed.")
+            await self.send_error("internal_error", "The server could not handle the message.")

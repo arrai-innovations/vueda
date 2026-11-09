@@ -39,6 +39,7 @@ from vueda.streams.consumers import VuedaObjectStreamConsumer
 from vueda.streams.consumers import canonical_model_label
 from vueda.streams.consumers import session_group_name
 from vueda.streams.registry import default_facets_for
+from vueda.streams.registry import register_model
 from vueda.streams.registry import register_viewset
 from vueda.streams.routing import allowed_websocket_origins
 from vueda.streams.visibility import VuedaVisibilityPolicy
@@ -560,3 +561,53 @@ class TestVisibilityChecks(BaseTestGroupMixin, BaseTestUserMixin):
 
         with pytest.raises(ValueError, match="Pass queryset="):
             register_viewset(NoQuerysetViewSet, registry=ObjectStreamRegistry())
+
+
+class ExplodingFilterSet(store_viewsets.CustomerOrderViewSet.filterset_class):
+    """Fails when it filters, the way a filter on an annotation that the queryset lacks fails."""
+
+    @property
+    def qs(self):
+        msg = "filter failed"
+        raise RuntimeError(msg)
+
+
+@pytest.mark.django_db(transaction=True)
+class TestConsumerErrors(BaseTestGroupMixin, BaseTestUserMixin):
+    groups_to_create: ClassVar[dict] = {"Order Readers": []}
+    users_to_create: ClassVar[dict] = {
+        "reader@domain.invalid": {"name": "Reader", "password": "password", "groups": ["Order Readers"]},
+    }
+
+    @property
+    def groups(self):
+        if hasattr(self, "_groups"):
+            return self._groups
+
+        group, _ = Group.objects.get_or_create(name="Order Readers")
+        group.permissions.set(Permission.objects.filter(codename__in=["read_customerorder", "list_customerorder"]))
+        self._groups = [group]
+        return self._groups
+
+    def test_a_failing_subscription_answers_with_an_error_and_keeps_the_socket(self, caplog):
+        registry = ObjectStreamRegistry()
+        register_model(store_models.CustomerOrder, filterset=ExplodingFilterSet, registry=registry)
+        communicator = WebsocketCommunicator(VuedaObjectStreamConsumer.as_asgi(registry=registry), "/ws/streams/")
+        communicator.scope["user"] = self.users["reader@domain.invalid"]
+
+        async def run():
+            await communicator.connect()
+            subscribe = {"op": "subscribe", "kind": "filter", "model": "store.CustomerOrder"}
+            await communicator.send_json_to({**subscribe, "filter": {"shipping_method": "express"}})
+            failure = await communicator.receive_json_from()
+            await communicator.send_json_to({"op": "subscribe", "kind": "model", "model": "store.CustomerOrder"})
+            answer = await communicator.receive_json_from()
+            await communicator.disconnect()
+            return failure, answer
+
+        failure, answer = async_to_sync(run)()
+
+        assert failure["type"] == "error"
+        assert failure["code"] == "internal_error"
+        assert answer["type"] == "subscribed"
+        assert "An object stream message failed." in caplog.text
