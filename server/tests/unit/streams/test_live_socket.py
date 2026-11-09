@@ -274,7 +274,8 @@ class TestLiveSocket(BaseTestGroupMixin, BaseTestUserMixin):
         assert event["facet"] == "object"
         assert event["op"] == "updated"
         assert event["subject"]["pk"] == str(customer_order.pk)
-        assert "shipping_method" in event["changed_fields"]
+        # The changed column names, the source row, and the transaction id stay on the server.
+        assert set(event) <= {"type", "subscription_id", "subject", "facet", "op", "list_action", "cursor"}
         print(f"time from commit to socket event: {elapsed:.3f}s")
 
     @staticmethod

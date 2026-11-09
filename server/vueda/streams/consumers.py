@@ -1,6 +1,7 @@
 """The websocket consumer for VUEDA object stream subscriptions."""
 
 __all__ = (
+    "EVENT_KEYS",
     "SESSION_LOGOUT_CLOSE_CODE",
     "SESSION_LOGOUT_MESSAGE_TYPE",
     "VuedaObjectStreamConsumer",
@@ -13,6 +14,10 @@ from collections.abc import Mapping
 from django.apps import apps
 from object_streams.transports.channels import ObjectStreamConsumer
 
+
+#: The event keys that a client receives. The rest of an event stays on the server: the changed column names,
+#: which can name fields that the REST API hides from the user, the source row, and the transaction id.
+EVENT_KEYS = ("type", "subscription_id", "subject", "facet", "op", "list_action", "cursor")
 
 #: The Channels message type that closes every socket of a session that logged out.
 SESSION_LOGOUT_MESSAGE_TYPE = "vueda.session.logout"
@@ -65,6 +70,9 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
     A subscribe message may name its model the way VUEDA's routes do. The consumer replaces that
     name with the model's label before the subscription is checked.
 
+    An event tells the client which record changed and how, and nothing about the change itself.
+    The client fetches the record again through the REST API, which applies field permissions.
+
     The socket joins a group for its session, and closes when that session logs out. The user is read
     once, when the socket opens, so without this a socket would outlive the session that opened it.
     """
@@ -86,6 +94,10 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
         if self.session_group and self.channel_layer is not None:
             await self.channel_layer.group_discard(self.session_group, self.channel_name)
         await super().disconnect(code)
+
+    async def send_event(self, event):
+        payload = event.as_dict()
+        await self.send_json({key: payload[key] for key in EVENT_KEYS if key in payload})
 
     async def vueda_session_logout(self, message):
         """Close the socket, because its session logged out."""
