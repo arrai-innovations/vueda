@@ -102,7 +102,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
  * @property {boolean} [noticeChanges] - For a view that holds unsaved edits, such as update. After `setupObjectStreams()`, the object subscription keeps the record current, the form keeps the values that it loaded, and the returned `changeNotice` reports the difference. `currentActionAvailable` reads the actions that the record allowed when the form took its values, with or without live updates.
- * @property {boolean} [subscribe] - For a view that shows no edits, such as read. After `setupObjectStreams()`, the view fetches the record again when the server reports a change, and the form values follow it. Without live updates it has no effect.
+ * @property {boolean} [subscribe] - For a view that shows no edits, such as read. After `setupObjectStreams()`, the view fetches the record again when the server reports a change, and the form values follow it. Without live updates, the option has no effect.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
  * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
@@ -258,8 +258,8 @@ export function useDetailView(options, formInitialValue) {
         );
     }
 
-    // The actions the record allowed when the form took its values. A view that holds edits checks its
-    // own action against these, so a pushed change never swaps the form out from under the user.
+    // The actions that the record allowed when the form took its values. A view that holds edits checks
+    // its own action against these, so a pushed change never replaces the form while the user edits it.
     /** @type {import('vue').Ref<string[]|undefined>} */
     const baselineAvailableActions = ref(undefined);
 

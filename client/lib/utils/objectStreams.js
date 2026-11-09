@@ -2,7 +2,7 @@
  * @module utils/objectStreams
  * @description Optional live updates over the server's object stream websocket. A pushed event says
  *   that a record changed and carries no record data, so the subscribe handler fetches the record again
- *   through the REST API. Views work the same without it: nothing subscribes until
+ *   through the REST API. Views work the same without live updates: nothing subscribes until
  *   `setupObjectStreams()` runs.
  */
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
@@ -49,8 +49,8 @@ export const RECONNECT_MAX_DELAY = 30000;
  * The connection subscribes again after every reconnect, because the server forgets a socket's
  * subscriptions when it closes. It also hands a `resync_required` message to each subscription that
  * was registered when the socket was lost or restarted, because changes made before the next socket
- * opens never arrive. Opening a socket for new subscriptions, after the last one closed, resyncs
- * nothing. A lost socket reconnects after a delay that starts at
+ * opens never arrive. Opening a socket for new subscriptions, after the last subscription ended,
+ * resyncs nothing. A lost socket reconnects after a delay that starts at
  * `RECONNECT_MIN_DELAY` and doubles up to `RECONNECT_MAX_DELAY`. A refused handshake, such as one
  * without a signed-in user, also counts as a lost socket.
  *
@@ -211,9 +211,9 @@ function forgetWorkflowHistory(target, pk) {
 /**
  * Call `onChange` whenever the server reports a change to one record.
  *
- * The callback receives each `event` message and each `resync_required` message, which means that
- * events may have been missed. It does not fetch the record. A workflow state change, or a resync,
- * also drops the record's cached workflow state history from `storeWorkflow`, because a transition
+ * The callback receives each `event` message and each `resync_required` message. A `resync_required`
+ * message means that events may have been missed. The callback does not fetch the record. A workflow
+ * state change or a resync also drops the record's cached workflow state history from `storeWorkflow`, because a transition
  * that someone else ran made it stale. Before `setupObjectStreams()`, nothing subscribes and the
  * callback never runs.
  *
@@ -312,7 +312,7 @@ export function objectStreamSubscribe({ target, pk, params, callback, isCancelle
 }
 
 /**
- * Subscribe to the rows of one list, and call `onChange` after each change to a row it shows or may show.
+ * Subscribe to the rows of one list, and call `onChange` after each change to a row that it shows or may show.
  *
  * The subscription carries the list's filters, so the server reports a row that joins, leaves, or
  * changes within them. With no filters, it covers every row of the model that the user can read.
@@ -320,8 +320,9 @@ export function objectStreamSubscribe({ target, pk, params, callback, isCancelle
  * a row by the list's ordering and page. A list's search term is not a filter here, so a searched
  * list hears about every row that its other filters match.
  *
- * The returned promise resolves at once and never rejects, for the same reason as
- * `objectStreamSubscribe`.
+ * The returned promise resolves at once and never rejects. reactive-helpers counts a subscription as
+ * loading until the promise settles, so waiting for the socket would hold the list in its loading
+ * state.
  *
  * @param {object} args - The list to watch.
  * @param {{ app: string, model: string }} args.target - The app label and model name, as in the REST route.
@@ -365,9 +366,9 @@ export function objectStreamsEnabled() {
 /**
  * Turn on live updates: install the object `subscribe` handler and create the shared connection.
  *
- * Call it once, after `setupDefaultObjectCrud()`. The server must enable websocket subscriptions,
- * and the socket opens only when a view first subscribes. The URL defaults to the API host with the
- * path from `VITE_OBJECT_STREAMS_PATH`, or `/ws/streams/` when that variable is unset.
+ * Call it once, after `setupDefaultObjectCrud()`. The server must enable websocket subscriptions.
+ * The socket opens only when a view first subscribes. The URL defaults to the API host with the path
+ * from `VITE_OBJECT_STREAMS_PATH`. The path is `/ws/streams/` when that variable is unset.
  *
  * @param {Partial<ObjectStreamConnectionOptions>} [options] - Overrides for the socket URL and test seams.
  * @returns {ObjectStreamConnection} The shared connection.

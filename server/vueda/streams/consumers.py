@@ -65,8 +65,8 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
 
     The connection authenticates with the same session cookie as the REST API, at connect time.
     ``AsgiMiddlewareStack`` reads that cookie into ``scope["user"]``. The socket has no login message
-    of its own, so a connection without a signed-in user is refused before it is accepted, and the
-    browser sees a failed handshake.
+    of its own, so the consumer refuses a connection without a signed-in user before accepting it, and
+    the browser sees a failed handshake.
 
     Visibility still applies per subscription. Refusing anonymous connections also keeps them from
     holding a connection open at all.
@@ -77,8 +77,9 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
     An event tells the client which record changed and how, and nothing about the change itself.
     The client fetches the record again through the REST API, which applies field permissions.
 
-    The socket joins a group for its session, and closes when that session logs out. The user is read
-    once, when the socket opens, so without this a socket would outlive the session that opened it.
+    The socket joins a group for its session, and closes when that session logs out. The consumer
+    reads the user once, when the socket opens, so without the session group a socket would outlive
+    the session that opened it.
     """
 
     session_group = None

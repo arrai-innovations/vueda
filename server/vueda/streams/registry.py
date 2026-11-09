@@ -14,7 +14,7 @@ from vueda.streams.visibility import VuedaVisibilityPolicy
 
 def default_facets_for(model):
     """
-    Return the event facets a subscriber to ``model`` receives.
+    Return the event facets that a subscriber to ``model`` receives.
 
     Every model gets ``object`` for writes to its own row. A workflow model also gets
     ``workflow_state``, because a transition writes a workflow state row and never the model's own
@@ -37,7 +37,7 @@ def register_model(model, *, filterset=None, visibility=None, facets=None, regis
 
 def register_viewset(viewset, *, queryset=None, registry=None):
     """
-    Register the model a viewset serves, reusing the viewset's FilterSet and its ``get_queryset()``.
+    Register the model that a viewset serves, reusing the viewset's FilterSet and its ``get_queryset()``.
 
     The same FilterSet that validates a list request validates a subscription, so a client cannot
     subscribe to a query it could not have asked for over REST. A subscription starts from the rows

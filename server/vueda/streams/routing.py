@@ -51,8 +51,8 @@ def allowed_websocket_origins():
     Browsers apply no cross-origin rules to a websocket handshake. Whether a handshake from another
     site carries the session cookie depends only on the cookie's ``SameSite`` setting, so the server
     checks the ``Origin`` header itself. ``ALLOWED_HOSTS`` covers a client served by Django. The CORS
-    list covers a client served from its own origin, which the REST API already trusts.
-    ``CORS_ALLOWED_ORIGIN_REGEXES`` is not read.
+    list covers a client served from its own origin, which the REST API already trusts. This function
+    does not read ``CORS_ALLOWED_ORIGIN_REGEXES``.
 
     A host name in ``ALLOWED_HOSTS`` matches an origin with any scheme and port, and ``"*"`` matches
     every origin, which turns the check off.
@@ -64,8 +64,8 @@ def stream_websocket_application():
     """
     Return the websocket application: origin check, then session authentication, then routing.
 
-    The origin check runs first, so a handshake from another site is refused before its cookie is
-    read.
+    The origin check runs first, so the application refuses a handshake from another site before it
+    reads the handshake's cookie.
     """
     return OriginValidator(
         AsgiMiddlewareStack(URLRouter(websocket_urlpatterns)),

@@ -3,7 +3,7 @@ Websocket object stream subscriptions for VUEDA.
 
 This app is the integration layer between ``django-object-streams`` and VUEDA. The stream library
 owns the subscription protocol, the replayable outbox, capture triggers, and the websocket transport;
-it knows nothing about VUEDA. This app supplies what it needs from an application:
+it knows nothing about VUEDA. This app supplies what the library needs from an application:
 
 - capture, declared per model with ``class Vueda.Streams`` (``vueda.streams.apps``)
 - a visibility policy, so a subscription sees only the rows that the REST API lets the user read

@@ -19,8 +19,8 @@ def close_session_sockets(sender, request, user, **kwargs):
     Close the websockets of a session that logs out.
 
     Django sends ``user_logged_out`` before it flushes the session, so the session key still names
-    the session's group. Logout succeeds even when the channel layer fails. In that case the error is
-    logged, and the sockets stay open until they close for another reason.
+    the session's group. Logout succeeds even when the channel layer fails. In that case the receiver
+    logs the error, and the sockets stay open until they close for another reason.
     """
     session_key = getattr(getattr(request, "session", None), "session_key", None)
     if not session_key:

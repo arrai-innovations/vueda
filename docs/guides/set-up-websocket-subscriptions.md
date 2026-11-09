@@ -53,9 +53,9 @@ CHANNEL_LAYERS = {
 }
 ```
 
-`CHANNEL_LAYER_URL` is a key in your own config files, such as `redis://localhost:6379/0`. Give each deployment its own `prefix`, so two applications on one Redis server do not share channel groups.
+`CHANNEL_LAYER_URL` is a key in your own config files. Its value is a Redis URL, such as `redis://localhost:6379/0`. Give each deployment its own `prefix`, so two applications on one Redis server do not share channel groups.
 
-The socket signs the user in with the same session cookie as the REST API, read once when the socket opens. A socket served by one web process must read a session that another process wrote, so sessions need a store that every process shares. [Configure the Cache and Sessions](configure-cache-and-sessions.md) covers that requirement.
+The socket signs the user in with the same session cookie as the REST API. The server reads the cookie once, when the socket opens. A socket served by one web process must read a session that another process wrote, so sessions need a store that every process shares. [Configure the Cache and Sessions](configure-cache-and-sessions.md) covers that requirement.
 
 ## Route the Websocket
 
@@ -84,9 +84,9 @@ Import the routing module after `get_asgi_application()`, which sets up Django.
 
 The socket path is `ws/streams/` at the server root. `stream_websocket_application()` refuses a handshake in three cases:
 
-- **Unknown origin.** The `Origin` header must match `ALLOWED_HOSTS` or `CORS_ALLOWED_ORIGINS`. `CORS_ALLOWED_ORIGIN_REGEXES` is not read. The scaffolded `config.local.toml` already lists the Vite development server in `CORS_ALLOWED_ORIGINS`.
+- **Unknown origin.** The `Origin` header must match `ALLOWED_HOSTS` or `CORS_ALLOWED_ORIGINS`. The check does not read `CORS_ALLOWED_ORIGIN_REGEXES`. The scaffolded `config.local.toml` already lists the Vite development server in `CORS_ALLOWED_ORIGINS`.
 - **No signed-in user.** The socket has no login message of its own.
-- **No route.** Any other path.
+- **No route.** The path is anything other than `ws/streams/`.
 
 A host name in `ALLOWED_HOSTS` matches an origin with any scheme and port. `ALLOWED_HOSTS = ["*"]` matches every origin, which turns the origin check off.
 
@@ -103,7 +103,7 @@ class Widget(VuedaModel):
             enabled = True
 ```
 
-The section adds a database trigger that records every insert, update, and delete on the model's table in an outbox table. The trigger also records bulk writes, `QuerySet.update()`, and deletes, which Django signals miss. A model with a composite primary key cannot enable the section.
+The section adds a database trigger that records every insert, update, and delete on the model's table in an outbox table. The trigger also records writes through `bulk_create()` and `QuerySet.update()`, which send no Django signals. A model with a composite primary key cannot enable the section.
 
 Run `makemigrations`, then add the `object_streams` app's latest migration to the new migration's `dependencies` by hand:
 
@@ -114,7 +114,7 @@ dependencies = [
 ]
 ```
 
-`makemigrations` does not add that dependency, because Django cannot see that the trigger writes to the outbox table. Without it, Django may apply the migration before the outbox table exists, and a later data migration that writes to the model fails.
+`makemigrations` does not add that dependency, because Django cannot see that the trigger writes to the outbox table. Without the dependency, Django may apply the migration before the outbox table exists, and a later data migration that writes to the model fails.
 
 ## Register the Model for Subscriptions
 
@@ -135,9 +135,9 @@ class WidgetsConfig(AppConfig):
         register_viewset(WidgetViewSet)
 ```
 
-A subscription applies the checks that a request to the viewset's endpoint applies. The user needs the model's read permission, or on a workflow model a state permission that grants it. The model's `RowLevelPermissions` and the workflow state rules then decide row by row. A client can subscribe only to the filters that the list endpoint accepts, and subscriptions that filter by `search` are not supported.
+A subscription applies the checks that a request to the viewset's endpoint applies. The user needs the model's read permission. On a workflow model, a state permission that grants it can stand in for it. The model's `RowLevelPermissions` and the workflow state rules then decide row by row. A client can subscribe only to the filters that the list endpoint accepts. The server does not support subscriptions that filter by `search`.
 
-A subscription starts from the rows that the viewset's `get_queryset()` returns for the subscriber, so scoping that `get_queryset()` applies, such as to the user's own rows, limits subscriptions too. It runs with a GET request for the subscriber, no query parameters, no URL keyword arguments, and no action. When your `get_queryset()` needs more than that, pass the starting rows instead:
+A subscription starts from the rows that the viewset's `get_queryset()` returns for the subscriber. Any scoping in `get_queryset()`, such as a limit to the user's own rows, therefore also limits subscriptions. `get_queryset()` runs with a GET request for the subscriber, no query parameters, no URL keyword arguments, and no action. When your `get_queryset()` needs more than that, pass the starting rows instead:
 
 ```python
 register_viewset(WidgetViewSet, queryset=Widget.objects.filter(archived=False))
@@ -160,7 +160,7 @@ listen-streams:
   cd {{justfile_directory()}}/server && uv run --no-sync python manage.py object_streams_listen
 ```
 
-It retries after a database error, every second by default. `--retry-delay` and `--max-retries` change that.
+The listener retries after a database error, every second by default. `--retry-delay` and `--max-retries` change that.
 
 ## Prune the Outbox
 
@@ -170,7 +170,7 @@ Every captured write adds a row to the outbox table, and nothing removes the row
 python manage.py object_streams_prune --days 7
 ```
 
-`--max-rows` keeps the newest rows up to a limit instead, and `--dry-run` reports how many rows the command would delete. The `OBJECT_STREAMS_RETENTION_DAYS` and `OBJECT_STREAMS_RETENTION_MAX_ROWS` settings supply the defaults. Without a limit, the command deletes nothing. It never deletes a row that the listener has not sent yet.
+`--max-rows` keeps at most that many of the newest rows. With both limits, the command deletes the rows that either limit excludes. `--dry-run` reports how many rows the command would delete. The `OBJECT_STREAMS_RETENTION_DAYS` and `OBJECT_STREAMS_RETENTION_MAX_ROWS` settings supply the defaults. Without either limit, the command stops with an error. It never deletes a row that the listener has not sent yet.
 
 ## Configure the Proxy
 
@@ -190,7 +190,7 @@ setupDefaultObjectCrud();
 setupObjectStreams();
 ```
 
-A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values. When someone deletes the record, the view shows a notice above the last field values, without the record's name or action buttons. The `deleted-notice` slot of `ViewRead` replaces it.
+A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values. When someone deletes the record, the view shows a notice above the last field values, without the record's name or action buttons. The `deleted-notice` slot of `ViewRead` replaces that notice.
 
 A list view subscribes with its filters, and the server reports each row that joins, leaves, or changes within them. The list then fetches its current page again and swaps the rows in when the new page arrives. A search term is not part of the subscription, so a searched list refetches after a change to any row that its other filters match.
 
