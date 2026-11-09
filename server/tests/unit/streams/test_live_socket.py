@@ -7,11 +7,14 @@ PostgreSQL and a Redis channel layer, as a deployed web process and listener do.
 
 Needs ``channels-redis`` and a reachable Redis server. ``VUEDA_TEST_REDIS_URL`` names the server and
 defaults to ``redis://localhost:6379/0``. Each test uses its own channel layer key prefix, so it
-does not disturb other users of that Redis database. Without Redis the tests skip.
+does not disturb other users of that Redis database. When the variable is unset and no Redis server
+answers at the default, the tests skip. When the variable is set, the tests run and fail without
+Redis, so a CI job that provides Redis cannot skip them silently.
 """
 
 import asyncio
 import json
+import multiprocessing
 import os
 import threading
 import time
@@ -39,6 +42,7 @@ pytest.importorskip("channels_redis")
 redis = pytest.importorskip("redis")
 daphne_testing = pytest.importorskip("daphne.testing")
 
+REDIS_URL_REQUIRED = "VUEDA_TEST_REDIS_URL" in os.environ
 REDIS_URL = os.environ.get("VUEDA_TEST_REDIS_URL", "redis://localhost:6379/0")
 HOST = "localhost"
 RECEIVE_TIMEOUT = 10.0
@@ -51,7 +55,22 @@ def redis_available():
         return False
 
 
-pytestmark = pytest.mark.skipif(not redis_available(), reason=f"no Redis server at {REDIS_URL}")
+pytestmark = pytest.mark.skipif(
+    not REDIS_URL_REQUIRED and not redis_available(),
+    reason=f"no Redis server at {REDIS_URL}, and VUEDA_TEST_REDIS_URL is unset",
+)
+
+
+class ForkedDaphneProcess(daphne_testing.DaphneProcess):
+    """
+    A Daphne server process that always starts by fork.
+
+    The child must inherit the per-test database name and the overridden settings, which only fork
+    copies. Python 3.14 changed the default start method on Linux to forkserver.
+    """
+
+    _start_method = "fork"
+    _Popen = staticmethod(multiprocessing.get_context("fork").Process._Popen)
 
 
 def make_stream_application():
@@ -105,7 +124,7 @@ def live_server_port(stream_settings):
     # The child inherits open database sockets when it forks. Closing them here keeps the child
     # from sharing, and later terminating, a connection that the test process still uses.
     db.connections.close_all()
-    process = daphne_testing.DaphneProcess(HOST, make_stream_application)
+    process = ForkedDaphneProcess(HOST, make_stream_application)
     process.start()
     try:
         while not process.ready.wait(timeout=1):
