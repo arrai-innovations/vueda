@@ -47,8 +47,10 @@ export const RECONNECT_MAX_DELAY = 30000;
  * Create a connection that opens its socket on the first subscription and closes it after the last.
  *
  * The connection subscribes again after every reconnect, because the server forgets a socket's
- * subscriptions when it closes. It also hands each subscription a `resync_required` message after a
- * reconnect, because changes made while no socket was open never arrive. A lost socket reconnects after a delay that starts at
+ * subscriptions when it closes. It also hands a `resync_required` message to each subscription that
+ * was registered when the socket was lost or restarted, because changes made before the next socket
+ * opens never arrive. Opening a socket for new subscriptions, after the last one closed, resyncs
+ * nothing. A lost socket reconnects after a delay that starts at
  * `RECONNECT_MIN_DELAY` and doubles up to `RECONNECT_MAX_DELAY`. A refused handshake, such as one
  * without a signed-in user, also counts as a lost socket.
  *
@@ -64,8 +66,17 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
     let retryTimer = null;
     let retryDelay = RECONNECT_MIN_DELAY;
     let counter = 0;
-    // Whether a socket has opened before. A later open is a reconnect, which may have missed changes.
-    let openedBefore = false;
+    // Subscriptions that were registered when a socket was lost or restarted. Changes made before the next
+    // socket opens never arrive, so each of these fetches again then. A subscription added later loads
+    // after the loss and needs no second fetch.
+    /** @type {Set<string>} */
+    const missedChanges = new Set();
+
+    function markMissedChanges() {
+        for (const subscriptionId of subscriptions.keys()) {
+            missedChanges.add(subscriptionId);
+        }
+    }
 
     /** @param {object} message */
     function send(message) {
@@ -82,16 +93,15 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
                 return;
             }
             retryDelay = RECONNECT_MIN_DELAY;
-            const reconnected = openedBefore;
-            openedBefore = true;
             for (const [subscriptionId, { message }] of subscriptions) {
                 send({ ...message, subscription_id: subscriptionId });
             }
-            if (reconnected) {
-                // Changes made while no socket was open never arrive, so each view fetches again.
-                for (const [subscriptionId, { onMessage }] of [...subscriptions]) {
-                    onMessage({ type: "resync_required", subscription_id: subscriptionId });
-                }
+            const missed = [...missedChanges];
+            missedChanges.clear();
+            for (const subscriptionId of missed) {
+                subscriptions
+                    .get(subscriptionId)
+                    ?.onMessage({ type: "resync_required", subscription_id: subscriptionId });
             }
         });
         opened.addEventListener("message", (event) => {
@@ -104,6 +114,7 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
                 return;
             }
             socket = null;
+            markMissedChanges();
             scheduleReconnect();
         });
     }
@@ -163,6 +174,7 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
                 if (!subscriptions.delete(subscriptionId)) {
                     return;
                 }
+                missedChanges.delete(subscriptionId);
                 send({ op: "unsubscribe", subscription_id: subscriptionId });
                 if (!subscriptions.size) {
                     close();
@@ -170,6 +182,7 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
             };
         },
         restart() {
+            markMissedChanges();
             close();
             retryDelay = RECONNECT_MIN_DELAY;
             if (subscriptions.size) {

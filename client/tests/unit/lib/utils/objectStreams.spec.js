@@ -171,6 +171,36 @@ describe("lib/utils/objectStreams.js", () => {
             expect(onMessage).toHaveBeenCalledExactlyOnceWith({ type: "resync_required", subscription_id: "s1" });
         });
 
+        it("does not ask a subscription to fetch again when a socket opens after the last one closed", () => {
+            const connection = createConnection();
+            const unsubscribe = connection.subscribe({ op: "subscribe", pk: "1" }, vi.fn());
+            latestSocket().acceptHandshake();
+            unsubscribe();
+
+            const onMessage = vi.fn();
+            connection.subscribe({ op: "subscribe", pk: "2" }, onMessage);
+            latestSocket().acceptHandshake();
+
+            expect(FakeWebSocket.instances).toHaveLength(2);
+            expect(onMessage).not.toHaveBeenCalled();
+        });
+
+        it("asks only the subscriptions that the lost socket carried to fetch again", () => {
+            const connection = createConnection();
+            const carried = vi.fn();
+            connection.subscribe({ op: "subscribe", pk: "1" }, carried);
+            latestSocket().acceptHandshake();
+            latestSocket().close();
+
+            const added = vi.fn();
+            connection.subscribe({ op: "subscribe", pk: "2" }, added);
+            vi.advanceTimersByTime(objectStreams.RECONNECT_MIN_DELAY);
+            latestSocket().acceptHandshake();
+
+            expect(carried).toHaveBeenCalledExactlyOnceWith({ type: "resync_required", subscription_id: "s1" });
+            expect(added).not.toHaveBeenCalled();
+        });
+
         it("asks each subscription to fetch again after a restart", () => {
             const connection = createConnection();
             const onMessage = vi.fn();
