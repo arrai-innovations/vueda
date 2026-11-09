@@ -2762,6 +2762,7 @@ streams = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "aiohttp" },
     { name = "black" },
     { name = "channels-redis" },
     { name = "coverage" },
@@ -2832,6 +2833,7 @@ provides-extras = ["redis", "streams"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "black", specifier = ">=26.10.1" },
     { name = "channels-redis", specifier = ">=4.2.0" },
     { name = "coverage", specifier = ">=7.14.1" },
