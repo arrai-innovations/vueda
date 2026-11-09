@@ -157,6 +157,32 @@ describe("lib/utils/objectStreams.js", () => {
             expect(latestSocket().sent).toEqual([{ op: "subscribe", pk: "1", subscription_id: "s1" }]);
         });
 
+        it("asks each subscription to fetch again after a reconnect, but not after the first open", () => {
+            const connection = createConnection();
+            const onMessage = vi.fn();
+            connection.subscribe({ op: "subscribe", pk: "1" }, onMessage);
+            latestSocket().acceptHandshake();
+            expect(onMessage).not.toHaveBeenCalled();
+
+            latestSocket().close();
+            vi.advanceTimersByTime(objectStreams.RECONNECT_MIN_DELAY);
+            latestSocket().acceptHandshake();
+
+            expect(onMessage).toHaveBeenCalledExactlyOnceWith({ type: "resync_required", subscription_id: "s1" });
+        });
+
+        it("asks each subscription to fetch again after a restart", () => {
+            const connection = createConnection();
+            const onMessage = vi.fn();
+            connection.subscribe({ op: "subscribe", pk: "1" }, onMessage);
+            latestSocket().acceptHandshake();
+
+            connection.restart();
+            latestSocket().acceptHandshake();
+
+            expect(onMessage).toHaveBeenCalledExactlyOnceWith({ type: "resync_required", subscription_id: "s1" });
+        });
+
         it("doubles the delay after each refused handshake, up to the maximum", () => {
             const connection = createConnection();
             connection.subscribe({ op: "subscribe", pk: "1" }, vi.fn());
