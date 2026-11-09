@@ -171,6 +171,33 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
 let connection = null;
 
 /**
+ * Call `onChange` whenever the server reports a change to one record.
+ *
+ * The callback receives each `event` message and each `resync_required` message, which means that
+ * events may have been missed. It does not fetch anything. Before `setupObjectStreams()`, nothing
+ * subscribes and the callback never runs.
+ *
+ * @param {object} args - The record to watch.
+ * @param {{ app: string, model: string }} args.target - The app label and model name, as in the REST route.
+ * @param {string|number} args.pk - The primary key of the record.
+ * @param {(message: StreamMessage) => void} onChange - Receives each change message.
+ * @returns {() => void} The function that stops watching.
+ */
+export function watchObjectChanges({ target, pk }, onChange) {
+    if (!connection) {
+        return () => {};
+    }
+    return connection.subscribe(
+        { op: "subscribe", kind: "object", model: `${target.app}.${target.model}`, pk: String(pk) },
+        (message) => {
+            if (message.type === "event" || message.type === "resync_required") {
+                onChange(message);
+            }
+        },
+    );
+}
+
+/**
  * The object `subscribe` handler that `setupObjectStreams()` installs.
  *
  * It subscribes to one record and fetches the record again through the REST API after each event,
@@ -205,7 +232,7 @@ export function objectStreamSubscribe({ target, pk, params, callback, isCancelle
 
     /** @param {StreamMessage} message */
     function onMessage(message) {
-        if (cancelled() || (message.type !== "event" && message.type !== "resync_required")) {
+        if (cancelled()) {
             return;
         }
         cancelInFlight();
@@ -230,12 +257,7 @@ export function objectStreamSubscribe({ target, pk, params, callback, isCancelle
         );
     }
 
-    const unsubscribe = connection
-        ? connection.subscribe(
-              { op: "subscribe", kind: "object", model: `${target.app}.${target.model}`, pk: String(pk) },
-              onMessage,
-          )
-        : () => {};
+    const unsubscribe = watchObjectChanges({ target, pk }, onMessage);
 
     return Object.assign(Promise.resolve(), {
         cancel: async () => {

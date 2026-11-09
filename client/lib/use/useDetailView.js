@@ -65,6 +65,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
+import { useObjectChangeNotice } from "@vueda/use/useObjectChangeNotice.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
@@ -100,6 +101,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
+ * @property {boolean} [noticeChanges] - Report a change that someone else saves, without applying it, through the returned `changeNotice`. Takes effect only after `setupObjectStreams()`. For a view that holds unsaved edits, such as update.
  * @property {boolean} [subscribe] - Refetch the record when the server reports a change to it. Takes effect only after `setupObjectStreams()`. Only a view that shows no edits may set it, because each refetch replaces the form values.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
@@ -137,6 +139,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The `useObject` result; exposes `.state.object`, `.state.loading`, `.state.error`, `.state.relatedObjects`, `.state.calculatedObjects`, etc.
  * @property {import('vue').UnwrapNestedRefs<DetailViewInstanceGroup>} instance - Computed display state: title, loading, errors, and form wiring.
  * @property {import('vue').UnwrapNestedRefs<DetailViewActionsGroup>} actions - Available action and transition lists.
+ * @property {import('@vueda/use/useObjectChangeNotice.js').ObjectChangeNotice} changeNotice - Whether someone else changed or deleted the record, and `reload`. Stays clear unless `noticeChanges` is set.
  */
 
 /**
@@ -368,9 +371,20 @@ export function useDetailView(options, formInitialValue) {
         return new Set(candidates.filter((name) => detailActions.value.includes(name)));
     });
 
+    const changeNotice = useObjectChangeNotice({
+        enabled: () => !!options.noticeChanges && validAndActive.value,
+        target: () => ({ app: options.app, model: options.model }),
+        pk: () => options.pk,
+        params: () => instanceObjectProps.params,
+        object: () => instanceObject.state.object,
+        busy: () => instanceObject.state.loading !== false || !!options.objectForm?.state?.loading,
+        reload: () => instanceObject.retrieve(),
+    });
+
     return {
         modelConfig,
         instanceObject,
+        changeNotice,
         instance: reactive({
             validAndActive,
             titleStr,

@@ -76,6 +76,7 @@ const VIEW_NAME = "update";
  * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The fetch-side object instance (display/read).
  * @property {import('vue').UnwrapNestedRefs<import('@vueda/use/useDetailView.js').DetailViewInstanceGroup>} instance - Computed display state.
  * @property {import('vue').UnwrapNestedRefs<import('@vueda/use/useDetailView.js').DetailViewActionsGroup>} actions - Available action and transition lists.
+ * @property {import('@vueda/use/useObjectChangeNotice.js').ObjectChangeNotice} changeNotice - Whether someone else saved or deleted the record since it loaded, and `reload`, which discards the form's edits and loads the saved record.
  */
 
 /**
@@ -112,9 +113,11 @@ export function useViewUpdate(options) {
         widgetProps: toRef(options, "widgetProps"),
         formModelVariant: toRef(options, "formModelVariant"),
         objectForm: undefined,
+        // An update view holds unsaved edits, so it reports a pushed change instead of applying it.
+        noticeChanges: true,
     });
 
-    const { modelConfig, instanceObject, instance, actions } = useDetailView(
+    const { modelConfig, instanceObject, instance, actions, changeNotice } = useDetailView(
         internalOptions,
         formContextProps.initialValues,
     );
@@ -205,5 +208,6 @@ export function useViewUpdate(options) {
         instanceObject,
         instance,
         actions,
+        changeNotice,
     };
 }

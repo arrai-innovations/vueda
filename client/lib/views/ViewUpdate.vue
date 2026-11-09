@@ -3,6 +3,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertActions from "@vueda/feedback/alert/AlertActions.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
@@ -86,7 +87,7 @@ const emit = defineEmits(["object", "loading", "related-object", "calculated-obj
 
 const slots = useSlots();
 
-const { formContext, objectForm, instanceObject, instance, actions, modelConfig } = useViewUpdate(props);
+const { formContext, objectForm, instanceObject, instance, actions, modelConfig, changeNotice } = useViewUpdate(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
@@ -241,6 +242,37 @@ onMounted(() => {
                 :ignore-form-validation-errors="true"
                 :while-text="instance.combinedWhileText"
             />
+            <!-- @slot [change-notice] Override the notice shown when someone else saves or deletes the record after it loads; receives `changed`, `deleted`, `reload` (discards the form's edits and loads the saved record), `edited` (whether the user has touched a field), and `verboseName`. Appears only after `setupObjectStreams()`. -->
+            <slot
+                v-if="changeNotice.changed || changeNotice.deleted"
+                :changed="changeNotice.changed"
+                :deleted="changeNotice.deleted"
+                :edited="!!formContext.state.anyTouched"
+                name="change-notice"
+                :reload="changeNotice.reload"
+                :verbose-name="modelConfig.config?.verboseName"
+            >
+                <Alert v-if="changeNotice.deleted" data-qa="update-deleted-notice" variant="destructive">
+                    <AlertTitle>Deleted by someone else</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} was deleted after you opened it. Saving
+                        will fail.
+                    </AlertDescription>
+                </Alert>
+                <Alert v-else data-qa="update-changed-notice" variant="warning">
+                    <AlertTitle>Saved by someone else</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} changed after you opened it. Reload to
+                        see the saved values.
+                        <template v-if="formContext.state.anyTouched">Reloading discards your edits.</template>
+                    </AlertDescription>
+                    <AlertActions>
+                        <Button data-qa="update-changed-reload" type="button" @click="changeNotice.reload">
+                            Reload
+                        </Button>
+                    </AlertActions>
+                </Alert>
+            </slot>
             <!-- @slot [update-unavailable] Override the notice shown instead of the form when the object's available_actions does not permit the current action; receives `app`, `model`, `pk`, and `verboseName` (the model config's verbose name, if any). -->
             <slot
                 v-if="!instance.currentActionAvailable"
@@ -264,6 +296,7 @@ onMounted(() => {
                             'form-confirm-dialog-warnings',
                             'warning-entry',
                             'update-unavailable',
+                            'change-notice',
                             'record-name',
                         ])"
                         #[slot]="slotProps"
