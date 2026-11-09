@@ -78,7 +78,7 @@ Three cases do not follow the rule:
 
 [`formProps`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.formProps} in model config are extra props for the form model. Every form view applies three layers in order. Model config `formProps` comes first, then the view's own [`formProps`]{@api vue:component:ViewCreate:prop:formProps} prop. The view's form props, such as `fieldProps`, `widgetProps`, and `formModelVariant`, come last. A form prop that the template does not pass leaves the configured value in place. A later layer replaces a value whole, so a `fieldProps` map passed to the view replaces the configured map instead of merging with it.
 
-The view always sets `app`, `model`, and `view`, because they select the configuration that the form reads. The view ignores those keys in a `formProps` layer and logs a console warning. The read view, {@api vue:component:ViewRead}, takes no form props, so its form receives model config `formProps` alone. A custom view shell gets the same order from {@api js:module:@arrai-innovations/vueda/use/useFormModelProps}.
+The view always sets `app`, `model`, and `view`, because they select the configuration that the form reads. The view ignores those keys in a `formProps` layer and logs a console warning. The read view, {@api vue:component:ViewRead}, takes the same form props as {@api vue:component:ViewCreate} and {@api vue:component:ViewUpdate}. A custom view shell gets the same order from {@api js:module:@arrai-innovations/vueda/use/useFormModelProps}.
 
 List columns resolve through their own chain, described in [Customize List Column Rendering](../guides/customize-list-column-rendering).
 

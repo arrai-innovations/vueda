@@ -13,6 +13,7 @@ import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewUpdate.theme.js";
+import { VIEW_FORM_PROPS } from "@vueda/use/useFormModelProps.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
@@ -63,56 +64,7 @@ const props = defineProps({
         default: () => [],
     },
     ...THEME_OVERRIDE_PROPS,
-    /** Theme variant that the inner FormModel component receives as `variant`. Wins over a `variant` in the model config's `formProps` when passed. */
-    formModelVariant: {
-        type: String,
-        default: undefined,
-    },
-    /** Field names to render in the form; overrides the model config default. */
-    fields: {
-        type: Array,
-        default: undefined,
-    },
-    /** Map of field paths to field detail overrides. */
-    fieldDetails: {
-        type: Object,
-        default: undefined,
-    },
-    /** Field names to render in expanded (inline) mode. */
-    expand: {
-        type: Array,
-        default: undefined,
-    },
-    /** Map of expand field paths to detail overrides. */
-    expandDetails: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to async functions returning an override field component. */
-    fieldComponents: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to async functions returning an override widget component. */
-    widgetComponents: {
-        type: Object,
-        default: undefined,
-    },
-    /** Extra props for the inner FormModel component. They win over the model config's `formProps` and lose to this view's own form props. The `app`, `model`, and `view` keys are ignored, because the view sets them. */
-    formProps: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to additional props passed to the field component. Replaces a `fieldProps` map in the model config's `formProps` when passed. */
-    fieldProps: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to additional props passed to the widget component. Replaces a `widgetProps` map in the model config's `formProps` when passed. */
-    widgetProps: {
-        type: Object,
-        default: undefined,
-    },
+    ...VIEW_FORM_PROPS,
     /** Rules mapping related object keys to fetch data alongside the main object. */
     relatedObjectRules: {
         type: Object,
