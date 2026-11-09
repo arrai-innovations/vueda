@@ -36,11 +36,12 @@ VUEDA picks each column's default adapter in {@api js:property:@arrai-innovation
 | `JSONField`              | `JSONField`                    | {@api vue:component:ColumnJson}      |                                                            |
 | `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | {@api vue:component:ColumnModelLink} | `{ view: "read" }`                                         |
 
-Every other type renders through {@api vue:component:ColumnText}. That includes to-many relations and `SlugRelatedField`.
+Every other type renders through {@api vue:component:ColumnText}. That includes choice fields, to-many relations, and `SlugRelatedField`.
 
 The adapters render as follows:
 
 - `ColumnText` renders the cell value as text. It renders nothing for `null` or `undefined`. It renders an object or array as compact `JSON`, cut at 200 characters.
+- For a choice field, `ColumnText` renders the label of the stored value, as a read-only form does. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A many-valued choice field renders its labels joined with `, `. A value that matches no choice renders as stored. A field that sets its own `formatted` path renders that path's value as it is. Sorting and filtering still use the stored values.
 - `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No".
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
