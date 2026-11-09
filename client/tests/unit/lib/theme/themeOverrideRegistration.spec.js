@@ -17,7 +17,11 @@ async function freshRegistry() {
     return import("@vueda/use/useTheme.js");
 }
 
-describe("lib/theme/vueda-tailwind/*.js", () => {
+// Every case evaluates theme modules again after vi.resetModules(). The
+// aggregate path evaluates the whole theme, which can take longer than the
+// default 5s timeout when the full suite runs in parallel. This timeout only
+// guards against hangs. It does not measure load cost.
+describe("lib/theme/vueda-tailwind/*.js", { timeout: 30_000 }, () => {
     describe("Project overrides across registration paths", () => {
         scopedIt.each(Object.keys(loaders))("%s preserves Tailwind override precedence", async (path) => {
             for (const projectFirst of [true, false]) {

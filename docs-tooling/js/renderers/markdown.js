@@ -30,6 +30,7 @@ export function renderHeading(level, text) {
 
 const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
 const INDENTED_CODE_RE = /^(?: {4}|\t)/;
+const BLOCKQUOTE_MARKER_RE = /^(?: {0,3}>)+/;
 
 const escapeMarkup = (value) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -50,6 +51,9 @@ const escapeOutsideCodeSpans = (paragraph) => {
  *
  * A docstring carries both. Escaping a code span or a fenced block would show
  * the entity itself, so `<field>` would reach the reader as `&lt;field&gt;`.
+ *
+ * A `>` that starts a line is a blockquote marker, and it stays unescaped so
+ * that the quote still renders. The text after the marker is escaped.
  */
 export function escapeText(value) {
     if (value === undefined || value === null) {
@@ -61,7 +65,10 @@ export function escapeText(value) {
 
     const flushParagraph = () => {
         if (paragraph.length) {
-            rendered.push(escapeOutsideCodeSpans(paragraph.join("\n")));
+            const markers = paragraph.map((line) => line.match(BLOCKQUOTE_MARKER_RE)?.[0] ?? "");
+            const body = paragraph.map((line, index) => line.slice(markers[index].length)).join("\n");
+            const escaped = escapeOutsideCodeSpans(body).split("\n");
+            rendered.push(escaped.map((line, index) => markers[index] + line).join("\n"));
             paragraph = [];
         }
     };

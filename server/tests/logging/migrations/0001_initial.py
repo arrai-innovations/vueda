@@ -21,6 +21,7 @@ class Migration(migrations.Migration):
                 ("traceback", models.TextField()),
             ],
             options={
+                "default_permissions": ("create", "read", "update", "delete", "list"),
                 "verbose_name": "Log record",
                 "verbose_name_plural": "Log records",
             },

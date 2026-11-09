@@ -264,6 +264,7 @@ export const defaultFieldMappings = {
     SlugRelatedField: {
         ForeignKey: {
             widget: availableWidgets.WidgetModel,
+            readOnlyWidget: availableWidgets.WidgetModelReadOnly,
             fieldProps: { validation: "text" },
             widgetProps: { type: "select", editable: true },
             default: true,

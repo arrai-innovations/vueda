@@ -15,13 +15,14 @@ parameters:
         default: false
 
 executors:
-    node-lts:
+    # Keep this version in step with the root .nvmrc.
+    node:
         docker:
-            - image: cimg/node:lts
+            - image: cimg/node:26
 
 jobs:
     client-verify-release-version:
-        executor: node-lts
+        executor: node
         resource_class: small
         steps:
             - checkout
@@ -44,7 +45,7 @@ jobs:
             create_badges:
                 type: boolean
                 default: true
-        executor: node-lts
+        executor: node
         resource_class: medium+
         steps:
             - checkout
@@ -57,6 +58,13 @@ jobs:
             - run:
                   name: Install Dependencies
                   command: pnpm install
+            - run:
+                  name: Report CPU and memory limits
+                  command: |
+                      echo "nproc: $(nproc)"
+                      node -e 'const os = require("os"); console.log("availableParallelism:", os.availableParallelism(), "cpus:", os.cpus().length, "totalmem MB:", Math.round(os.totalmem() / 1048576))'
+                      echo "cgroup cpu.max: $(cat /sys/fs/cgroup/cpu.max 2>/dev/null || cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us 2>/dev/null)"
+                      echo "cgroup memory.max: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null)"
             - run:
                   name: Run Tests with Coverage
                   command: pnpm -C client run coverage
@@ -101,7 +109,7 @@ jobs:
                             host: docs
 
     client-publish:
-        executor: node-lts
+        executor: node
         resource_class: small
         steps:
             - checkout

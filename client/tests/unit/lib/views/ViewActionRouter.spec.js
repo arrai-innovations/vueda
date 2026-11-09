@@ -124,6 +124,11 @@ vi.mock("@vueda/utils/actionMap.js", () => ({
     getActionName: (a) => a,
 }));
 
+const warnUnmatchedActionViews = vi.fn();
+vi.mock("@vueda/utils/actionViewOverrides.js", () => ({
+    warnUnmatchedActionViews,
+}));
+
 let ViewActionRouter;
 
 beforeEach(async () => {
@@ -224,6 +229,41 @@ describe("lib/views/ViewActionRouter.vue", () => {
             workflow.loading = false;
             await vi.waitFor(() => expect(wrapper.findComponent(ExecuteTransitionStub).exists()).toBe(true));
             expect(crudComponents.activate).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Action view name check", () => {
+        afterEach(() => {
+            vi.unstubAllEnvs();
+        });
+
+        scopedIt("checks the project's action view files against the model's actions and transitions", async () => {
+            modelConfig.info = { actions: [{ name: "list" }] };
+            workflow.transitions = [{ code: "void", name: "Void" }];
+            mount(ViewActionRouter, { props: { app: "a", model: "b", action: "list" } });
+            await flushPromises();
+            // This package has no src/views, so the root-relative glob finds no files.
+            expect(warnUnmatchedActionViews).toHaveBeenCalledWith([], {
+                app: "a",
+                model: "b",
+                actionNames: ["list"],
+                transitionCodes: ["void"],
+            });
+        });
+
+        scopedIt("skips the check without model info", async () => {
+            modelConfig.info = undefined;
+            mount(ViewActionRouter, { props: { app: "a", model: "b", action: "list" } });
+            await flushPromises();
+            expect(warnUnmatchedActionViews).not.toHaveBeenCalled();
+        });
+
+        scopedIt("skips the check outside development builds", async () => {
+            vi.stubEnv("DEV", false);
+            modelConfig.info = { actions: [{ name: "list" }] };
+            mount(ViewActionRouter, { props: { app: "a", model: "b", action: "list" } });
+            await flushPromises();
+            expect(warnUnmatchedActionViews).not.toHaveBeenCalled();
         });
     });
 

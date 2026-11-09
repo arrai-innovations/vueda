@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 from typing import ClassVar
 
@@ -6,7 +7,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
+from django.db import models
+from django.db.models.functions import Lower
 from django.test.utils import CaptureQueriesContext
+from django.test.utils import register_lookup
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -452,7 +456,7 @@ class TestModelInfoChoicesAdmin(BaseModelInfoChoices):
 
         monkeypatch.setattr(info_viewsets.ModelInfoChoicesBaseViewSet, "initial", counting_initial)
 
-        with django_assert_num_queries(9):
+        with django_assert_num_queries(8):
             response = authenticated_client.get(url, format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -833,3 +837,381 @@ class TestSerializerOnlyFieldChoicesPermissions:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert "Choices Product" in {result["label"] for result in response.data["results"]}
+
+
+class _DistributorValueFilterSerializer(store_serializers.DistributorSerializer):
+    """Declares one serializer-only field for each way that the choices endpoint keys an option."""
+
+    priority = serializers.ChoiceField(choices=[("low", "Low"), ("high", "High")], write_only=True, required=False)
+    special_care_code = serializers.SlugRelatedField(
+        slug_field="code", queryset=store_models.SpecialCare.objects.all(), write_only=True, required=False
+    )
+    special_care_codes = serializers.SlugRelatedField(
+        slug_field="code",
+        queryset=store_models.SpecialCare.objects.all(),
+        many=True,
+        write_only=True,
+        required=False,
+    )
+    special_care_pk = serializers.PrimaryKeyRelatedField(
+        queryset=store_models.SpecialCare.objects.all(), write_only=True, required=False
+    )
+    cart_pks = serializers.PrimaryKeyRelatedField(
+        queryset=store_models.Cart.objects.all(), many=True, write_only=True, required=False
+    )
+    cart_owner_email = serializers.SlugRelatedField(
+        slug_field="customer__user__email", queryset=store_models.Cart.objects.all(), write_only=True, required=False
+    )
+    option_type_code = serializers.SlugRelatedField(
+        slug_field="option_type__code",
+        queryset=store_models.ProductOption.objects.all(),
+        write_only=True,
+        required=False,
+    )
+    special_care_code_lower = serializers.SlugRelatedField(
+        slug_field="code__lower", queryset=store_models.SpecialCare.objects.all(), write_only=True, required=False
+    )
+    cart_modified_year = serializers.SlugRelatedField(
+        slug_field="last_modified__year", queryset=store_models.Cart.objects.all(), write_only=True, required=False
+    )
+    # The test that uses this field patches a `cart_number` property onto Cart.
+    cart_number = serializers.SlugRelatedField(
+        slug_field="cart_number", queryset=store_models.Cart.objects.all(), write_only=True, required=False
+    )
+    # The test that uses this field patches a `customer_number` property onto Customer.
+    cart_customer_number = serializers.SlugRelatedField(
+        slug_field="customer__customer_number",
+        queryset=store_models.Cart.objects.all(),
+        write_only=True,
+        required=False,
+    )
+
+    class Meta(store_serializers.DistributorSerializer.Meta):
+        fields = [
+            *store_serializers.DistributorSerializer.Meta.fields,
+            "priority",
+            "special_care_code",
+            "special_care_codes",
+            "special_care_pk",
+            "cart_pks",
+            "cart_owner_email",
+            "option_type_code",
+            "special_care_code_lower",
+            "cart_modified_year",
+            "cart_number",
+            "cart_customer_number",
+        ]
+
+
+@pytest.mark.django_db
+class TestModelInfoChoicesValueFilter:
+    """The ``value`` query parameter keeps only the options whose value matches, keyed the same way
+    as the unfiltered list."""
+
+    @pytest.fixture(autouse=True)
+    def registration(self):
+        info.registration.get_empty_registry()
+        info.register(_DistributorValueFilterSerializer, store_viewsets.DistributorViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.fixture
+    def superuser_client(self, api_client):
+        user = get_user_model().objects.create_superuser(
+            email="value-filter@domain.invalid", name="Value Filter User", password="testpass"
+        )
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    @pytest.fixture
+    def special_cares(self):
+        return {
+            code: store_models.SpecialCare.objects.create(code=code, field_that_contains_the_name=name)
+            for code, name in (("CT", "Connecticut"), ("ON", "Ontario"), ("BC", "British Columbia"))
+        }
+
+    @pytest.fixture
+    def carts(self):
+        carts = {}
+        for letter in ("a", "b", "c"):
+            user = get_user_model().objects.create(
+                email=f"{letter}-value-filter@domain.invalid", name=f"Cart Owner {letter}", is_active=True
+            )
+            carts[letter] = store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=user))
+        return carts
+
+    def test_static_choices_keep_the_matching_entries(self, superuser_client):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "priority")) + "?value=high"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "High", "value": "high"}]
+
+    def test_repeated_values_return_every_match_sorted_by_label(self, superuser_client, special_cares):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_code"))
+            + "?value=ON&value=CT"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [
+            {"label": "Connecticut", "value": "CT"},
+            {"label": "Ontario", "value": "ON"},
+        ]
+
+    def test_a_many_related_slug_field_is_keyed_by_its_slug(self, superuser_client, special_cares):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_codes")) + "?value=BC"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "British Columbia", "value": "BC"}]
+
+    def test_a_primary_key_relation_is_filtered_by_primary_key(self, superuser_client, special_cares):
+        pk = special_cares["ON"].pk
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_pk")) + f"?value={pk}"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "Ontario", "value": str(pk)}]
+
+    def test_a_value_that_the_key_cannot_hold_matches_nothing(self, superuser_client, special_cares):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_pk")) + "?value=abc"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == []
+
+    def test_a_value_outside_the_integer_range_matches_nothing(self, superuser_client, special_cares):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_pk"))
+            + "?value=99999999999999999999999"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == []
+
+    def test_a_value_with_a_nul_character_matches_nothing(self, superuser_client, special_cares):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_code")) + "?value=C%00T"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == []
+
+    def test_a_value_with_no_match_returns_an_empty_list(self, superuser_client, special_cares):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_code")) + "?value=XX"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == []
+
+    def test_get_formatted_name_runs_only_for_the_matching_rows(self, superuser_client, carts, monkeypatch):
+        labelled = []
+        get_formatted_name = store_models.Cart.get_formatted_name
+
+        def recording_get_formatted_name(cart):
+            labelled.append(cart.pk)
+            return get_formatted_name(cart)
+
+        monkeypatch.setattr(store_models.Cart, "get_formatted_name", recording_get_formatted_name)
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_pks"))
+            + f"?value={carts['b'].pk}"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "b-value-filter@domain.invalid", "value": str(carts["b"].pk)}]
+        assert labelled == [carts["b"].pk]
+
+    def test_a_stored_key_that_the_field_validators_reject_still_matches(self, superuser_client):
+        # objects.create skips validation, as rows saved before a validator existed did.
+        user = get_user_model().objects.create(email="legacy-address", name="Legacy Owner", is_active=True)
+        store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=user))
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_owner_email"))
+            + "?value=legacy-address"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "legacy-address", "value": "legacy-address"}]
+
+    def test_a_null_relation_in_the_key_path_gives_a_null_value(self, superuser_client, monkeypatch):
+        # ProductOption labels through get_formatted_name here, so its key is read row by row.
+        monkeypatch.setattr(store_models.ProductOption, "get_formatted_name", lambda option: option.name, raising=False)
+        product = store_models.Product.objects.create(
+            name="Value Filter Product",
+            distributor=store_models.Distributor.objects.create(name="Value Filter Distributor"),
+            order_between=[1, 2],
+            tangible_type=store_models.TangibleType.objects.create(name="Value Filter Type"),
+        )
+        store_models.ProductOption.objects.create(product=product, name="No Type", sku="NT", gtin="value-filter-nt")
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "option_type_code"))
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "No Type", "value": None}]
+
+    def test_a_slug_field_that_names_a_property_lists_its_options(self, superuser_client, carts, monkeypatch):
+        monkeypatch.setattr(store_models.Cart, "cart_number", property(lambda cart: f"cart-{cart.pk}"), raising=False)
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_number"))
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert {result["value"] for result in response.data["results"]} == {
+            f"cart-{cart.pk}" for cart in carts.values()
+        }
+
+    def test_a_value_filter_on_a_transform_slug_field_filters_in_the_database(self, superuser_client, special_cares):
+        # Django does not register `lower` on CharField by default.
+        with register_lookup(models.CharField, Lower):
+            response = superuser_client.get(
+                reverse("info.model_info_choices-list", args=("store", "distributor", "special_care_code_lower"))
+                + "?value=ct"
+            )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "Connecticut", "value": "ct"}]
+
+    def test_a_value_filter_on_a_transform_slug_field_converts_the_values(self, superuser_client, carts):
+        # Mid-year, so the database's local-time year and the UTC year read from the row agree.
+        store_models.Cart.objects.update(last_modified=datetime.datetime(2026, 6, 15, 12, tzinfo=datetime.UTC))
+        year = 2026
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_modified_year"))
+            + f"?value=abc&value={year}"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert {result["value"] for result in response.data["results"]} == {str(year)}
+        assert len(response.data["results"]) == len(carts)
+
+    def test_a_value_filter_on_a_transform_slug_field_drops_a_value_it_cannot_convert(self, superuser_client, carts):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_modified_year")) + "?value=abc"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == []
+
+    def test_a_value_filter_on_a_property_slug_field_reads_the_property(self, superuser_client, carts, monkeypatch):
+        monkeypatch.setattr(store_models.Cart, "cart_number", property(lambda cart: f"cart-{cart.pk}"), raising=False)
+        pk = carts["b"].pk
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_number")) + f"?value=cart-{pk}"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": "b-value-filter@domain.invalid", "value": f"cart-{pk}"}]
+
+    def test_a_value_filter_on_a_property_after_a_relation_reads_the_property(
+        self, superuser_client, carts, monkeypatch
+    ):
+        monkeypatch.setattr(
+            store_models.Customer,
+            "customer_number",
+            property(lambda customer: f"customer-{customer.pk}"),
+            raising=False,
+        )
+        customer_pk = carts["c"].customer.pk
+
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_customer_number"))
+            + f"?value=customer-{customer_pk}"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [
+            {"label": "c-value-filter@domain.invalid", "value": f"customer-{customer_pk}"}
+        ]
+
+    def test_a_slug_through_a_relation_keys_get_formatted_name_options_by_the_slug(self, superuser_client, carts):
+        response = superuser_client.get(
+            reverse("info.model_info_choices-list", args=("store", "distributor", "cart_owner_email"))
+            + "?value=c-value-filter@domain.invalid"
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [
+            {"label": "c-value-filter@domain.invalid", "value": "c-value-filter@domain.invalid"}
+        ]
+
+
+class _ProductsFromGetQuerysetField(serializers.PrimaryKeyRelatedField):
+    """Sets no queryset and lists the rows that its get_queryset scopes to the requesting user, which
+    DRF allows."""
+
+    def get_queryset(self):
+        return store_models.Product.objects.filter(name=f"For {self.context['request'].user.email}")
+
+
+class _DistributorGetQuerysetChoicesSerializer(store_serializers.DistributorSerializer):
+    """Declares serializer-only relations, one many-related, whose rows come from get_queryset."""
+
+    product_from_get_queryset = _ProductsFromGetQuerysetField(write_only=True, required=False)
+    products_from_get_queryset = _ProductsFromGetQuerysetField(many=True, write_only=True, required=False)
+
+    class Meta(store_serializers.DistributorSerializer.Meta):
+        fields = [
+            *store_serializers.DistributorSerializer.Meta.fields,
+            "product_from_get_queryset",
+            "products_from_get_queryset",
+        ]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("field", ["product_from_get_queryset", "products_from_get_queryset"])
+class TestRelationWithOverriddenGetQuerysetChoices:
+    """A relation that lists its rows from ``get_queryset`` gets the request through the
+    serializer's context, and needs ``list`` on that queryset's model, as one with a ``queryset``
+    argument does."""
+
+    @pytest.fixture(autouse=True)
+    def registration(self):
+        info.registration.get_empty_registry()
+        info.register(_DistributorGetQuerysetChoicesSerializer, store_viewsets.DistributorViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @staticmethod
+    def user_with(*codenames):
+        user = get_user_model().objects.create_user(
+            email=f"get-queryset-{'-'.join(codenames)}@domain.invalid", name="Choices User", password="testpass"
+        )
+        user.user_permissions.add(*Permission.objects.filter(content_type__app_label="store", codename__in=codenames))
+        return get_user_model().objects.get(pk=user.pk)
+
+    def test_without_list_on_the_related_model_is_refused(self, api_client, field):
+        api_client.force_authenticate(user=self.user_with("read_distributor"))
+
+        response = api_client.get(reverse("info.model_info_choices-list", args=("store", "distributor", field)))
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_lists_the_rows_that_get_queryset_scopes_to_the_request(self, api_client, field):
+        user = self.user_with("read_distributor", "list_product")
+        distributor = store_models.Distributor.objects.create(name="Scoped Distributor")
+        tangible_type = store_models.TangibleType.objects.create(name="Scoped Type")
+        for name in (f"For {user.email}", "For someone else"):
+            store_models.Product.objects.create(
+                name=name, distributor=distributor, order_between=[1, 2], tangible_type=tangible_type
+            )
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get(reverse("info.model_info_choices-list", args=("store", "distributor", field)))
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [result["label"] for result in response.data["results"]] == [f"For {user.email}"]
