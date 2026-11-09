@@ -2993,3 +2993,11 @@ class TestSearchQuerysetChecks:
                 return store_models.Cart.objects.filter(customer__user=self.request.user)
 
         assert self.check_errors(CartRequestSearchQuerysetViewSet) == []
+
+    def test_serializer_without_viewset_is_skipped(self):
+        from vueda.info.checks import check_search_queryset_configuration
+
+        info.registration.get_empty_registry()
+        info.register_serializer(store_serializers.CartSerializer)
+
+        assert check_search_queryset_configuration(app_configs=None) == []

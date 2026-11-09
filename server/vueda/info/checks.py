@@ -1830,6 +1830,9 @@ def _validate_search_queryset(model, viewset):
     """
     from vueda.core.filters import VuedaSearchFilterBackend
 
+    if viewset is None:
+        return []
+
     search_fields = getattr(viewset, "search_fields", None)
     backend_class = next(
         (backend for backend in viewset.filter_backends if issubclass(backend, VuedaSearchFilterBackend)), None
