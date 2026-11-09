@@ -1164,7 +1164,7 @@ class TestAvailableActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixi
         field = AvailableActionsField()
         field.bind(field_name="available_actions", parent=serializer)
 
-        assert field.get_value(customer.data) == ["list", "retrieve"]
+        assert field.get_attribute(customer.data) == ["list", "retrieve"]
 
 
 @pytest.mark.django_db

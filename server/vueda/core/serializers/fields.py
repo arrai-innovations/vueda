@@ -20,8 +20,10 @@ from collections.abc import Mapping
 from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.base import DeserializationError
 from django.core.serializers.base import SerializationError
+from django.db.models import Model
 from rest_framework import serializers
 from rest_framework.fields import SkipField
+from rest_framework.fields import empty
 
 from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.formatted_name import formatted_name_of
@@ -110,7 +112,29 @@ class AvailableActionsField(serializers.ListField):
         }
         super().__init__(**kwargs)
 
-    def get_value(self, instance):
+    def get_value(self, dictionary):
+        """
+        Read no submitted value, because the field is read-only.
+
+        DRF calls this method with the request data, not an object. A write's validation calls it
+        through ``Serializer.get_initial()``, even though the field is read-only. Returning
+        ``empty`` keeps that validation from checking action permissions against the request body.
+        """
+        return empty
+
+    def get_attribute(self, instance):
+        """
+        Return the actions that the requester may take on ``instance``.
+
+        DRF calls this method with the object that a response renders. When the serializer renders
+        its ``validated_data`` dict instead of a saved object, there is no object to check. The field
+        is then left out of the response.
+        """
+        if instance is not None and not isinstance(instance, Model):
+            raise SkipField()
+        return self._available_actions(instance)
+
+    def _available_actions(self, instance):
         request = self.context["request"]
 
         viewset = self.context["view"]
@@ -143,9 +167,6 @@ class AvailableActionsField(serializers.ListField):
             available_actions.extend(sorted(viewset.get_allowed_extra_actions(request, instance=instance)))
 
         return available_actions
-
-    def get_attribute(self, instance):
-        return self.get_value(instance)
 
     def to_internal_value(self, data):
         raise NotImplementedError()
