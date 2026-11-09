@@ -15,9 +15,12 @@ import operator
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import FieldError
+from django.core.exceptions import ValidationError
 from django.core.validators import EMPTY_VALUES
 from django.db.models import CharField
 from django.db.models import F
+from django.db.models.constants import LOOKUP_SEP
 from django.db.models.functions.comparison import Cast
 from django.http import Http404
 from django.utils.functional import cached_property
@@ -119,9 +122,10 @@ class ModelInfoChoicesBaseViewSet(FlexFieldsMixin, mixins.ListModelMixin, Generi
        through ``PERMISSION_NAMES_MAPPING``. The viewset sets no ``permission_classes``, so these
        are the only permission checks.
 
-    Every ``value`` is a string, whatever the column type. Responses are paginated like other VUEDA
-    lists. The search and ordering filter backends are removed, so the endpoints take no search or
-    ordering parameter.
+    Every ``value`` is a string, whatever the column type. The exception is a related row whose key
+    is null, such as a row whose ``slug_field`` path crosses a null relation. That row's ``value`` is
+    null. Responses are paginated like other VUEDA lists. The search and ordering filter backends are
+    removed, so the endpoints take no search or ordering parameter.
     """
 
     object = None  # type: ContentType
@@ -251,6 +255,19 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
     3. The ``formatted_name`` column.
 
     A related model with none of the three raises ``FieldError``.
+
+    A many-related field keys its options by its child relation's key: the primary key, or the
+    ``slug_field`` value when the child is a ``SlugRelatedField``.
+
+    The ``value`` query parameter keeps only the options whose value matches. It can repeat, as in
+    ``?value=CT&value=ON``, and it matches the same key that the unfiltered list uses. A related
+    field applies the filter to its queryset before any row is read. The exception is a
+    ``slug_field`` that names a model attribute, such as a property, which the database cannot
+    filter on. For that field, the endpoint reads every row of the queryset to compare the
+    attribute. A value that the key's model field, or the output field of a transform at the end
+    of the key, cannot convert matches nothing. Examples are ``abc`` for an integer primary key and
+    for ``created__year``. Static choices compare each value to the choice value as a string. A
+    request with ``value`` and no matching option returns an empty list.
     """
 
     serializer_class = ModelInfoChoicesSerializer
@@ -295,7 +312,11 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             return
 
         serializer = self.canonical["serializer"]  # type: serializers.ModelSerializer
-        fields = serializer().get_fields()
+        # Bound fields, from a serializer that has the request in its context: a relation's
+        # get_queryset can then read self.context["request"], as it does on the model's own viewset.
+        # Unbound fields from get_fields() have no context. The context leaves out "view", because
+        # this viewset is not the model's viewset that serializer code expects there.
+        fields = serializer(context={"request": self.request}).fields
 
         self.validate_queryset(serializer, fields)
 
@@ -336,17 +357,134 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             meta = model_class._meta
             permissions = [f"{meta.app_label}.{permission_read_name}_{meta.model_name}"]
             field = self.choices_field_instance
-            related_queryset = getattr(getattr(field, "child_relation", field), "queryset", None)
+            # get_queryset, not the queryset attribute: a relation can leave queryset unset and
+            # override get_queryset, and get_queryset is what lists the rows.
+            relation = getattr(field, "child_relation", field)
+            related_queryset = relation.get_queryset() if hasattr(relation, "get_queryset") else None
             if related_queryset is not None:
                 related_meta = related_queryset.model._meta
                 permissions.append(f"{related_meta.app_label}.{permission_list_name}_{related_meta.model_name}")
             self.choices_permissions = tuple(permissions)
             self.choices_queryset_model = related_queryset.model if related_queryset is not None else model_class
 
+    def get_requested_values(self):
+        """
+        Return the values that the ``value`` query parameter asks for, as a set of strings.
+
+        The parameter can repeat, as in ``?value=CT&value=ON``. The method returns ``None`` when the
+        request has no ``value`` parameter, so the endpoint lists every option.
+        """
+        if "value" not in self.request.query_params:
+            return None
+        return set(self.request.query_params.getlist("value"))
+
+    def filter_related_queryset(self, queryset, key_field, values):
+        """
+        Narrow ``queryset`` to the rows whose ``key_field`` matches one of ``values``.
+
+        Each value is converted with the key's model field first. A value that the field cannot
+        convert cannot match a row, so it is dropped instead of raising. An example is ``abc`` for an
+        integer primary key. A value that contains a NUL character is dropped too, because PostgreSQL
+        would reject the query. The field's validators do not run, because a stored row can hold a
+        value that a validator added later rejects. A number outside the column's integer range needs
+        no check: PostgreSQL compares the column with it and finds no match.
+
+        A ``key_field`` that ends in a transform after a field, such as ``created__year`` or a JSON
+        key, is filtered in the database too. The transform's output field converts the values, so
+        ``abc`` for ``created__year`` is dropped. A JSON key's output field keeps each value as given.
+
+        A ``key_field`` that names a model attribute rather than a field, such as a property, has no
+        database column to filter on. For that key, the method reads the attribute from every row of
+        ``queryset`` and keeps the rows whose value, as a string, is one of ``values``.
+        """
+        key_names = key_field.split(LOOKUP_SEP)
+        try:
+            final_field, targets, unresolved = queryset.query.names_to_path(key_names, queryset.model._meta)[1:]
+        except FieldError:
+            final_field, unresolved = None, key_names
+        if unresolved and (final_field is None or final_field.is_relation):
+            key_relations = self.get_key_relations(queryset, key_names)
+            rows = queryset.select_related(key_relations) if key_relations else queryset
+            matching_pks = []
+            for row in rows:
+                key = self.read_key(row, key_names)
+                if key is not None and str(key) in values:
+                    matching_pks.append(row.pk)
+            return queryset.filter(pk__in=matching_pks)
+        if unresolved:
+            # The transform's output field converts the values, so `abc` for `created__year`
+            # matches nothing instead of raising. Resolve on a copy of the query, because
+            # resolve_ref adds the path's joins to the query it is called on.
+            key_model_field = queryset.all().query.resolve_ref(key_field).output_field
+        else:
+            key_model_field = targets[0]
+        cleaned_values = []
+        for value in values:
+            if "\x00" in value:
+                # PostgreSQL text cannot hold a NUL character, so no row matches, and the database
+                # would reject the query.
+                continue
+            try:
+                cleaned_value = key_model_field.to_python(value)
+            except (ValidationError, ValueError, TypeError):
+                # Most fields raise ValidationError for a value they cannot convert. Some raise a
+                # ValueError subclass instead, such as binascii.Error from a BinaryField.
+                continue
+            cleaned_values.append(cleaned_value)
+        return queryset.filter(**{f"{key_field}{LOOKUP_SEP}in": cleaned_values})
+
+    def get_key_relations(self, queryset, key_names):
+        """
+        Return the leading relations of an option key, as a ``select_related`` path.
+
+        The method returns ``None`` when the key crosses no relation, or when it crosses a
+        multi-valued relation, which ``select_related`` cannot follow. A multi-table inheritance
+        parent link that Django adds for an inherited field is not one of the key's names, so it is
+        not counted. The last name is the key itself, so it is never counted either, even when it
+        resolves through a relation. ``pk`` does that on a model whose primary key is a one-to-one
+        field.
+        """
+        try:
+            path = queryset.query.names_to_path(key_names, queryset.model._meta)[0]
+        except FieldError:
+            # A slug_field that names a model attribute, such as a property, is not a field path.
+            # read_key still reads it from each row.
+            return None
+        if any(path_info.m2m for path_info in path):
+            return None
+        relation_count = 0
+        for path_info in path:
+            if not (path_info.direct and getattr(path_info.join_field.remote_field, "parent_link", False)):
+                relation_count += 1
+        relation_count = min(relation_count, len(key_names) - 1)
+        if not relation_count:
+            return None
+        return LOOKUP_SEP.join(key_names[:relation_count])
+
+    def read_key(self, instance, key_names):
+        """
+        Read an option key from a row by following each name in ``key_names`` as an attribute.
+
+        The method does not call the relation's ``to_representation``, because a custom relation may
+        need serializer context that this serializer instance does not have. A null relation along
+        the path gives a null key. The database branch of ``get_queryset`` also gives a null key for
+        that row.
+        """
+        key = instance
+        for name in key_names:
+            key = getattr(key, name)
+            if key is None:
+                return None
+        return key
+
     def get_queryset(self):
         """
-        Returns a queryset if the field is a relation.
-        Return a list if the field is not a relation.
+        Return the field's options as ``{label, value}`` dictionaries, sorted by label.
+
+        A ``value`` query parameter keeps only the options with a matching value. The values of a
+        related field narrow the queryset before any row is read, so the endpoint does not read rows
+        outside the filter. A key that names a model attribute is the exception, as
+        ``filter_related_queryset`` describes.
         """
         self.resolve_choices()
 
@@ -354,83 +492,52 @@ class ModelInfoChoicesViewSet(ModelInfoChoicesBaseViewSet):
             return self.choices_content_types
 
         field = self.choices_field_instance
+        values = self.get_requested_values()
+        # A many-related field holds its relation in child_relation, which keys each option.
+        relation = getattr(field, "child_relation", field)
 
-        if hasattr(field, "child_relation"):
-            queryset = field.child_relation.queryset
+        # A relation's get_queryset can return None, and then the relation offers no rows. Its
+        # choices are empty, so the static branch below answers with an empty list.
+        queryset = relation.get_queryset() if hasattr(relation, "get_queryset") else None
+        if queryset is not None:
+            key_field = getattr(relation, "slug_field", "pk")
+            if values is not None:
+                queryset = self.filter_related_queryset(queryset, key_field, values)
+
             if callable(getattr(queryset.model, "get_formatted_name", None)):
+                key_names = key_field.split(LOOKUP_SEP)
+                rows = annotate_formatted_name(queryset)
+                key_relations = self.get_key_relations(queryset, key_names)
+                if key_relations:
+                    # A key through relations would otherwise load each relation once per row.
+                    rows = rows.select_related(key_relations)
                 choices = []
-                for instance in annotate_formatted_name(queryset).filter(pk__in=field.choices.keys()):
+                for instance in rows:
+                    key = self.read_key(instance, key_names)
                     choices.append(
                         {
                             "label": instance.get_formatted_name(),
-                            "value": str(instance.pk),
+                            "value": None if key is None else str(key),
                         }
                     )
                 choices.sort(key=operator.itemgetter("label"))
 
             else:
                 formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
-
                 choices = (
-                    queryset.filter(pk__in=field.choices.keys())
-                    .annotate(label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField()))
+                    queryset.annotate(
+                        label=F(formatted_name_lookup_expression),
+                        value=Cast(F(key_field), output_field=CharField()),
+                    )
                     .order_by("label")
                     .values("label", "value")
                 )
 
-        elif hasattr(field, "queryset"):
-            queryset = field.get_queryset()
-            if hasattr(field, "slug_field"):
-                key_field = field.slug_field
-                if callable(getattr(queryset.model, "get_formatted_name", None)):
-                    choices = []
-                    for instance in annotate_formatted_name(queryset):
-                        choices.append(
-                            {
-                                "label": instance.get_formatted_name(),
-                                "value": str(getattr(instance, key_field)),
-                            }
-                        )
-                    choices.sort(key=operator.itemgetter("label"))
-
-                else:
-                    formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
-                    choices = (
-                        queryset.annotate(
-                            label=F(formatted_name_lookup_expression),
-                            value=Cast(F(key_field), output_field=CharField()),
-                        )
-                        .order_by("label")
-                        .values("label", "value")
-                    )
-
-            else:
-                if callable(getattr(queryset.model, "get_formatted_name", None)):
-                    choices = []
-                    for instance in annotate_formatted_name(queryset).filter(pk__in=field.choices.keys()):
-                        choices.append(
-                            {
-                                "label": instance.get_formatted_name(),
-                                "value": str(instance.pk),
-                            }
-                        )
-                    choices.sort(key=operator.itemgetter("label"))
-
-                else:
-                    formatted_name_lookup_expression = self.get_formatted_name_lookup_expression(queryset)
-
-                    choices = (
-                        queryset.filter(pk__in=field.choices.keys())
-                        .annotate(
-                            label=F(formatted_name_lookup_expression), value=Cast(F("pk"), output_field=CharField())
-                        )
-                        .order_by("label")
-                        .values("label", "value")
-                    )
-
         else:
             choices = []
             for value, label in sorted(field.choices.items(), key=operator.itemgetter(1)):
+                if values is not None and str(value) not in values:
+                    continue
                 # Keep blank choices for create/update form metadata. Filter choice
                 # metadata strips them separately because "no filter" is represented by
                 # an omitted query parameter.
