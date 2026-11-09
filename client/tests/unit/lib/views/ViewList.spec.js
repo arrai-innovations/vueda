@@ -2501,8 +2501,39 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("drops a refresh that returns after the list moved to other params", async () => {
+            const { wrapper, props, handlers } = await mountList();
+            let finish;
+            mockedSinglePageAdaptor.mockImplementationOnce((args) => {
+                args.setPaginateInfo({ page: 1, totalPages: 1, totalRecords: 1, perPage: 25 });
+                args.pushObjects([{ id: 2 }]);
+                return new Promise((resolve) => (finish = resolve));
+            });
+            const clearObjects = vi.fn();
+            const pushObjects = vi.fn();
+            const setPaginateInfo = vi.fn();
+
+            const request = handlers.list({
+                refresh: true,
+                params: { ...props.params },
+                clearObjects,
+                pushObjects,
+                setPaginateInfo,
+                setColumnTotals: vi.fn(),
+                isCancelled: ref(false),
+            });
+            props.params[PAGE_PARAM] = 2;
+            finish();
+            await request;
+
+            expect(clearObjects).not.toHaveBeenCalled();
+            expect(pushObjects).not.toHaveBeenCalled();
+            expect(setPaginateInfo).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
         scopedIt("keeps the rows on screen until a refresh has the new set", async () => {
-            const { wrapper, handlers } = await mountList();
+            const { wrapper, props, handlers } = await mountList();
             let finish;
             mockedSinglePageAdaptor.mockImplementationOnce((args) => {
                 args.clearObjects();
@@ -2514,9 +2545,11 @@ describe("lib/views/ViewList.vue", () => {
 
             const request = handlers.list({
                 refresh: true,
-                params: {},
+                params: { ...props.params },
                 clearObjects,
                 pushObjects,
+                setPaginateInfo: vi.fn(),
+                setColumnTotals: vi.fn(),
                 isCancelled: ref(false),
             });
             expect(clearObjects).not.toHaveBeenCalled();

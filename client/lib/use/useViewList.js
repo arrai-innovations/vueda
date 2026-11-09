@@ -157,7 +157,7 @@ import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, inject, markRaw, nextTick, onScopeDispose, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -874,8 +874,13 @@ export function useViewList(options) {
                 if (!args.refresh) {
                     return adaptor(listArgs);
                 }
-                // A refresh keeps the rows on screen until the whole new set has arrived.
+                // A refresh keeps the rows, pagination, and totals on screen until the whole new set has
+                // arrived. It applies nothing when the list moved to other params meanwhile, or was
+                // unmounted, because the list's own load then decides what it shows.
+                const paramsKey = JSON.stringify(args.params);
                 const rows = [];
+                let paginateInfo;
+                let columnTotals;
                 const request = adaptor({
                     ...listArgs,
                     clearObjects: () => {
@@ -884,13 +889,28 @@ export function useViewList(options) {
                     pushObjects: (objects) => {
                         rows.push(...objects);
                     },
+                    setPaginateInfo: (info) => {
+                        paginateInfo = info;
+                    },
+                    setColumnTotals: (totals) => {
+                        columnTotals = totals;
+                    },
                 });
                 const replaced = request.then(() => {
-                    if (!args.isCancelled?.value) {
-                        args.clearObjects({ keepPagination: true, keepColumnTotals: true });
-                        args.pushObjects(rows);
+                    const current = validAndActive.value && JSON.stringify(instanceListProps.params) === paramsKey;
+                    if (args.isCancelled?.value || !current) {
+                        return;
                     }
+                    args.clearObjects({ keepPagination: true, keepColumnTotals: true });
+                    if (paginateInfo) {
+                        args.setPaginateInfo(paginateInfo);
+                    }
+                    if (columnTotals !== undefined) {
+                        args.setColumnTotals(columnTotals);
+                    }
+                    args.pushObjects(rows);
                 });
+                refreshRequest = request;
                 return Object.assign(replaced, { cancel: request.cancel?.bind(request) });
             },
             // Live updates, after setupObjectStreams(). An event carries no rows, and only the server can
@@ -906,6 +926,12 @@ export function useViewList(options) {
 
     // A change that arrives while the list loads waits for that load, which may predate the change.
     let refreshPending = false;
+    /** @type {{ cancel?: () => any }|null} */
+    let refreshRequest = null;
+    onScopeDispose(() => {
+        refreshPending = false;
+        refreshRequest?.cancel?.();
+    });
     function refreshList() {
         if (!validAndActive.value) {
             return;
