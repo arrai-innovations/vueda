@@ -37,6 +37,20 @@ class Migration(migrations.Migration):
                         to="employee.employee",
                     ),
                 ),
+                (
+                    "approved_by",
+                    models.ForeignKey(
+                        editable=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to="employee.employee",
+                    ),
+                ),
+                (
+                    "reviewers",
+                    models.ManyToManyField(editable=False, related_name="+", to="employee.employee"),
+                ),
             ],
             options={
                 "ordering": ["period_start", "employee__employee_number"],
@@ -221,6 +235,19 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="timesheetevent",
+            name="approved_by",
+            field=models.ForeignKey(
+                db_constraint=False,
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                related_query_name="+",
+                to="employee.employee",
+            ),
+        ),
+        migrations.AddField(
+            model_name="timesheetevent",
             name="supervisor",
             field=models.ForeignKey(
                 db_constraint=False,
@@ -236,8 +263,8 @@ class Migration(migrations.Migration):
             trigger=pgtrigger.compiler.Trigger(
                 name="insert_insert",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
-                    func='INSERT INTO "timesheet_timesheetevent" ("employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (NEW."employee_id", NEW."id", NEW."period_end", NEW."period_start", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."supervisor_id"); RETURN NULL;',
-                    hash="20d05125067551b3ecb159d195b00763ad429d9a",
+                    func='INSERT INTO "timesheet_timesheetevent" ("approved_by_id", "employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (NEW."approved_by_id", NEW."employee_id", NEW."id", NEW."period_end", NEW."period_start", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."supervisor_id"); RETURN NULL;',
+                    hash="ac6b11ba276d4ea6a9788b0dbac88a9d291f368b",
                     operation="INSERT",
                     pgid="pgtrigger_insert_insert_cafc5",
                     table="timesheet_timesheet",
@@ -251,8 +278,8 @@ class Migration(migrations.Migration):
                 name="update_update",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
                     condition="WHEN (OLD.* IS DISTINCT FROM NEW.*)",
-                    func='INSERT INTO "timesheet_timesheetevent" ("employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (NEW."employee_id", NEW."id", NEW."period_end", NEW."period_start", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."supervisor_id"); RETURN NULL;',
-                    hash="e54969091e463ff3e4647c51030e4a52a229ce66",
+                    func='INSERT INTO "timesheet_timesheetevent" ("approved_by_id", "employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (NEW."approved_by_id", NEW."employee_id", NEW."id", NEW."period_end", NEW."period_start", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."supervisor_id"); RETURN NULL;',
+                    hash="b8db313f9b53f63aa2c619f5292a1d99c42d4bf0",
                     operation="UPDATE",
                     pgid="pgtrigger_update_update_cefc1",
                     table="timesheet_timesheet",
@@ -265,8 +292,8 @@ class Migration(migrations.Migration):
             trigger=pgtrigger.compiler.Trigger(
                 name="delete_delete",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
-                    func='INSERT INTO "timesheet_timesheetevent" ("employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (OLD."employee_id", OLD."id", OLD."period_end", OLD."period_start", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."supervisor_id"); RETURN NULL;',
-                    hash="dcb16e6db7d888b2a46486e5ac0d6271b21d1d75",
+                    func='INSERT INTO "timesheet_timesheetevent" ("approved_by_id", "employee_id", "id", "period_end", "period_start", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "supervisor_id") VALUES (OLD."approved_by_id", OLD."employee_id", OLD."id", OLD."period_end", OLD."period_start", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."supervisor_id"); RETURN NULL;',
+                    hash="92e3d21d4c38d2b1ebb6a22998672353d987d2e0",
                     operation="DELETE",
                     pgid="pgtrigger_delete_delete_1ed36",
                     table="timesheet_timesheet",

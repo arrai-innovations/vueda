@@ -15,6 +15,13 @@ class Timesheet(VuedaModel):
     supervisor = models.ForeignKey(
         "employee.Employee", on_delete=models.CASCADE, null=True, related_name="timesheet_supervisors"
     )
+    # editable=False, so neither its plain field nor its expand can write it, unless the expand's options say
+    # read_only=False.
+    approved_by = models.ForeignKey(
+        "employee.Employee", on_delete=models.SET_NULL, null=True, editable=False, related_name="+"
+    )
+    # Set only by server code, like approved_by, but a many-to-many field.
+    reviewers = models.ManyToManyField("employee.Employee", editable=False, related_name="+")
 
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"

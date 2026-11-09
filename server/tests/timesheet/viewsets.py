@@ -128,3 +128,9 @@ class TimesheetDataViewSet(viewsets.VuedaReadOnlyViewSet):
     queryset = models.TimesheetData.objects.all()
     serializer_class = serializers.TimesheetDataSerializer
     ordering_fields = ["formatted_name"]
+
+
+class TimesheetLockedExpandsViewSet(viewsets.VuedaViewSet):
+    queryset = models.Timesheet.objects.all()
+    serializer_class = serializers.TimesheetLockedExpandsSerializer
+    permission_classes = [IsAuthenticated]

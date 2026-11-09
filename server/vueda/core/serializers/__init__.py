@@ -60,6 +60,7 @@ from vueda.core.serializers.fields import CompositePrimaryKeyField
 from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.serializers.fields import TemplatedTextField
 from vueda.core.serializers.fields import TemplateTagsDataField
+from vueda.core.utils import unwrap_expandable_field
 from vueda.history.revision import REVISION_ANNOTATION
 from vueda.history.revision import ObjectRevisionField
 from vueda.history.revision import annotate_object_revision
@@ -108,6 +109,53 @@ def _has_integer_primary_key(model):
     while pk_field.is_relation:
         pk_field = pk_field.target_field
     return isinstance(pk_field, models.IntegerField)
+
+
+def _model_field_is_editable(model, name):
+    """
+    Return whether a write may set the model field ``name`` of ``model``.
+
+    A field declared with ``editable=False`` cannot be set, including a forward many-to-many field and a
+    generic foreign key. A relation whose rows point at ``model`` counts as editable, because the parent
+    writes those rows through an expand. Django marks such a relation ``editable=False`` all the same. It
+    covers a reverse foreign key, reverse one-to-one, reverse many-to-many, and a ``GenericRelation``.
+
+    A name that is not a model field counts as editable. So does any name when ``model`` is ``None``.
+    """
+    if model is None:
+        return True
+    try:
+        model_field = model._meta.get_field(name)
+    except FieldDoesNotExist:
+        return True
+    if model_field.editable:
+        return True
+    # Django's reverse relation objects are auto-created and have no column. A GenericRelation is declared on
+    # the parent, but like a reverse foreign key it holds rows of another model.
+    return model_field.one_to_many or (model_field.auto_created and not model_field.concrete)
+
+
+def _expand_is_locked(model, name, expand_options, excluded):
+    """
+    Return whether a write may not set the relation that the expand ``name`` writes.
+
+    The expand writes the model field that its ``source`` option names. Without a ``source``, it writes the
+    field with its own name. A dotted ``source`` writes through the field that its first part names.
+
+    The expand is locked when ``excluded`` holds its name or that field. Otherwise, a ``read_only`` option in
+    ``expand_options`` decides. Without that option, the expand is locked when the model field has
+    ``editable=False`` (see ``_model_field_is_editable``).
+
+    ``excluded`` holds the field names that the current write excludes. Model info passes an empty set,
+    because it describes no particular write.
+    """
+    # A dotted source, such as "employee.user", writes through the relation that its first part names.
+    source = expand_options.get("source", name).split(".", 1)[0]
+    if name in excluded or source in excluded:
+        return True
+    if "read_only" in expand_options:
+        return bool(expand_options["read_only"])
+    return not _model_field_is_editable(model, source)
 
 
 class PrimaryKeyListSerializer(serializers.Serializer):
@@ -407,6 +455,8 @@ class FlexFieldsWriteableNestedSerializerMixin(
         passed down either, for the same reason: they must not narrow the nested serializer's
         own validation. ``to_representation`` re-swaps the relation with a fresh nested
         serializer that does carry them, for the response.
+
+        ``_make_expanded_field_serializer`` locks each expand that the write may not set.
         """
         expand_fields, next_expand_fields = split_levels(flex_options["expand"])
         if self._contains_wildcard_value(expand_fields):
@@ -415,6 +465,39 @@ class FlexFieldsWriteableNestedSerializerMixin(
         for name in expand_fields:
             if name in self._expandable_fields:
                 fields[name] = self._make_expanded_field_serializer(name, next_expand_fields, {}, {})
+
+    def excluded_fields_for_action(self):
+        """
+        Return the names of the fields that the current write may not set. The default excludes none.
+
+        ``ExcludeFieldsSerializerMixin`` overrides this with its ``exclude_create_fields`` and
+        ``exclude_update_fields``. ``_make_expanded_field_serializer`` locks the expand of each name it returns.
+        """
+        return frozenset()
+
+    def _make_expanded_field_serializer(self, name, nested_expand, nested_fields, nested_omit):
+        """
+        Build the nested serializer for the expand ``name``, read-only when a write may not set its relation.
+
+        Every expand is built here, whether a request's ``e`` parameter, an ``expand`` argument, or a parent's
+        nested expand names it. A locked expand ignores the relation's data on a write, as a read-only plain
+        field does. A response still expands it. ``_expand_is_locked`` decides the lock from
+        ``excluded_fields_for_action``, the expand's ``read_only`` option, and the model field's ``editable``.
+
+        ``Meta.read_only_fields`` and a ``read_only`` entry in ``Meta.extra_kwargs`` do not lock an expand.
+        They make the plain field read-only, which stops a list of primary keys from being written. An expand
+        has its own read-only switches: a ``VuedaReadonlySerializer``, or ``read_only`` in its expand options.
+        A serializer can therefore list a reverse foreign key in ``Meta.read_only_fields`` and still write the
+        relation's rows through its expand.
+        """
+        field = super()._make_expanded_field_serializer(name, nested_expand, nested_fields, nested_omit)
+        _field_serializer, expand_options = unwrap_expandable_field(self._expandable_fields[name])
+        model = getattr(getattr(self, "Meta", None), "model", None)
+        if _expand_is_locked(model, name, expand_options, self.excluded_fields_for_action()):
+            # DRF forbids a field that is both read-only and required, so drop `required` with it.
+            field.read_only = True
+            field.required = False
+        return field
 
     def update_or_create_direct_relations(self, attrs, relations):
         """Save each direct relation's row after checking the related viewset's permissions.
@@ -554,10 +637,28 @@ class ExcludeFieldsSerializerMixin:
     view such as ``UpdateAPIView`` handles writes without one, so the mixin cannot tell a ``create`` from
     an ``update``, and a write through it could set every field that the exclusions lock. Building the
     fields with any view that has no ``action`` in context raises ``ImproperlyConfigured``.
+
+    An expand of an excluded field cannot set it either. Naming the field in ``e`` gives it a read-only nested
+    serializer for that write.
     """
 
     def get_extra_kwargs(self):
         kwargs = super().get_extra_kwargs()
+        for field in self.excluded_fields_for_action():
+            if field not in kwargs:
+                kwargs[field] = {}
+            kwargs[field]["read_only"] = True
+        return kwargs
+
+    def excluded_fields_for_action(self):
+        """
+        Return the names of the fields that the view's current action excludes.
+
+        A ``create`` returns ``Meta.exclude_create_fields``. An ``update`` or ``partial_update`` returns
+        ``Meta.exclude_update_fields``. Any other action, or a context with no view, returns an empty set.
+
+        :raises ImproperlyConfigured: The view in the context has no ``action``, so it is not a ViewSet.
+        """
         view = self.context.get("view")
         if view is not None and not hasattr(view, "action"):
             raise ImproperlyConfigured(
@@ -574,10 +675,8 @@ class ExcludeFieldsSerializerMixin:
             # "partial" is not a partial_update, and must not inherit its exclusions.
             exclude_for = getattr(self.Meta, f"exclude_{exclude_actions[0]}_fields", None)
             if action in exclude_actions and exclude_for:
-                for field in exclude_for:
-                    kwargs.setdefault(field, {})
-                    kwargs[field]["read_only"] = True
-        return kwargs
+                return frozenset(exclude_for)
+        return frozenset()
 
 
 class VuedaExpandableFieldsSerializerMixin:
@@ -640,11 +739,8 @@ class VuedaExpandableFieldsSerializerMixin:
                 "many": False,
             }
 
-            if isinstance(field_data, tuple):  # flex fields only deals with tuples, not lists.
-                field_serializer, expand_options = field_data
-            else:
-                field_serializer = field_data
-                expand_options = {}
+            # flex fields only deals with tuples, not lists.
+            field_serializer, expand_options = unwrap_expandable_field(field_data)
 
             # Copied to deal with serializer strings.
             # https://github.com/openbook-education/drf-flex-fields2/blob/433ea0ce084504766b19486de279f27b9df8d0dc/
@@ -665,8 +761,12 @@ class VuedaExpandableFieldsSerializerMixin:
 
             if issubclass(field_serializer, (GenericForeignKeySerializer, VuedaReadonlySerializer)):
                 expand_item["read_only"] = True
-            elif "read_only" in expand_options:
-                expand_item["read_only"] = expand_options["read_only"]
+            else:
+                # The write path's rule without a write's exclusions, so an expand that no write can set is
+                # reported read-only, and the client does not offer it.
+                expand_item["read_only"] = _expand_is_locked(
+                    getattr(meta, "model", None), field_name, expand_options, frozenset()
+                )
 
             if hasattr(field_serializer, "Meta") and hasattr(field_serializer.Meta, "model"):
                 field_meta = field_serializer.Meta.model._meta
@@ -1317,11 +1417,10 @@ class GenericForeignKeySerializer(flex_serializers.FlexFieldsSerializerMixin, se
             return None
 
         # Flex options are lost when serializers are created, so we need to get the raw expandable data and process it.
-        field_options = self.parent._expandable_fields.get(self.field_name, ())
-        if isinstance(field_options, tuple):
-            serializer_settings = copy.deepcopy(field_options[1]) if len(field_options) > 1 else {}
-        else:
-            serializer_settings = {}
+        _field_serializer, expand_options = unwrap_expandable_field(
+            self.parent._expandable_fields.get(self.field_name, ())
+        )
+        serializer_settings = copy.deepcopy(expand_options)
 
         fields_param = settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]
         omit_param = settings.REST_FLEX_FIELDS2["OMIT_PARAM"]
