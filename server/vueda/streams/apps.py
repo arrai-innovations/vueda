@@ -110,3 +110,9 @@ class StreamsConfig(AppConfig):
                 "another app list, so that get_defaults adds it."
             )
             raise ImproperlyConfigured(msg)
+
+        from django.contrib.auth.signals import user_logged_out
+
+        from vueda.streams.receivers import close_session_sockets
+
+        user_logged_out.connect(close_session_sockets, dispatch_uid="vueda_streams_close_session_sockets")

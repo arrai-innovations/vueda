@@ -35,6 +35,7 @@ from django.test import override_settings
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
+from vueda.streams.consumers import SESSION_LOGOUT_CLOSE_CODE
 
 
 aiohttp = pytest.importorskip("aiohttp")
@@ -208,10 +209,40 @@ class TestLiveSocket(BaseTestGroupMixin, BaseTestUserMixin):
         )
 
     @pytest.fixture
-    def session_cookie(self, stream_settings, reader):
+    def signed_in_client(self, stream_settings, reader):
         client = Client()
         client.force_login(reader)
-        return client.cookies[settings.SESSION_COOKIE_NAME].value
+        return client
+
+    @pytest.fixture
+    def session_cookie(self, signed_in_client):
+        return signed_in_client.cookies[settings.SESSION_COOKIE_NAME].value
+
+    def test_logging_out_closes_the_sessions_socket(self, signed_in_client, session_cookie, live_server_port):
+        url = f"ws://{HOST}:{live_server_port}/ws/streams/"
+        headers = {
+            "Origin": f"http://{HOST}:{live_server_port}",
+            "Cookie": f"{settings.SESSION_COOKIE_NAME}={session_cookie}",
+        }
+
+        async def run():
+            async with aiohttp.ClientSession() as http, http.ws_connect(url, headers=headers) as socket:
+                # A reply proves the server accepted the socket and joined it to the session's group.
+                await socket.send_json({"op": "unsubscribe", "subscription_id": "none"})
+                await receive_json(socket)
+                await asyncio.to_thread(self.log_out, signed_in_client)
+                message = await socket.receive(timeout=RECEIVE_TIMEOUT)
+                return message.type, socket.close_code
+
+        message_type, close_code = asyncio.run(run())
+
+        assert message_type == aiohttp.WSMsgType.CLOSE
+        assert close_code == SESSION_LOGOUT_CLOSE_CODE
+
+    @staticmethod
+    def log_out(client):
+        client.logout()
+        db.connections.close_all()
 
     def test_a_saved_order_reaches_a_signed_in_socket(self, customer_order, session_cookie, live_server_port):
         drain_outbox()

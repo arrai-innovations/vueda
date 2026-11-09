@@ -1,11 +1,33 @@
 """The websocket consumer for VUEDA object stream subscriptions."""
 
-__all__ = ("VuedaObjectStreamConsumer",)
+__all__ = (
+    "SESSION_LOGOUT_CLOSE_CODE",
+    "SESSION_LOGOUT_MESSAGE_TYPE",
+    "VuedaObjectStreamConsumer",
+    "session_group_name",
+)
 
+import hashlib
 from collections.abc import Mapping
 
 from django.apps import apps
 from object_streams.transports.channels import ObjectStreamConsumer
+
+
+#: The Channels message type that closes every socket of a session that logged out.
+SESSION_LOGOUT_MESSAGE_TYPE = "vueda.session.logout"
+
+#: The websocket close code for a socket whose session logged out. Codes 4000 to 4999 are free for applications.
+SESSION_LOGOUT_CLOSE_CODE = 4401
+
+
+def session_group_name(session_key):
+    """
+    Return the Channels group that holds the sockets of one session.
+
+    The name carries a hash of the session key, so the key itself never reaches the channel layer.
+    """
+    return "vueda-streams-session-" + hashlib.sha256(session_key.encode()).hexdigest()[:40]
 
 
 def canonical_model_label(value):
@@ -42,7 +64,12 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
 
     A subscribe message may name its model the way VUEDA's routes do. The consumer replaces that
     name with the model's label before the subscription is checked.
+
+    The socket joins a group for its session, and closes when that session logs out. The user is read
+    once, when the socket opens, so without this a socket would outlive the session that opened it.
     """
+
+    session_group = None
 
     async def connect(self):
         user = self.scope.get("user")
@@ -50,6 +77,19 @@ class VuedaObjectStreamConsumer(ObjectStreamConsumer):
             await self.close()
             return
         await super().connect()
+        session_key = getattr(self.scope.get("session"), "session_key", None)
+        if session_key and self.channel_layer is not None:
+            self.session_group = session_group_name(session_key)
+            await self.channel_layer.group_add(self.session_group, self.channel_name)
+
+    async def disconnect(self, code):
+        if self.session_group and self.channel_layer is not None:
+            await self.channel_layer.group_discard(self.session_group, self.channel_name)
+        await super().disconnect(code)
+
+    async def vueda_session_logout(self, message):
+        """Close the socket, because its session logged out."""
+        await self.close(code=SESSION_LOGOUT_CLOSE_CODE)
 
     async def receive_json(self, content, **kwargs):
         if isinstance(content, Mapping) and content.get("op") == "subscribe":

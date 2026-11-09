@@ -176,7 +176,7 @@ A list view subscribes with its filters, and the server reports each row that jo
 
 An update view never replaces what the user is editing. When someone else saves the record, it shows a notice with a **Reload** button, which loads the saved values and discards the user's edits. The view compares the saved record with the one it holds, so the user's own save raises no notice. When someone deletes the record, the notice says that saving will fail. The `change-notice` slot of `ViewUpdate` replaces the notice.
 
-The client opens one socket, on the API host, when the first view subscribes, and closes it when the last one leaves. It reconnects after a lost connection, and again whenever the signed-in user changes, because the server reads the session only when a socket opens. A socket that fails leaves every view working as it did before.
+The client opens one socket, on the API host, when the first view subscribes, and closes it when the last one leaves. It reconnects after a lost connection, and again whenever the signed-in user changes, because the server reads the session only when a socket opens. When a session logs out, the server closes that session's sockets through the channel layer. Sockets that other sessions opened stay open. A socket that fails leaves every view working as it did before.
 
 The socket path defaults to `/ws/streams/`. When your proxy serves it elsewhere, set `VITE_OBJECT_STREAMS_PATH` in the client's Vite environment. The proxy must forward that path to the server's `/ws/streams/` route.
 

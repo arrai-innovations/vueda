@@ -30,10 +30,13 @@ from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
 from tests.store import viewsets as store_viewsets
+from vueda.streams import receivers
 from vueda.streams.apps import TRIGGER_NAME
 from vueda.streams.apps import _validate_streams_section
+from vueda.streams.consumers import SESSION_LOGOUT_MESSAGE_TYPE
 from vueda.streams.consumers import VuedaObjectStreamConsumer
 from vueda.streams.consumers import canonical_model_label
+from vueda.streams.consumers import session_group_name
 from vueda.streams.registry import default_facets_for
 from vueda.streams.registry import register_viewset
 from vueda.streams.routing import allowed_websocket_origins
@@ -397,3 +400,55 @@ class TestCanonicalModelLabel:
 @override_settings(ALLOWED_HOSTS=["api.example.com"], CORS_ALLOWED_ORIGINS=["https://app.example.com"])
 def test_websocket_origins_include_the_cors_origins():
     assert allowed_websocket_origins() == ["api.example.com", "https://app.example.com"]
+
+
+class TestCloseSessionSockets:
+    """The ``user_logged_out`` receiver that closes a session's websockets."""
+
+    class Layer:
+        def __init__(self, error=None):
+            self.sent = []
+            self.error = error
+
+        async def group_send(self, group, message):
+            if self.error:
+                raise self.error
+            self.sent.append((group, message))
+
+    def request(self, session_key):
+        return SimpleNamespace(session=SimpleNamespace(session_key=session_key))
+
+    def test_the_sessions_group_receives_the_logout_message(self, monkeypatch):
+        layer = self.Layer()
+        monkeypatch.setattr(receivers, "get_channel_layer", lambda: layer)
+
+        receivers.close_session_sockets(sender=None, request=self.request("abc"), user=None)
+
+        assert layer.sent == [(session_group_name("abc"), {"type": SESSION_LOGOUT_MESSAGE_TYPE})]
+        assert "abc" not in layer.sent[0][0]
+
+    def test_a_request_without_a_session_sends_nothing(self, monkeypatch):
+        layer = self.Layer()
+        monkeypatch.setattr(receivers, "get_channel_layer", lambda: layer)
+
+        receivers.close_session_sockets(sender=None, request=SimpleNamespace(), user=None)
+        receivers.close_session_sockets(sender=None, request=self.request(None), user=None)
+
+        assert layer.sent == []
+
+    def test_no_channel_layer_sends_nothing(self, monkeypatch):
+        monkeypatch.setattr(receivers, "get_channel_layer", lambda: None)
+
+        receivers.close_session_sockets(sender=None, request=self.request("abc"), user=None)
+
+    def test_a_failing_channel_layer_does_not_stop_logout(self, monkeypatch, caplog):
+        monkeypatch.setattr(receivers, "get_channel_layer", lambda: self.Layer(error=ConnectionError("down")))
+
+        receivers.close_session_sockets(sender=None, request=self.request("abc"), user=None)
+
+        assert "Could not close the websockets" in caplog.text
+
+    def test_the_receiver_is_connected_to_user_logged_out(self):
+        from django.contrib.auth.signals import user_logged_out
+
+        assert any(entry[1]() is receivers.close_session_sockets for entry in user_logged_out.receivers)
