@@ -173,6 +173,7 @@ changelog fragment's directory repeats its label: `topic:lists` matches
 | `topic:models`         | Model base classes, `formatted_name`, and the `class Vueda` feature policy                                       |
 | `topic:vdq`            | The VDQ queue app                                                                                                |
 | `topic:setup`          | Installation, dependencies, settings, supported versions, build integration, import paths, and packaging         |
+| `topic:live-updates`   | Websocket subscriptions, change capture, the listener process, and how views react to pushed changes             |
 
 Give a change one topic. When more than one seems to fit, take the first rule
 that applies:
