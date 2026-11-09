@@ -15,6 +15,7 @@ import { VIEW_FORM_PROPS } from "@vueda/use/useFormModelProps.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
+import omit from "lodash-es/omit.js";
 import { onMounted, reactive, readonly, toRef, useSlots } from "vue";
 
 /**
@@ -208,7 +209,7 @@ onMounted(() => {
                 </Alert>
             </slot>
             <form-model v-bind="instance.combinedFormProps">
-                <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                <template v-for="(_, slot) in omit(slots, ['deleted-notice'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </form-model>

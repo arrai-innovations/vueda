@@ -101,8 +101,8 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
- * @property {boolean} [noticeChanges] - Keep the record current through the object subscription, but leave the form values as they were and report the change through the returned `changeNotice`. `currentActionAvailable` then reads the actions that the record allowed when the form took its values. Takes effect only after `setupObjectStreams()`. For a view that holds unsaved edits, such as update.
- * @property {boolean} [subscribe] - Refetch the record when the server reports a change to it. Takes effect only after `setupObjectStreams()`. Only a view that shows no edits may set it, because each refetch replaces the form values.
+ * @property {boolean} [noticeChanges] - For a view that holds unsaved edits, such as update. After `setupObjectStreams()`, the object subscription keeps the record current, the form keeps the values that it loaded, and the returned `changeNotice` reports the difference. `currentActionAvailable` reads the actions that the record allowed when the form took its values, with or without live updates.
+ * @property {boolean} [subscribe] - For a view that shows no edits, such as read. After `setupObjectStreams()`, the view fetches the record again when the server reports a change, and the form values follow it. Without live updates it has no effect.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
  * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
@@ -278,7 +278,7 @@ export function useDetailView(options, formInitialValue) {
         { immediate: true },
     );
 
-    if (options.subscribe) {
+    if (options.subscribe && objectStreamsEnabled()) {
         // A pushed change replaces the object in place, without a loading cycle. A deleted record
         // keeps its last values on screen.
         watch(
