@@ -13,8 +13,9 @@ import { computed } from "vue";
  * sets them once in its own mapping rather than per field.
  *
  * `options` label individual values. `buildForm` passes the field's `displayChoices`. When the
- * field has no `displayChoices`, it passes the field's `choices`, if those are a static list. The label of the option that matches the value replaces the true or false word,
- * or the dash for a null value.
+ * field has no `displayChoices`, it passes the field's `choices`, if those are a static list.
+ * The label of the option that matches the value replaces the true or false word, or the dash
+ * for a null value.
  *
  * A consumer's own `default` slot still wins: this widget supplies the boolean rendering
  * only when the field has no `widget(fieldName)default` override.

@@ -49,8 +49,20 @@ describe("lib/utils/choiceLabels.js", () => {
             expect(choiceValuesMatch("false", false)).toBe(true);
         });
 
+        it("matches a null value to a static None option value", () => {
+            expect(choiceValuesMatch("None", null)).toBe(true);
+        });
+
+        it("matches a null value to a null option value", () => {
+            expect(choiceValuesMatch(null, null)).toBe(true);
+        });
+
         it("does not match null to the string null", () => {
             expect(choiceValuesMatch("null", null)).toBe(false);
+        });
+
+        it("does not match undefined to a static None option value", () => {
+            expect(choiceValuesMatch("None", undefined)).toBe(false);
         });
 
         it("does not match different values", () => {

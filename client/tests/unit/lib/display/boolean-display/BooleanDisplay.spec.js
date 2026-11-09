@@ -77,6 +77,17 @@ describe("lib/display/boolean-display/BooleanDisplay.vue", () => {
             expect(wrapper.find('[data-qa="boolean-display-dash"]').exists()).toBe(false);
         });
 
+        scopedIt("renders a static None choice's label for a null value", () => {
+            const staticChoices = [
+                { label: "Unknown", value: "None" },
+                { label: "Submitted", value: "True" },
+                { label: "Pending", value: "False" },
+            ];
+            const wrapper = mount(BooleanDisplay, { props: { value: null, options: staticChoices } });
+            expect(wrapper.get('[data-qa="boolean-display-value"]').text()).toBe("Unknown");
+            expect(wrapper.find('[data-qa="boolean-display-dash"]').exists()).toBe(false);
+        });
+
         scopedIt("renders the dash for a null value that matches no option", () => {
             const wrapper = mount(BooleanDisplay, { props: { value: null, options: options.slice(0, 2) } });
             expect(wrapper.get('[data-qa="boolean-display-dash"]').text()).toBe("-");
