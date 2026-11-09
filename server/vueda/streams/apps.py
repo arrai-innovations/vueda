@@ -97,7 +97,7 @@ class StreamsConfig(AppConfig):
         if not apps.is_installed("object_streams"):
             msg = (
                 "vueda.streams requires the object_streams app. "
-                "Install VUEDA with the 'streams' extra and list 'vueda.streams' in VUEDA_APPS, "
+                "Install VUEDA with the 'streams' extra and pass use_streams=True to get_defaults, "
                 "which adds 'object_streams' to THIRD_PARTY_APPS."
             )
             raise ImproperlyConfigured(msg)
@@ -106,7 +106,7 @@ class StreamsConfig(AppConfig):
         if apps.is_installed("vueda.workflow") and not apps.is_installed("vueda.workflow.streams"):
             msg = (
                 "vueda.streams with vueda.workflow requires vueda.workflow.streams, which captures workflow "
-                "transitions. List 'vueda.streams' in VUEDA_APPS rather than another app list, so that "
-                "get_defaults adds it."
+                "transitions. Pass use_streams=True to get_defaults rather than listing 'vueda.streams' in "
+                "another app list, so that get_defaults adds it."
             )
             raise ImproperlyConfigured(msg)

@@ -221,3 +221,18 @@ def test_workflow_without_streams_adds_no_stream_apps():
 
     assert "object_streams" not in defaults["THIRD_PARTY_APPS"]
     assert "vueda.workflow.streams" not in defaults["VUEDA_APPS"]
+
+
+def test_use_streams_adds_streams_to_the_default_apps():
+    defaults = get_defaults(_env(), use_streams=True)
+    default_apps = get_defaults(_env())["VUEDA_APPS"]
+
+    assert defaults["VUEDA_APPS"] == [*default_apps, "vueda.streams", "vueda.workflow.streams"]
+    assert "object_streams" in defaults["THIRD_PARTY_APPS"]
+    assert "vueda.streams" in defaults["INSTALLED_APPS"]
+
+
+def test_use_streams_does_not_duplicate_a_listed_streams_app():
+    defaults = get_defaults(_env(VUEDA_APPS=STREAMS_BASE_APPS), use_streams=True)
+
+    assert defaults["VUEDA_APPS"].count("vueda.streams") == 1

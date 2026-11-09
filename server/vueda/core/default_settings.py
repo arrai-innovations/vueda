@@ -92,7 +92,7 @@ class EnvLike(Protocol):  # pragma: no cover
     def dj_cache_url(self, key: str, default: Any = ..., **kwargs: Any) -> dict[str, Any]: ...
 
 
-def get_defaults(env: EnvLike, *, use_mailers: bool = False):
+def get_defaults(env: EnvLike, *, use_mailers: bool = False, use_streams: bool = False):
     """
     Get a sane and consistent set of default django settings, dotenv lookup keys & defaults and return them as a dict.
 
@@ -125,9 +125,12 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     the migrations of every app that owns a tracked model, so a configuration without the app cannot load
     the migration graph. Omitting it raises `ImproperlyConfigured`.
 
-    `VUEDA_APPS` may include `vueda.streams` for websocket subscriptions, which needs VUEDA's `streams`
-    extra. When it does, `THIRD_PARTY_APPS` gains `object_streams`. When `VUEDA_APPS` also includes
-    `vueda.workflow`, it gains `vueda.workflow.streams`, which captures workflow transitions.
+    Pass `use_streams=True` to enable websocket subscriptions, which needs VUEDA's `streams` extra. It adds
+    `vueda.streams` to `VUEDA_APPS` when the list does not already include it, so a project keeps the
+    default app list without copying it. Listing `vueda.streams` in `VUEDA_APPS` has the same effect.
+    When `VUEDA_APPS` includes `vueda.streams`, `THIRD_PARTY_APPS` gains `object_streams`. When
+    `VUEDA_APPS` also includes `vueda.workflow`, it gains `vueda.workflow.streams`, which captures
+    workflow transitions.
     """
     email_backend = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
     # most envs will not have defaults, so we force them to be set
@@ -515,6 +518,8 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False):
     return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "pgtrigger", "pghistory"]
     # Websocket subscriptions are optional. Their workflow capture lives in its own app, because its
     # proxy model and trigger migration must exist exactly when both streams and workflow are installed.
+    if use_streams and "vueda.streams" not in return_dict["VUEDA_APPS"]:
+        return_dict["VUEDA_APPS"] = [*return_dict["VUEDA_APPS"], "vueda.streams"]
     if "vueda.streams" in return_dict["VUEDA_APPS"]:
         return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "object_streams"]
         if "vueda.workflow" in return_dict["VUEDA_APPS"]:

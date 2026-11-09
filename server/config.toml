@@ -11,8 +11,6 @@ DATABASE_BACKUP_DIR = ""
 STATIC_ROOT = ""
 STATICFILES_DIRS = ""
 AUTH_USER_MODEL = "employee.User"
-# The default apps plus vueda.streams, which is opt-in.
-VUEDA_APPS = "vueda.core,vueda.history,vueda.info,vueda.user,vueda.workflow,vueda.vdq,vueda.release,vueda.streams"
 CORS_ALLOWED_ORIGINS = "https://demo.vueda.dev"
 MAILGUN_API_KEY = ""
 MAILGUN_SENDER_DOMAIN = ""
