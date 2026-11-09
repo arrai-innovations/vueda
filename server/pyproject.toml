@@ -103,6 +103,8 @@ dev = [
     "django-object-streams[triggers]>=0.1.0a1",
     # channels.testing imports Daphne for its live server, so the websocket tests need it installed.
     "daphne>=4.1.0",
+    # The live websocket test shares a Redis channel layer between the server process and the listener.
+    "channels-redis>=4.2.0",
     # The migration commands format changed_data with black or ruff, depending on which the
     # project configures and has installed, so the tests need both.
     "black >=26.10.1",
