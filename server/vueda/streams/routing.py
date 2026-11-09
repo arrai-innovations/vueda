@@ -48,10 +48,14 @@ def allowed_websocket_origins():
     """
     Return the origins that may open a websocket: ``ALLOWED_HOSTS`` and ``CORS_ALLOWED_ORIGINS``.
 
-    A browser sends the session cookie with a websocket handshake from any site, so the server must
-    check the ``Origin`` header itself. ``ALLOWED_HOSTS`` covers a client served by Django. The CORS
+    Browsers apply no cross-origin rules to a websocket handshake. Whether a handshake from another
+    site carries the session cookie depends only on the cookie's ``SameSite`` setting, so the server
+    checks the ``Origin`` header itself. ``ALLOWED_HOSTS`` covers a client served by Django. The CORS
     list covers a client served from its own origin, which the REST API already trusts.
     ``CORS_ALLOWED_ORIGIN_REGEXES`` is not read.
+
+    A host name in ``ALLOWED_HOSTS`` matches an origin with any scheme and port, and ``"*"`` matches
+    every origin, which turns the check off.
     """
     return [*settings.ALLOWED_HOSTS, *getattr(settings, "CORS_ALLOWED_ORIGINS", ())]
 

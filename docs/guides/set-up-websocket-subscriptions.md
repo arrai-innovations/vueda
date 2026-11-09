@@ -88,6 +88,8 @@ The socket path is `ws/streams/` at the server root. `stream_websocket_applicati
 - **No signed-in user.** The socket has no login message of its own.
 - **No route.** Any other path.
 
+A host name in `ALLOWED_HOSTS` matches an origin with any scheme and port. `ALLOWED_HOSTS = ["*"]` matches every origin, which turns the origin check off.
+
 Serve `config.asgi:application` with an ASGI server that supports websockets. The scaffolded `just serve-server` recipe runs uvicorn, which does. A WSGI server cannot serve the socket.
 
 ## Capture Changes on a Model
@@ -133,7 +135,15 @@ class WidgetsConfig(AppConfig):
         register_viewset(WidgetViewSet)
 ```
 
-Registration reuses the viewset's queryset and FilterSet. A client can subscribe only to the filters that the list endpoint accepts, and receives a change only for a record that it may read. Subscriptions that filter by `search` are not supported.
+A subscription applies the checks that a request to the viewset's endpoint applies. The user needs the model's read permission, or on a workflow model a state permission that grants it. The model's `RowLevelPermissions` and the workflow state rules then decide row by row. A client can subscribe only to the filters that the list endpoint accepts, and subscriptions that filter by `search` are not supported.
+
+A subscription starts from the rows that the viewset's `get_queryset()` returns for the subscriber, so scoping that `get_queryset()` applies, such as to the user's own rows, limits subscriptions too. It runs with a GET request for the subscriber, no query parameters, no URL keyword arguments, and no action. When your `get_queryset()` needs more than that, pass the starting rows instead:
+
+```python
+register_viewset(WidgetViewSet, queryset=Widget.objects.filter(archived=False))
+```
+
+A queryset passed this way is the same for every user, so it must repeat any scoping that `get_queryset()` applies to the user.
 
 ## Run the Listener
 
@@ -151,6 +161,16 @@ listen-streams:
 ```
 
 It retries after a database error, every second by default. `--retry-delay` and `--max-retries` change that.
+
+## Prune the Outbox
+
+Every captured write adds a row to the outbox table, and nothing removes the rows by default. With workflows installed, every workflow state change of every workflow model adds a row too. Prune the table on a schedule:
+
+```console
+python manage.py object_streams_prune --days 7
+```
+
+`--max-rows` keeps the newest rows up to a limit instead, and `--dry-run` reports how many rows the command would delete. The `OBJECT_STREAMS_RETENTION_DAYS` and `OBJECT_STREAMS_RETENTION_MAX_ROWS` settings supply the defaults. Without a limit, the command deletes nothing. It never deletes a row that the listener has not sent yet.
 
 ## Configure the Proxy
 
@@ -170,7 +190,7 @@ setupDefaultObjectCrud();
 setupObjectStreams();
 ```
 
-A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values. When someone deletes the record, the view keeps the last values and shows a notice. The `deleted-notice` slot of `ViewRead` replaces it.
+A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values. When someone deletes the record, the view shows a notice above the last field values, without the record's name or action buttons. The `deleted-notice` slot of `ViewRead` replaces it.
 
 A list view subscribes with its filters, and the server reports each row that joins, leaves, or changes within them. The list then fetches its current page again and swaps the rows in when the new page arrives. A search term is not part of the subscription, so a searched list refetches after a change to any row that its other filters match.
 
@@ -179,6 +199,12 @@ An update view never replaces what the user is editing. When someone else saves 
 The client opens one socket, on the API host, when the first view subscribes, and closes it when the last one leaves. It reconnects after a lost connection, and again whenever the signed-in user changes, because the server reads the session only when a socket opens. When a session logs out, the server closes that session's sockets through the channel layer. Sockets that other sessions opened stay open. A socket that fails leaves every view working as it did before.
 
 The socket path defaults to `/ws/streams/`. When your proxy serves it elsewhere, set `VITE_OBJECT_STREAMS_PATH` in the client's Vite environment. The proxy must forward that path to the server's `/ws/streams/` route.
+
+## Turn Capture Off
+
+To stop capturing one model's changes, set `enabled = False` in its `Streams` section and run `makemigrations`. The new migration removes the trigger. Until that migration runs, the trigger keeps writing to the outbox.
+
+Keep `use_streams=True` while any migration depends on `object_streams`. Each trigger migration does, through the dependency that you added by hand, so removing the app breaks the migration graph.
 
 ## Verify the Setup
 
