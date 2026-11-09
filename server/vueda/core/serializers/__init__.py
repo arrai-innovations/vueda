@@ -615,11 +615,21 @@ class VuedaExpandableFieldsSerializerMixin:
         Build the base list of expand descriptors for the ``/info/`` meta-API from
         ``Meta.expandable_fields``. This is the internal generation step; serializers that need to
         customize the final expand metadata should override ``get_expand_model_info`` instead.
+
+        Each expand's serializer is built with a context that holds only this serializer's request. A
+        relation field with no ``queryset`` and no model relation behind it gets its related model from
+        ``get_queryset()``, and that override can then read the request. The context has no view, so a
+        serializer that reads the view sees none and acts as it does outside a request. The parent's view
+        stays out because a serializer that reads it, such as one using ``ExcludeFieldsSerializerMixin``,
+        must not act on the parent view's action (``vueda_core.E008``).
         """
         from vueda.info.serializers import ModelInfoSerializer
 
         meta = self.Meta if hasattr(self, "Meta") else None
         expandable_fields = meta.expandable_fields if hasattr(meta, "expandable_fields") else {}
+
+        request = self.context.get("request")
+        expand_context = {"request": request} if request is not None else {}
 
         expands_data = []
 
@@ -665,15 +675,15 @@ class VuedaExpandableFieldsSerializerMixin:
 
                 # Expandable fields don't need available actions.
                 fields = ModelInfoSerializer().get_model_fields_data(
-                    field_serializer, excluded_fields={"available_actions"}
+                    field_serializer, excluded_fields={"available_actions"}, context=expand_context
                 )
 
                 # Mirror ModelInfoSerializer.get_model_fields: this expand's own nested serializer may
                 # correct its generated field metadata (e.g. for a SerializerMethodField), and that
                 # correction must be applied here too, not just when the nested serializer is used as
-                # a root canonical serializer. Unlike the root, an expand builds both the field data
-                # above and this instance without a context.
-                get_field_model_info = getattr(field_serializer(), "get_field_model_info", None)
+                # a root canonical serializer. The override gets the same context as the field data
+                # that it corrects.
+                get_field_model_info = getattr(field_serializer(context=expand_context), "get_field_model_info", None)
                 if get_field_model_info is not None:
                     fields = get_field_model_info(fields)
 
