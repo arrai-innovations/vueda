@@ -34,7 +34,7 @@
  * @example Wiring action buttons
  * ```html
  * <template v-for="actionName in actions.nonDetailActions" :key="actionName">
- *     <link-model-view :app="app" :model="model" :view="actionName" />
+ *     <link-model-view :app="app" :model="model" :view="actionName" button />
  * </template>
  * <template v-for="actionName in actions.detailActions" :key="actionName">
  *     <link-model-view :app="app" :model="model" :pk="pk" :view="actionName" button />
@@ -328,7 +328,7 @@ export function useDetailView(options, formInitialValue) {
 
     // Non-detail actions (such as `create` and `list`) act on the model, not this object, so
     // they come from the model-level action list. The server omits `create` from an object's
-    // `available_actions`, so filtering through it would hide the page-title Create link.
+    // `available_actions`, so filtering through it would hide the page-title Create button.
     const nonDetailActions = computed(() =>
         (filteredActions.actions || []).filter((n) => {
             const a = modelConfig.config?.actionDetails?.[n];

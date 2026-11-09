@@ -47,7 +47,7 @@ The adapters render as follows:
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
 - `ColumnFile` renders {@api vue:component:FileDisplay}: a link to the file, labelled with the file name.
 - `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
-- `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}.
+- `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}. The label renders as plain text when the viewer cannot open that view.
 
 `BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value.
 
@@ -130,7 +130,7 @@ Each built-in adapter's generated page lists its props. The ones you are most li
 - `ColumnBoolean`: `trueLabel`, `falseLabel`.
 - `ColumnDuration`: `format` (default `"long"`).
 - `ColumnJson`: `maxLength`.
-- `ColumnModelLink`: `view` (default `"read"`), `app` and `model`, `label`, `button`.
+- `ColumnModelLink`: `view` (default `"read"`, or an ordered array of views), `app` and `model`, `label`, `button`.
 
 ## Link a Foreign Key Column
 
@@ -139,6 +139,19 @@ A `ForeignKey` or `OneToOneField` column renders through `ColumnModelLink` with 
 - **Related pk:** a scalar cell value is the pk. An object value uses its `id`, else its `pk`.
 - **Link text:** the `label` prop, else the cell's `formatted` value when it is text or a number. For a scalar foreign key, the text is the pk. For an expanded foreign key, the text is the related object's `formatted_name`, else its `name`, `id`, or `pk`.
 - **No link:** when no related model or no pk resolves, or the value is an array, the cell renders the text without a link.
+
+The cell links only to a view that the viewer can open. A view counts as available when the related model's info lists the view's action, or when the viewer can perform a workflow transition with that code. Model info names the `read` view's action `retrieve`. The view must also resolve to a route. Otherwise the cell renders the text without a link.
+
+- **Loading:** while the related model's info loads, the cell renders the text. It becomes a link at most once, when the info arrives. If the info fails to load, the text stays plain.
+- **Fallback views:** set `view` to an ordered array to link to the first view that the viewer can open. With `["update", "read"]`, an editor gets the update link, a viewer who can only read gets the read link, and anyone else sees plain text.
+
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: { columnProps: { category: { view: ["update", "read"] } } },
+});
+```
+
+The check is model-level. It asks whether the viewer may perform the action on some record of the related model, not on this related record. A viewer who may update some records but not this one still gets the update link, and the update view then refuses access. Per-record checks need the related record's `available_actions`, which the list does not fetch.
 
 When the field carries no related model, supply one through `columnProps`:
 

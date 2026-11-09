@@ -422,6 +422,14 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             expect(link.text()).toContain("Alpha");
         });
 
+        scopedIt("links to update, then read, in API readonly mode", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            const wrapper = mount(WidgetCombobox, { props: { ...apiProps, readonly: true } });
+            widgetContext.state.combinedValue = 1;
+            await nextTick();
+            expect(wrapper.getComponent(LinkModelViewStub).props("view")).toEqual(["update", "read"]);
+        });
+
         scopedIt("calls composable's onOpen when update:open fires with true", async () => {
             const wrapper = mount(WidgetCombobox, { props: apiProps });
             await wrapper.getComponent(ControlComboboxStub).vm.$emit("update:open", true);

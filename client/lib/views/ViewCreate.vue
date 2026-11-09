@@ -99,6 +99,7 @@ onMounted(() => {
                 >
                     <link-model-view
                         :app="app"
+                        button
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"

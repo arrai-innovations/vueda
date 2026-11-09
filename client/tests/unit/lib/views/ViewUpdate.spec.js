@@ -162,6 +162,16 @@ describe("lib/views/ViewUpdate.vue", () => {
     });
 
     describe("rendering", () => {
+        scopedIt("renders page-title actions as buttons", async () => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            mockComposableResult.actions.nonDetailActions = ["create"];
+            const wrapper = mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" } });
+            const create = wrapper
+                .findAllComponents({ name: "LinkModelView" })
+                .find((link) => link.attributes("view") === "create");
+            expect(create.attributes("button")).toBe("");
+        });
+
         scopedIt("names the record in a heading above the body", async () => {
             const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
             mockComposableResult.instance.recordName = "Widget 42";

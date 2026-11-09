@@ -73,7 +73,7 @@ The link is an anchor with the row's URL in both table and card layouts. The cel
 
 ## Link a Custom Cell With `LinkModelView`
 
-Use {@api vue:component:LinkModelView} in a `field(<name>)` slot when the cell needs custom content or its own destination rule. `LinkModelView` does not check permissions, so the slot reads the row's `available_actions` itself.
+Use {@api vue:component:LinkModelView} in a `field(<name>)` slot when the cell needs custom content or its own destination rule. `LinkModelView` checks only whether the viewer may open the view on some record of the model, so the slot reads the row's `available_actions` to decide for this record.
 
 This list view applies the same update-then-read rule to custom content in the `reference` column:
 
