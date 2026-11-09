@@ -101,7 +101,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
- * @property {boolean} [noticeChanges] - Report a change that someone else saves, without applying it, through the returned `changeNotice`. Takes effect only after `setupObjectStreams()`. For a view that holds unsaved edits, such as update.
+ * @property {boolean} [noticeChanges] - Keep the record current through the object subscription, but leave the form values as they were and report the change through the returned `changeNotice`. `currentActionAvailable` then reads the actions that the record allowed when the form took its values. Takes effect only after `setupObjectStreams()`. For a view that holds unsaved edits, such as update.
  * @property {boolean} [subscribe] - Refetch the record when the server reports a change to it. Takes effect only after `setupObjectStreams()`. Only a view that shows no edits may set it, because each refetch replaces the form values.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
@@ -233,25 +233,39 @@ export function useDetailView(options, formInitialValue) {
             [EXPAND_PARAM]: computed(() => formModelExpand(formModelProps.value, modelConfig.config?.expand)),
         },
         intendToRetrieve,
-        intendToSubscribe: computed(() => !!options.subscribe && objectStreamsEnabled() && validAndActive.value),
+        intendToSubscribe: computed(
+            () => (!!options.subscribe || !!options.noticeChanges) && objectStreamsEnabled() && validAndActive.value,
+        ),
         relatedObjectRules: toRef(options, "relatedObjectRules"),
         calculatedObjectRules: toRef(options, "calculatedObjectRules"),
     });
 
     const instanceObject = useObject({ props: instanceObjectProps });
 
-    function assignFormInitialValue() {
-        // A formatted name fetched only for the header stays out of the form values, so the
-        // form holds just the fields that the field list asked for.
-        assignReactiveObject(
-            formInitialValue,
-            omit(
-                cloneDeep(instanceObject.state.object),
-                "available_actions",
-                "valid_transitions",
-                ...(addsFormattedName.value ? ["formatted_name"] : []),
-            ),
+    /**
+     * The form values of a record. A formatted name fetched only for the header stays out, so the
+     * form holds just the fields that the field list asked for.
+     *
+     * @param {object} object
+     * @returns {object}
+     */
+    function formValuesOf(object) {
+        return omit(
+            cloneDeep(object),
+            "available_actions",
+            "valid_transitions",
+            ...(addsFormattedName.value ? ["formatted_name"] : []),
         );
+    }
+
+    // The actions the record allowed when the form took its values. A view that holds edits checks its
+    // own action against these, so a pushed change never swaps the form out from under the user.
+    /** @type {import('vue').Ref<string[]|undefined>} */
+    const baselineAvailableActions = ref(undefined);
+
+    function assignFormInitialValue() {
+        assignReactiveObject(formInitialValue, formValuesOf(instanceObject.state.object));
+        baselineAvailableActions.value = cloneDeep(instanceObject.state.object?.available_actions);
     }
 
     watch(
@@ -334,7 +348,9 @@ export function useDetailView(options, formInitialValue) {
         if (!object) {
             return true;
         }
-        const objectAvailableActions = object.available_actions;
+        const objectAvailableActions = options.noticeChanges
+            ? baselineAvailableActions.value
+            : object.available_actions;
         if (!objectAvailableActions) {
             return true;
         }
@@ -373,12 +389,11 @@ export function useDetailView(options, formInitialValue) {
 
     const changeNotice = useObjectChangeNotice({
         enabled: () => !!options.noticeChanges && validAndActive.value,
-        target: () => ({ app: options.app, model: options.model }),
-        pk: () => options.pk,
-        params: () => instanceObjectProps.params,
-        object: () => instanceObject.state.object,
+        current: () => formValuesOf(instanceObject.state.object),
+        baseline: () => formInitialValue,
+        deleted: () => instanceObject.state.deleted,
         busy: () => instanceObject.state.loading !== false || !!options.objectForm?.state?.loading,
-        reload: () => instanceObject.retrieve(),
+        reload: assignFormInitialValue,
     });
 
     return {

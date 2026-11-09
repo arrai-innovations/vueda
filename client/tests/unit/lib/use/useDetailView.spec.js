@@ -214,6 +214,86 @@ describe("lib/use/useDetailView.js", () => {
         });
     });
 
+    describe("Change notice in an update view", () => {
+        async function mountUpdateView() {
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+            const { default: flushPromises } = await import("flush-promises");
+            const retrieve = vi.fn(async ({ pk }) => ({ id: pk, name: "Fetched", available_actions: ["update"] }));
+            const subscribe = vi.fn(() => Object.assign(Promise.resolve(), { cancel: vi.fn(async () => {}) }));
+            useObject.mockImplementationOnce((options) =>
+                realUseObject({ ...options, handlers: { retrieve, subscribe } }),
+            );
+            objectStreamsEnabled.mockReturnValue(true);
+            props.viewName = "update";
+            props.noticeChanges = true;
+            const detail = await withSetup(() => useDetailView(props, formInitialValue));
+            await flushPromises();
+            const push = async (data, action = "update") => {
+                subscribe.mock.calls.at(-1)[0].callback(data, action);
+                await flushPromises();
+            };
+            return { detail, subscribe, push };
+        }
+
+        scopedIt("subscribes through the object subscription", async () => {
+            const { subscribe } = await mountUpdateView();
+
+            expect(subscribe).toHaveBeenCalledWith(expect.objectContaining({ pk: "42" }));
+        });
+
+        scopedIt("keeps the form values and reports a change that someone else saves", async () => {
+            const { detail, push } = await mountUpdateView();
+            expect(detail.changeNotice.changed).toBe(false);
+
+            await push({ id: "42", name: "Saved elsewhere", available_actions: ["update"] });
+
+            expect(formInitialValue).toEqual({ id: "42", name: "Fetched" });
+            expect(detail.changeNotice.changed).toBe(true);
+        });
+
+        scopedIt("ignores a change to the record's actions alone", async () => {
+            const { detail, push } = await mountUpdateView();
+
+            await push({ id: "42", name: "Fetched", available_actions: ["update", "delete"] });
+
+            expect(detail.changeNotice.changed).toBe(false);
+        });
+
+        scopedIt("loads the saved record into the form on reload, without a fetch", async () => {
+            const { detail, push } = await mountUpdateView();
+            await push({ id: "42", name: "Saved elsewhere", available_actions: ["update"] });
+
+            detail.changeNotice.reload();
+            await nextTick();
+
+            expect(formInitialValue).toEqual({ id: "42", name: "Saved elsewhere" });
+            expect(detail.changeNotice.changed).toBe(false);
+        });
+
+        scopedIt("keeps the form when a pushed change no longer allows editing", async () => {
+            const { detail, push } = await mountUpdateView();
+
+            await push({ id: "42", name: "Locked", available_actions: [] });
+
+            expect(detail.instance.currentActionAvailable).toBe(true);
+            expect(detail.changeNotice.changed).toBe(true);
+
+            detail.changeNotice.reload();
+            await nextTick();
+            expect(detail.instance.currentActionAvailable).toBe(false);
+        });
+
+        scopedIt("reports a deleted record and keeps the form values", async () => {
+            const { detail, push } = await mountUpdateView();
+
+            await push({}, "delete");
+
+            expect(detail.changeNotice.deleted).toBe(true);
+            expect(detail.changeNotice.changed).toBe(false);
+            expect(formInitialValue).toEqual({ id: "42", name: "Fetched" });
+        });
+    });
+
     describe("return shape", () => {
         scopedIt("returns modelConfig, instanceObject, instance group, and actions group", async () => {
             const result = await withSetup(() => useDetailView(props, formInitialValue));
