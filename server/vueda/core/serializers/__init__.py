@@ -612,18 +612,17 @@ class VuedaExpandableFieldsSerializerMixin:
         customize the final expand metadata should override ``get_expand_model_info`` instead.
 
         Each expand's serializer is built with a context that holds only this serializer's request. A
-        relation field that overrides ``get_queryset()`` can then read the request. The context has no
-        view, so a serializer that reads the view sees none and acts as it does outside a request.
+        relation field with no ``queryset`` and no model relation behind it gets its related model from
+        ``get_queryset()``, and that override can then read the request. The context has no view, so a
+        serializer that reads the view sees none and acts as it does outside a request. The parent's view
+        stays out because a serializer that reads it, such as one using ``ExcludeFieldsSerializerMixin``,
+        must not act on the parent view's action (``vueda_core.E008``).
         """
         from vueda.info.serializers import ModelInfoSerializer
 
         meta = self.Meta if hasattr(self, "Meta") else None
         expandable_fields = meta.expandable_fields if hasattr(meta, "expandable_fields") else {}
 
-        # Each expand's own serializer gets the request but not this serializer's view. A relation field
-        # may override get_queryset() and read the request from its context. A serializer that reads the
-        # view, such as one using ExcludeFieldsSerializerMixin, must not act on the parent view's action
-        # (vueda_core.E008).
         request = self.context.get("request")
         expand_context = {"request": request} if request is not None else {}
 

@@ -133,6 +133,31 @@ FIELD_TYPE_MAPPING = {
 }
 
 
+def _get_queryset_only_relation(field, model_field):
+    """
+    Return the relation whose related model only its ``get_queryset()`` can give.
+
+    That is a DRF relation that passes no ``queryset`` and has no model relation behind it, such as a write-only
+    relation that ``create()`` handles. For a ``ManyRelatedField``, the relation is its ``child_relation``.
+
+    Returns ``None`` for any other field. ``queryset`` or ``model_field.related_model`` gives its related model.
+
+    :param field: A serializer field.
+    :type field: rest_framework.fields.Field
+    :param model_field: The model field behind ``field``. It is ``None`` when no model field is behind ``field``.
+    :type model_field: Optional[django.db.models.Field]
+    :rtype: Optional[rest_framework.relations.RelatedField]
+    """
+    relation = field.child_relation if isinstance(field, serializers.ManyRelatedField) else field
+    if (
+        isinstance(relation, serializers.RelatedField)
+        and relation.queryset is None
+        and getattr(model_field, "related_model", None) is None
+    ):
+        return relation
+    return None
+
+
 class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
     """
     A serializer for providing metadata about models, including fields, actions, and permissions.
@@ -388,13 +413,13 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 field_data["list_default"] = bool(field.style["list_default"])
             widget = getattr(field, "widget", None)
             if not field.read_only:
-                if isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
-                    # get_choices_meta calls the relation's get_queryset(), which may read
-                    # self.context["request"]. A field from get_fields() is not bound, so its context is
-                    # empty until it is bound to the serializer that holds the context. Binding also sets
+                if _get_queryset_only_relation(field, model_field) is not None:
+                    # get_choices_meta calls this relation's get_queryset(), which may read
+                    # self.context["request"]. A field from get_fields() is not bound, so its context is empty
+                    # until it is bound to the serializer that holds the context. Binding also sets
                     # field.label, so effective_label above must be read first.
                     field.bind(field_name, serializer_instance)
-                choices, extra_data = self.get_model_field_choices(field, widget, serializer)
+                choices, extra_data = self.get_model_field_choices(field, widget, serializer, model_field=model_field)
                 field_data["choices"] = choices
                 if extra_data:
                     field_data.update(extra_data)
@@ -1205,7 +1230,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return related_model._meta
 
     @staticmethod
-    def get_choices_meta(field, choices):
+    def get_choices_meta(field, choices, *, model_field=None):
         """
         Get the metadata for queryset-backed choices.
 
@@ -1220,30 +1245,43 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``model`` attribute: ``BaseFilterSet.__init__`` assigns ``model`` to *every* filter it holds, so
         that test passes for all filters on an instantiated filterset.
 
-        A DRF relation field gets its related model from ``get_queryset()``, which is what DRF calls to list
-        and validate the field's values. A relation may override ``get_queryset()`` and pass no ``queryset``,
-        so its ``queryset`` attribute is ``None``. An override may read ``self.context["request"]``, so the
-        caller must bind the field to a serializer that holds the request.
+        A DRF relation field resolves its related model from the first of these sources that is available.
+        Neither of the first two needs a request, so model info works without one even when the field overrides
+        ``get_queryset()`` to narrow its values by the request.
+
+        1. The ``queryset`` that the field passes.
+        2. The ``related_model`` of ``model_field``, the model field behind the serializer field. A relation
+           that overrides ``get_queryset()`` may pass no ``queryset``, so its ``queryset`` attribute is
+           ``None``.
+        3. The field's ``get_queryset()``, which is what DRF calls to list and validate the field's values.
+           This applies only to a relation with no ``queryset`` and no model relation behind it. An override
+           may read ``self.context["request"]``, so the caller must bind the field to a serializer that holds
+           the request.
 
         :param field: The field that the choices are attached to.
         :type field: Union[django_filters.filters.Filter, rest_framework.fields.Field]
         :param choices: The choices data or True if the choices are queryset-based or False if there are no choices.
         :type choices: Union[List, Tuple, bool]
+        :param model_field: The model field behind ``field``, from ``resolve_serializer_field_model_field``.
+            It is ``None`` when no model field is behind ``field``.
+        :type model_field: Optional[django.db.models.Field]
         :return: The metadata for the queryset-backed choices, or None if the choices are not queryset-backed.
         :rtype: Optional[django.db.models.options.Options]
         """
         meta = None
         if choices is True:
             # queryset based choices
-            if isinstance(field, serializers.ManyRelatedField):
-                meta = field.child_relation.get_queryset().model._meta
-            elif isinstance(field, serializers.RelatedField):
-                meta = field.get_queryset().model._meta
-            elif hasattr(field, "queryset"):
-                meta = field.queryset.model._meta
+            relation = field.child_relation if isinstance(field, serializers.ManyRelatedField) else field
+            queryset_only_relation = _get_queryset_only_relation(field, model_field)
+            if queryset_only_relation is not None:
+                meta = queryset_only_relation.get_queryset().model._meta
+            elif isinstance(relation, serializers.RelatedField) and relation.queryset is None:
+                meta = model_field.related_model._meta
+            elif hasattr(relation, "queryset"):
+                meta = relation.queryset.model._meta
         return meta
 
-    def get_model_field_choices(self, field, widget, serializer):
+    def get_model_field_choices(self, field, widget, serializer, *, model_field=None):
         """
         Get the choices for a model field.
 
@@ -1253,12 +1291,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         :type widget: django.forms.widgets.Widget
         :param serializer: A rest_framework serializer.
         :type serializer: rest_framework.serializers.Serializer
+        :param model_field: The model field behind ``field``. ``get_choices_meta`` reads the related model
+            from it for a relation that passes no ``queryset``.
+        :type model_field: Optional[django.db.models.Field]
         :return: Returns a tuple, with the first value being the choices list or True if the choices are model-based,
           or False if there are no choices. The second value is the metadata for the model-based choices.
         :rtype: Tuple[Union[List, Tuple, bool], Optional[django.db.models.options.Options]]
         """
         choices = self.get_choices_data(field, widget)
-        meta = self.get_choices_meta(field, choices)
+        meta = self.get_choices_meta(field, choices, model_field=model_field)
         if meta is not None:
             return True, {
                 "app_label": meta.app_label,
