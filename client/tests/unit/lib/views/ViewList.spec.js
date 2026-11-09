@@ -2349,6 +2349,29 @@ describe("lib/views/ViewList.vue", () => {
             expect(columnError.vm.$attrs.error).toEqual([]);
             wrapper.unmount();
         });
+
+        scopedIt.each([
+            ["table", { isTableLayout: true, isCardLayout: false }],
+            ["card", { isTableLayout: false, isCardLayout: true }],
+        ])("renders a choice column's label from model info in %s layout", async (_layout, layoutProps) => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.displayFields = ["site"];
+            modelConfig.config.fieldDetails = {
+                site: {
+                    typeSerializer: "ChoiceField",
+                    typeModel: "CharField",
+                    choices: [
+                        { label: "Office", value: "office" },
+                        { label: "Field", value: "field" },
+                    ],
+                },
+            };
+            columnSlotProps.site = { formatted: "office", value: "office", ...layoutProps };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            expect(wrapper.find('[data-column="site"]').text()).toBe("Office");
+            wrapper.unmount();
+        });
     });
 
     describe("Bulk selection read-out", () => {

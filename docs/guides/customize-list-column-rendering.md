@@ -37,11 +37,12 @@ VUEDA picks each column's default adapter in {@api js:property:@arrai-innovation
 | `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField`   | {@api vue:component:ColumnModelLink}  | `{ view: "read" }`                                         |
 | `ManyRelatedField`       | `ManyToManyField` / `ForeignKey` | {@api vue:component:ColumnModelLinks} | `{ view: "read" }`                                         |
 
-Every other type renders through {@api vue:component:ColumnText}. That includes a single `SlugRelatedField`. A to-many `SlugRelatedField` reports the serializer type `ManyRelatedField`, so it renders through `ColumnModelLinks`. Its unexpanded value is an array of slugs, and the cell shows their count. Issue [#143](https://github.com/arrai-innovations/vueda/issues/143) tracks the default for slug columns.
+Every other type renders through {@api vue:component:ColumnText}. That includes choice fields and a single `SlugRelatedField`. A to-many `SlugRelatedField` reports the serializer type `ManyRelatedField`, so it renders through `ColumnModelLinks`. Its unexpanded value is an array of slugs, and the cell shows their count. Issue [#143](https://github.com/arrai-innovations/vueda/issues/143) tracks the default for slug columns.
 
 The adapters render as follows:
 
 - `ColumnText` renders the cell value as text. It renders nothing for `null` or `undefined`. It renders an object or array as compact `JSON`, cut at 200 characters.
+- For a choice field, `ColumnText` renders the label of the stored value, as a read-only form does. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A many-valued choice field renders its labels joined with `, `. A value that matches no choice renders as stored. A field that sets its own `formatted` path renders that path's value as it is. Sorting and filtering still use the stored values.
 - `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No".
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.

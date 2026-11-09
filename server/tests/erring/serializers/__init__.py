@@ -6,6 +6,9 @@ from tests.erring.serializers.serializers import AggregateManagerMetaOrderingSer
 from tests.erring.serializers.serializers import AggregateManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import BothFormattedNameConfiguredSerializer  # noqa: F401
 from tests.erring.serializers.serializers import BothFormattedNameSelectRelatedConfiguredSerializer  # noqa: F401
+from tests.erring.serializers.serializers import DeclaredReadOnlyGetFormattedNameSerializer  # noqa: F401
+from tests.erring.serializers.serializers import DeclaredSourceGetFormattedNameSerializer  # noqa: F401
+from tests.erring.serializers.serializers import DeclaredSourceLookupExpressionSerializer  # noqa: F401
 from tests.erring.serializers.serializers import DefaultManagerNameOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import EmptyFilterManagerOrderingSerializer  # noqa: F401
 from tests.erring.serializers.serializers import ExpandableFieldsBadTupleLengthSerializer  # noqa: F401

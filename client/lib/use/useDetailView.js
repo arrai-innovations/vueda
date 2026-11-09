@@ -34,7 +34,7 @@
  * @example Wiring action buttons
  * ```html
  * <template v-for="actionName in actions.nonDetailActions" :key="actionName">
- *     <link-model-view :app="app" :model="model" :view="actionName" />
+ *     <link-model-view :app="app" :model="model" :view="actionName" button />
  * </template>
  * <template v-for="actionName in actions.detailActions" :key="actionName">
  *     <link-model-view :app="app" :model="model" :pk="pk" :view="actionName" button />

@@ -17,6 +17,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from vueda.core.serializers import VuedaSerializer
+from vueda.core.serializers.fields import FormattedNameField
 from vueda.vdq.models import AnyMailQueueItem
 from vueda.vdq.models import AnyMailQueueItemAttachment
 from vueda.vdq.models import QueueItem
@@ -85,8 +86,6 @@ class ReceiverSerializer(serializers.ModelSerializer):
 
 
 class DefaultQueueItemSerializer(VuedaSerializer):
-    formatted_name = serializers.SerializerMethodField()
-
     class Meta(VuedaSerializer.Meta):
         model = QueueItem
         fields = [
@@ -123,7 +122,11 @@ QueueItemSerializer = getattr(settings, "QUEUE_ITEM_SERIALIZER", DefaultQueueIte
 
 
 class DefaultSentItemSerializer(QueueItemSerializer):
-    formatted_name = serializers.SerializerMethodField()
+    # QueueItemSerializer comes from the QUEUE_ITEM_SERIALIZER setting, so a project's serializer
+    # may declare its own formatted_name for QueueItem. SentItem names its rows itself, so this
+    # declaration keeps that field from being inherited. Keep it even though VuedaSerializer builds
+    # the same field for an undeclared formatted_name.
+    formatted_name = FormattedNameField()
 
     class Meta(VuedaSerializer.Meta):
         model = SentItem

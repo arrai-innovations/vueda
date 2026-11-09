@@ -3,15 +3,19 @@
 from django.db import models
 
 from vueda.core.models import ActivatableBaseModel
+from vueda.core.models import VuedaModel
 
 
-class Thing(models.Model):
+class Thing(VuedaModel):
     name = models.CharField(max_length=255)
     count = models.IntegerField(default=0)
 
-    formatted_name = None
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "A warning confirmation fixture; history would add an event table and triggers it never exercises."
 
-    class Meta:
+    class Meta(VuedaModel.Meta):
         verbose_name = "Thing"
         verbose_name_plural = "Things"
 
@@ -19,13 +23,16 @@ class Thing(models.Model):
         return self.name
 
 
-class Gadget(ActivatableBaseModel):
+class Gadget(VuedaModel, ActivatableBaseModel):
     # Activatable so the activate/deactivate actions can exercise the viewset-level warning gate.
     name = models.CharField(max_length=255)
 
-    formatted_name = None
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "A warning confirmation fixture; history would add an event table and triggers it never exercises."
 
-    class Meta:
+    class Meta(VuedaModel.Meta):
         verbose_name = "Gadget"
         verbose_name_plural = "Gadgets"
 

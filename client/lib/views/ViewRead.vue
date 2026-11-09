@@ -8,6 +8,7 @@ import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewRead.theme.js";
 import { useDetailView } from "@vueda/use/useDetailView.js";
 import { useForm } from "@vueda/use/useForm.js";
+import { VIEW_FORM_PROPS } from "@vueda/use/useFormModelProps.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
@@ -24,6 +25,7 @@ defineOptions({
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
+    ...VIEW_FORM_PROPS,
     /** Django app label that owns the model. */
     app: {
         type: String,
@@ -44,6 +46,11 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
+    /** Field names to request from the API when fetching the object; falls back to the model config's fetchFields when omitted or empty. */
+    fetchFields: {
+        type: Array,
+        default: undefined,
+    },
 });
 
 const emit = defineEmits(["object", "loading", "related-object", "calculated-object", "form-object", "form-context"]);
@@ -59,6 +66,8 @@ const internalOptions = reactive({
     viewName: "read",
     pk: toRef(props, "pk"),
     primaryActions: toRef(props, "primaryActions"),
+    fetchFields: toRef(props, "fetchFields"),
+    ...Object.fromEntries(Object.keys(VIEW_FORM_PROPS).map((key) => [key, toRef(props, key)])),
 });
 
 const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);

@@ -3,6 +3,7 @@ import glob
 import os
 import pathlib
 import shutil
+import sys
 import tempfile
 from contextlib import contextmanager
 from importlib import import_module
@@ -125,6 +126,12 @@ class BaseTestMigrations:
         module is used, if it exists.
 
         Returns the filesystem path to the temporary migrations module.
+
+        On exit, the temporary package is removed from ``sys.modules``, along
+        with every module under it. Its directories are also removed from
+        ``sys.path_importer_cache``. Python does not drop these entries when the
+        files are deleted, so without this step each test would keep its
+        imported migrations in memory for the rest of the process.
         """
         with tempfile.TemporaryDirectory() as temp_dir:
             target_dir = tempfile.mkdtemp(dir=temp_dir)
@@ -152,6 +159,13 @@ class BaseTestMigrations:
                     yield target_migrations_dir
                 finally:
                     settings.MIGRATION_MODULES = original_migration_modules
+                    package = os.path.basename(target_dir)
+                    for name in tuple(sys.modules):
+                        if name == package or name.startswith(f"{package}."):
+                            del sys.modules[name]
+                    for cached_path in tuple(sys.path_importer_cache):
+                        if cached_path.startswith(temp_dir):
+                            del sys.path_importer_cache[cached_path]
 
 
 class FakeRequest:

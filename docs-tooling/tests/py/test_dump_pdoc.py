@@ -235,6 +235,27 @@ def test_doc_to_dict_function_has_signature_details(annotated_pkg):
     assert sig["return_annotation"] is not None
 
 
+def test_doc_to_dict_converts_google_sections_to_markdown(annotated_pkg):
+    mod = Module.from_name("annotated_pkg")
+    func_doc = next(m for m in mod.own_members if m.name == "add")
+    result = _doc_to_dict(func_doc, {"annotated_pkg": "module"})
+
+    docstring = result["docstring"]
+    assert docstring.startswith("Add two integers.")
+    assert "###### Arguments:" in docstring
+    assert " - **x:**  First integer." in docstring
+    assert "###### Returns:\n> Sum of x and y." in docstring
+    assert "Args:" not in docstring
+
+
+def test_doc_to_dict_leaves_rest_fields_as_written(testpkg):
+    mod = Module.from_name("testpkg")
+    mod.docstring = "Summary.\n\n:param x: First integer.\n:class:`Thing`"
+    result = _doc_to_dict(mod, {"testpkg": "module"})
+
+    assert result["docstring"] == "Summary.\n\n:param x: First integer.\n:class:`Thing`"
+
+
 def test_doc_to_dict_function_parent_points_to_module(annotated_pkg):
     mod = Module.from_name("annotated_pkg")
     func_doc = next(m for m in mod.own_members if m.name == "add")

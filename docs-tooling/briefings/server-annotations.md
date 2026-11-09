@@ -6,7 +6,7 @@ This briefing is `@`-imported into `server/AGENTS.md` and `docs-tooling/AGENTS.m
 
 ## Python docstrings (pdoc)
 
-pdoc reads docstrings directly from Python source. Every package, module, public class, and public function should carry a docstring. Use plain prose, not Sphinx or Google field-list style: there is no parser today for `:param:`, `:return:`, `Args:`, or `Returns:` blocks, and adding them as prose will display verbatim on the rendered page.
+pdoc reads docstrings directly from Python source. Every package, module, public class, and public function should carry a docstring. Write the docstring as plain prose. To document parameters, return values, or raised exceptions, use Google-style sections (see [Google-style sections](#google-style-sections)). Do not use Sphinx or reST fields such as `:param:` and `:return:`. The extractor does not convert them, so they display verbatim on the rendered page.
 
 ### Module docstring
 
@@ -28,6 +28,29 @@ class Workflow(Lookup):
 ```
 
 For functions and methods, signatures (parameters, defaults, type annotations, return type) are extracted from the Python signature directly. Do not restate them in prose; type annotations are the contract.
+
+### Google-style sections
+
+The extractor passes each docstring through pdoc's Google-style converter. A section is a line that holds a capitalized name and a colon, followed by indented lines. The converter turns each section into a small heading on the rendered page.
+
+- `Args:`, `Raises:`, `Attributes:`, and `Keyword Args:` render as a bulleted list. Each indented `name: description` line becomes one item, with the name in bold. The converter also accepts `Arguments:`, `Parameters:`, and `Params:`, and it renders all three under the heading `Arguments:`.
+- Any other section name, such as `Returns:` or `Example:`, renders its indented text as a block quote.
+
+```python
+def workflow_state_filter(model: type[Model]) -> ModelChoiceArrayFilter:
+    """Build the filter for the ``workflow_state`` query parameter.
+
+    Args:
+        model: The model that the filterset lists.
+
+    Returns:
+        A filter that accepts the primary key of any state in the model's workflow.
+    """
+```
+
+Leave the type out of each `Args:` entry. The signature already shows the type annotation, and the converter would copy a `name (type):` prefix into the bold label as written.
+
+The converter treats any capitalized line that ends in a colon as a section when indented lines follow it. This happens even when the name is not a Google section name. Blank lines between the two do not stop it. To keep such text as prose, end the line with a period, or put the indented part in a fenced code block.
 
 ### Deprecation annotations
 
