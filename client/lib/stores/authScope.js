@@ -7,6 +7,7 @@ import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
 import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
+import { restartObjectStreams } from "@vueda/utils/objectStreams.js";
 import { getActivePinia } from "pinia";
 
 /**
@@ -40,4 +41,6 @@ export function clearAuthScopedStores(pinia) {
         }
         useStore(resolvedPinia).clearAuthScoped();
     }
+    // The server signs a socket in once, when it opens, so a new user needs a new socket.
+    restartObjectStreams();
 }

@@ -6,6 +6,7 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
 import { FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { objectStreamsEnabled } from "@vueda/utils/objectStreams.js";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick, reactive, ref } from "vue";
 
@@ -28,6 +29,7 @@ vi.mock("@vueda/use/useFilteredActions.js", async () => {
     const actual = await vi.importActual("@vueda/use/useFilteredActions.js");
     return { ...actual, useFilteredActions: vi.fn() };
 });
+vi.mock("@vueda/utils/objectStreams.js", () => ({ objectStreamsEnabled: vi.fn(() => false) }));
 vi.mock("@vueda/use/useObject404.js", async () => {
     const actual = await vi.importActual("@vueda/use/useObject404.js");
     return { ...actual, useObject404: vi.fn() };
@@ -123,6 +125,93 @@ describe("lib/use/useDetailView.js", () => {
         expect(props.objectForm.state.submitErrored).toBe(false);
         expect(retrieve).toHaveBeenLastCalledWith(expect.objectContaining({ pk: "44" }));
         expect(formInitialValue).toEqual({ id: "44", name: "Record 44" });
+    });
+
+    describe("Live updates", () => {
+        /** Mounts the view on the real useObject, with a subscribe handler that hands back its callback. */
+        async function mountWithSubscribe() {
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+            const { default: flushPromises } = await import("flush-promises");
+            const retrieve = vi.fn(async ({ pk }) => ({ id: pk, name: "Fetched" }));
+            // A subscribe handler resolves once it has subscribed, and stays cancellable.
+            const cancels = [];
+            const subscribe = vi.fn(() => {
+                const cancel = vi.fn(async () => {});
+                cancels.push(cancel);
+                return Object.assign(Promise.resolve(), { cancel });
+            });
+            useObject.mockImplementationOnce((options) =>
+                realUseObject({ ...options, handlers: { retrieve, subscribe } }),
+            );
+            const detail = await withSetup(() => useDetailView(props, formInitialValue));
+            await flushPromises();
+            return { detail, subscribe, cancels, flushPromises };
+        }
+
+        scopedIt("subscribes a view that asks to, once live updates are set up", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+
+            const { detail, subscribe } = await mountWithSubscribe();
+
+            expect(detail.instance.pageLoading).toBe(false);
+            expect(formInitialValue).toEqual({ id: "42", name: "Fetched" });
+            expect(subscribe).toHaveBeenCalledWith(
+                expect.objectContaining({ pk: "42", target: { app: "testApp", model: "testModel" } }),
+            );
+        });
+
+        scopedIt("moves the subscription to the next record when the primary key changes", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            const { subscribe, cancels, flushPromises } = await mountWithSubscribe();
+
+            props.pk = "43";
+            await flushPromises();
+
+            expect(cancels[0]).toHaveBeenCalled();
+            expect(subscribe).toHaveBeenLastCalledWith(expect.objectContaining({ pk: "43" }));
+        });
+
+        scopedIt("does not subscribe before live updates are set up", async () => {
+            objectStreamsEnabled.mockReturnValue(false);
+            props.subscribe = true;
+
+            const { subscribe } = await mountWithSubscribe();
+
+            expect(subscribe).not.toHaveBeenCalled();
+        });
+
+        scopedIt("does not subscribe a view that does not ask to", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+
+            const { subscribe } = await mountWithSubscribe();
+
+            expect(subscribe).not.toHaveBeenCalled();
+        });
+
+        scopedIt("shows a pushed change in the form values", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            const { subscribe, flushPromises } = await mountWithSubscribe();
+            expect(formInitialValue).toEqual({ id: "42", name: "Fetched" });
+
+            subscribe.mock.calls[0][0].callback({ id: "42", name: "Pushed" }, "update");
+            await flushPromises();
+
+            expect(formInitialValue).toEqual({ id: "42", name: "Pushed" });
+        });
+
+        scopedIt("keeps the last values on screen when the record is deleted", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            const { subscribe, flushPromises } = await mountWithSubscribe();
+
+            subscribe.mock.calls[0][0].callback({}, "delete");
+            await flushPromises();
+
+            expect(formInitialValue).toEqual({ id: "42", name: "Fetched" });
+        });
     });
 
     describe("return shape", () => {

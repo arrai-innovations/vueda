@@ -9,7 +9,7 @@ status: draft
 
 A websocket subscription tells a signed-in client that a record changed. The message carries no record data. The client fetches the record again through the REST API, which applies the same permissions as before.
 
-Subscriptions are optional, and the scaffolded project does not enable them. Every view works without them. This guide covers the server side: settings, ASGI routing, change capture, the listener process, and the proxy.
+Subscriptions are optional, and the scaffolded project does not enable them. Every view works without them. This guide covers settings, ASGI routing, change capture, the listener process, the proxy, and the client.
 
 Subscriptions add two parts to a deployment:
 
@@ -157,6 +157,24 @@ It retries after a database error, every second by default. `--retry-delay` and 
 A reverse proxy in front of the web processes must pass the websocket upgrade for `/ws/streams/`.
 
 Check its idle timeout too. The server sends no keepalive message, and a browser cannot send a websocket ping. A socket with no changes to report is idle, and a proxy closes it once the idle timeout passes. Both Apache (`ProxyTimeout`) and nginx (`proxy_read_timeout`) default to 60 seconds. Raise the timeout for the socket path.
+
+## Turn on the Client
+
+Call `setupObjectStreams()` in `client/src/main.js`, after the default CRUD adapters:
+
+```js
+import { setupObjectStreams } from "@vueda/utils/objectStreams.js";
+
+setupDefaultListCrud();
+setupDefaultObjectCrud();
+setupObjectStreams();
+```
+
+A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values. Update views do not subscribe, because a refetch would replace the user's unsaved edits.
+
+The client opens one socket, on the API host, when the first view subscribes, and closes it when the last one leaves. It reconnects after a lost connection, and again whenever the signed-in user changes, because the server reads the session only when a socket opens. A socket that fails leaves every view working as it did before.
+
+The socket path defaults to `/ws/streams/`. When your proxy serves it elsewhere, set `VITE_OBJECT_STREAMS_PATH` in the client's Vite environment. The proxy must forward that path to the server's `/ws/streams/` route.
 
 ## Verify the Setup
 

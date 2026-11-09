@@ -68,6 +68,7 @@ import { useObject404 } from "@vueda/use/useObject404.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { objectStreamsEnabled } from "@vueda/utils/objectStreams.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
@@ -99,6 +100,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
+ * @property {boolean} [subscribe] - Refetch the record when the server reports a change to it. Takes effect only after `setupObjectStreams()`. Only a view that shows no edits may set it, because each refetch replaces the form values.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
  * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
@@ -228,31 +230,50 @@ export function useDetailView(options, formInitialValue) {
             [EXPAND_PARAM]: computed(() => formModelExpand(formModelProps.value, modelConfig.config?.expand)),
         },
         intendToRetrieve,
+        intendToSubscribe: computed(() => !!options.subscribe && objectStreamsEnabled() && validAndActive.value),
         relatedObjectRules: toRef(options, "relatedObjectRules"),
         calculatedObjectRules: toRef(options, "calculatedObjectRules"),
     });
 
     const instanceObject = useObject({ props: instanceObjectProps });
 
+    function assignFormInitialValue() {
+        // A formatted name fetched only for the header stays out of the form values, so the
+        // form holds just the fields that the field list asked for.
+        assignReactiveObject(
+            formInitialValue,
+            omit(
+                cloneDeep(instanceObject.state.object),
+                "available_actions",
+                "valid_transitions",
+                ...(addsFormattedName.value ? ["formatted_name"] : []),
+            ),
+        );
+    }
+
     watch(
         [validAndActive, toRef(instanceObject.state, "loading")],
         ([vAA, loading]) => {
             if (vAA && loading === false) {
-                // A formatted name fetched only for the header stays out of the form values, so the
-                // form holds just the fields that the field list asked for.
-                assignReactiveObject(
-                    formInitialValue,
-                    omit(
-                        cloneDeep(instanceObject.state.object),
-                        "available_actions",
-                        "valid_transitions",
-                        ...(addsFormattedName.value ? ["formatted_name"] : []),
-                    ),
-                );
+                assignFormInitialValue();
             }
         },
         { immediate: true },
     );
+
+    if (options.subscribe) {
+        // A pushed change replaces the object in place, without a loading cycle. A deleted record
+        // keeps its last values on screen.
+        watch(
+            () => instanceObject.state.object,
+            () => {
+                if (validAndActive.value && !instanceObject.state.deleted) {
+                    assignFormInitialValue();
+                }
+            },
+            { deep: true },
+        );
+    }
 
     /** @type {import('vue').Ref<Error|null>} */
     const myError = ref(null);

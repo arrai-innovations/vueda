@@ -65,6 +65,8 @@ const internalOptions = reactive({
     model: toRef(props, "model"),
     viewName: "read",
     pk: toRef(props, "pk"),
+    // A read view shows no edits, so it can take pushed changes when live updates are set up.
+    subscribe: true,
     primaryActions: toRef(props, "primaryActions"),
     fetchFields: toRef(props, "fetchFields"),
     ...Object.fromEntries(Object.keys(VIEW_FORM_PROPS).map((key) => [key, toRef(props, key)])),
