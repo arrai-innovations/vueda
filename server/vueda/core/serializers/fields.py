@@ -9,12 +9,15 @@ serialization layer and have no standalone Django field counterpart.
 __all__ = (
     "AvailableActionsField",
     "CompositePrimaryKeyField",
+    "FormattedNameField",
     "TemplateTagsDataField",
     "TemplatedTextField",
 )
 
 from collections.abc import Iterable
+from collections.abc import Mapping
 
+from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.base import DeserializationError
 from django.core.serializers.base import SerializationError
 from django.db.models import Model
@@ -22,8 +25,80 @@ from rest_framework import serializers
 from rest_framework.fields import SkipField
 from rest_framework.fields import empty
 
+from vueda.core.formatted_name import FORMATTED_NAME
+from vueda.core.formatted_name import formatted_name_of
+from vueda.core.open_api import conditional_extend_schema_field_decorator
 from vueda.core.permissions import check_action_permission
 from vueda.core.utils import implemented_builtin_actions
+
+
+@conditional_extend_schema_field_decorator({"type": "string", "nullable": True})
+class FormattedNameField(serializers.ReadOnlyField):
+    """
+    Serves a model's ``formatted_name``, hidden and read only.
+
+    A row that the database loaded carries ``formatted_name`` as its column or as the annotation that
+    ``formatted_name_lookup_expression`` adds, and this field returns that value as it is. A row
+    without either value falls back to ``formatted_name_of()``. That covers a ``get_formatted_name()``
+    model, and an instance that a create, an update, or code built without the annotation. An error
+    that a model's ``get_formatted_name()`` raises is not caught, so it reaches the caller.
+
+    It stays a ``ReadOnlyField`` whose source is ``formatted_name``, so model info resolves the
+    column or the lookup expression behind it.
+
+    To serve a different value, declare the field with your own ``source``, such as
+    ``FormattedNameField(source="data.formatted_name")``. A field with any other ``source`` reads
+    that path the way a ``ReadOnlyField`` does, with no fallback.
+    """
+
+    def __init__(self, **kwargs):
+        # Keep the field hidden when a caller passes other style keys, such as list_default.
+        kwargs["style"] = {"hidden": True, **(kwargs.get("style") or {})}
+        super().__init__(**kwargs)
+
+    def bind(self, field_name, parent):
+        # A field declared under another name, such as customer_label, still serves the formatted
+        # name unless it names its own source. DRF would default the source to the field's name.
+        if self.source is None and field_name != FORMATTED_NAME:
+            self.source = FORMATTED_NAME
+        super().bind(field_name, parent)
+
+    def get_attribute(self, instance):
+        # An unbound field has no source yet, which means the default one.
+        if self.source not in (None, FORMATTED_NAME):
+            return super().get_attribute(instance)
+
+        # A mapping, such as validated_data or a values() row, is not a model instance. Read its
+        # key the way a ReadOnlyField does, and leave the field out when the key is missing.
+        if isinstance(instance, Mapping):
+            if FORMATTED_NAME not in instance:
+                raise SkipField
+            return instance[FORMATTED_NAME]
+
+        # A loaded value lives in the instance's own __dict__. The `formatted_name = None` that a
+        # lookup-expression or method model declares lives on the class, and means "not loaded".
+        loaded = getattr(instance, "__dict__", {})
+        if FORMATTED_NAME in loaded:
+            return loaded[FORMATTED_NAME]
+
+        # Django refuses to read a column that is missing from __dict__, such as a generated column,
+        # on an instance whose primary key is not set. DRF leaves a read-only field out when it cannot
+        # read the value, so this does the same. Only the column read is skipped this way. An error
+        # that the model's own formatted-name method raises reaches the caller.
+        if _formatted_name_column_is_unreadable(instance):
+            raise SkipField
+        return formatted_name_of(instance)
+
+
+def _formatted_name_column_is_unreadable(instance):
+    meta = getattr(instance, "_meta", None)
+    if meta is None:
+        return False
+    try:
+        field = meta.get_field(FORMATTED_NAME)
+    except FieldDoesNotExist:
+        return False
+    return field.concrete and not instance._is_pk_set()
 
 
 class AvailableActionsField(serializers.ListField):

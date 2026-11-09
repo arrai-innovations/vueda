@@ -10,6 +10,7 @@ from tests.product.models import ProductModelOrderingFormattedName
 from tests.product.models import ProductModelOrderingLookupFormattedName
 from tests.product.models import ProductModelOrderingPK
 from tests.product.models import ProductRelease
+from tests.product.serializers import ProductLookupFormattedNameLabelSerializer
 from tests.product.serializers import ProductModelOrderingFormattedNameSerializer
 from tests.product.serializers import ProductModelOrderingLookupFormattedNameSerializer
 from tests.product.serializers import ProductModelOrderingPKSerializer
@@ -72,6 +73,14 @@ class ProductModelOrderingLookupFormattedNameViewSet(VuedaViewSet):
 
     queryset = ProductModelOrderingLookupFormattedName.objects.all()
     serializer_class = ProductModelOrderingLookupFormattedNameSerializer
+
+
+class ProductLookupFormattedNameLabelViewSet(VuedaViewSet):
+    """Updates `label` on ProductModelOrderingLookupFormattedName, an untracked model, so an update
+    response is not re-read after the write and serves whatever formatted_name the instance holds."""
+
+    queryset = ProductModelOrderingLookupFormattedName.objects.all()
+    serializer_class = ProductLookupFormattedNameLabelSerializer
 
 
 class ProductModelOrderingLookupFormattedNameFilterViewSet(VuedaViewSet):

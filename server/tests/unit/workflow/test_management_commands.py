@@ -397,8 +397,8 @@ class TestManagementCommandWorkflowTests(BaseAddedWorkflow, BaseTestMigrations, 
             if not succeeded:
                 pytest.fail("".join(results))
 
-            migration_filepath = (
-                Path(migration_dir) / f"0003_workflow_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
+            migration_filepath = Path(migration_dir) / find_one_migration_generated_today_or_fail(
+                migration_dir, "0003_workflow_migrations"
             )
             migration_content = migration_filepath.read_text(encoding="utf-8")
 

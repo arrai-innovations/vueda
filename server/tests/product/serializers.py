@@ -69,3 +69,11 @@ class ProductModelOrderingLookupFormattedNameSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = ProductModelOrderingLookupFormattedName
         fields = ["id"] + VuedaSerializer.Meta.fields
+
+
+class ProductLookupFormattedNameLabelSerializer(VuedaSerializer):
+    """Writes `label`, the column that ProductModelOrderingLookupFormattedName's lookup expression reads."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = ProductModelOrderingLookupFormattedName
+        fields = ["id", "label"] + VuedaSerializer.Meta.fields

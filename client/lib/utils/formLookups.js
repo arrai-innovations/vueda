@@ -67,6 +67,9 @@ export const availableWidgets = {
     ),
     WidgetImage: markRaw(defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetImage.vue")).default)),
     WidgetModel: markRaw(defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetModel.vue")).default)),
+    WidgetModelReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetModelReadOnly.vue")).default),
+    ),
     WidgetNativeSelect: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetNativeSelect.vue")).default),
     ),

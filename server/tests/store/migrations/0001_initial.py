@@ -633,6 +633,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("object_id", models.PositiveIntegerField()),
+                ("subject", models.CharField(max_length=255)),
                 ("text", models.TextField()),
                 (
                     "content_type",
@@ -944,6 +945,7 @@ class Migration(migrations.Migration):
                 ("pgh_label", models.TextField(help_text="The event label.")),
                 ("id", models.IntegerField()),
                 ("object_id", models.PositiveIntegerField()),
+                ("subject", models.CharField(max_length=255)),
                 ("text", models.TextField()),
             ],
             options={
@@ -2206,8 +2208,8 @@ class Migration(migrations.Migration):
             trigger=pgtrigger.compiler.Trigger(
                 name="insert_insert",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
-                    func='INSERT INTO "store_noteevent" ("content_type_id", "id", "object_id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "text") VALUES (NEW."content_type_id", NEW."id", NEW."object_id", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."text"); RETURN NULL;',
-                    hash="2e542946f2ad62a20de615d0fe2894295fc19e34",
+                    func='INSERT INTO "store_noteevent" ("content_type_id", "id", "object_id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "subject", "text") VALUES (NEW."content_type_id", NEW."id", NEW."object_id", _pgh_attach_context(), clock_timestamp(), \'insert\', NEW."id", NEW."subject", NEW."text"); RETURN NULL;',
+                    hash="c998af746f13a3ac7f353bab243c2e5de6b035f3",
                     operation="INSERT",
                     pgid="pgtrigger_insert_insert_a111d",
                     table="store_note",
@@ -2221,8 +2223,8 @@ class Migration(migrations.Migration):
                 name="update_update",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
                     condition="WHEN (OLD.* IS DISTINCT FROM NEW.*)",
-                    func='INSERT INTO "store_noteevent" ("content_type_id", "id", "object_id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "text") VALUES (NEW."content_type_id", NEW."id", NEW."object_id", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."text"); RETURN NULL;',
-                    hash="4a41e2a935a87cb9c526eeb846b1e385e9d2a2f4",
+                    func='INSERT INTO "store_noteevent" ("content_type_id", "id", "object_id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "subject", "text") VALUES (NEW."content_type_id", NEW."id", NEW."object_id", _pgh_attach_context(), clock_timestamp(), \'update\', NEW."id", NEW."subject", NEW."text"); RETURN NULL;',
+                    hash="bbe861d25e76d80eeccc781abfbf76f4155afdbe",
                     operation="UPDATE",
                     pgid="pgtrigger_update_update_40880",
                     table="store_note",
@@ -2235,8 +2237,8 @@ class Migration(migrations.Migration):
             trigger=pgtrigger.compiler.Trigger(
                 name="delete_delete",
                 sql=pgtrigger.compiler.UpsertTriggerSql(
-                    func='INSERT INTO "store_noteevent" ("content_type_id", "id", "object_id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "text") VALUES (OLD."content_type_id", OLD."id", OLD."object_id", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."text"); RETURN NULL;',
-                    hash="db0a25af44f7c9400cebb804deeeab0f6f5f7d59",
+                    func='INSERT INTO "store_noteevent" ("content_type_id", "id", "object_id", "pgh_context_id", "pgh_created_at", "pgh_label", "pgh_obj_id", "subject", "text") VALUES (OLD."content_type_id", OLD."id", OLD."object_id", _pgh_attach_context(), clock_timestamp(), \'delete\', OLD."id", OLD."subject", OLD."text"); RETURN NULL;',
+                    hash="5fe7ba390f1a3a7ce2be7d88c3116e5af0c36725",
                     operation="DELETE",
                     pgid="pgtrigger_delete_delete_ae9ec",
                     table="store_note",
