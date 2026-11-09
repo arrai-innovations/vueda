@@ -506,6 +506,24 @@ export const storeWorkflow = defineStore("workflow", {
             return this.promises.objectHistories[key][objectPk];
         },
         /**
+         * Drops the cached workflow state history of one object, and its cached error.
+         *
+         * The next `fetchObjectHistory` call for the object fetches it again. A history request already in
+         * flight still resolves for its callers, and its result is not cached. A transition calls this for
+         * each object it ran on, and so does a pushed workflow state change from `setupObjectStreams()`.
+         *
+         * @param {string} app - The app label.
+         * @param {string} model - The model name.
+         * @param {string|number} objectPk - The object's primary key.
+         * @returns {void}
+         */
+        forgetObjectHistory(app, model, objectPk) {
+            const key = getAppModelDotName({ app, model });
+            delete this.objectHistories[key]?.[objectPk];
+            delete this.errors.objectHistories[key]?.[objectPk];
+            delete this.promises.objectHistories[key]?.[objectPk];
+        },
+        /**
          * Runs a workflow transition on one object or on several objects in one request.
          *
          * A run that is not a dry run drops the cached workflow state history of each object it ran on,
@@ -592,11 +610,8 @@ export const storeWorkflow = defineStore("workflow", {
                     responseData = data;
                     // The transition recorded a new state for each object, so their cached histories and any
                     // history request still in flight are stale.
-                    const key = getAppModelDotName({ app: result.app, model: result.model });
                     for (const pk of Array.isArray(result.pk) ? result.pk : [result.pk]) {
-                        delete this.objectHistories[key]?.[pk];
-                        delete this.errors.objectHistories[key]?.[pk];
-                        delete this.promises.objectHistories[key]?.[pk];
+                        this.forgetObjectHistory(result.app, result.model, pk);
                     }
                     return data;
                 })

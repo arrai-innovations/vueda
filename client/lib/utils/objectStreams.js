@@ -6,8 +6,10 @@
  *   `setupObjectStreams()` runs.
  */
 import { setObjectCrud } from "@arrai-innovations/reactive-helpers";
+import { storeWorkflow } from "@vueda/stores/storeWorkflow.js";
 import { wsOrWssHostname } from "@vueda/utils/connectionHostname.js";
 import { defaultObjectRetrieve } from "@vueda/utils/objectCrud.js";
+import { getActivePinia } from "pinia";
 
 /** The server's websocket path when `VITE_OBJECT_STREAMS_PATH` is unset. */
 export const DEFAULT_OBJECT_STREAMS_PATH = "/ws/streams/";
@@ -171,11 +173,25 @@ export function createObjectStreamConnection({ url, WebSocketImpl = globalThis.W
 let connection = null;
 
 /**
+ * @param {{ app: string, model: string }} target
+ * @param {string|number} pk
+ */
+function forgetWorkflowHistory(target, pk) {
+    const pinia = getActivePinia();
+    if (pinia && storeWorkflow.$id in pinia.state.value) {
+        // Only a store that the application already uses can hold a cached history.
+        storeWorkflow(pinia).forgetObjectHistory(target.app, target.model, pk);
+    }
+}
+
+/**
  * Call `onChange` whenever the server reports a change to one record.
  *
  * The callback receives each `event` message and each `resync_required` message, which means that
- * events may have been missed. It does not fetch anything. Before `setupObjectStreams()`, nothing
- * subscribes and the callback never runs.
+ * events may have been missed. It does not fetch the record. A workflow state change, or a resync,
+ * also drops the record's cached workflow state history from `storeWorkflow`, because a transition
+ * that someone else ran made it stale. Before `setupObjectStreams()`, nothing subscribes and the
+ * callback never runs.
  *
  * @param {object} args - The record to watch.
  * @param {{ app: string, model: string }} args.target - The app label and model name, as in the REST route.
@@ -190,9 +206,13 @@ export function watchObjectChanges({ target, pk }, onChange) {
     return connection.subscribe(
         { op: "subscribe", kind: "object", model: `${target.app}.${target.model}`, pk: String(pk) },
         (message) => {
-            if (message.type === "event" || message.type === "resync_required") {
-                onChange(message);
+            if (message.type !== "event" && message.type !== "resync_required") {
+                return;
             }
+            if (message.type === "resync_required" || message.facet === "workflow_state") {
+                forgetWorkflowHistory(target, pk);
+            }
+            onChange(message);
         },
     );
 }

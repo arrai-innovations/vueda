@@ -1,3 +1,4 @@
+import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
 
 const defaultObjectRetrieve = vi.fn();
@@ -337,6 +338,71 @@ describe("lib/utils/objectStreams.js", () => {
             expect(request.cancel).toHaveBeenCalled();
             expect(socket.sent.at(-1)).toEqual({ op: "unsubscribe", subscription_id: "s1" });
             expect(callback).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Workflow history", () => {
+        const target = { app: "store", model: "customer_order" };
+        let key;
+        let getAppModelDotName;
+
+        async function cacheHistory() {
+            ({ getAppModelDotName } = await import("@vueda/utils/case.js"));
+            key = getAppModelDotName(target);
+            const { storeWorkflow } = await import("@vueda/stores/storeWorkflow.js");
+            const store = storeWorkflow();
+            store.objectHistories[key] = { 7: [{ state: "new" }], 8: [{ state: "new" }] };
+            return store;
+        }
+
+        function watchRecord() {
+            objectStreams.setupObjectStreams({ WebSocketImpl: FakeWebSocket, log });
+            const onChange = vi.fn();
+            objectStreams.watchObjectChanges({ target, pk: 7 }, onChange);
+            latestSocket().acceptHandshake();
+            return { onChange, socket: latestSocket() };
+        }
+
+        beforeEach(() => {
+            setActivePinia(createPinia());
+        });
+
+        it("drops the record's cached history after a workflow state change", async () => {
+            const store = await cacheHistory();
+            const { onChange, socket } = watchRecord();
+
+            socket.deliver({ type: "event", subscription_id: "s1", facet: "workflow_state", op: "updated" });
+
+            expect(store.objectHistories[key]).toEqual({ 8: [{ state: "new" }] });
+            expect(onChange).toHaveBeenCalledTimes(1);
+        });
+
+        it("drops the record's cached history after a resync", async () => {
+            const store = await cacheHistory();
+            const { socket } = watchRecord();
+
+            socket.deliver({ type: "resync_required", subscription_id: "s1" });
+
+            expect(store.objectHistories[key][7]).toBeUndefined();
+        });
+
+        it("keeps the cached history after a change to the record's own fields", async () => {
+            const store = await cacheHistory();
+            const { socket } = watchRecord();
+
+            socket.deliver({ type: "event", subscription_id: "s1", facet: "object", op: "updated" });
+
+            expect(store.objectHistories[key][7]).toEqual([{ state: "new" }]);
+        });
+
+        it("leaves an unused workflow store alone", () => {
+            const pinia = createPinia();
+            setActivePinia(pinia);
+            const { socket } = watchRecord();
+
+            socket.deliver({ type: "event", subscription_id: "s1", facet: "workflow_state", op: "updated" });
+
+            expect("workflow" in pinia.state.value).toBe(false);
         });
     });
 
