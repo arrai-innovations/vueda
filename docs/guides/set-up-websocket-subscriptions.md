@@ -170,7 +170,7 @@ setupDefaultObjectCrud();
 setupObjectStreams();
 ```
 
-A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values.
+A read view then subscribes to its record. After each change, it fetches the record again through the REST API and shows the new values. When someone deletes the record, the view keeps the last values and shows a notice. The `deleted-notice` slot of `ViewRead` replaces it.
 
 A list view subscribes with its filters, and the server reports each row that joins, leaves, or changes within them. The list then fetches its current page again and swaps the rows in when the new page arrives. A search term is not part of the subscription, so a searched list refetches after a change to any row that its other filters match.
 

@@ -1,5 +1,8 @@
 <script setup>
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
@@ -72,7 +75,10 @@ const internalOptions = reactive({
     ...Object.fromEntries(Object.keys(VIEW_FORM_PROPS).map((key) => [key, toRef(props, key)])),
 });
 
-const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);
+const { modelConfig, instanceObject, instance, actions } = useDetailView(
+    internalOptions,
+    formContextProps.initialValues,
+);
 
 const theme = useTheme("ViewRead", props);
 
@@ -188,6 +194,19 @@ onMounted(() => {
                 :ignore-form-validation-errors="true"
                 :while-text="instance.combinedWhileText"
             />
+            <!-- @slot [deleted-notice] Override the notice shown when someone deletes the record while it is open; receives `verboseName` (the model config's verbose name, if any). The last values stay on screen. Appears only after `setupObjectStreams()`. -->
+            <slot
+                v-if="instanceObject.state.deleted"
+                name="deleted-notice"
+                :verbose-name="modelConfig.config?.verboseName"
+            >
+                <Alert data-qa="read-deleted-notice" variant="destructive">
+                    <AlertTitle>Deleted by someone else</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} was deleted after you opened it.
+                    </AlertDescription>
+                </Alert>
+            </slot>
             <form-model v-bind="instance.combinedFormProps">
                 <template v-for="(_, slot) in slots" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />

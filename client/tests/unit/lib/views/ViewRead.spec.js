@@ -46,6 +46,7 @@ beforeEach(async () => {
         getFirstErrorField: vi.fn(() => null),
     };
     mockDetailViewResult = {
+        modelConfig: reactive({ config: { verboseName: "widget" }, loading: false }),
         instanceObject: {
             state: reactive({
                 object: null,
@@ -130,6 +131,39 @@ describe("lib/views/ViewRead.vue", () => {
 
             const [emittedContext] = wrapper.emitted("form-context")[0];
             expect(emittedContext).toBe(mockFormContext);
+        });
+    });
+
+    describe("Deleted record", () => {
+        const mountView = async (options = {}) => {
+            const { default: ViewRead } = await import("@vueda/views/ViewRead.vue");
+            return mount(ViewRead, { props: { app: "a", model: "m", pk: "1" }, ...options });
+        };
+
+        scopedIt("shows no notice while the record exists", async () => {
+            const wrapper = await mountView();
+
+            expect(wrapper.find('[data-qa="read-deleted-notice"]').exists()).toBe(false);
+        });
+
+        scopedIt("reports a record deleted while open, and keeps the view", async () => {
+            mockDetailViewResult.instanceObject.state.deleted = true;
+            const wrapper = await mountView();
+
+            expect(wrapper.find('[data-qa="read-deleted-notice"]').text()).toContain(
+                "This widget was deleted after you opened it.",
+            );
+            expect(wrapper.find('[data-qa="read-deleted-notice"]').text()).not.toContain("Saving");
+        });
+
+        scopedIt("lets the deleted-notice slot replace the notice", async () => {
+            mockDetailViewResult.instanceObject.state.deleted = true;
+            const wrapper = await mountView({
+                slots: { "deleted-notice": ({ verboseName }) => h("p", { "data-qa": "custom-deleted" }, verboseName) },
+            });
+
+            expect(wrapper.find('[data-qa="custom-deleted"]').text()).toBe("widget");
+            expect(wrapper.find('[data-qa="read-deleted-notice"]').exists()).toBe(false);
         });
     });
 
