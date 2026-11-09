@@ -4,7 +4,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getPascalCaseName } from "@vueda/utils/case.js";
-import { reportProjectViewLoadError, warnUnmatchedProjectViews } from "@vueda/utils/projectViewOverrides.js";
+import { projectViews, warnUnmatchedProjectViews } from "@vueda/utils/projectViewOverrides.js";
 import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewExecuteTransition from "@vueda/views/ViewExecuteTransition.vue";
@@ -43,21 +43,19 @@ const props = defineProps({
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
-// Development builds list the project's view files, to check their names and to report a view that fails to
-// load. The glob is root-relative because a glob through an `@` alias that the project does not define fails
-// the build; `@` normally points at `<root>/src`. Production builds list no files.
-const projectViewPaths = import.meta.env.DEV ? Object.keys(import.meta.glob("/src/views/View*.vue")) : [];
 /**
+ * Load the first name that has a project file. A name without a file moves the lookup to the next name. A file
+ * that exists and fails to load rejects, and the error reaches the application's error handling.
+ *
  * @param {string[]} names
  * @param {() => (object|Promise<object>)} fallback
  * @returns {Promise<object>}
  */
 const importProjectView = async (names, fallback) => {
     for (const name of names) {
-        try {
-            return (await import(`@/views/View${name}.vue`)).default;
-        } catch (error) {
-            reportProjectViewLoadError(projectViewPaths, `/src/views/View${name}.vue`, error);
+        const load = projectViews[`View${name}.vue`];
+        if (load) {
+            return (await load()).default;
         }
     }
     return fallback();
@@ -113,7 +111,7 @@ watch(
         if (import.meta.env.DEV && modelConfig.info?.actions) {
             // A file name is the only link between a project view and its route, so report one that matches
             // nothing.
-            warnUnmatchedProjectViews(projectViewPaths, {
+            warnUnmatchedProjectViews(Object.keys(projectViews), {
                 app: target.app,
                 model: target.model,
                 actionNames: modelConfig.info.actions.map((action) => action.name),

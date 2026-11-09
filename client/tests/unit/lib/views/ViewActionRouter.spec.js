@@ -78,74 +78,34 @@ vi.mock("@vueda/views/ViewAction.vue", () => ({ default: ActionStub }));
 vi.mock("@vueda/views/ViewActionNotFound.vue", () => ({ default: NotFoundStub }));
 vi.mock("@vueda/views/ViewExecuteTransition.vue", () => ({ default: ExecuteTransitionStub }));
 
-// ViewActionRouter builds its `@/views/View{Name}.vue` imports with the real, unmocked getPascalCaseName,
-// so these paths are the actual specifiers that it builds for app "a" / model "b" and the actions
-// exercised below. `@` is not aliased in this package's own vite config (it is reserved for a
-// consuming project's src), so leaving these unmocked hangs the dynamic import indefinitely instead
-// of rejecting; mocking them to throw simulates "no project override exists" and lets resolution
-// fall through to the terminal fallback like it would in a real consuming project.
-vi.mock("@/views/ViewActionABApprove.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewActionApprove.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewActionABActivate.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewActionActivate.vue", () => {
-    throw new Error("no override");
-});
-
-// The project-wide fallback views exist only while a test sets them here.
-const projectWideViews = vi.hoisted(() => ({ action: null, executeTransition: null }));
-vi.mock("@/views/ViewAction.vue", () => ({
-    get default() {
-        if (!projectWideViews.action) {
-            throw new Error("no override");
-        }
-        return projectWideViews.action;
-    },
+// The project's view files for app "a" / model "b". A name without a key has no file. "read" has a
+// model-specific view on model "b" and a project-wide view for every other model. "update", "approve",
+// and "activate" have no project view. "reject" has a model-specific view, and "void" has only a
+// code-only view, so a project view wins over ViewExecuteTransition for a transition code.
+const fileMap = (components) =>
+    Object.fromEntries(
+        Object.entries(components).map(([name, component]) => [
+            `View${name}.vue`,
+            async () => ({ default: component }),
+        ]),
+    );
+const baseProjectViews = () =>
+    fileMap({
+        ReadAB: ProjectModelStub,
+        Read: ProjectWideStub,
+        ActionABReject: OverrideAppModelStub,
+        ActionVoid: OverrideCodeStub,
+        ActionABPublish: ModelActionStub,
+        ActionArchive: ActionOnlyStub,
+        ActionABList: ModelActionStub,
+        ListAB: ProjectModelStub,
+    });
+const projectViews = {};
+const warnUnmatchedProjectViews = vi.fn();
+vi.mock("@vueda/utils/projectViewOverrides.js", () => ({
+    projectViews,
+    warnUnmatchedProjectViews,
 }));
-vi.mock("@/views/ViewExecuteTransition.vue", () => ({
-    get default() {
-        if (!projectWideViews.executeTransition) {
-            throw new Error("no override");
-        }
-        return projectWideViews.executeTransition;
-    },
-}));
-
-// Built-in action fixtures for findProjectView: "read" has a model-specific view on model "b" and a
-// project-wide view for every other model, and "update" has no project view.
-vi.mock("@/views/ViewReadAB.vue", () => ({ default: ProjectModelStub }));
-vi.mock("@/views/ViewReadAC.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewRead.vue", () => ({ default: ProjectWideStub }));
-vi.mock("@/views/ViewUpdateAB.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewUpdate.vue", () => {
-    throw new Error("no override");
-});
-
-// Positive-override fixtures: "reject" resolves at the app-model-code tier, and "void" has no
-// app-model-code override but does resolve at the code-only tier. Both prove a project override
-// still wins over the ViewExecuteTransition fallback for a transition code, not just for a
-// standard CRUDL action.
-vi.mock("@/views/ViewActionABReject.vue", () => ({ default: OverrideAppModelStub }));
-vi.mock("@/views/ViewActionABVoid.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewActionVoid.vue", () => ({ default: OverrideCodeStub }));
-vi.mock("@/views/ViewActionABPublish.vue", () => ({ default: ModelActionStub }));
-vi.mock("@/views/ViewActionABArchive.vue", () => {
-    throw new Error("no override");
-});
-vi.mock("@/views/ViewActionArchive.vue", () => ({ default: ActionOnlyStub }));
-vi.mock("@/views/ViewActionABList.vue", () => ({ default: ModelActionStub }));
-vi.mock("@/views/ViewListAB.vue", () => ({ default: ProjectModelStub }));
 
 const modelConfig = reactive({
     loading: false,
@@ -176,13 +136,6 @@ vi.mock("@vueda/utils/actionMap.js", () => ({
     getActionName: (a) => a,
 }));
 
-const warnUnmatchedProjectViews = vi.fn();
-const reportProjectViewLoadError = vi.fn();
-vi.mock("@vueda/utils/projectViewOverrides.js", () => ({
-    warnUnmatchedProjectViews,
-    reportProjectViewLoadError,
-}));
-
 let ViewActionRouter;
 
 beforeEach(async () => {
@@ -193,8 +146,10 @@ beforeEach(async () => {
     modelConfig.info = { actions: [] };
     workflow.transitions = [];
     workflow.loading = false;
-    projectWideViews.action = null;
-    projectWideViews.executeTransition = null;
+    for (const path of Object.keys(projectViews)) {
+        delete projectViews[path];
+    }
+    Object.assign(projectViews, baseProjectViews());
 });
 
 describe("lib/views/ViewActionRouter.vue", () => {
@@ -300,8 +255,7 @@ describe("lib/views/ViewActionRouter.vue", () => {
                 workflow.transitions = [{ code: "void", name: "Void" }];
                 mount(ViewActionRouter, { props: { app: "a", model: "b", action: "list" } });
                 await flushPromises();
-                // This package has no src/views, so the root-relative glob finds no files.
-                expect(warnUnmatchedProjectViews).toHaveBeenCalledWith([], {
+                expect(warnUnmatchedProjectViews).toHaveBeenCalledWith(Object.keys(projectViews), {
                     app: "a",
                     model: "b",
                     actionNames: ["list"],
@@ -310,18 +264,6 @@ describe("lib/views/ViewActionRouter.vue", () => {
                 });
             },
         );
-
-        scopedIt("passes each failed project view import to the load error report", async () => {
-            modelConfig.info = { actions: [{ name: "archive" }] };
-            const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "archive" } });
-            await vi.waitFor(() => expect(wrapper.findComponent(ActionOnlyStub).exists()).toBe(true));
-            // This package has no src/views, so the root-relative glob finds no files.
-            expect(reportProjectViewLoadError).toHaveBeenCalledWith(
-                [],
-                "/src/views/ViewActionABArchive.vue",
-                expect.anything(),
-            );
-        });
 
         scopedIt("skips the check without model info", async () => {
             modelConfig.info = undefined;
@@ -336,6 +278,38 @@ describe("lib/views/ViewActionRouter.vue", () => {
             mount(ViewActionRouter, { props: { app: "a", model: "b", action: "list" } });
             await flushPromises();
             expect(warnUnmatchedProjectViews).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Project view load failures", () => {
+        scopedIt("passes the error of a project view that fails to load to the app's error handler", async () => {
+            const loadError = new Error("broken import");
+            projectViews["ViewActionABArchive.vue"] = () => Promise.reject(loadError);
+            const errorHandler = vi.fn();
+            modelConfig.info = { actions: [{ name: "archive" }] };
+            const wrapper = mount(ViewActionRouter, {
+                props: { app: "a", model: "b", action: "archive" },
+                global: { config: { errorHandler } },
+            });
+            await vi.waitFor(() => expect(errorHandler).toHaveBeenCalled());
+            expect(errorHandler.mock.calls[0][0]).toBe(loadError);
+            expect(wrapper.findComponent(ActionOnlyStub).exists()).toBe(false);
+            expect(wrapper.findComponent(ActionStub).exists()).toBe(false);
+        });
+
+        scopedIt("passes the error of a project view that a registered loader finds", async () => {
+            const loadError = new Error("broken import");
+            projectViews["ViewReadAB.vue"] = () => Promise.reject(loadError);
+            const errorHandler = vi.fn();
+            modelConfig.info = { actions: [{ name: "read" }] };
+            const wrapper = mount(ViewActionRouter, {
+                props: { app: "a", model: "b", action: "read", pk: "1" },
+                global: { config: { errorHandler } },
+            });
+            await vi.waitFor(() => expect(errorHandler).toHaveBeenCalled());
+            expect(errorHandler.mock.calls[0][0]).toBe(loadError);
+            expect(wrapper.findComponent(ProjectWideStub).exists()).toBe(false);
+            expect(wrapper.findComponent(CrudStub).exists()).toBe(false);
         });
     });
 
@@ -460,7 +434,7 @@ describe("lib/views/ViewActionRouter.vue", () => {
         });
 
         scopedIt("uses a project-wide ViewAction when no action-specific view exists", async () => {
-            projectWideViews.action = ProjectWideStub;
+            Object.assign(projectViews, fileMap({ Action: ProjectWideStub }));
             modelConfig.info = { actions: [{ name: "approve" }] };
             const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "approve" } });
             await vi.waitFor(() => expect(wrapper.findComponent(ProjectWideStub).exists()).toBe(true));
@@ -468,7 +442,7 @@ describe("lib/views/ViewActionRouter.vue", () => {
         });
 
         scopedIt("uses a project-wide ViewExecuteTransition when no code-specific view exists", async () => {
-            projectWideViews.executeTransition = ProjectWideStub;
+            Object.assign(projectViews, fileMap({ ExecuteTransition: ProjectWideStub }));
             workflow.transitions = [{ code: "approve", name: "Approve" }];
             const wrapper = mount(ViewActionRouter, { props: { app: "a", model: "b", action: "approve" } });
             await vi.waitFor(() => expect(wrapper.findComponent(ProjectWideStub).exists()).toBe(true));

@@ -107,10 +107,10 @@ The guards report failures through `toast` from `@arrai-innovations/vue-sonner`.
 
 1. **Unknown action.** If the translated action matches no model info action `name` and no permitted transition `code`, it renders {@api vue:component:ViewActionNotFound}.
 2. **Built-in registry.** If no transition matched and the untranslated route action is a key in [`crudComponents`]{@api js:property:@arrai-innovations/vueda/router/routerComponent#crudComponents}, it calls that entry's loader and renders the component that the loader returns. The default keys are `list`, `create`, `update`, `read`, `destroy`, `activate`, `deactivate`, and `history-list`. A transition with the same code as a registry key skips the registry.
-3. **Model-specific convention.** It imports `@/views/ViewAction<App><Model><Action>.vue`.
-4. **Action convention.** If that import fails, it imports `@/views/ViewAction<Action>.vue`.
-5. **Project-wide view.** If both imports fail, it imports `@/views/ViewExecuteTransition.vue` for a transition code, or `@/views/ViewAction.vue` for a model action.
-6. **VUEDA view.** If that import also fails, it renders {@api vue:component:ViewExecuteTransition} for a transition code, or {@api vue:component:ViewAction} for a model action.
+3. **Model-specific convention.** It renders `@/views/ViewAction<App><Model><Action>.vue`.
+4. **Action convention.** If that file does not exist, it renders `@/views/ViewAction<Action>.vue`.
+5. **Project-wide view.** If neither file exists, it renders `@/views/ViewExecuteTransition.vue` for a transition code, or `@/views/ViewAction.vue` for a model action.
+6. **VUEDA view.** If that file does not exist either, it renders {@api vue:component:ViewExecuteTransition} for a transition code, or {@api vue:component:ViewAction} for a model action.
 
 Each default registry loader runs its own lookup of project files. For `list`, it renders the first of these that exists:
 
@@ -120,9 +120,9 @@ Each default registry loader runs its own lookup of project files. For `list`, i
 
 The other default keys follow the same pattern with their own view names: `ViewCreate`, `ViewUpdate`, `ViewRead`, `ViewDestroy`, `ViewActivate`, `ViewDeactivate`, and `ViewHistoryList`.
 
-Each name in a convention path is the route segment in title case with spaces removed. A model with the segment `productoption` becomes `Productoption`, and the action segment `history-list` becomes `HistoryList`. The model-specific view for an `approve` action on `/inventory/productoption/approve/` is `ViewActionInventoryProductoptionApprove.vue`. The model-specific list view for the same model is `ViewListInventoryProductoption.vue`. With an installed VUEDA package, Vite finds these files only when the `@` alias points at your application's source. You set it through [`extraAliases`]{@api js:param:@arrai-innovations/vueda/vite#vuedaViteConfig:options.extraAliases} in {@api js:function:@arrai-innovations/vueda/vite#vuedaViteConfig}, and [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md) describes the setup. Without it, every route renders the VUEDA view.
+Each name in a convention path is the route segment in title case with spaces removed. A model with the segment `productoption` becomes `Productoption`, and the action segment `history-list` becomes `HistoryList`. The model-specific view for an `approve` action on `/inventory/productoption/approve/` is `ViewActionInventoryProductoptionApprove.vue`. The model-specific list view for the same model is `ViewListInventoryProductoption.vue`. The router looks for these files in `@/views`. {@api js:function:@arrai-innovations/vueda/vite#vuedaViteConfig} sets `@` to the `src` directory under the project root. To keep view files in another directory, pass that directory as `@` in [`extraAliases`]{@api js:param:@arrai-innovations/vueda/vite#vuedaViteConfig:options.extraAliases}.
 
-A project view receives the same props as the VUEDA view that it replaces: `app`, `model`, `action`, and `pk`. A project file can wrap the VUEDA view and pass these props through. This `src/views/ViewList.vue` renders VUEDA's `ViewList` on every list page and adds a footer:
+A project view receives the same props as the VUEDA view that it replaces: `app`, `model`, `action`, and `pk`. A project file can wrap the VUEDA view and pass these props through. This `@/views/ViewList.vue` renders VUEDA's `ViewList` on every list page and adds a footer:
 
 ```vue
 <script setup>
@@ -135,12 +135,11 @@ import ViewList from "@vueda/views/ViewList.vue";
 </template>
 ```
 
-{@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} merges entries into the registry, adding keys or replacing the default loader for a key. A registered loader replaces the whole lookup for its key, so it wins over every convention file for that action. The loader receives the route's app, model, action, and pk as its first argument. Its second argument holds `findProjectView(name, fallback)`, which imports `@/views/View<Name><App><Model>.vue`, then `@/views/View<Name>.vue`, then calls `fallback`. A registered loader can call it to keep the project-file lookup.
+{@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents} merges entries into the registry, adding keys or replacing the default loader for a key. A registered loader replaces the whole lookup for its key, so it wins over every convention file for that action. The loader receives the route's app, model, action, and pk as its first argument. Its second argument holds `findProjectView(name, fallback)`, which loads `@/views/View<Name><App><Model>.vue`, then `@/views/View<Name>.vue`, then calls `fallback`. It skips a file that does not exist. A registered loader can call it to keep the project-file lookup.
 
-In a development build, `ViewActionRouter` checks the project's view files and reports two mistakes in the browser console. These checks assume that the `@` alias points at `<root>/src`. A production build runs neither check.
+In a development build, `ViewActionRouter` checks the names of the project's view files and reports a misnamed file in the browser console. A production build skips this check. On each model's routes, the router warns about a file in `@/views` that names this model but matches none of its actions or transitions. For example, `ViewLsitInventoryProduct.vue` and `ViewActionInventoryProductAprove.vue` each get a warning on the `inventory` app's `product` routes. The warning lists the file names that would match. The check also warns about `ViewActionInventoryProductList.vue`, because the registry resolves the `list` action and the router never imports that file. A file in `@/views` whose name ends with the app and model, such as `ViewDashboardInventoryProduct.vue`, gets the same warning even when no route uses it.
 
-- **A model-specific file name that matches no route.** On each model's routes, the router warns about a file in `src/views` that names this model but matches none of its actions or transitions. For example, `ViewLsitInventoryProduct.vue` and `ViewActionInventoryProductAprove.vue` each get a warning on the `inventory` app's `product` routes. The warning lists the file names that would match. The check also warns about `ViewActionInventoryProductList.vue`, because the registry resolves the `list` action and the router never imports that file. A file in `src/views` whose name ends with the app and model, such as `ViewDashboardInventoryProduct.vue`, gets the same warning even when no route uses it.
-- **A file that exists but fails to load.** When a project view file has an error, such as an import of a missing module, the router logs that error. It then continues with the next file in the lookup, and finally with the VUEDA view.
+A project view file that exists but fails to load stops the lookup in every build. For example, the import of a missing module fails, or a chunk returns `404` after a deploy while an open tab still holds the old build. The router does not render the next file or the VUEDA view. It passes the error to the application's error handling, such as `app.config.errorHandler`. The page keeps the view that it showed before the navigation. On first entry, that view is {@api vue:component:ViewLoading}.
 
 `ViewExecuteTransition` submits through [`executeTransition`]{@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition} with the transition code. `ViewAction` submits to the model's action endpoint.
 

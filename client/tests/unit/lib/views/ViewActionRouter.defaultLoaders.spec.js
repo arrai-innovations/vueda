@@ -20,15 +20,13 @@ vi.mock("@vueda/views/ViewActionNotFound.vue", () => ({ default: stub("NotFoundS
 vi.mock("@vueda/views/ViewExecuteTransition.vue", () => ({ default: stub("ExecuteTransitionStub") }));
 vi.mock("@vueda/views/ViewList.vue", () => ({ default: VuedaListStub }));
 
-// `@` is not aliased in this package's own vite config, so an unmocked `@/views` import hangs instead of
-// rejecting. Each file that these tests reach is mocked: a throwing factory stands for a missing file.
-vi.mock("@/views/ViewListAB.vue", () => {
-    throw new Error("no project view");
-});
-vi.mock("@/views/ViewList.vue", () => {
-    throw new Error("no project view");
-});
-vi.mock("@/views/ViewHistoryListAB.vue", () => ({ default: ProjectHistoryListStub }));
+// The project has a model-specific history-list view for app "a" / model "b", and no list view.
+vi.mock("@vueda/utils/projectViewOverrides.js", () => ({
+    projectViews: {
+        "ViewHistoryListAB.vue": async () => ({ default: ProjectHistoryListStub }),
+    },
+    warnUnmatchedProjectViews: vi.fn(),
+}));
 
 const modelConfig = reactive({ loading: false, info: { actions: [] } });
 const workflow = reactive({ loading: false, transitions: [] });

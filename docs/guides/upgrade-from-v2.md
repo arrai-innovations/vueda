@@ -172,7 +172,7 @@ pnpm add @arrai-innovations/vueda@beta
 - Raise `@arrai-innovations/reactive-helpers` to 25 and `@vueuse/core` to 14. Both have breaking changes of their own.
 - Use Node 22 or later. The package does not declare this requirement, so a package manager does not warn about an older Node.
 - Install Tailwind CSS 4 and `@tailwindcss/vite`.
-- Spread `vuedaViteConfig()` into your Vite config, and pass your `src` directory as `extraAliases["@"]`. Without that alias, VUEDA does not find convention-named action views. [View Component Resolution Order](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) describes the lookup.
+- Spread `vuedaViteConfig()` into your Vite config. It sets the `@` alias to your `src` directory, and VUEDA finds convention-named views in `@/views`. If your source lives in another directory, pass that directory as `extraAliases["@"]`. [View Component Resolution Order](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) describes the lookup.
 
 [Client Plugin Prerequisites](client-plugin-prerequisites.md) lists the setup that each package needs.
 
