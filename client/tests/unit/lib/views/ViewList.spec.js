@@ -2361,6 +2361,31 @@ describe("lib/views/ViewList.vue", () => {
             expect(wrapper.find('[data-column="site"]').text()).toBe("Office");
             wrapper.unmount();
         });
+
+        scopedIt.each([
+            ["table", { isTableLayout: true, isCardLayout: false }],
+            ["card", { isTableLayout: false, isCardLayout: true }],
+        ])("renders a boolean column's display label from model info in %s layout", async (_layout, layoutProps) => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.displayFields = ["submitted"];
+            modelConfig.config.fieldDetails = {
+                submitted: {
+                    typeSerializer: "BooleanField",
+                    typeModel: "BooleanField",
+                    choices: false,
+                    displayChoices: [
+                        { label: "Submitted", value: true },
+                        { label: "-", value: false },
+                        { label: "Unknown", value: null },
+                    ],
+                },
+            };
+            columnSlotProps.submitted = { formatted: true, value: true, ...layoutProps };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            // ColumnBoolean is an async component, so its first render can take more than one tick.
+            await vi.waitFor(() => expect(wrapper.find('[data-column="submitted"]').text()).toBe("Submitted"));
+            wrapper.unmount();
+        });
     });
 
     describe("Bulk selection read-out", () => {

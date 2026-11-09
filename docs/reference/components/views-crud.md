@@ -159,7 +159,7 @@ A wide table scrolls sideways inside its own card. Date, time, datetime, boolean
     <span>columns: no <code>displayFields</code> override, so the default field list applies</span>
     <span>layout: <code>tableBreakpoint="xs"</code> forces table mode in the narrow demo frame</span>
     <span>overflow: the grid scrolls sideways inside its card; columns size to content and header labels stay on one line</span>
-    <span>adapters: date, time, and datetime use <code>ColumnDateTime</code>, boolean <code>ColumnBoolean</code> (Yes or No, even for a boolean with choices), duration <code>ColumnDuration</code>, and JSON <code>ColumnJson</code>; range and choice fields fall back to <code>ColumnText</code></span>
+    <span>adapters: date, time, and datetime use <code>ColumnDateTime</code>, boolean <code>ColumnBoolean</code> (Yes or No, or the choice labels of a boolean with choices), duration <code>ColumnDuration</code>, and JSON <code>ColumnJson</code>; range and choice fields fall back to <code>ColumnText</code></span>
     <span>empty values: the type adapters print a dash for a null. <code>ColumnText</code> prints nothing for a null or an empty choice list. <code>ColumnJson</code> prints <code>{}</code> for an empty object</span>
     <span>theme keys: {@api theme-key:ObjectsGrid} · source: <code>ViewList.vue</code></span>
   </footer>

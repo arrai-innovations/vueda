@@ -42,14 +42,14 @@ The adapters render as follows:
 
 - `ColumnText` renders the cell value as text. It renders nothing for `null` or `undefined`. It renders an object or array as compact `JSON`, cut at 200 characters.
 - For a choice field, `ColumnText` renders the label of the stored value, as a read-only form does. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A many-valued choice field renders its labels joined with `, `. A value that matches no choice renders as stored. A field that sets its own `formatted` path renders that path's value as it is. Sorting and filtering still use the stored values.
-- `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No".
+- `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No". When the field has labels for its values, `ColumnBoolean` renders the label that matches the value instead. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A null value with a matching label renders that label in place of the dash.
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
 - `ColumnFile` renders {@api vue:component:FileDisplay}: a link to the file, labelled with the file name.
 - `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
 - `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}.
 
-`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value.
+`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value. `BooleanDisplay` renders the label of an empty value instead, when the field has one.
 
 ## Choose Where to Override
 

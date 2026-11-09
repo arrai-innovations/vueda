@@ -55,6 +55,46 @@ describe("lib/display/boolean-display/BooleanDisplay.vue", () => {
         });
     });
 
+    describe("Option labels", () => {
+        const options = [
+            { label: "Submitted", value: true },
+            { label: "-", value: false },
+            { label: "Unknown", value: null },
+        ];
+
+        scopedIt.each([
+            ["true", true, "Submitted"],
+            ["false", false, "-"],
+            ['the string "false"', "false", "-"],
+        ])("renders the matching option's label for %s", (_label, value, expected) => {
+            const wrapper = mount(BooleanDisplay, { props: { value, options } });
+            expect(wrapper.get('[data-qa="boolean-display-value"]').text()).toBe(expected);
+        });
+
+        scopedIt("renders a null value's option label in place of the dash", () => {
+            const wrapper = mount(BooleanDisplay, { props: { value: null, options } });
+            expect(wrapper.get('[data-qa="boolean-display-value"]').text()).toBe("Unknown");
+            expect(wrapper.find('[data-qa="boolean-display-dash"]').exists()).toBe(false);
+        });
+
+        scopedIt("renders the dash for a null value that matches no option", () => {
+            const wrapper = mount(BooleanDisplay, { props: { value: null, options: options.slice(0, 2) } });
+            expect(wrapper.get('[data-qa="boolean-display-dash"]').text()).toBe("-");
+        });
+
+        scopedIt("renders the true label for a value that matches no option", () => {
+            const wrapper = mount(BooleanDisplay, {
+                props: { value: true, trueLabel: "Enabled", options: [{ label: "Off", value: false }] },
+            });
+            expect(wrapper.get('[data-qa="boolean-display-value"]').text()).toBe("Enabled");
+        });
+
+        scopedIt("renders the true label for an option without a label", () => {
+            const wrapper = mount(BooleanDisplay, { props: { value: true, options: [{ value: true }] } });
+            expect(wrapper.get('[data-qa="boolean-display-value"]').text()).toBe("Yes");
+        });
+    });
+
     describe("Layout", () => {
         scopedIt("wraps in a div by default", () => {
             const wrapper = mount(BooleanDisplay, { props: { value: true } });

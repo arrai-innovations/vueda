@@ -48,6 +48,20 @@ export function choiceValuesMatch(optionValue, fieldValue) {
 }
 
 /**
+ * Find the option that matches one stored value.
+ *
+ * The result is `undefined` when no option matches.
+ *
+ * @param {unknown} fieldValue - The stored value.
+ * @param {Array<{[key: string]: unknown}>} options - The label options.
+ * @param {string} [optionValue] - The option key that holds the value. It defaults to `value`.
+ * @returns {{[key: string]: unknown}|undefined} The matching option.
+ */
+export function findChoice(fieldValue, options, optionValue = "value") {
+    return options.find((option) => choiceValuesMatch(option?.[optionValue], fieldValue));
+}
+
+/**
  * Get the label of the option that matches one stored value.
  *
  * The result is the stored value itself when no option matches or when the matching option has no label.
@@ -58,8 +72,7 @@ export function choiceValuesMatch(optionValue, fieldValue) {
  * @returns {unknown} The label for the stored value.
  */
 export function choiceLabel(fieldValue, options, { optionLabel = "label", optionValue = "value" } = {}) {
-    const choice = options.find((option) => choiceValuesMatch(option?.[optionValue], fieldValue));
-    return choice?.[optionLabel] ?? fieldValue;
+    return findChoice(fieldValue, options, optionValue)?.[optionLabel] ?? fieldValue;
 }
 
 /**

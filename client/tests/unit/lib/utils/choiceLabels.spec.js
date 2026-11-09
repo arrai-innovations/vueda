@@ -1,4 +1,10 @@
-import { choiceDisplay, choiceLabel, choiceValuesMatch, fieldChoiceOptions } from "@vueda/utils/choiceLabels.js";
+import {
+    choiceDisplay,
+    choiceLabel,
+    choiceValuesMatch,
+    fieldChoiceOptions,
+    findChoice,
+} from "@vueda/utils/choiceLabels.js";
 
 const choices = [
     { label: "Office", value: "office" },
@@ -49,6 +55,21 @@ describe("lib/utils/choiceLabels.js", () => {
 
         it("does not match different values", () => {
             expect(choiceValuesMatch("office", "field")).toBe(false);
+        });
+    });
+
+    describe("findChoice", () => {
+        it("returns the matching option", () => {
+            expect(findChoice("field", choices)).toBe(choices[1]);
+        });
+
+        it("returns undefined when no option matches", () => {
+            expect(findChoice("remote", choices)).toBeUndefined();
+        });
+
+        it("reads the value from the given option key", () => {
+            const option = { name: "Office", id: "office" };
+            expect(findChoice("office", [option], "id")).toBe(option);
         });
     });
 

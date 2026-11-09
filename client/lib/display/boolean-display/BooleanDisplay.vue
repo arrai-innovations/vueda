@@ -1,6 +1,7 @@
 <script setup>
 import "@vueda/theme/vueda-tailwind/display/BooleanDisplay.theme.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { findChoice } from "@vueda/utils/choiceLabels.js";
 import { computed } from "vue";
 
 /**
@@ -10,6 +11,10 @@ import { computed } from "vue";
  *
  * A serializer that sends `1`, `0`, `"true"`, or `"false"` still lands on a word; only
  * null, undefined, and the empty string read as "no value recorded" and take the dash.
+ *
+ * When an entry in `options` matches the value, its label is shown. This applies to a null
+ * value too, so a field that labels `None` shows that label in place of the dash. A value
+ * that matches no entry renders as described above.
  */
 defineOptions({
     inheritAttrs: false,
@@ -34,6 +39,14 @@ const props = defineProps({
         type: String,
         default: "No",
     },
+    /**
+     * Labels for stored values, as `{ label, value }` entries, such as a field's `displayChoices`.
+     * The label of the entry that matches the value is shown in place of `trueLabel`, `falseLabel`, or the dash.
+     */
+    options: {
+        type: Array,
+        default: () => [],
+    },
     /** Renders without a wrapping element, for use inside an existing text row. */
     inline: {
         type: Boolean,
@@ -48,18 +61,20 @@ const props = defineProps({
 
 const theme = useTheme("BooleanDisplay", props);
 
+const optionLabel = computed(() => findChoice(props.value, props.options)?.label);
+
 const isEmpty = computed(() => props.value === null || props.value === undefined || props.value === "");
 
 // "false" arrives as a string from a form value or a query parameter, where Boolean() would
 // read it as true.
 const asBoolean = computed(() => (props.value === "false" ? false : Boolean(props.value)));
 
-const label = computed(() => (asBoolean.value ? props.trueLabel : props.falseLabel));
+const label = computed(() => optionLabel.value ?? (asBoolean.value ? props.trueLabel : props.falseLabel));
 </script>
 
 <template>
     <component :is="inline ? 'span' : 'div'" v-bind="$attrs" :class="[theme('root'), props.class]">
-        <span v-if="isEmpty" :class="theme('dash')" data-qa="boolean-display-dash">-</span>
+        <span v-if="isEmpty && optionLabel == null" :class="theme('dash')" data-qa="boolean-display-dash">-</span>
         <span v-else :class="theme('value')" data-qa="boolean-display-value">{{ label }}</span>
     </component>
 </template>
