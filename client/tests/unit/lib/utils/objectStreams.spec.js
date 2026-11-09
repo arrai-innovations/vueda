@@ -341,6 +341,71 @@ describe("lib/utils/objectStreams.js", () => {
         });
     });
 
+    describe("List subscription", () => {
+        const target = { app: "store", model: "customer_order" };
+
+        function subscribeList(filters, onChange = vi.fn()) {
+            objectStreams.setupObjectStreams({ WebSocketImpl: FakeWebSocket, log });
+            const subscription = objectStreams.subscribeToListChanges({ target, filters, onChange });
+            latestSocket().acceptHandshake();
+            return { subscription, onChange, socket: latestSocket() };
+        }
+
+        it("subscribes to the list's filters", () => {
+            const { socket } = subscribeList({ status: "open", tags: ["a", "b"] });
+
+            expect(socket.sent).toEqual([
+                {
+                    op: "subscribe",
+                    kind: "filter",
+                    model: "store.customer_order",
+                    filter: { status: "open", tags: ["a", "b"] },
+                    subscription_id: "s1",
+                },
+            ]);
+        });
+
+        it("subscribes to the whole model when the list has no filters", () => {
+            const { socket } = subscribeList({});
+
+            expect(socket.sent).toEqual([
+                { op: "subscribe", kind: "model", model: "store.customer_order", subscription_id: "s1" },
+            ]);
+        });
+
+        it("calls back after each change and resync, but not on the acknowledgement", () => {
+            const { onChange, socket } = subscribeList({});
+
+            socket.deliver({ type: "subscribed", subscription_id: "s1" });
+            socket.deliver({ type: "event", subscription_id: "s1", list_action: "added" });
+            socket.deliver({ type: "resync_required", subscription_id: "s1" });
+
+            expect(onChange).toHaveBeenCalledTimes(2);
+        });
+
+        it("resolves at once and unsubscribes on cancel", async () => {
+            const { subscription, socket } = subscribeList({});
+            let resolved = false;
+            subscription.then(() => {
+                resolved = true;
+            });
+            await Promise.resolve();
+            expect(resolved).toBe(true);
+
+            await subscription.cancel();
+
+            expect(socket.sent.at(-1)).toEqual({ op: "unsubscribe", subscription_id: "s1" });
+        });
+
+        it("subscribes to nothing before setup", async () => {
+            const subscription = objectStreams.subscribeToListChanges({ target, filters: {}, onChange: vi.fn() });
+
+            await subscription.cancel();
+
+            expect(FakeWebSocket.instances).toHaveLength(0);
+        });
+    });
+
     describe("Workflow history", () => {
         const target = { app: "store", model: "customer_order" };
         let key;

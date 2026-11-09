@@ -288,6 +288,48 @@ export function objectStreamSubscribe({ target, pk, params, callback, isCancelle
 }
 
 /**
+ * Subscribe to the rows of one list, and call `onChange` after each change to a row it shows or may show.
+ *
+ * The subscription carries the list's filters, so the server reports a row that joins, leaves, or
+ * changes within them. With no filters, it covers every row of the model that the user can read.
+ * The callback receives no rows: the caller fetches the list again, because only the server can place
+ * a row by the list's ordering and page. A list's search term is not a filter here, so a searched
+ * list hears about every row that its other filters match.
+ *
+ * The returned promise resolves at once and never rejects, for the same reason as
+ * `objectStreamSubscribe`.
+ *
+ * @param {object} args - The list to watch.
+ * @param {{ app: string, model: string }} args.target - The app label and model name, as in the REST route.
+ * @param {{ [key: string]: string|string[] }} args.filters - The list's filters, encoded by `subscriptionFilters`.
+ * @param {() => void} args.onChange - Called after each change message.
+ * @returns {Promise<void> & { cancel: () => Promise<void> }} A resolved promise that carries the cancel method.
+ */
+export function subscribeToListChanges({ target, filters, onChange }) {
+    const hasFilters = Object.keys(filters).length > 0;
+    const unsubscribe = connection
+        ? connection.subscribe(
+              {
+                  op: "subscribe",
+                  kind: hasFilters ? "filter" : "model",
+                  model: `${target.app}.${target.model}`,
+                  ...(hasFilters ? { filter: filters } : {}),
+              },
+              (message) => {
+                  if (message.type === "event" || message.type === "resync_required") {
+                      onChange();
+                  }
+              },
+          )
+        : () => {};
+    return Object.assign(Promise.resolve(), {
+        cancel: async () => {
+            unsubscribe();
+        },
+    });
+}
+
+/**
  * Whether `setupObjectStreams()` has run. Views subscribe only when it has.
  *
  * @returns {boolean} True after `setupObjectStreams()`.

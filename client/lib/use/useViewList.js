@@ -142,7 +142,12 @@ import {
     SEARCH_PARAM,
 } from "@vueda/utils/constants.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
-import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import {
+    allPagePaginatedListCrudAdaptor,
+    singlePagePaginatedListCrudAdaptor,
+    subscriptionFilters,
+} from "@vueda/utils/listCrud.js";
+import { objectStreamsEnabled, subscribeToListChanges } from "@vueda/utils/objectStreams.js";
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -851,6 +856,7 @@ export function useViewList(options) {
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
         params: toRef(listState, "params"),
         intendToList: validAndActive,
+        intendToSubscribe: computed(() => validAndActive.value && objectStreamsEnabled()),
         relatedObjectsRules: toRef(options, "relatedObjectsRules"),
         calculatedObjectsRules: toRef(options, "calculatedObjectsRules"),
     });
@@ -862,12 +868,63 @@ export function useViewList(options) {
         handlers: {
             list: (args) => {
                 const listArgs = { ...args, repeatedParams: repeatedFilterParams.value };
-                return computedShowAllPages.value
-                    ? allPagePaginatedListCrudAdaptor(listArgs)
-                    : singlePagePaginatedListCrudAdaptor(listArgs);
+                const adaptor = computedShowAllPages.value
+                    ? allPagePaginatedListCrudAdaptor
+                    : singlePagePaginatedListCrudAdaptor;
+                if (!args.refresh) {
+                    return adaptor(listArgs);
+                }
+                // A refresh keeps the rows on screen until the whole new set has arrived.
+                const rows = [];
+                const request = adaptor({
+                    ...listArgs,
+                    clearObjects: () => {
+                        rows.length = 0;
+                    },
+                    pushObjects: (objects) => {
+                        rows.push(...objects);
+                    },
+                });
+                const replaced = request.then(() => {
+                    if (!args.isCancelled?.value) {
+                        args.clearObjects({ keepPagination: true, keepColumnTotals: true });
+                        args.pushObjects(rows);
+                    }
+                });
+                return Object.assign(replaced, { cancel: request.cancel?.bind(request) });
             },
+            // Live updates, after setupObjectStreams(). An event carries no rows, and only the server can
+            // place a row by the list's ordering and page, so each change refreshes the current page.
+            subscribe: ({ target, params }) =>
+                subscribeToListChanges({
+                    target,
+                    filters: subscriptionFilters(omit(params, alwaysParamsKeys), repeatedFilterParams.value),
+                    onChange: refreshList,
+                }),
         },
     });
+
+    // A change that arrives while the list loads waits for that load, which may predate the change.
+    let refreshPending = false;
+    function refreshList() {
+        if (!validAndActive.value) {
+            return;
+        }
+        if (instanceList.state.loading) {
+            refreshPending = true;
+            return;
+        }
+        refreshPending = false;
+        instanceList.list({ refresh: true });
+    }
+    watch(
+        () => instanceList.state.loading,
+        (loading) => {
+            if (loading === false && refreshPending) {
+                refreshList();
+            }
+        },
+    );
 
     watch(computedShowAllPages, (newVal, oldVal) => {
         if (newVal !== oldVal && validAndActive.value) {

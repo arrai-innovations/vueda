@@ -59,6 +59,30 @@ export const makeSearchParamsString = (searchParams, repeatedParams = []) => {
 };
 
 /**
+ * Encode a list's filter params for an object stream subscription, the way the list request encodes them.
+ *
+ * The server hands the values to the list's FilterSet, so each value takes the form that the list
+ * request's query string gives it. An array is one comma-separated string, and a key listed in
+ * `repeatedParams` stays an array of strings. Page, search, and column totals are not filters and
+ * are left out.
+ *
+ * @param {object} params - The list params, without ordering, fields, expand, or page size.
+ * @param {string[]} [repeatedParams] - Keys whose array elements the list request sends as repeated keys.
+ * @returns {{ [key: string]: string|string[] }} The filters for the subscribe message.
+ */
+export const subscriptionFilters = (params, repeatedParams = []) => {
+    const query = new URLSearchParams(
+        makeSearchParamsString(omit(deepUnref(params) || {}, NON_FILTER_PARAMS), repeatedParams),
+    );
+    /** @type {{ [key: string]: string|string[] }} */
+    const filters = {};
+    for (const key of new Set(query.keys())) {
+        filters[key] = repeatedParams.includes(key) ? query.getAll(key) : query.get(key);
+    }
+    return filters;
+};
+
+/**
  * The VUEDA specific implementation for reactive-helper's list crud function, for a specific page.
  * Supports fetching from a standard list or a custom detail action.
  *

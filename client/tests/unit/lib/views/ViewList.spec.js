@@ -1,6 +1,14 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { enableAutoUnmount, mount } from "@vue/test-utils";
-import { COLUMN_TOTALS_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import {
+    COLUMN_TOTALS_PARAM,
+    EXPAND_PARAM,
+    FIELDS_PARAM,
+    ORDERING_PARAM,
+    PAGE_PARAM,
+    PAGE_SIZE_PARAM,
+    SEARCH_PARAM,
+} from "@vueda/utils/constants.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -52,6 +60,17 @@ const mockedSinglePageAdaptor = vi.fn();
 vi.mock("@vueda/utils/listCrud.js", async () => {
     const actual = await vi.importActual("@vueda/utils/listCrud.js");
     return { ...actual, singlePagePaginatedListCrudAdaptor: mockedSinglePageAdaptor };
+});
+
+const mockedStreamsEnabled = vi.fn(() => false);
+const mockedSubscribeToListChanges = vi.fn(() => Object.assign(Promise.resolve(), { cancel: vi.fn() }));
+vi.mock("@vueda/utils/objectStreams.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/objectStreams.js");
+    return {
+        ...actual,
+        objectStreamsEnabled: mockedStreamsEnabled,
+        subscribeToListChanges: mockedSubscribeToListChanges,
+    };
 });
 
 vi.mock("@vueda/router/getCrud.js", () => ({
@@ -398,6 +417,7 @@ beforeEach(async () => {
     });
     mockedUseModelConfig.mockReturnValue(modelConfig);
     mockedUseIsActive.mockReturnValue(ref(true));
+    mockedStreamsEnabled.mockReturnValue(false);
     mockedUseWorkflowTransitions.mockReturnValue(
         vue.readonly(
             vue.reactive({
@@ -2388,6 +2408,125 @@ describe("lib/views/ViewList.vue", () => {
             mockedUseList.mock.calls.at(-1)[0].handlers.list(listArgs);
 
             expect(mockedSinglePageAdaptor).toHaveBeenCalledWith({ ...listArgs, repeatedParams: ["tags"] });
+            wrapper.unmount();
+        });
+    });
+
+    describe("Live updates", () => {
+        async function mountList() {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "tags"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                tags: { typeFilter: "MultipleChoiceField", label: "Tags" },
+            };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            const { props, handlers } = mockedUseList.mock.calls.at(-1)[0];
+            return { wrapper, props, handlers };
+        }
+
+        /** Subscribes through the list's handler and returns the change callback it registered. */
+        function subscribe(handlers) {
+            handlers.subscribe({ target: { app: "app", model: "model" }, params: {} });
+            return mockedSubscribeToListChanges.mock.calls.at(-1)[0].onChange;
+        }
+
+        scopedIt("does not subscribe before live updates are set up", async () => {
+            const { wrapper, props } = await mountList();
+
+            expect(props.intendToSubscribe).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("subscribes once live updates are set up", async () => {
+            mockedStreamsEnabled.mockReturnValue(true);
+            const { wrapper, props } = await mountList();
+
+            expect(props.intendToSubscribe).toBe(true);
+            wrapper.unmount();
+        });
+
+        scopedIt("subscribes with the list's filters only, encoded as the list request sends them", async () => {
+            const { wrapper, handlers } = await mountList();
+
+            handlers.subscribe({
+                target: { app: "app", model: "model" },
+                params: {
+                    [ORDERING_PARAM]: "name",
+                    [FIELDS_PARAM]: ["id", "name"],
+                    [EXPAND_PARAM]: ["owner"],
+                    [PAGE_PARAM]: 2,
+                    [PAGE_SIZE_PARAM]: 25,
+                    [SEARCH_PARAM]: "widget",
+                    category: "a",
+                    tags: ["a", "b"],
+                },
+            });
+
+            expect(mockedSubscribeToListChanges).toHaveBeenCalledWith({
+                target: { app: "app", model: "model" },
+                filters: { category: "a", tags: ["a", "b"] },
+                onChange: expect.any(Function),
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("refreshes the current page after a change", async () => {
+            const { wrapper, handlers } = await mountList();
+            const onChange = subscribe(handlers);
+            instanceList.list.mockClear();
+
+            onChange();
+
+            expect(instanceList.list).toHaveBeenCalledExactlyOnceWith({ refresh: true });
+            wrapper.unmount();
+        });
+
+        scopedIt("waits for a load in progress, then refreshes once", async () => {
+            const { wrapper, handlers } = await mountList();
+            const onChange = subscribe(handlers);
+            instanceList.list.mockClear();
+            instanceList.state.loading = true;
+            await vue.nextTick();
+
+            onChange();
+            onChange();
+            expect(instanceList.list).not.toHaveBeenCalled();
+
+            instanceList.state.loading = false;
+            await vue.nextTick();
+
+            expect(instanceList.list).toHaveBeenCalledExactlyOnceWith({ refresh: true });
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps the rows on screen until a refresh has the new set", async () => {
+            const { wrapper, handlers } = await mountList();
+            let finish;
+            mockedSinglePageAdaptor.mockImplementationOnce((args) => {
+                args.clearObjects();
+                args.pushObjects([{ id: 2 }]);
+                return new Promise((resolve) => (finish = resolve));
+            });
+            const clearObjects = vi.fn();
+            const pushObjects = vi.fn();
+
+            const request = handlers.list({
+                refresh: true,
+                params: {},
+                clearObjects,
+                pushObjects,
+                isCancelled: ref(false),
+            });
+            expect(clearObjects).not.toHaveBeenCalled();
+            expect(pushObjects).not.toHaveBeenCalled();
+
+            finish();
+            await request;
+
+            expect(clearObjects).toHaveBeenCalledWith({ keepPagination: true, keepColumnTotals: true });
+            expect(pushObjects).toHaveBeenCalledWith([{ id: 2 }]);
             wrapper.unmount();
         });
     });

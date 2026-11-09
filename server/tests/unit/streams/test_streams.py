@@ -202,6 +202,29 @@ class TestCapture(BaseTestGroupMixin, BaseTestUserMixin):
         assert {event.subject.pk for event in events} == {str(order.pk)}
         assert events[0].list_action == "added"
 
+    def test_a_filter_subscription_hears_about_rows_that_join_its_filter(self, registry, customer, order_state):
+        # The client encodes filters as its list request's query string does, and the viewset's
+        # FilterSet decides membership.
+        order = self.create_order(customer, order_state)
+        assign_outbox_cursors()
+        cursor = latest_outbox_cursor()
+        session = self.subscribe(
+            self.users["reader@domain.invalid"], registry, kind="filter", filter={"shipping_method": "express"}
+        )
+        assert session.transport.errors == []
+
+        self.create_order(customer, order_state, "1002")
+        self.publish(session, cursor)
+        assert session.transport.events == []
+
+        cursor = latest_outbox_cursor()
+        store_models.CustomerOrder.objects.filter(pk=order.pk).update(shipping_method="express")
+        self.publish(session, cursor)
+
+        [event] = session.transport.events
+        assert event.subject.pk == str(order.pk)
+        assert event.list_action == "added"
+
     def test_a_subscriber_without_read_permission_receives_nothing(self, registry, customer, order_state):
         assign_outbox_cursors()
         cursor = latest_outbox_cursor()
