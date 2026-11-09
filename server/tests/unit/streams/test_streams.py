@@ -33,6 +33,7 @@ from tests.store import viewsets as store_viewsets
 from vueda.streams.apps import TRIGGER_NAME
 from vueda.streams.apps import _validate_streams_section
 from vueda.streams.consumers import VuedaObjectStreamConsumer
+from vueda.streams.consumers import canonical_model_label
 from vueda.streams.registry import default_facets_for
 from vueda.streams.registry import register_viewset
 from vueda.streams.routing import allowed_websocket_origins
@@ -340,6 +341,34 @@ class TestConsumer(BaseTestUserMixin):
 
     def test_a_signed_in_user_is_accepted(self):
         assert self.connect(self.users["socket@domain.invalid"]) is True
+
+    def test_a_route_style_model_name_subscribes_to_the_model(self):
+        registry = ObjectStreamRegistry()
+        register_viewset(store_viewsets.CustomerOrderViewSet, registry=registry)
+        communicator = WebsocketCommunicator(VuedaObjectStreamConsumer.as_asgi(registry=registry), "/ws/streams/")
+        communicator.scope["user"] = self.users["socket@domain.invalid"]
+
+        async def run():
+            await communicator.connect()
+            await communicator.send_json_to({"op": "subscribe", "kind": "model", "model": "store.customer_order"})
+            reply = await communicator.receive_json_from()
+            await communicator.disconnect()
+            return reply
+
+        reply = async_to_sync(run)()
+
+        assert reply["type"] == "subscribed"
+        assert reply["model"] == "store.CustomerOrder"
+
+
+class TestCanonicalModelLabel:
+    @pytest.mark.parametrize("name", ["store.customer_order", "store.customerorder", "store.CustomerOrder"])
+    def test_a_route_style_name_becomes_the_model_label(self, name):
+        assert canonical_model_label(name) == "store.CustomerOrder"
+
+    @pytest.mark.parametrize("value", ["store.no_such_model", "no_such_app.thing", "store", 3, None])
+    def test_a_value_that_names_no_model_is_unchanged(self, value):
+        assert canonical_model_label(value) == value
 
 
 @override_settings(ALLOWED_HOSTS=["api.example.com"], CORS_ALLOWED_ORIGINS=["https://app.example.com"])
