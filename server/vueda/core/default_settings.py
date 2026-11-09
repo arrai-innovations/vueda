@@ -520,9 +520,11 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False, use_streams: bool =
     # proxy model and trigger migration must exist exactly when both streams and workflow are installed.
     if use_streams and "vueda.streams" not in return_dict["VUEDA_APPS"]:
         return_dict["VUEDA_APPS"] = [*return_dict["VUEDA_APPS"], "vueda.streams"]
+    # Each app joins its list once, so a project that already lists one does not install it twice.
     if "vueda.streams" in return_dict["VUEDA_APPS"]:
-        return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "object_streams"]
-        if "vueda.workflow" in return_dict["VUEDA_APPS"]:
+        if "object_streams" not in return_dict["THIRD_PARTY_APPS"]:
+            return_dict["THIRD_PARTY_APPS"] = [*return_dict["THIRD_PARTY_APPS"], "object_streams"]
+        if "vueda.workflow" in return_dict["VUEDA_APPS"] and "vueda.workflow.streams" not in return_dict["VUEDA_APPS"]:
             return_dict["VUEDA_APPS"] = [*return_dict["VUEDA_APPS"], "vueda.workflow.streams"]
     # Names the acting user and request behind every event a request produces. Position is part of
     # the contract: it reads request.user, so it must follow AuthenticationMiddleware, and

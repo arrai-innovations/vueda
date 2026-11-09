@@ -236,3 +236,16 @@ def test_use_streams_does_not_duplicate_a_listed_streams_app():
     defaults = get_defaults(_env(VUEDA_APPS=STREAMS_BASE_APPS), use_streams=True)
 
     assert defaults["VUEDA_APPS"].count("vueda.streams") == 1
+
+
+def test_streams_does_not_duplicate_listed_stream_apps():
+    defaults = get_defaults(
+        _env(
+            VUEDA_APPS=f"{STREAMS_BASE_APPS},vueda.workflow,vueda.workflow.streams",
+            THIRD_PARTY_APPS="rest_framework,object_streams",
+        )
+    )
+
+    assert defaults["THIRD_PARTY_APPS"].count("object_streams") == 1
+    assert defaults["VUEDA_APPS"].count("vueda.workflow.streams") == 1
+    assert len(defaults["INSTALLED_APPS"]) == len(set(defaults["INSTALLED_APPS"]))
