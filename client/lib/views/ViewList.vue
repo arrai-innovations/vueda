@@ -56,13 +56,22 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field names to fetch; uses the `displayFields` keys, then the model config default, when empty. */
-    listFields: {
+    /** Field names to fetch. When empty, the list fetches the `displayFields` names. When those are empty too, it fetches the model config's `fetchFields`. */
+    fetchFields: {
         type: Array,
         default: () => [],
     },
-    /** Map of field names to display configuration overrides (label, component, etc.). */
+    /** Field names to show as columns, in order. When empty, the model config's `displayFields` apply. */
     displayFields: {
+        type: Array,
+        default: () => [],
+    },
+    /**
+     * Per-field overrides by field name, such as `{ status: { label: "State" } }`. Each field's details
+     * are its model config `fieldDetails` entry with this entry laid on top, so a key set here replaces
+     * the model config's value for that key. The columns and the sort controls both use these details.
+     */
+    fieldDetails: {
         type: Object,
         default: () => ({}),
     },
@@ -363,7 +372,7 @@ onMounted(() => {
                     />
                     <sort-control
                         v-if="sort.canShowSorter"
-                        :field-details="modelConfig.config?.fieldDetails || {}"
+                        :field-details="sort.fieldDetails"
                         :sortables="sort.sortablesList"
                         :sorted="sort.sorting.state.sorted"
                         @update:sorted="sort.sorting.updateSorted"
@@ -454,7 +463,7 @@ onMounted(() => {
                         hosted
                         :sorted="sort.sorting.state.sorted"
                         :default-sorted="sort.defaultSorted"
-                        :field-details="modelConfig.config?.fieldDetails || {}"
+                        :field-details="sort.fieldDetails"
                         @update:sorted="sort.sorting.updateSorted"
                     >
                         <template v-for="(_, slot) in slots" #[slot]="slotProps">

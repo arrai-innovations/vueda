@@ -36,7 +36,7 @@ You need a working CRUD surface ([Create a CRUD Surface](./create-crud-surface))
 
 3. Keep the linked field in the list request. The list fetches the columns that it displays unless you set [`fetchFields`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.fetchFields}. If you set `fetchFields`, include the linked field.
 
-4. Check that the model's serializer includes {@term Available Actions}. {@api py:class:vueda.core.serializers.VuedaSerializer} declares the `available_actions` field. When `detailLinkField` is set, the list adds `available_actions` and the primary key to its requested fields. It does this even when the [`listFields`]{@api vue:component:ViewList:prop:listFields} prop replaces the fetch list. Neither field becomes a visible column.
+4. Check that the model's serializer includes {@term Available Actions}. {@api py:class:vueda.core.serializers.VuedaSerializer} declares the `available_actions` field. When `detailLinkField` is set, the list adds `available_actions` and the primary key to its requested fields. It does this even when the [`fetchFields`]{@api vue:component:ViewList:prop:fetchFields} prop replaces the fetch list. Neither field becomes a visible column.
 
 {@api vue:component:ViewList} then reads each row's `available_actions` to pick the link's destination:
 
@@ -108,7 +108,7 @@ const detailView = (obj) => {
 
 To render this component as the model's list view, return it from a `list` loader passed to {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}. [View Component Resolution Order](../core-concepts/routing-and-view-resolution-model#view-component-resolution-order) describes the loader.
 
-Without `detailLinkField`, the list does not request `available_actions`. Add it to `fetchFields`, or to the `listFields` prop when you pass one, and leave it out of `displayFields`. Do not put another link or control inside the `LinkModelView`.
+Without `detailLinkField`, the list does not request `available_actions`. Add it to the model config's `fetchFields`, or to the `ViewList` `fetchFields` prop when you pass one. Leave it out of `displayFields`. Do not put another link or control inside the `LinkModelView`.
 
 ## Verify the Result
 

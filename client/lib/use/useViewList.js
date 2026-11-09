@@ -166,8 +166,9 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<string> | string} model - Django model name.
  *
  * Field configuration.
- * @property {import('vue').Ref<string[]> | string[]} [listFields] - Field names to fetch; uses the `displayFields` keys, then the model config default, when empty.
- * @property {import('vue').Ref<{[key: string]: object}> | {[key: string]: object}} [displayFields] - Display field overrides; uses the model config default when empty.
+ * @property {import('vue').Ref<string[]> | string[]} [fetchFields] - Field names to fetch. When empty, the list fetches the `displayFields` names. When those are empty too, it fetches the model config's `fetchFields`.
+ * @property {import('vue').Ref<string[]> | string[]} [displayFields] - Field names to show as columns, in order. When empty, the model config's `displayFields` apply.
+ * @property {import('vue').Ref<{[name: string]: object}> | {[name: string]: object}} [fieldDetails] - Per-field overrides by field name. Each field's details are its model config `fieldDetails` entry with this entry laid on top. The columns and the sort controls both use these details.
  * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the display field list (e.g. the `selected_` checkbox column).
  * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence non-slot override.
  * @property {import('vue').Ref<{[name:string]: object}> | {[name:string]: object}} [columnProps] - Per-field prop overrides forwarded to the resolved column adapter.
@@ -248,6 +249,7 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListSortGroup
  * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater. `state.sorted` is the sort in effect, for display: it holds `defaultSorted` while the reader has not chosen a sort. What the list request sends as its ordering param is the chosen sort alone, so an untouched default is shown without being sent.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
+ * @property {{[name: string]: object}} fieldDetails - Details for each field by name (auto-unwrapped). Each entry is the field's model config `fieldDetails` entry with the `fieldDetails` option entry laid on top. The columns use the same entries, so pass these to `SortControl` and `SortGroup` to label each field the way its column does.
  * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList` (auto-unwrapped). Shown whenever the URL carries no sort: on first load a stored preference wins over it, and after that it is what the read-out falls back to. It is a report of what the server does on its own, so it is never sent back as an ordering param, and it stays out of the URL as well. Sending it would replace the ordering the server applies, which is not always the same order: a ranked search sorts by relevance while the param is absent, and a default declared as an expression (`Lower("name")`) sorts by that expression rather than by the bare column reported here. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
  * @property {boolean} isTable - True when the grid is in table mode. Derived from the `tableBreakpoint` option until an `ObjectsGrid` reports its own layout; assigning it (via `@update:is-table`) makes that report the answer from then on.
  * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
@@ -411,12 +413,14 @@ export function useViewList(options) {
     const pkKey = computed(() => modelConfig.info?.pk ?? "id");
     const calculatedListFields = computed(() => {
         let fields = [];
-        if (options.listFields?.length) {
-            fields = [...options.listFields];
-        } else if (Object.keys(options.displayFields || {}).length) {
+        const fetchFields = unref(options.fetchFields);
+        const displayFields = unref(options.displayFields);
+        if (fetchFields?.length) {
+            fields = [...fetchFields];
+        } else if (displayFields?.length) {
             // Columns passed in directly: the config's list fetch follows the config's own columns,
             // so it can omit one of these.
-            fields = Object.keys(options.displayFields);
+            fields = [...displayFields];
         } else if (modelConfig.config.fetchFields?.length) {
             fields = [...modelConfig.config.fetchFields];
         }
@@ -429,17 +433,22 @@ export function useViewList(options) {
         }
         return fields;
     });
-    const calculatedDisplayFields = computed(() => {
-        if (Object.keys(options.displayFields || {}).length) {
-            return Object.values(options.displayFields);
-        } else {
-            return (
-                modelConfig.config.displayFields?.map((f) => ({
-                    name: f,
-                    ...modelConfig.config.fieldDetails[f],
-                })) || []
-            );
+    // Each field's details are its model config entry with the `fieldDetails` option entry laid on
+    // top, as a form builds each field from the config's and its own `fieldDetails`. The columns and
+    // the sort controls both read these, so a field has one label across the list.
+    const fieldDetails = computed(() => {
+        const configDetails = modelConfig.config.fieldDetails || {};
+        const optionDetails = unref(options.fieldDetails) || {};
+        const merged = { ...configDetails };
+        for (const [name, details] of Object.entries(optionDetails)) {
+            merged[name] = { ...configDetails[name], ...details };
         }
+        return merged;
+    });
+    const calculatedDisplayFields = computed(() => {
+        const displayFields = unref(options.displayFields);
+        const names = displayFields?.length ? displayFields : modelConfig.config.displayFields || [];
+        return names.map((name) => ({ name, ...fieldDetails.value[name] }));
     });
 
     // Seed rows-per-page: a stored preference (when not deep-linked) wins, else the configured
@@ -1491,6 +1500,7 @@ export function useViewList(options) {
             sorting,
             sortablesList,
             defaultSorted,
+            fieldDetails,
             isTable,
             mobileSortDrawerVisible,
             canShowSorter,

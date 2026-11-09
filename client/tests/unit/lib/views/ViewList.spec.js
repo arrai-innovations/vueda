@@ -2403,19 +2403,171 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("fetches the columns a displayFields prop names when listFields is empty", async () => {
+        scopedIt("fetches the columns a displayFields prop names when the fetchFields prop is empty", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.fetchFields = ["name"];
             const wrapper = mount(ViewList, {
                 props: {
                     app: "app",
                     model: "model",
-                    displayFields: { name: { name: "name" }, created_at: { name: "created_at" } },
+                    displayFields: ["name", "created_at"],
                 },
             });
             await vue.nextTick();
 
             expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "created_at"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("fetches the fetchFields prop in place of the displayFields prop and the config", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.fetchFields = ["name"];
+            const wrapper = mount(ViewList, {
+                props: {
+                    app: "app",
+                    model: "model",
+                    displayFields: ["name", "created_at"],
+                    fetchFields: ["name", "notes"],
+                },
+            });
+            await vue.nextTick();
+
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "notes"]);
+            wrapper.unmount();
+        });
+    });
+
+    describe("displayFields, fieldDetails, and fetchFields props", () => {
+        const siteChoices = [
+            { label: "Office", value: "office" },
+            { label: "Field", value: "field" },
+        ];
+
+        const useModelInfo = () => {
+            modelConfig.config.displayFields = ["name"];
+            modelConfig.config.fieldDetails = {
+                name: { typeSerializer: "CharField", typeModel: "CharField", label: "Name" },
+                site: { typeSerializer: "ChoiceField", typeModel: "CharField", label: "Site", choices: siteChoices },
+                active: { typeSerializer: "BooleanField", typeModel: "BooleanField", label: "Active" },
+                created_at: { typeSerializer: "DateTimeField", typeModel: "DateTimeField", label: "Created at" },
+                customer: {
+                    typeSerializer: "PrimaryKeyRelatedField",
+                    typeModel: "ForeignKey",
+                    label: "Customer",
+                    appLabel: "sales",
+                    model: "customer",
+                },
+            };
+        };
+
+        const mountList = async (props = {}) => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model", ...props } });
+            await vue.nextTick();
+            return wrapper;
+        };
+
+        const gridField = (name) => objectsGridProps.fields.find((field) => field.name === name);
+
+        scopedIt("shows the prop's columns in its order, with each field's model info", async () => {
+            useModelInfo();
+            const wrapper = await mountList({ displayFields: ["site", "customer"] });
+
+            expect(objectsGridProps.fields.map((field) => field.name)).toEqual(["selected_", "site", "customer"]);
+            expect(gridField("site")).toEqual({ name: "site", ...modelConfig.config.fieldDetails.site });
+            expect(gridField("customer").appLabel).toBe("sales");
+            wrapper.unmount();
+        });
+
+        scopedIt("uses the model config's displayFields when the prop is empty", async () => {
+            useModelInfo();
+            const wrapper = await mountList({ displayFields: [] });
+
+            expect(objectsGridProps.fields.map((field) => field.name)).toEqual(["selected_", "name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("lays a fieldDetails prop entry over the model info of a prop column", async () => {
+            useModelInfo();
+            const wrapper = await mountList({
+                displayFields: ["site"],
+                fieldDetails: { site: { label: "Location", choices: [{ label: "Remote", value: "remote" }] } },
+            });
+
+            expect(gridField("site")).toEqual({
+                name: "site",
+                typeSerializer: "ChoiceField",
+                typeModel: "CharField",
+                label: "Location",
+                choices: [{ label: "Remote", value: "remote" }],
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("lays a fieldDetails prop entry over the model info of a model config column", async () => {
+            useModelInfo();
+            const wrapper = await mountList({ fieldDetails: { name: { label: "Full name" } } });
+
+            expect(gridField("name").label).toBe("Full name");
+            expect(gridField("name").typeSerializer).toBe("CharField");
+            wrapper.unmount();
+        });
+
+        scopedIt("gives both sort controls the fieldDetails prop entries laid over the model info", async () => {
+            useModelInfo();
+            modelConfig.config.sortables = ["site", "name", "created_at"];
+            const { default: SortGroup } = await import("@vueda/display/sort/SortGroup.vue");
+            const wrapper = await mountList({
+                displayFields: ["site"],
+                fieldDetails: { site: { label: "Location" }, created_at: { label: "Opened" } },
+            });
+
+            const expected = {
+                ...modelConfig.config.fieldDetails,
+                site: { ...modelConfig.config.fieldDetails.site, label: "Location" },
+                created_at: { ...modelConfig.config.fieldDetails.created_at, label: "Opened" },
+            };
+            expect(wrapper.findComponent(SortControlStub).props("fieldDetails")).toEqual(expected);
+            expect(wrapper.findComponent(SortGroup).props("fieldDetails")).toEqual(expected);
+            expect(gridField("site").label).toBe("Location");
+            wrapper.unmount();
+        });
+
+        scopedIt("builds a column with no model info from its fieldDetails prop entry", async () => {
+            useModelInfo();
+            const wrapper = await mountList({
+                displayFields: ["total"],
+                fieldDetails: { total: { label: "Total" } },
+            });
+
+            expect(gridField("total")).toEqual({ name: "total", label: "Total" });
+            wrapper.unmount();
+        });
+
+        scopedIt.each([
+            ["a boolean", "active", "ColumnBoolean"],
+            ["a date", "created_at", "ColumnDateTime"],
+            ["a foreign key", "customer", "ColumnModelLink"],
+        ])("resolves %s prop column to its type adapter", async (_label, name, adapter) => {
+            useModelInfo();
+            const { availableColumns } = await import("@vueda/utils/columnLookups.js");
+            const wrapper = await mountList({ displayFields: [name] });
+
+            const cell = wrapper.find(`[data-column="${name}"]`);
+            expect(cell.findComponent(availableColumns[adapter]).exists()).toBe(true);
+            expect(cell.findComponent(availableColumns.ColumnText).exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("updates prop columns when model info arrives after mount", async () => {
+            modelConfig.config.fieldDetails = {};
+            const wrapper = await mountList({ displayFields: ["site"] });
+            expect(gridField("site")).toEqual({ name: "site" });
+
+            useModelInfo();
+            await vue.nextTick();
+
+            expect(gridField("site").choices).toEqual(siteChoices);
             wrapper.unmount();
         });
     });

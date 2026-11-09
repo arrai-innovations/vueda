@@ -67,7 +67,7 @@ Each call replaces what it names. A model-wide object replaces the stored model-
 
 Each view uses the three field lists this way:
 
-- {@api vue:component:ViewList} requests `fetchFields` and renders a column for each `displayFields` entry. It always adds the pk to the request. When you name only `displayFields`, the list's `fetchFields` follow them.
+- {@api vue:component:ViewList} requests `fetchFields` and renders a column for each `displayFields` entry. It always adds the pk to the request. When you name only `displayFields`, the list's `fetchFields` follow them. The list's [`displayFields`]{@api vue:component:ViewList:prop:displayFields} prop replaces the column list for one list, and its [`fetchFields`]{@api vue:component:ViewList:prop:fetchFields} prop replaces the fetch list. Its [`fieldDetails`]{@api vue:component:ViewList:prop:fieldDetails} prop overrides keys of each field's `fieldDetails` entry for that list. The columns and the sort controls both use these details.
 - {@api vue:component:ViewRead} and {@api vue:component:ViewUpdate} retrieve `fetchFields` and `expand` through {@api js:function:@arrai-innovations/vueda/use/useDetailView#useDetailView}. They also request the object's {@term Available Actions}, and its `formatted_name` for the record name heading when the model info lists that field. A `formatted_name` requested only for the heading stays out of the form's values.
 - {@api vue:component:ViewCreate} and `ViewUpdate` render `displayFields`, and create derives its initial values from them. The form's [`fields`]{@api vue:component:FormModel:prop:fields} prop replaces the list. `ViewUpdate` takes `fields` as its own prop, and `ViewCreate` passes it through [`formProps`]{@api vue:component:ViewCreate:prop:formProps}.
 
