@@ -31,6 +31,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
 from tests.store import viewsets as store_viewsets
 from vueda.streams import receivers
+from vueda.streams import visibility
 from vueda.streams.apps import TRIGGER_NAME
 from vueda.streams.apps import _validate_streams_section
 from vueda.streams.consumers import SESSION_LOGOUT_MESSAGE_TYPE
@@ -452,3 +453,110 @@ class TestCloseSessionSockets:
         from django.contrib.auth.signals import user_logged_out
 
         assert any(entry[1]() is receivers.close_session_sockets for entry in user_logged_out.receivers)
+
+
+class OwnOrdersViewSet(store_viewsets.CustomerOrderViewSet):
+    """Scopes orders to the requesting user's own, the way a project scopes rows in ``get_queryset()``."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(customer__user=self.request.user)
+
+
+@pytest.mark.django_db
+class TestVisibilityChecks(BaseTestGroupMixin, BaseTestUserMixin):
+    """Subscriptions see the rows that the REST API would let the subscriber read."""
+
+    groups_to_create: ClassVar[dict] = {"Readers": []}
+    users_to_create: ClassVar[dict] = {
+        "reader@domain.invalid": {"name": "Reader", "password": "password", "groups": ["Readers"]},
+        "other-reader@domain.invalid": {"name": "Other Reader", "password": "password", "groups": ["Readers"]},
+        "no-perms@domain.invalid": {"name": "No Perms", "password": "password", "groups": []},
+    }
+
+    @property
+    def groups(self):
+        if hasattr(self, "_groups"):
+            return self._groups
+
+        group, _ = Group.objects.get_or_create(name="Readers")
+        group.permissions.set(
+            Permission.objects.filter(
+                codename__in=["read_customerorder", "list_customerorder", "read_distributor", "list_distributor"]
+            )
+        )
+        self._groups = [group]
+        return self._groups
+
+    @pytest.fixture
+    def distributor(self):
+        return store_models.Distributor.objects.create(name="Acme", description="")
+
+    def order_for(self, user, number):
+        customer = store_models.Customer.objects.create(user=user)
+        order_state, _ = store_models.OrderState.objects.get_or_create(code="order_state_new", name="New")
+        return store_models.CustomerOrder.objects.create(
+            order_number=Decimal(number), customer=customer, order_state=order_state, shipping_method="free"
+        )
+
+    def test_a_model_without_a_workflow_needs_the_read_permission(self, distributor):
+        policy = VuedaVisibilityPolicy()
+
+        reader_rows = policy.get_queryset(self.users["reader@domain.invalid"], store_models.Distributor)
+        assert reader_rows.filter(pk=distributor.pk).exists()
+        assert not policy.get_queryset(self.users["no-perms@domain.invalid"], store_models.Distributor).exists()
+
+    def test_an_object_subscription_without_the_read_permission_looks_like_a_missing_object(self, distributor):
+        registry = ObjectStreamRegistry()
+        register_viewset(store_viewsets.DistributorViewSet, registry=registry)
+        session = SubscriptionSession(
+            user=self.users["no-perms@domain.invalid"], transport=RecordingTransport(), registry=registry
+        )
+
+        session.subscribe({"op": "subscribe", "kind": "object", "model": "store.Distributor", "pk": distributor.pk})
+
+        assert session.transport.subscribed == []
+        assert [error["code"] for error in session.transport.errors] == ["not_found"]
+
+    def test_a_state_grant_defers_to_the_workflow_rules(self, monkeypatch):
+        order = self.order_for(self.users["reader@domain.invalid"], "1001")
+        filtered = []
+        monkeypatch.setattr(visibility, "has_matching_state_grant", lambda model, user, permissions: True)
+        monkeypatch.setattr(
+            visibility,
+            "filter_rows_for_user",
+            lambda queryset, user, perm_type: filtered.append(perm_type) or queryset,
+        )
+
+        rows = VuedaVisibilityPolicy().get_queryset(self.users["no-perms@domain.invalid"], store_models.CustomerOrder)
+
+        assert list(rows) == [order]
+        assert filtered == ["read"]
+
+    def test_subscriptions_start_from_the_viewsets_get_queryset(self):
+        reader = self.users["reader@domain.invalid"]
+        own = self.order_for(reader, "1001")
+        self.order_for(self.users["other-reader@domain.invalid"], "1002")
+        registry = ObjectStreamRegistry()
+        register_viewset(OwnOrdersViewSet, registry=registry)
+
+        rows = registry.get(store_models.CustomerOrder).visibility.get_queryset(reader, store_models.CustomerOrder)
+
+        assert list(rows) == [own]
+
+    def test_an_explicit_queryset_replaces_get_queryset(self):
+        reader = self.users["reader@domain.invalid"]
+        own = self.order_for(reader, "1001")
+        other = self.order_for(self.users["other-reader@domain.invalid"], "1002")
+        registry = ObjectStreamRegistry()
+        register_viewset(OwnOrdersViewSet, queryset=store_models.CustomerOrder.objects.all(), registry=registry)
+
+        rows = registry.get(store_models.CustomerOrder).visibility.get_queryset(reader, store_models.CustomerOrder)
+
+        assert sorted(row.pk for row in rows) == sorted([own.pk, other.pk])
+
+    def test_a_viewset_without_a_queryset_attribute_needs_one_passed(self):
+        class NoQuerysetViewSet(store_viewsets.CustomerOrderViewSet):
+            queryset = None
+
+        with pytest.raises(ValueError, match="Pass queryset="):
+            register_viewset(NoQuerysetViewSet, registry=ObjectStreamRegistry())

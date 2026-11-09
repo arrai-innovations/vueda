@@ -35,23 +35,37 @@ def register_model(model, *, filterset=None, visibility=None, facets=None, regis
     )
 
 
-def register_viewset(viewset, *, registry=None):
+def register_viewset(viewset, *, queryset=None, registry=None):
     """
-    Register the model a viewset serves, reusing the viewset's own FilterSet.
+    Register the model a viewset serves, reusing the viewset's FilterSet and its ``get_queryset()``.
 
     The same FilterSet that validates a list request validates a subscription, so a client cannot
-    subscribe to a query it could not have asked for over REST. Call this from your
-    ``AppConfig.ready()``, beside the model's ``vueda.info.registration.register`` call.
+    subscribe to a query it could not have asked for over REST. A subscription starts from the rows
+    that the viewset's ``get_queryset()`` returns for the subscriber, so scoping that the viewset
+    applies there also applies to subscriptions. ``get_queryset()`` runs with a GET request for the
+    subscriber, no query parameters, no URL keyword arguments, and no action.
 
-    Registration does not capture changes. Enable capture with ``class Vueda.Streams`` on the model.
+    Pass ``queryset`` when ``get_queryset()`` cannot run that way, or to start from other rows. It
+    replaces ``get_queryset()``, so it must repeat any scoping that ``get_queryset()`` applies.
+
+    ``registry`` defaults to the library's default registry. The call raises ``ValueError`` when
+    neither ``queryset`` nor the viewset's ``queryset`` attribute names the model.
+
+    Call this from your ``AppConfig.ready()``, beside the model's ``vueda.info.registration.register``
+    call. Registration does not capture changes. Enable capture with ``class Vueda.Streams`` on the
+    model.
     """
-    queryset = getattr(viewset, "queryset", None)
-    if queryset is None:
-        msg = f"{viewset.__name__} has no queryset to register for object streams."
+    model_queryset = queryset if queryset is not None else getattr(viewset, "queryset", None)
+    if model_queryset is None:
+        msg = f"{viewset.__name__} has no queryset attribute. Pass queryset= to register it for object streams."
         raise ValueError(msg)
+    if queryset is not None:
+        visibility = VuedaVisibilityPolicy(queryset=queryset)
+    else:
+        visibility = VuedaVisibilityPolicy(viewset=viewset)
     return register_model(
-        queryset.model,
+        model_queryset.model,
         filterset=getattr(viewset, "filterset_class", None),
-        visibility=VuedaVisibilityPolicy(queryset=queryset),
+        visibility=visibility,
         registry=registry,
     )
