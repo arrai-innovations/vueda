@@ -37,6 +37,7 @@ from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
+from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_field_decorator
 from vueda.core.open_api import route_path
@@ -54,6 +55,7 @@ from vueda.core.permissions import check_action_permission
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
@@ -336,9 +338,14 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         else:
             field_type = child_field.__class__.__name__
 
-        # We couldn't figure out what the ReadOnlyField type was, so assume it is a CharField.
-        # This is the case for 'formatted_name', which doesn't exist on the serializer and doesn't have a model field.
-        if field_type == "ReadOnlyField":
+        # A ReadOnlyField carries no type of its own, so assume it is a CharField. A
+        # FormattedNameField, or a subclass of it, serves a string under any field name.
+        if field_type == "ReadOnlyField" or isinstance(child_field or model_field, FormattedNameField):
+            field_type = "CharField"
+
+        # formatted_name is always a string, whatever field class serves it: the built
+        # FormattedNameField, or a serializer's own declaration such as a SerializerMethodField.
+        if field_name == FORMATTED_NAME:
             field_type = "CharField"
 
         return field_type

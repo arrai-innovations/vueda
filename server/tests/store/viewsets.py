@@ -536,8 +536,8 @@ class CustomerOrderAnnotatedCustomerViewSet(VuedaViewSet):
 
 class CustomerWithAnnotatedCartsViewSet(VuedaViewSet):
     """Serves CustomerWithAnnotatedCartsSerializer. The `cart_set` Prefetch queryset comes from
-    Cart's manager, which joins `customer__user`, and `cart_set.customer` prefetches `customer` on
-    that same queryset."""
+    Cart's manager, which joins `customer__user`. Django points each cart back at the customer that
+    `cart_set` loaded it for, so `cart_set.customer` renders the Customer rows of the list query."""
 
     queryset = my_models.Customer.objects.all()
     serializer_class = my_serializers.CustomerWithAnnotatedCartsSerializer
