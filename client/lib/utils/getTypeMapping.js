@@ -44,9 +44,27 @@ const getSerializerEntry = (serializerMapping, typeModel) => {
 };
 
 /**
+ * Pick one serializer type for a field across several mapping tables.
+ *
+ * Use this when one field reads more than one table, such as a choice table that overrides the base table. The lookup tries each name from `getSerializerTypes` in turn. It stops at the first name that has an entry for the field's `typeModel` in any of `mappings`. A subclass mapped in any table therefore keeps priority over every ancestor, in every table.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Field info containing the typeSerializer/typeModel.
+ * @param {Array<{[key:string]: {[typeModel:string]: unknown}}>} mappings - The tables that the field reads.
+ * @returns {import('@vueda/stores/storeModelInfo.js').FieldInfo} A copy of `field` whose `typeSerializer` is the chosen name and whose `typeSerializerAncestors` is empty, so later lookups read only that name. The result is `field` itself when no name has an entry.
+ */
+export const resolveSerializerType = (field, mappings) => {
+    for (const typeSerializer of getSerializerTypes(field)) {
+        if (mappings.some((mapping) => getSerializerEntry(mapping[typeSerializer], field.typeModel))) {
+            return { ...field, typeSerializer, typeSerializerAncestors: [] };
+        }
+    }
+    return field;
+};
+
+/**
  * Resolve the mapping for a field's serializer type, falling back to the serializer's default entry when `typeModel` is unknown.
  *
- * The lookup tries each name from `getSerializerTypes` in turn and returns the first entry that it finds. A name that has entries, but none for the field's `typeModel`, does not stop the search. The next ancestor is tried instead.
+ * The lookup tries each name from `getSerializerTypes` in turn and returns the first entry that it finds. A name that has entries, but none for the field's `typeModel`, does not stop the search. The next ancestor is tried instead. When a field reads several tables, call `resolveSerializerType` first, so that every table uses the same name.
  *
  * @template T
  * @param {{[key:string]: {[typeModel:string]: T}}} mapping - The mapping object keyed by typeSerializer and typeModel.

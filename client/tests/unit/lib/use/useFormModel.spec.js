@@ -545,17 +545,46 @@ describe("lib/use/useFormModel.js", () => {
             expect(subclass.fieldProps.groups).toEqual(stock.fieldProps.groups);
         });
 
-        scopedIt("uses a widget mapped for the subclass's own name over the ancestor's", async () => {
+        scopedIt("uses a base entry mapped for the subclass's own name over the ancestor's choice entry", async () => {
             const { availableWidgets } = await import("@vueda/utils/formLookups.js");
-            const { choiceFieldMappings } = await import("@vueda/utils/fieldMappings.js");
-            choiceFieldMappings.RolesField = { ManyToManyField: { manyWidget: availableWidgets.WidgetTagsInput } };
+            const { mergeDefaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const mappings = mergeDefaultFieldMappings({
+                RolesField: {
+                    ManyToManyField: {
+                        // A name, because the merge deep-copies a component object.
+                        widget: "WidgetTagsInput",
+                        widgetProps: { placeholder: "Roles" },
+                        default: true,
+                    },
+                },
+            });
             try {
                 const state = await buildRelationForm(
                     relationDetail("RolesField", { typeSerializerAncestors: ["ManyRelatedField"] }),
                 );
                 expect(state.widgetComponents.groups).toBe(availableWidgets.WidgetTagsInput);
+                expect(state.widgetProps.groups).toMatchObject({ placeholder: "Roles" });
+                // The stock ManyRelatedField choice entry adds `multiple: true`, which must not mix in.
+                expect(state.widgetProps.groups).not.toHaveProperty("multiple");
             } finally {
-                delete choiceFieldMappings.RolesField;
+                delete mappings.RolesField;
+            }
+        });
+
+        scopedIt("uses the ancestor's entries when the subclass's entries do not cover its typeModel", async () => {
+            const { mergeDefaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const mappings = mergeDefaultFieldMappings({
+                RolesField: { ForeignKey: { widget: "WidgetTagsInput" } },
+            });
+            try {
+                const stock = await buildRelationForm(relationDetail("ManyRelatedField"));
+                const subclass = await buildRelationForm(
+                    relationDetail("RolesField", { typeSerializerAncestors: ["ManyRelatedField"] }),
+                );
+                expect(subclass.widgetComponents.groups).toBe(stock.widgetComponents.groups);
+                expect(subclass.widgetProps.groups).toEqual(stock.widgetProps.groups);
+            } finally {
+                delete mappings.RolesField;
             }
         });
 

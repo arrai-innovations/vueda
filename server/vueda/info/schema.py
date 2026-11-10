@@ -102,7 +102,8 @@ class ModelInfoFieldSerializer(serializers.Serializer):
         help_text=(
             "The serializer field classes that the `type_serializer` class inherits from, nearest first. "
             "The list stops before Django REST framework's `Field`. It is empty when `type_serializer` "
-            "is not the field's own class name. VUEDA sends it for every field that it builds. A field entry "
+            "is not the field's own class name, and for a nested serializer. VUEDA sends it for every field "
+            "that it builds. A field entry "
             "that a `get_field_model_info` or `get_expand_model_info` override writes may leave it out."
         ),
     )

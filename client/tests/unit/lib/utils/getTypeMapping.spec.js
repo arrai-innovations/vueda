@@ -1,4 +1,9 @@
-import { getSerializerTypes, getTypeMapping, isSerializerType } from "@vueda/utils/getTypeMapping.js";
+import {
+    getSerializerTypes,
+    getTypeMapping,
+    isSerializerType,
+    resolveSerializerType,
+} from "@vueda/utils/getTypeMapping.js";
 
 describe("lib/utils/getTypeMapping.js", () => {
     const mapping = {
@@ -63,6 +68,38 @@ describe("lib/utils/getTypeMapping.js", () => {
 
         it("returns undefined for an unmapped type without ancestry", () => {
             expect(getTypeMapping(mapping, { typeSerializer: "RolesField", typeModel: "ForeignKey" })).toBeUndefined();
+        });
+    });
+
+    describe("resolveSerializerType", () => {
+        const base = { RolesField: { ManyToManyField: { widget: "project-roles" } } };
+        const choice = { ManyRelatedField: { ManyToManyField: { manyWidget: "stock-combobox" } } };
+        const roles = {
+            typeSerializer: "RolesField",
+            typeSerializerAncestors: ["ManyRelatedField"],
+            typeModel: "ManyToManyField",
+        };
+
+        it("keeps a subclass mapped in any table, even when another table maps only the ancestor", () => {
+            const resolved = resolveSerializerType(roles, [base, choice]);
+            expect(resolved.typeSerializer).toBe("RolesField");
+            expect(resolved.typeSerializerAncestors).toEqual([]);
+            expect(getTypeMapping(choice, resolved)).toBeUndefined();
+        });
+
+        it("moves to the ancestor when no table maps the subclass for its typeModel", () => {
+            const otherTypeModel = { RolesField: { ForeignKey: { widget: "project-roles" } } };
+            expect(resolveSerializerType(roles, [otherTypeModel, choice]).typeSerializer).toBe("ManyRelatedField");
+            expect(resolveSerializerType(roles, [choice]).typeSerializer).toBe("ManyRelatedField");
+        });
+
+        it("returns the field unchanged when no name has an entry", () => {
+            const field = {
+                typeSerializer: "ShoutField",
+                typeSerializerAncestors: ["CharField"],
+                typeModel: "TextField",
+            };
+            expect(resolveSerializerType(field, [base, choice])).toBe(field);
         });
     });
 

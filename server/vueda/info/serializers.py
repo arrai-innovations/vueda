@@ -396,6 +396,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         The list is empty when ``field_type`` is not the class name of the field, such as a ``ReadOnlyField``
         that is reported as a ``CharField``. The reported type then already names the mapping to use.
 
+        The list is also empty for a nested serializer, including the ``ListSerializer`` that ``many=True``
+        builds. The client renders a nested serializer as an inline and never looks it up in the type mappings.
+
         Args:
             field_name: The field's name on the serializer.
             model_field: The serializer field.
@@ -404,6 +407,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         """
         type_field = ModelInfoSerializer._get_serializer_type_field(model_field, many)
         if type_field is None or field_type != type_field.__class__.__name__:
+            return []
+        if isinstance(type_field, serializers.BaseSerializer):
             return []
         return [
             klass.__name__

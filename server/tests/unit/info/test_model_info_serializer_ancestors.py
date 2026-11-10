@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from tests.store.models import Distributor
 from tests.store.models import SpecialCare
+from tests.store.serializers import DistributorSerializer
 from tests.store.serializers import ProductSerializer
 from vueda.info.serializers import ModelInfoSerializer
 
@@ -39,9 +40,11 @@ class AncestorsSerializer(ProductSerializer):
     distributors = PickDistributorField(source="distributor", many=True, read_only=True)
     shouts = serializers.ListField(child=ShoutField(), required=False, source="internal_comments")
     plain = serializers.ReadOnlyField(source="name")
+    nested = DistributorSerializer(source="distributor", read_only=True)
+    nested_many = DistributorSerializer(source="special_care", many=True, read_only=True)
 
     class Meta(ProductSerializer.Meta):
-        fields = [*ProductSerializer.Meta.fields, "distributors", "shouts", "plain"]
+        fields = [*ProductSerializer.Meta.fields, "distributors", "shouts", "plain", "nested", "nested_many"]
 
 
 @pytest.fixture
@@ -60,6 +63,8 @@ def fields():
         pytest.param("shouts", "ShoutField", ["CharField"], id="list-field-reports-child-ancestry"),
         pytest.param("plain", "CharField", [], id="reported-type-is-not-the-class"),
         pytest.param("description", "CharField", [], id="stock-field"),
+        pytest.param("nested", "DistributorSerializer", [], id="nested-serializer"),
+        pytest.param("nested_many", "VuedaListSerializer", [], id="nested-serializer-many"),
     ],
 )
 def test_reports_serializer_class_ancestry(fields, field_name, expected_type, expected_ancestors):
