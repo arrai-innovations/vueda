@@ -6,7 +6,7 @@ import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { buildForm } from "@vueda/utils/buildForm.js";
 import { choiceFieldMappings, defaultFieldMappings, manyFieldMappings } from "@vueda/utils/fieldMappings.js";
 import { availableFields, availableWidgets } from "@vueda/utils/formLookups.js";
-import { getTypeMapping } from "@vueda/utils/getTypeMapping.js";
+import { getTypeMapping, isSerializerType } from "@vueda/utils/getTypeMapping.js";
 import { isReverseForeignKey } from "@vueda/utils/reverseForeignKey.js";
 import { FormModelSymbol } from "@vueda/utils/symbols.js";
 import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue";
@@ -57,13 +57,13 @@ const getWidgetProps = (field) => {
         return { ...defaultMapping.readOnlyWidgetProps };
     }
     let baseProps;
-    if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
+    if (field.typeModel === "GeneratedField" && isSerializerType(field, "ModelField")) {
         baseProps = defaultMapping?.[field.typeDb]?.widgetProps;
     }
     if (field.choices) {
-        baseProps = field.many ? choiceFieldMappings[field.typeSerializer]?.[field.typeModel]?.manyWidgetProps : {};
+        baseProps = field.many ? getTypeMapping(choiceFieldMappings, field)?.manyWidgetProps : {};
     } else if (field.many) {
-        baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.widgetProps;
+        baseProps = getTypeMapping(manyFieldMappings, field)?.widgetProps;
     }
     return { ...defaultMapping?.widgetProps, ...(baseProps ?? {}) };
 };
@@ -77,11 +77,11 @@ const getWidgetProps = (field) => {
 const getFieldProps = (field) => {
     const defaultMapping = getTypeMapping(defaultFieldMappings, field);
     let baseProps;
-    if (field.typeModel === "GeneratedField" && field.typeSerializer === "ModelField") {
+    if (field.typeModel === "GeneratedField" && isSerializerType(field, "ModelField")) {
         baseProps = defaultMapping?.[field.typeDb]?.fieldProps;
     }
     if (field.many && !field.choices) {
-        baseProps = manyFieldMappings[field.typeSerializer]?.[field.typeModel]?.fieldProps;
+        baseProps = getTypeMapping(manyFieldMappings, field)?.fieldProps;
     }
     return { ...defaultMapping?.fieldProps, ...(baseProps ?? {}) };
 };

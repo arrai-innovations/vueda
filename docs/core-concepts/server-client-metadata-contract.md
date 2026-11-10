@@ -29,6 +29,7 @@ Each section has its own source:
 
 - `label`, `help_text`, and `hidden`.
 - `type_db`, `type_model`, and `type_serializer`: the database type, model field class, and serializer field class.
+- `type_serializer_ancestors`: the serializer field classes that the `type_serializer` class inherits from, nearest first. The client falls back to these names when no type mapping names `type_serializer`.
 - `read_only`, `required`, and `many` (whether the field holds several values).
 - Constraints when they apply: `min_value`, `max_value`, `min_length`, `max_length`, `max_digits`, `decimal_places`.
 - `choices`: `false` for no choices, an inline list of `{label, value}` pairs for [static choices]{@term Choice-Backed Field}, or `true` for an editable relation.

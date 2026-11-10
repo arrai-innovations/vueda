@@ -22,6 +22,19 @@ describe("lib/utils/resolveColumnComponents.js", () => {
     });
 
     describe("resolveColumnComponent precedence", () => {
+        scopedIt("resolves a serializer field subclass through its ancestor's column", () => {
+            const stock = { name: "a", typeSerializer: "PrimaryKeyRelatedField", typeModel: "ForeignKey" };
+            const subclass = {
+                name: "a",
+                typeSerializer: "PickDistributorField",
+                typeSerializerAncestors: ["PrimaryKeyRelatedField", "RelatedField"],
+                typeModel: "ForeignKey",
+            };
+            expect(resolveColumnComponent(subclass)).toBe(resolveColumnComponent(stock));
+            expect(resolveColumnComponent(subclass)).not.toBe(availableColumns.ColumnText);
+            expect(resolveColumnProps(subclass)).toEqual(resolveColumnProps(stock));
+        });
+
         scopedIt("falls back to ColumnText when nothing matches", () => {
             const component = resolveColumnComponent({ name: "a", typeSerializer: "CharField" });
             expect(component).toBe(availableColumns.ColumnText);
