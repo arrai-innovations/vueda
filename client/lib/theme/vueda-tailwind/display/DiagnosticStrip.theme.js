@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * DiagnosticStrip renders compact key-value diagnostics in a bordered two-column grid. The component may add mono treatment to values while the theme key owns the shared strip structure.
+     * DiagnosticStrip renders compact key-value diagnostics in a bordered two-column grid. The component may add mono
+     * treatment to values while the theme key owns the shared strip structure.
      */
     DiagnosticStrip: {
         /** Compact diagnostic definition-list grid for request, route, or session values. */

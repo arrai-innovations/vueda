@@ -13,11 +13,18 @@ patchTheme({
      * when the requested action cannot be resolved.
      */
     ViewActionNotFound: {
-        /** Centering wrapper around the embedded {@api theme-key:SystemMessageCard}. See {@api theme-key:ViewNotFound.root}; the two views share the recipe so missing-route and missing-action surfaces read as siblings. */
+        /**
+         * Centering wrapper around the embedded {@api theme-key:SystemMessageCard}. See
+         * {@api theme-key:ViewNotFound.root}; the two views share the recipe so missing-route and missing-action
+         * surfaces read as siblings.
+         */
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        /** Explanatory paragraph rendered beneath the crest when the `blurb` slot is not overridden. 13 px / muted-foreground; matches {@api theme-key:ViewNotFound.blurb}. */
+        /**
+         * Explanatory paragraph rendered beneath the crest when the `blurb` slot is not overridden. 13 px /
+         * muted-foreground; matches {@api theme-key:ViewNotFound.blurb}.
+         */
         blurb: {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },

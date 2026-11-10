@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemHeader: {
         /**
-         * The low-emphasis metadata row above item content. It mirrors {@api theme-key:ItemFooter.root} for compact mono metadata before the title.
+         * The low-emphasis metadata row above item content. It mirrors {@api theme-key:ItemFooter.root} for compact
+         * mono metadata before the title.
          */
         root: {
             class: [

@@ -14,13 +14,15 @@ patchTheme({
      */
     TableEmpty: {
         /**
-         * The spanning empty-state cell. It keeps the row aligned with regular {@api theme-key:TableCell.root} cells while allowing `colspan` and consumer classes to define the empty row's table footprint.
+         * The spanning empty-state cell. It keeps the row aligned with regular {@api theme-key:TableCell.root} cells
+         * while allowing `colspan` and consumer classes to define the empty row's table footprint.
          */
         root: {
             class: "p-4 whitespace-nowrap align-middle text-body text-foreground",
         },
         /**
-         * The centered content stack inside the empty cell. Consumer icon nodes marked `data-slot="icon"` pick up muted, loading, or error treatment from `data-variant`.
+         * The centered content stack inside the empty cell. Consumer icon nodes marked `data-slot="icon"` pick up
+         * muted, loading, or error treatment from `data-variant`.
          */
         content: {
             class: [

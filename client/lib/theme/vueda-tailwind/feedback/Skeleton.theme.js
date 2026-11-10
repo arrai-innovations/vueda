@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * Skeleton renders a neutral loading placeholder. It uses a pulsing muted primary tint for inline and block loading states.
+     * Skeleton renders a neutral loading placeholder. It uses a pulsing muted primary tint for inline and block loading
+     * states.
      */
     Skeleton: {
         /**
-         * The loading placeholder block. The primary tint stays neutral enough for rows, cards, and inline placeholders.
+         * The loading placeholder block. The primary tint stays neutral enough for rows, cards, and inline
+         * placeholders.
          */
         root: {
             class: "animate-pulse rounded-md bg-primary/10",

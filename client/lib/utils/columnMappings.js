@@ -1,6 +1,8 @@
 /**
  * @module utils/columnMappings
- * @description Default mappings from DRF serializer field types to list column adapter components. Mirrors `fieldMappings.js` (which maps types to form widgets). Resolved via the shared `getTypeMapping` helper, keyed `typeSerializer -> typeModel`.
+ * @description Default mappings from DRF serializer field types to list column adapter components. Mirrors
+ *  `fieldMappings.js` (which maps types to form widgets). Resolved via the shared `getTypeMapping` helper, keyed
+ *  `typeSerializer -> typeModel`.
  *
  * Boolean types resolve to `ColumnBoolean`; date/time/datetime types resolve to
  * `ColumnDateTime`; duration types resolve to `ColumnDuration`; `JSON` resolves to
@@ -15,9 +17,11 @@ import merge from "lodash-es/merge.js";
  * Describes how a DRF serializer field type maps to a list column adapter.
  *
  * @typedef {object} ColumnMappingEntry
- * @property {string} column - The adapter name, a key into `availableColumns`. A name with no entry makes the column report an error.
+ * @property {string} column - The adapter name, a key into `availableColumns`. A name with no entry makes the column
+ *  report an error.
  * @property {object} [columnProps] - Default props forwarded to the adapter for this type.
- * @property {boolean} [default] - Whether this is the default mapping for its serializer field type (used when `typeModel` is unknown).
+ * @property {boolean} [default] - Whether this is the default mapping for its serializer field type (used when
+ *  `typeModel` is unknown).
  */
 
 /** @type {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} */
@@ -121,7 +125,8 @@ export const columnMappings = {
  * Deep-merge custom column mappings into the defaults. Mirrors
  * `mergeDefaultFieldMappings`. Mutates and returns the shared `columnMappings`.
  *
- * @param {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} customMappings - Custom mappings to merge in.
+ * @param {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} customMappings - Custom mappings to
+ *  merge in.
  * @returns {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} The merged mappings.
  */
 export function mergeColumnMappings(customMappings) {

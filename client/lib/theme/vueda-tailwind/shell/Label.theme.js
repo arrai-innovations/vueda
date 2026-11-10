@@ -13,7 +13,8 @@ patchTheme({
      */
     Label: {
         /**
-         * The accessible label text for controls and grouped inputs. It handles disabled states from both group and peer contexts while preserving compact inline alignment.
+         * The accessible label text for controls and grouped inputs. It handles disabled states from both group and
+         * peer contexts while preserving compact inline alignment.
          */
         root: {
             class: [

@@ -1,6 +1,7 @@
 /**
  * @module use/useFieldDependencyValuesRegistry
- * @description Maintains a registry of reactive dependency-path values for form fields, enabling fields to observe other form values they depend on.
+ * @description Maintains a registry of reactive dependency-path values for form fields, enabling fields to observe
+ *  other form values they depend on.
  */
 import { keyDiff } from "@arrai-innovations/reactive-helpers";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -16,7 +17,8 @@ import { computed, effectScope, reactive, readonly, unref, watch } from "vue";
 
 /**
  * @typedef {object} FieldDependencyValuesRegistry
- * @property {(fieldRef: FieldRef, dependencyPathsRef: DependencyPathsRef) => string} register - Register a field with its dependency paths.
+ * @property {(fieldRef: FieldRef, dependencyPathsRef: DependencyPathsRef) => string} register - Register a field with
+ *  its dependency paths.
  * @property {(registryId: string) => boolean} unregister - Unregister a field.
  * @property {import('vue').Reactive<{ [dependencyPath: string]: any }>} dependencyValues - Current dependency values.
  * @property {() => void} stop - Cleanup all reactive effects.

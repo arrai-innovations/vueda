@@ -13,7 +13,8 @@ patchTheme({
      */
     DialogHeader: {
         /**
-         * The title and description stack at the top of a dialog. It centers copy on narrow screens and switches to left alignment at the small breakpoint.
+         * The title and description stack at the top of a dialog. It centers copy on narrow screens and switches to
+         * left alignment at the small breakpoint.
          */
         root: {
             class: "flex flex-col gap-2 text-center sm:text-left",

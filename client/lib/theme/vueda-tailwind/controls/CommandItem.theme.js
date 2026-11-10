@@ -13,7 +13,13 @@ patchTheme({
      * ComboboxItem.
      */
     CommandItem: {
-        /** A single result row inside a {@api theme-key:CommandGroup.root}. See also: {@api theme-key:ComboboxItem.root}; identical highlight + disabled + icon-tint recipe so result rows feel the same across both pickers. Command differs only at the row's trailing edge, where {@api theme-key:CommandShortcut.root} (rather than {@api theme-key:ComboboxItemIndicator.root}) marks the kbd hint for invoking the action. */
+        /**
+         * A single result row inside a {@api theme-key:CommandGroup.root}. See also:
+         * {@api theme-key:ComboboxItem.root}; identical highlight + disabled + icon-tint recipe so result rows feel the
+         * same across both pickers. Command differs only at the row's trailing edge, where
+         * {@api theme-key:CommandShortcut.root} (rather than {@api theme-key:ComboboxItemIndicator.root}) marks the kbd
+         * hint for invoking the action.
+         */
         root: {
             class: [
                 // Highlight and active states.

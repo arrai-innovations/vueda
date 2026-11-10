@@ -13,7 +13,8 @@ patchTheme({
      */
     CardDescription: {
         /**
-         * The secondary card header copy. It uses muted body text for explanatory text below {@api theme-key:CardTitle.root}.
+         * The secondary card header copy. It uses muted body text for explanatory text below
+         * {@api theme-key:CardTitle.root}.
          */
         root: {
             class: "text-muted-foreground text-body",

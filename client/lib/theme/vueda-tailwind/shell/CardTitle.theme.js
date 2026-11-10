@@ -13,7 +13,8 @@ patchTheme({
      */
     CardTitle: {
         /**
-         * The primary title text inside a card header. It uses compact semibold type so card headings stay subordinate to page titles.
+         * The primary title text inside a card header. It uses compact semibold type so card headings stay subordinate
+         * to page titles.
          */
         root: {
             class: "leading-none font-semibold",

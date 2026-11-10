@@ -17,7 +17,15 @@ patchTheme({
      * two sides should converge is unsettled.
      */
     CalendarNavButton: {
-        /** The prev / next month button anchored to a {@api theme-key:CalendarHeader.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root} for the neutral chip recipe, then overrides to a square 28×28 transparent chip with `opacity-50` at rest and full opacity on hover so the chrome stays out of the way until the user reaches for it. One theme key serves both directional SFCs (CalendarPrevButton, CalendarNextButton); the {@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root} pair on the range side stays split. Whether the two sides should converge on one shape is unsettled. */
+        /**
+         * The prev / next month button anchored to a {@api theme-key:CalendarHeader.root}. Composes
+         * {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root} for the neutral chip recipe, then
+         * overrides to a square 28×28 transparent chip with `opacity-50` at rest and full opacity on hover so the
+         * chrome stays out of the way until the user reaches for it. One theme key serves both directional SFCs
+         * (CalendarPrevButton, CalendarNextButton); the {@api theme-key:RangeCalendarPrevButton.root} /
+         * {@api theme-key:RangeCalendarNextButton.root} pair on the range side stays split. Whether the two sides
+         * should converge on one shape is unsettled.
+         */
         root: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],

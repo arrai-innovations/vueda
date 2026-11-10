@@ -48,7 +48,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field paths sent in the update request body, which also carries the primary key. Falls back to the model config's submitFields when omitted or empty. */
+    /**
+     * Field paths sent in the update request body, which also carries the primary key. Falls back to the model config's
+     * submitFields when omitted or empty.
+     */
     submitFields: {
         type: Array,
         default: undefined,
@@ -76,7 +79,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** Field names to request from the API when fetching the object and in the update response; falls back to the model config's fetchFields when omitted or empty. */
+    /**
+     * Field names to request from the API when fetching the object and in the update response; falls back to the model
+     * config's fetchFields when omitted or empty.
+     */
     fetchFields: {
         type: Array,
         default: undefined,

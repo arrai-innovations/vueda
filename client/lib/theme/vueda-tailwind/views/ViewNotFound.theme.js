@@ -13,11 +13,18 @@ patchTheme({
      * system message layout.
      */
     ViewNotFound: {
-        /** Centering wrapper around the embedded {@api theme-key:SystemMessageCard}. The card chassis is fixed-width, so a flex parent is required for it to sit in the middle of the viewport. Mirrors {@api theme-key:ViewLoading.root}. */
+        /**
+         * Centering wrapper around the embedded {@api theme-key:SystemMessageCard}. The card chassis is fixed-width, so
+         * a flex parent is required for it to sit in the middle of the viewport. Mirrors
+         * {@api theme-key:ViewLoading.root}.
+         */
         root: {
             class: ["flex min-h-full items-center justify-center p-8"],
         },
-        /** Explanatory paragraph rendered beneath the crest when the `blurb` slot is not overridden. 13 px / muted-foreground so it reads as supporting copy beside the card title. */
+        /**
+         * Explanatory paragraph rendered beneath the crest when the `blurb` slot is not overridden. 13 px /
+         * muted-foreground so it reads as supporting copy beside the card title.
+         */
         blurb: {
             class: ["text-[13px] leading-[1.5] text-muted-foreground"],
         },

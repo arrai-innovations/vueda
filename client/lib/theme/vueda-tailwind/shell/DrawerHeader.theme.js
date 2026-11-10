@@ -13,7 +13,8 @@ patchTheme({
      */
     DrawerHeader: {
         /**
-         * The title and description stack inside a drawer. It applies the drawer's default 16px inset and compact vertical gap.
+         * The title and description stack inside a drawer. It applies the drawer's default 16px inset and compact
+         * vertical gap.
          */
         root: {
             class: "flex flex-col gap-1.5 p-4",

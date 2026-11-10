@@ -50,7 +50,10 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
-    /** Field names to request from the API when fetching the object; falls back to the model config's fetchFields when omitted or empty. */
+    /**
+     * Field names to request from the API when fetching the object; falls back to the model config's fetchFields when
+     * omitted or empty.
+     */
     fetchFields: {
         type: Array,
         default: undefined,

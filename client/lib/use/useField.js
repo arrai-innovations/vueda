@@ -1,6 +1,7 @@
 /**
  * @module use/useField
- * @description Provides reactive field context including value tracking, validation, required-state, and server error handling for individual form fields.
+ * @description Provides reactive field context including value tracking, validation, required-state, and server error
+ *  handling for individual form fields.
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
@@ -38,11 +39,19 @@ export const FIELD_PROPS = {
     required: { type: Boolean, default: null },
     /** Error message shown when a required field is left empty. */
     requiredMessage: { type: String, default: "This field is required." },
-    /** Custom function called with resolved field dependency values; determines whether the field should be required. */
+    /**
+     * Custom function called with resolved field dependency values; determines whether the field should be required.
+     */
     shouldRequireFn: { type: Function, default: null },
-    /** Custom function called with the current field value; checks whether the value violates the required rule. Defaults to rejecting null, undefined, empty string, false, and 0. */
+    /**
+     * Custom function called with the current field value; checks whether the value violates the required rule.
+     * Defaults to rejecting null, undefined, empty string, false, and 0.
+     */
     isRequiredViolation: { type: Function, default: null },
-    /** Custom validation function called with the current field value and resolved field dependency values; should return true when valid or an error message string when invalid. */
+    /**
+     * Custom validation function called with the current field value and resolved field dependency values; should
+     * return true when valid or an error message string when invalid.
+     */
     validate: { type: Function, default: null },
 
     // *** Display ***
@@ -87,13 +96,17 @@ export function defaultIsRequiredViolation(value) {
  * @typedef {object} FieldContextRawState
  *
  * // *** Identification & Metadata ***
- * @property {Readonly<import('vue').Ref<string>>} fieldId - A stable, SSR-safe identifier for the field's primary control element.
- * @property {import('vue').ComputedRef<string>} name - The name of the field. This is the path to look up the value of the field in the form context.
+ * @property {Readonly<import('vue').Ref<string>>} fieldId - A stable, SSR-safe identifier for the field's primary
+ *  control element.
+ * @property {import('vue').ComputedRef<string>} name - The name of the field. This is the path to look up the value of
+ *  the field in the form context.
  * @property {import('vue').ComputedRef<string>} [formModelName] - The name of the form model for configuration lookup.
- * @property {import('vue').ComputedRef<string[]>} clearServerErrorDependents - The clearServerErrorDependents for the field.
+ * @property {import('vue').ComputedRef<string[]>} clearServerErrorDependents - The clearServerErrorDependents for the
+ *  field.
  * @property {import('vue').ComputedRef<string[]>} validationDependencies - The validationDependencies for the field.
  * @property {import('vue').ComputedRef<boolean>} readOnly - Whether the field is read-only.
- * @property {import('vue').ComputedRef<boolean>} disabled - Whether the field's widget reports itself disabled, through `reportWidgetDisabled`.
+ * @property {import('vue').ComputedRef<boolean>} disabled - Whether the field's widget reports itself disabled, through
+ *  `reportWidgetDisabled`.
  *
  * // *** Validation & Display ***
  * @property {import('vue').ComputedRef<string>} label - The label for the field.
@@ -103,15 +116,18 @@ export function defaultIsRequiredViolation(value) {
  *
  * // *** Value Handling ***
  * @property {import('vue').WritableComputedRef<any>} value - The current value of the field.
- * @property {import('vue').WritableComputedRef<any>} submittingValue -The current value of the field while accounting for ignored fields.
+ * @property {import('vue').WritableComputedRef<any>} submittingValue -The current value of the field while accounting
+ *  for ignored fields.
  * @property {import('vue').ComputedRef<any>} initialValue - The initial value of the field.
  * @property {import('vue').ComputedRef<boolean>} valueIsInitial - Whether the current value matches the initial value.
  * @property {import('vue').ComputedRef<boolean>} initialValueUnset - Whether the initial value is considered empty.
  * @property {import('vue').ComputedRef<boolean>} valueUnset - Whether the current value is considered empty.
  *
  * // *** Messages & Errors ***
- * @property {import('vue').ComputedRef<{[code: string]: string}>|{[code: string]: string}} messages - The messages for the field.
- * @property {import('vue').ComputedRef<{[code: string]: string}>|{[code: string]: string}} errors - The errors for the field.
+ * @property {import('vue').ComputedRef<{[code: string]: string}>|{[code: string]: string}} messages - The messages for
+ *  the field.
+ * @property {import('vue').ComputedRef<{[code: string]: string}>|{[code: string]: string}} errors - The errors for the
+ *  field.
  *
  * // *** Interaction & State Tracking ***
  * @property {import('vue').ComputedRef<boolean>} touched - Whether the field has been touched.
@@ -120,7 +136,8 @@ export function defaultIsRequiredViolation(value) {
  * @property {import('vue').ComputedRef<boolean>} focused - Whether the field is focused.
  *
  * // *** Dependency Management ***
- * @property {import('vue').ComputedRef<{[path: string]: any}>} [dependencyValues] - The resolved dependency values for the field.
+ * @property {import('vue').ComputedRef<{[path: string]: any}>} [dependencyValues] - The resolved dependency values for
+ *  the field.
  */
 
 /**
@@ -160,17 +177,22 @@ export function defaultIsRequiredViolation(value) {
  * @property {(name?:string) => void} removeIgnore - Removes the ignore status, making the field active again.
  *
  * // *** Hook Registration ***
- * @property {(hook: () => boolean) => string} registerIsModifiedHook - Registers a hook that determines if the field is modified.
+ * @property {(hook: () => boolean) => string} registerIsModifiedHook - Registers a hook that determines if the field is
+ *  modified.
  * @property {(id: string) => void} unregisterIsModifiedHook - Unregisters a previously registered modified-state hook.
- * @property {(hook: () => boolean) => string} registerIsRequiredHook - Registers a hook that determines if the field is required.
+ * @property {(hook: () => boolean) => string} registerIsRequiredHook - Registers a hook that determines if the field is
+ *  required.
  * @property {(id: string) => void} unregisterIsRequiredHook - Unregisters a previously registered required-state hook.
- * @property {(hook: () => boolean | string) => string} registerIsValidHook - Registers a hook that determines if the field is valid.
+ * @property {(hook: () => boolean | string) => string} registerIsValidHook - Registers a hook that determines if the
+ *  field is valid.
  * @property {(id: string) => void} unregisterIsValidHook - Unregisters a previously registered validation-state hook.
  *
  * // *** Dependency Management ***
- * @property {(hook: (dependencyValues: {[path: string]: any}) => void) => string} registerDependencyValues - Registers a field with its dependency paths.
+ * @property {(hook: (dependencyValues: {[path: string]: any}) => void) => string} registerDependencyValues - Registers
+ *  a field with its dependency paths.
  * @property {(id: string) => void} unregisterDependencyValues - Unregisters a field for dependency tracking.
- * @property {(disabled: boolean) => void} reportWidgetDisabled - Called by the field's widget with its disabled state, so the field shell can show it.
+ * @property {(disabled: boolean) => void} reportWidgetDisabled - Called by the field's widget with its disabled state,
+ *  so the field shell can show it.
  */
 
 /**
@@ -184,16 +206,17 @@ export function defaultIsRequiredViolation(value) {
  *
  * // *** Validation ***
  * @property {boolean} [required=null] - Whether the field is required.
- * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and empty.
- * @property {(validationDependencies: {[path: string]: [value: any]}|undefined) => boolean} [shouldRequireFn=null] - A custom function
- *  that determines whether the field should be marked as required based on its configuration or validationDependencies (i.e.
- *  "can be required"). When provided, this overrides the explicit `required` prop.
- * @property {(value: any) => boolean} [isRequiredViolation=null] - A custom function that checks whether the current field
- *  value violates the required rule (i.e. "is a violation"). The default behavior returns true when the value is null,
- *  undefined, an empty string, false, or 0.
- * @property {(value: any, validationDependencies: {[path: string]: [value: any]}|undefined) => boolean} [validate=null] - A custom
- *  validation function for the field. This function should return `true` when the field is valid. Otherwise, it should
- *  return a string with the desired error message.
+ * @property {string} [requiredMessage="This field is required."] - The message to display if the field is required and
+ *  empty.
+ * @property {(validationDependencies: {[path: string]: [value: any]}|undefined) => boolean} [shouldRequireFn=null] - A
+ *  custom function that determines whether the field should be marked as required based on its configuration or
+ *  validationDependencies (i.e. "can be required"). When provided, this overrides the explicit `required` prop.
+ * @property {(value: any) => boolean} [isRequiredViolation=null] - A custom function that checks whether the current
+ *  field value violates the required rule (i.e. "is a violation"). The default behavior returns true when the value is
+ *  null, undefined, an empty string, false, or 0.
+ * @property {(value: any, validationDependencies: {[path: string]: [value: any]}|undefined) => boolean} [validate=null] -
+ *  A custom validation function for the field. This function should return `true` when the field is valid. Otherwise,
+ *  it should return a string with the desired error message.
  *
  * // *** Display ***
  * @property {string} [label=null] - The label for the field.
@@ -216,7 +239,11 @@ export function defaultIsRequiredViolation(value) {
  * Options describing how the calling component renders the field.
  *
  * @typedef {object} UseFieldOptions
- * @property {() => boolean} [showsErrors] - Reports whether the component renders the field's own error messages beside the field. Read reactively, so it can depend on props. Defaults to `true`: every field component ships an inline message row, and a component that suppresses it (such as `FormField` with `hidden`) reports `false` so a form-level summary can report the field's errors instead. The field also reports its errors as not shown while an enclosing inline field set is collapsed, since its rows stay mounted out of sight.
+ * @property {() => boolean} [showsErrors] - Reports whether the component renders the field's own error messages beside
+ *  the field. Read reactively, so it can depend on props. Defaults to `true`: every field component ships an inline
+ *  message row, and a component that suppresses it (such as `FormField` with `hidden`) reports `false` so a form-level
+ *  summary can report the field's errors instead. The field also reports its errors as not shown while an enclosing
+ *  inline field set is collapsed, since its rows stay mounted out of sight.
  */
 
 /**
@@ -331,7 +358,8 @@ export function useField(props, emit, options = {}) {
 
     // ⚠️ Do not assign computed() directly to state.messages/errors.
     // Vue unwraps computed refs inside reactive(), allowing silent deep mutation:
-    //   e.g. state.errors.code = '...' will not throw, and allow mutation of the cached value, until the computed reruns.
+    //   e.g. state.errors.code = '...' will not throw, and allow mutation of the cached value, until the computed
+    //   reruns.
     //
     // Instead, use readonly(toRef(...)) in a separate object and expose that.
     // This preserves immutability and throws if you try to set deep properties.
@@ -861,7 +889,8 @@ export function useField(props, emit, options = {}) {
     // aggregate follows the hook's current value without re-registering. Only a name change needs
     // a fresh registration, since the registry groups hooks by name.
     /**
-     * @param {"Label"|"ShowsErrors"} kind - The form context registration pair to use (`register<kind>` / `unregister<kind>`).
+     * @param {"Label"|"ShowsErrors"} kind - The form context registration pair to use (`register<kind>` /
+     *  `unregister<kind>`).
      * @param {() => any} hook - The hook to register under the field's current name.
      */
     const registerMetadataHookByName = (kind, hook) => {

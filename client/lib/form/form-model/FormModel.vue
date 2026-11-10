@@ -192,7 +192,10 @@ const props = defineProps({
         default: undefined,
         description: "Field names to render as computed fields, if not wanting to use the configuration default.",
     },
-    /** Visual variant for the theme system. A function-form `FormModel` theme entry receives it as `{ variant }`, so a project can register an alternate form style for each variant. */
+    /**
+     * Visual variant for the theme system. A function-form `FormModel` theme entry receives it as `{ variant }`, so a
+     * project can register an alternate form style for each variant.
+     */
     variant: {
         type: String,
         default: "default",

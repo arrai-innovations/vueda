@@ -12,7 +12,10 @@ patchTheme({
      * Individual time segment inside TimeField. Same recipe as DateFieldInput.
      */
     TimeFieldInput: {
-        /** An editable segment inside a {@api theme-key:TimeField.root}. See also: {@api theme-key:DateFieldInput.root}; identical recipe. */
+        /**
+         * An editable segment inside a {@api theme-key:TimeField.root}. See also: {@api theme-key:DateFieldInput.root};
+         * identical recipe.
+         */
         root: {
             class: [
                 // Segment layout and type.

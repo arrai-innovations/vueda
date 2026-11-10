@@ -13,7 +13,11 @@ patchTheme({
      * InputGroup.
      */
     InputGroupText: {
-        /** The inline-text addon inside an {@api theme-key:InputGroup.root}: helper labels, prefix / suffix copy, unit markers. Renders at sm size on `--muted-foreground` with 16px icons so the addon reads as chrome rather than as input content. */
+        /**
+         * The inline-text addon inside an {@api theme-key:InputGroup.root}: helper labels, prefix / suffix copy, unit
+         * markers. Renders at sm size on `--muted-foreground` with 16px icons so the addon reads as chrome rather than
+         * as input content.
+         */
         root: {
             class: [
                 // Layout and type.

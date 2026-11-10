@@ -1,6 +1,7 @@
 /**
  * @module use/useFilter
- * @description Builds and manages reactive filter form state, mapping model fields to their appropriate filter widgets and providing the filter context to child components.
+ * @description Builds and manages reactive filter form state, mapping model fields to their appropriate filter widgets
+ *  and providing the filter context to child components.
  */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { isRangeFilter } from "@vueda/use/useFilterForm.js";
@@ -61,8 +62,10 @@ const getFieldProps = (field) => {
 /**
  * @typedef {object} FilterFieldEntry
  * @property {string} name - The form field name: the filter name, or `${filterName}.${suffix}` for a range boundary.
- * @property {import('@vueda/stores/storeModelInfo.js').FilterInfo|{isBoundary: true, typeFilter: string, required: false, label: string}} detail - The detail the field and widget components resolve from.
- * @property {boolean} needsWidget - Whether the entry mounts a widget of its own. The base field of a range does not: its two boundaries carry the inputs.
+ * @property {import('@vueda/stores/storeModelInfo.js').FilterInfo|{isBoundary: true, typeFilter: string, required: false, label: string}} detail -
+ *  The detail the field and widget components resolve from.
+ * @property {boolean} needsWidget - Whether the entry mounts a widget of its own. The base field of a range does not:
+ *  its two boundaries carry the inputs.
  * @property {string} [suffix] - The range suffix a boundary entry renders; absent on the filter's own entry.
  */
 
@@ -102,8 +105,10 @@ export function filterFieldEntries(filterName, filterDetails) {
  * `${filterName}.${suffix}`.
  *
  * @typedef {object} FilterInputOverrides
- * @property {{[name: string]: import('@vueda/utils/formLookups.js').FieldComponent|string|(() => import('vue').Component)}} [fieldComponents] - Field component overrides by field name.
- * @property {{[name: string]: import('@vueda/utils/formLookups.js').WidgetComponent|string|(() => import('vue').Component)}} [widgetComponents] - Widget component overrides by field name.
+ * @property {{[name: string]: import('@vueda/utils/formLookups.js').FieldComponent|string|(() => import('vue').Component)}} [fieldComponents] -
+ *  Field component overrides by field name.
+ * @property {{[name: string]: import('@vueda/utils/formLookups.js').WidgetComponent|string|(() => import('vue').Component)}} [widgetComponents] -
+ *  Widget component overrides by field name.
  */
 
 /**
@@ -171,11 +176,17 @@ export function getMissingFilterInputSupport(filterName, filterDetails, override
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
  * @property {string[]} filterables - The resolved filterable field names, as given by the caller.
- * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - The resolved per-field filter details, as given by the caller; looked up by field name via `FilterModelSymbol`-injecting descendants (e.g. `FieldRenderer`).
- * @property {{[filterName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject.
- * @property {{[filterName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} fieldProps - The field props to use, either passed in or as a result of fieldObject.
- * @property {{[filterName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject.
- * @property {{[filterName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} widgetProps - The widget props to use, either passed in or as a result of fieldObject.
+ * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - The
+ *  resolved per-field filter details, as given by the caller; looked up by field name via `FilterModelSymbol`-injecting
+ *  descendants (e.g. `FieldRenderer`).
+ * @property {{[filterName:string]:import('vue').Component}} fieldComponents - The field components to use, either
+ *  passed in or as a result of fieldObject.
+ * @property {{[filterName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} fieldProps -
+ *  The field props to use, either passed in or as a result of fieldObject.
+ * @property {{[filterName:string]: import('vue').Component}} widgetComponents - The widget components to use, either
+ *  passed in or as a result of fieldObject.
+ * @property {{[filterName:string]: {[key:string]: any, themeOverride: import('@vueda/use/useTheme.js').ThemeObject|undefined}}} widgetProps -
+ *  The widget props to use, either passed in or as a result of fieldObject.
  */
 
 /**
@@ -184,10 +195,14 @@ export function getMissingFilterInputSupport(filterName, filterDetails, override
 
 /**
  * @typedef {object} UseFilterRawOverridableProps
- * @property {{[filterName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use for the filter, if different from the default, by field path
- * @property {{[filterName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use for the filter, if different from the default, by field path
- * @property {{[filterName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use for the filter, if different from the default, by field path
- * @property {{[filterName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use for the filter, if different from the default, by field path
+ * @property {{[filterName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents -
+ *  The field components to use for the filter, if different from the default, by field path
+ * @property {{[filterName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use for the filter,
+ *  if different from the default, by field path
+ * @property {{[filterName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget
+ *  components to use for the filter, if different from the default, by field path
+ * @property {{[filterName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use for the
+ *  filter, if different from the default, by field path
  */
 
 /**
@@ -195,8 +210,10 @@ export function getMissingFilterInputSupport(filterName, filterDetails, override
  * @property {string} app - The app name to load form configuration for
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
- * @property {string[]} filterables - Already-resolved filterable field names (e.g. from `useViewList`'s `filter.filterables`). Used as-is; this composable does not compute or merge them itself.
- * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Already-resolved per-field filter details (e.g. from `useViewList`'s `filter.filterableDetails`).
+ * @property {string[]} filterables - Already-resolved filterable field names (e.g. from `useViewList`'s
+ *  `filter.filterables`). Used as-is; this composable does not compute or merge them itself.
+ * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails -
+ *  Already-resolved per-field filter details (e.g. from `useViewList`'s `filter.filterableDetails`).
  */
 
 /**

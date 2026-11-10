@@ -1,6 +1,7 @@
 /**
  * @module use/useLinkModelView
- * @description Picks the first view in a model-view link that the viewer can open, and computes its href and navigation handler.
+ * @description Picks the first view in a model-view link that the viewer can open, and computes its href and navigation
+ *  handler.
  */
 import { getCRUDForTo } from "@vueda/router/getCrud.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";

@@ -1,6 +1,7 @@
 /**
  * @module use/useModelInitialValues
- * @description Derives sensible initial values for each field of a model based on field type mappings, supporting both create and edit scenarios.
+ * @description Derives sensible initial values for each field of a model based on field type mappings, supporting both
+ *  create and edit scenarios.
  */
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
@@ -167,8 +168,8 @@ export function useModelInitialValues(app, model, fields) {
  */
 
 /**
- * Returns the initial values for the filters of a model, so that a blank form can be created, without fields being mutated
- *  immediately by coercion of values, causing a form to be dirty.
+ * Returns the initial values for the filters of a model, so that a blank form can be created, without fields being
+ *  mutated immediately by coercion of values, causing a form to be dirty.
  *
  * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.

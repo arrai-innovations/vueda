@@ -1,15 +1,19 @@
 /**
  * @module utils/getTypeMapping
- * @description Resolves a per-type mapping entry from a `typeSerializer -> typeModel` lookup table, with a default fallback. Shared by form field/widget resolution (`useFormModel`) and list column resolution (`resolveColumnComponents`).
+ * @description Resolves a per-type mapping entry from a `typeSerializer -> typeModel` lookup table, with a default
+ *  fallback. Shared by form field/widget resolution (`useFormModel`) and list column resolution
+ *  (`resolveColumnComponents`).
  */
 import isNil from "lodash-es/isNil.js";
 
 /**
- * Resolve the mapping for a field's `typeSerializer`, falling back to the serializer's default entry when `typeModel` is unknown.
+ * Resolve the mapping for a field's `typeSerializer`, falling back to the serializer's default entry when `typeModel`
+ * is unknown.
  *
  * @template T
  * @param {{[key:string]: {[typeModel:string]: T}}} mapping - The mapping object keyed by typeSerializer and typeModel.
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Field info containing the typeSerializer/typeModel.
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Field info containing the
+ *  typeSerializer/typeModel.
  * @returns {T|undefined} The matched mapping or the default entry for the serializer.
  */
 export const getTypeMapping = (mapping, field) => {

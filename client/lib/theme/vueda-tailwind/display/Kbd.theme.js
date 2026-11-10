@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * Kbd renders a single keyboard key hint. It keeps key labels compact and adjusts contrast when shown inside tooltip content.
+     * Kbd renders a single keyboard key hint. It keeps key labels compact and adjusts contrast when shown inside
+     * tooltip content.
      */
     Kbd: {
         /** Single keycap chip for shortcut hints; tooltip nesting adjusts contrast. */

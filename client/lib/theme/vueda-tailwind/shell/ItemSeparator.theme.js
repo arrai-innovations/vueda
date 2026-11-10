@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemSeparator: {
         /**
-         * The divider between item rows. It removes extra vertical margin so separators can be used in dense item groups.
+         * The divider between item rows. It removes extra vertical margin so separators can be used in dense item
+         * groups.
          */
         root: {
             class: "my-0",

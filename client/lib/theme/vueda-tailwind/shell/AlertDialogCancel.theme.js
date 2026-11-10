@@ -13,7 +13,8 @@ patchTheme({
      */
     AlertDialogCancel: {
         /**
-         * Extra classes for the Button rendered inside AlertDialogCancel. Button owns the tone, emphasis, size, focus, and disabled recipes; this slot only adds mobile spacing for the stacked alert-dialog footer layout.
+         * Extra classes for the Button rendered inside AlertDialogCancel. Button owns the tone, emphasis, size, focus,
+         * and disabled recipes; this slot only adds mobile spacing for the stacked alert-dialog footer layout.
          */
         root: {
             class: ["mt-2 sm:mt-0"],

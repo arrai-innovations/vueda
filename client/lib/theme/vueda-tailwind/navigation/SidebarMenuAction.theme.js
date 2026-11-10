@@ -12,7 +12,10 @@ patchTheme({
      * SidebarMenuAction styles a trailing action button attached to a sidebar menu item.
      */
     SidebarMenuAction: {
-        /** Trailing menu-item action. `showOnHover` defers visibility until hover, focus-within, or open state on desktop. */
+        /**
+         * Trailing menu-item action. `showOnHover` defers visibility until hover, focus-within, or open state on
+         * desktop.
+         */
         root: ({ showOnHover }) => ({
             class: [
                 // Surface and interactive states.

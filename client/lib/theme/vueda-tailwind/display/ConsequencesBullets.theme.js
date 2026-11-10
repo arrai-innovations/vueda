@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * ConsequencesBullets renders a compact list of consequences for destructive or risky actions. Per-row tone attributes tint the leading icon while keeping labels and descriptions consistent.
+     * ConsequencesBullets renders a compact list of consequences for destructive or risky actions. Per-row tone
+     * attributes tint the leading icon while keeping labels and descriptions consistent.
      */
     ConsequencesBullets: {
         /** List wrapper for consequence rows with no browser list chrome. */
@@ -20,7 +21,10 @@ patchTheme({
         item: {
             class: ["grid grid-cols-[18px_1fr] items-start gap-x-2.5"],
         },
-        /** Fixed icon cell tinted by row tone via {@api theme-key:ConsequencesBullets.toneWarn} or {@api theme-key:ConsequencesBullets.toneDanger}. */
+        /**
+         * Fixed icon cell tinted by row tone via {@api theme-key:ConsequencesBullets.toneWarn} or
+         * {@api theme-key:ConsequencesBullets.toneDanger}.
+         */
         icon: {
             class: [
                 "flex h-[18px] w-[18px] items-center justify-center mt-px",

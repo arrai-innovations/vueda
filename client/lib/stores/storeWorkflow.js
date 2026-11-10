@@ -1,6 +1,7 @@
 /**
  * @module stores/storeWorkflow
- * @description Pinia store for fetching and caching the workflow transitions a user may run on a model and the workflow state history of objects, and for executing transitions on objects.
+ * @description Pinia store for fetching and caching the workflow transitions a user may run on a model and the workflow
+ *  state history of objects, and for executing transitions on objects.
  */
 import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";

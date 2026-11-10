@@ -39,24 +39,33 @@ import {
 /**
  * @typedef {object} StickyStackRegistration
  * @property {StickyZoneName} [zone] - The zone the bar belongs to. Fixed at registration time. Defaults to `top`.
- * @property {import('vue').MaybeRefOrGetter<number>} [order] - Sort order within the zone (ascending, top to bottom). May be reactive to reorder bars at runtime. Defaults to `0`.
- * @property {StickyReveal} [reveal] - This bar's reveal behavior: a strategy string or a boolean, or a ref/getter of either for a reactive reason (for example, reveal a bulk-action bar only while there is a selection). When omitted, the bar stays visible (`always`).
+ * @property {import('vue').MaybeRefOrGetter<number>} [order] - Sort order within the zone (ascending, top to bottom).
+ *  May be reactive to reorder bars at runtime. Defaults to `0`.
+ * @property {StickyReveal} [reveal] - This bar's reveal behavior: a strategy string or a boolean, or a ref/getter of
+ *  either for a reactive reason (for example, reveal a bulk-action bar only while there is a selection). When omitted,
+ *  the bar stays visible (`always`).
  */
 
 /**
  * @typedef {object} StickyStackEntry
  * @property {string} id - Stable identifier for this registration (use as a list key).
- * @property {import('vue').MaybeRefOrGetter<number>} order - The bar's sort order within its zone, as registered (possibly reactive).
+ * @property {import('vue').MaybeRefOrGetter<number>} order - The bar's sort order within its zone, as registered
+ *  (possibly reactive).
  * @property {StickyReveal} [reveal] - The bar's reveal behavior, as registered (possibly a ref or getter).
- * @property {import('vue').ShallowRef<HTMLElement|null>} el - The bar element, set by the provider; the view teleports its chrome into it.
- * @property {import('vue').ComputedRef<HTMLElement|null>} target - The teleport target, resolved from `el`; `null` until the provider binds it (or when there is no provider above).
- * @property {() => void} stop - Removes this registration. Called automatically on scope dispose when registered inside an effect scope.
+ * @property {import('vue').ShallowRef<HTMLElement|null>} el - The bar element, set by the provider; the view teleports
+ *  its chrome into it.
+ * @property {import('vue').ComputedRef<HTMLElement|null>} target - The teleport target, resolved from `el`; `null`
+ *  until the provider binds it (or when there is no provider above).
+ * @property {() => void} stop - Removes this registration. Called automatically on scope dispose when registered inside
+ *  an effect scope.
  */
 
 /**
  * @typedef {object} StickyStackContext
- * @property {(zone: StickyZoneName) => import('vue').ComputedRef<StickyStackEntry[]>} zoneRegistrations - The registrations for a zone, sorted by `order` (ascending).
- * @property {(registration?: StickyStackRegistration) => StickyStackEntry} register - Register a bar into a zone. Returns the entry (teleport target, element ref, cleanup).
+ * @property {(zone: StickyZoneName) => import('vue').ComputedRef<StickyStackEntry[]>} zoneRegistrations - The
+ *  registrations for a zone, sorted by `order` (ascending).
+ * @property {(registration?: StickyStackRegistration) => StickyStackEntry} register - Register a bar into a zone.
+ *  Returns the entry (teleport target, element ref, cleanup).
  */
 
 /**
@@ -81,7 +90,8 @@ import {
  * view rendered standalone, or a test harness) the view role degrades to an entry whose `target` is
  * always `null`, so `StickyChrome` renders its slot in place.
  *
- * @param {StickyStackRegistration} [registration] - A zone + order + reveal registration. Omit to take the provider role.
+ * @param {StickyStackRegistration} [registration] - A zone + order + reveal registration. Omit to take the provider
+ *  role.
  * @returns {StickyStackContext|StickyStackEntry} The context (provider role) or a registration entry (view role).
  */
 export function useStickyStack(registration) {

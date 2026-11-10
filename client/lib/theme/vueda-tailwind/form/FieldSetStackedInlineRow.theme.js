@@ -14,11 +14,17 @@ patchTheme({
      * selection controls.
      */
     FieldSetStackedInlineRow: {
-        /** Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance comes from {@api theme-key:Button}. */
+        /**
+         * Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance
+         * comes from {@api theme-key:Button}.
+         */
         destroyButton: {
             class: [],
         },
-        /** Bordered row card with dirty and selected-for-destroy state chrome. The row wraps so that the action bar can take its own line below the fields. */
+        /**
+         * Bordered row card with dirty and selected-for-destroy state chrome. The row wraps so that the action bar can
+         * take its own line below the fields.
+         */
         root: {
             class: [
                 "flex flex-wrap items-start gap-3 hairline hairline-border rounded-vueda-card p-2.5",
@@ -49,7 +55,11 @@ patchTheme({
         fields: {
             class: ["flex flex-col flex-1 min-w-0 gap-4"],
         },
-        /** Outer action group for row controls. In a row list narrower than the `md` container size, it is a full-width footer below the fields, with its controls at the end. From `md` up, it sits beside the fields at the top end of the row. */
+        /**
+         * Outer action group for row controls. In a row list narrower than the `md` container size, it is a full-width
+         * footer below the fields, with its controls at the end. From `md` up, it sits beside the fields at the top end
+         * of the row.
+         */
         actionBarOuter: {
             class: [
                 "flex gap-1 2xs:gap-2 items-start shrink-0",

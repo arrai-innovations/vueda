@@ -12,7 +12,10 @@ patchTheme({
      * A weekday-label cell above the RangeCalendar day grid.
      */
     RangeCalendarHeadCell: {
-        /** See also: {@api theme-key:CalendarHeadCell.root}; identical recipe (the class-order difference vs the single-calendar slot is incidental, not a deliberate departure). */
+        /**
+         * See also: {@api theme-key:CalendarHeadCell.root}; identical recipe (the class-order difference vs the
+         * single-calendar slot is incidental, not a deliberate departure).
+         */
         root: {
             class: ["w-[var(--vueda-cal-cell)] rounded-md text-[0.8rem] font-normal text-muted-foreground"],
         },

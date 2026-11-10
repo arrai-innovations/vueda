@@ -16,10 +16,15 @@ import { computed, inject, reactive, toRef } from "vue";
  * @typedef {object} ViewDestroyState
  *
  * @property {boolean} validAndActive - Whether the current context has a valid app/model/pk and is active.
- * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current app/model.
- * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context of instances to destroy.
- * @property {import('vue').ComputedRef<string>} titleStr - Page title for the confirmation, counted and pluralized for a bulk destroy (e.g. "Delete Widget", "Delete 3 Widgets"). Empty until the verbose name is known. A bulk destroy reads the verbose plural name.
- * @property {import('vue').ComputedRef<boolean|undefined>} pageLoading - Combined loading state (model config + the fetch of the records being confirmed).
+ * @property {import('@vueda/use/useModelConfig.js').ModelConfig} modelConfig - The model config for the current
+ *  app/model.
+ * @property {import('@arrai-innovations/reactive-helpers/use/useList.js').ListManager} instanceList - The list context
+ *  of instances to destroy.
+ * @property {import('vue').ComputedRef<string>} titleStr - Page title for the confirmation, counted and pluralized for
+ *  a bulk destroy (e.g. "Delete Widget", "Delete 3 Widgets"). Empty until the verbose name is known. A bulk destroy
+ *  reads the verbose plural name.
+ * @property {import('vue').ComputedRef<boolean|undefined>} pageLoading - Combined loading state (model config + the
+ *  fetch of the records being confirmed).
  * @property {(options: { dryRun?: boolean, acknowledgeWarnings?: string }) => Promise<void>} handleDelete - Attempts
  *  to delete the instance(s) through the list's registered `bulkDelete` handler. Throws on failure, including a
  *  `ConfirmationRequiredError` when the server gates the delete behind warning acknowledgement (HTTP 409); pass the

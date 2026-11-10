@@ -14,7 +14,10 @@ patchTheme({
      */
     TableFooter: {
         /**
-         * The `<tfoot>` section wrapper for summary and total rows. Its muted fill and top divider separate aggregates from body rows while leaving row cells free to handle numeric alignment. The divider sits on the first footer row's cells, and the last footer row drops its own divider, because the separated border model does not paint borders on `<tfoot>` or `<tr>`.
+         * The `<tfoot>` section wrapper for summary and total rows. Its muted fill and top divider separate aggregates
+         * from body rows while leaving row cells free to handle numeric alignment. The divider sits on the first footer
+         * row's cells, and the last footer row drops its own divider, because the separated border model does not paint
+         * borders on `<tfoot>` or `<tr>`.
          */
         root: {
             class: [

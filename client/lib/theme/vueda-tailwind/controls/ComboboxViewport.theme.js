@@ -12,7 +12,11 @@ patchTheme({
      * Scrollable region inside ComboboxList that wraps the results.
      */
     ComboboxViewport: {
-        /** The scrollable region inside {@api theme-key:ComboboxList.root} that wraps the result groups. Caps at 300px tall before the viewport begins to scroll; `scroll-py-1` keeps a hairline of breathing room above the first and below the last visible row so a focused item never crashes into the viewport edge. */
+        /**
+         * The scrollable region inside {@api theme-key:ComboboxList.root} that wraps the result groups. Caps at 300px
+         * tall before the viewport begins to scroll; `scroll-py-1` keeps a hairline of breathing room above the first
+         * and below the last visible row so a focused item never crashes into the viewport edge.
+         */
         root: {
             class: ["max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto"],
         },

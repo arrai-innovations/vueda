@@ -24,7 +24,10 @@ patchTheme({
                     : "[--vueda-hairline-color:color-mix(in_oklab,var(--primary)_30%,transparent)] bg-primary/10 text-primary-text",
             ],
         },
-        /** Label segment: clicking it opens the edit popover. Carries the left pill radius. Stretches to the chip's full height so the hover target covers the full pill height. */
+        /**
+         * Label segment: clicking it opens the edit popover. Carries the left pill radius. Stretches to the chip's full
+         * height so the hover target covers the full pill height.
+         */
         label: {
             class: ({ errored }) => [
                 "inline-flex items-center self-stretch gap-1.5 rounded-l-full py-1 pl-2.5 pr-2",
@@ -35,7 +38,10 @@ patchTheme({
         divider: {
             class: ({ errored }) => ["h-4 w-hairline", errored ? "bg-destructive/30" : "bg-primary/30"],
         },
-        /** Remove segment (the trailing dismiss control). Carries the right pill radius. Stretches to the chip's full height so the hover target matches the label segment. */
+        /**
+         * Remove segment (the trailing dismiss control). Carries the right pill radius. Stretches to the chip's full
+         * height so the hover target matches the label segment.
+         */
         remove: {
             class: ({ errored }) => [
                 "inline-flex items-center self-stretch rounded-r-full px-1.5 py-1 opacity-70 hover:opacity-100",

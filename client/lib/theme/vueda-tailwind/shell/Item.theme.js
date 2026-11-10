@@ -13,7 +13,8 @@ patchTheme({
      */
     Item: {
         /**
-         * The row-like item wrapper. It carries the default, outline, and muted variants, size spacing, anchor hover behavior, and focus treatment.
+         * The row-like item wrapper. It carries the default, outline, and muted variants, size spacing, anchor hover
+         * behavior, and focus treatment.
          */
         root: ({ variant, size }) => {
             // Default and outline items share the transparent base border.

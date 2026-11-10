@@ -45,7 +45,9 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** Shared context object provided by the parent field set, containing field objects, actions, and selection state. */
+    /**
+     * Shared context object provided by the parent field set, containing field objects, actions, and selection state.
+     */
     fieldSetContextState: {
         type: Object,
         required: true,

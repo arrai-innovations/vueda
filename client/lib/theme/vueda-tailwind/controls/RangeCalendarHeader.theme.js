@@ -13,7 +13,13 @@ patchTheme({
      * prev / next nav buttons.
      */
     RangeCalendarHeader: {
-        /** The title row above a {@api theme-key:RangeCalendar.root}'s day grid. See also: {@api theme-key:CalendarHeader.root}; delta is that the prev / next buttons inside ({@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root}) anchor to the row edges via `position: absolute`, so this header does not reserve `px-8` the way the single-calendar header does. */
+        /**
+         * The title row above a {@api theme-key:RangeCalendar.root}'s day grid. See also:
+         * {@api theme-key:CalendarHeader.root}; delta is that the prev / next buttons inside
+         * ({@api theme-key:RangeCalendarPrevButton.root} / {@api theme-key:RangeCalendarNextButton.root}) anchor to the
+         * row edges via `position: absolute`, so this header does not reserve `px-8` the way the single-calendar header
+         * does.
+         */
         root: {
             class: ["flex justify-center pt-1 relative items-center w-full"],
         },

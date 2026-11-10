@@ -12,7 +12,10 @@ patchTheme({
      * Inline keyboard-shortcut hint on the trailing edge of a CommandItem.
      */
     CommandShortcut: {
-        /** Alignment wrapper for the trailing keyboard hint on a {@api theme-key:CommandItem.root}. `ml-auto` pushes the hint flush right while the nested {@api theme-key:KbdGroup.root} owns the chord. */
+        /**
+         * Alignment wrapper for the trailing keyboard hint on a {@api theme-key:CommandItem.root}. `ml-auto` pushes the
+         * hint flush right while the nested {@api theme-key:KbdGroup.root} owns the chord.
+         */
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },

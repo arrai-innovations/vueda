@@ -13,7 +13,8 @@ patchTheme({
      */
     DrawerContent: {
         /**
-         * The edge-attached drawer surface. It reads Vaul direction attributes to choose edge, size, max height, and which modal-radius corners stay rounded.
+         * The edge-attached drawer surface. It reads Vaul direction attributes to choose edge, size, max height, and
+         * which modal-radius corners stay rounded.
          */
         root: {
             class: [
@@ -34,7 +35,8 @@ patchTheme({
             ],
         },
         /**
-         * The drag handle shown for bottom drawers. It stays hidden for other drawer directions where the edge affordance would be misleading.
+         * The drag handle shown for bottom drawers. It stays hidden for other drawer directions where the edge
+         * affordance would be misleading.
          */
         handle: {
             class: [

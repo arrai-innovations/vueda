@@ -10,16 +10,19 @@ import { computed, reactive } from "vue";
 /**
  * @typedef {object} ObjectChangeNoticeOptions
  * @property {() => boolean} enabled - Whether to report changes at all.
- * @property {() => object} current - The form values of the record as it is saved now. The object subscription keeps the record current.
+ * @property {() => object} current - The form values of the record as it is saved now. The object subscription keeps
+ *  the record current.
  * @property {() => object} baseline - The form values that the form opened with or last reloaded.
  * @property {() => boolean} deleted - True when the subscription reported the record as deleted.
- * @property {() => boolean} busy - True while the view retrieves or saves. The notice stays clear meanwhile, because the baseline is about to change.
+ * @property {() => boolean} busy - True while the view retrieves or saves. The notice stays clear meanwhile, because
+ *  the baseline is about to change.
  * @property {() => void} reload - Copies the current record into the form's baseline, which resets the form.
  */
 
 /**
  * @typedef {object} ObjectChangeNoticeRawState
- * @property {import('vue').ComputedRef<boolean>} changed - True when the saved record's form values differ from the ones that the form opened with.
+ * @property {import('vue').ComputedRef<boolean>} changed - True when the saved record's form values differ from the
+ *  ones that the form opened with.
  * @property {import('vue').ComputedRef<boolean>} deleted - True when the record was deleted.
  */
 

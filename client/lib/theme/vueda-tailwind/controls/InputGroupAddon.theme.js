@@ -15,7 +15,14 @@ patchTheme({
      * addons stack above or below it.
      */
     InputGroupAddon: {
-        /** The addon slot inside an {@api theme-key:InputGroup.root}. `align` picks one of four placements: `inline-start` / `inline-end` for icon, kbd, or button content flush against the input edge, and `block-start` / `block-end` for helper-text rows stacked above or below the input. Negative-margin hooks (`has-[>button]:ml-[-0.45rem]`, `has-[>kbd]:ml-[-0.35rem]`) tighten interior padding when the addon hosts a button or kbd so the addon does not visually balloon. Inherits `--muted-foreground` text so the addon reads as chrome, not as content; dimmed in lockstep with the group when the host carries `data-disabled=true`. */
+        /**
+         * The addon slot inside an {@api theme-key:InputGroup.root}. `align` picks one of four placements:
+         * `inline-start` / `inline-end` for icon, kbd, or button content flush against the input edge, and
+         * `block-start` / `block-end` for helper-text rows stacked above or below the input. Negative-margin hooks
+         * (`has-[>button]:ml-[-0.45rem]`, `has-[>kbd]:ml-[-0.35rem]`) tighten interior padding when the addon hosts a
+         * button or kbd so the addon does not visually balloon. Inherits `--muted-foreground` text so the addon reads
+         * as chrome, not as content; dimmed in lockstep with the group when the host carries `data-disabled=true`.
+         */
         root: ({ align }) => ({
             class: [
                 // Addon layout and type.

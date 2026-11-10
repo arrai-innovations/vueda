@@ -1,6 +1,8 @@
 /**
  * @module utils/columnLookups
- * @description Registry of all available list column adapter components. Mirrors `formLookups.js` (fields/widgets). String-keyed so model config and the `columnComponents` prop can reference an adapter by name without importing the component.
+ * @description Registry of all available list column adapter components. Mirrors `formLookups.js` (fields/widgets).
+ *  String-keyed so model config and the `columnComponents` prop can reference an adapter by name without importing the
+ *  component.
  */
 import ColumnText from "@vueda/objects-grid/ColumnText.vue";
 import { defineAsyncComponent, markRaw } from "vue";

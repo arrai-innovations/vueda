@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * DateTimeDisplay presents absolute and relative time text together. It supports inline, stacked, tooltip, and fallback dash layouts.
+     * DateTimeDisplay presents absolute and relative time text together. It supports inline, stacked, tooltip, and
+     * fallback dash layouts.
      */
     DateTimeDisplay: {
         /** Inline time wrapper with baseline spacing for absolute and relative text. */

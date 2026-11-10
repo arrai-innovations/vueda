@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldLegend: {
         /**
-         * The legend or label-style heading for grouped fields. Its variant attribute chooses between larger legend text and compact label text.
+         * The legend or label-style heading for grouped fields. Its variant attribute chooses between larger legend
+         * text and compact label text.
          */
         root: {
             class: "mb-3 font-medium data-[variant=legend]:text-base data-[variant=label]:text-sm",

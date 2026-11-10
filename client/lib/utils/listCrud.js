@@ -93,11 +93,12 @@ export const subscriptionFilters = (params, repeatedParams = []) => {
  *     pk?: string,
  *     action?: string,
  *     resultsKey?: string,
- * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
- *  Otherwise, the non-detail list url will be used. `resultsKey` is the response key holding the array of objects
- *  (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
+ * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will
+ *     be used. Otherwise, the non-detail list url will be used. `resultsKey` is the response key holding the array of
+ *     objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {object} args.params - The arguments for the list operation.
- * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see {@link makeSearchParamsString}.
+ * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see
+ *  {@link makeSearchParamsString}.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
@@ -160,10 +161,11 @@ export function singlePagePaginatedListCrudAdaptor({
  *     pk?: string,
  *     action?: string,
  *     resultsKey?: string,
- * }} args.target - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array of
- *  objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
+ * }} args.target - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array
+ *     of objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {{ [p]: number }} args.params - The querystring parameters for the list operation.
- * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see {@link makeSearchParamsString}.
+ * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see
+ *  {@link makeSearchParamsString}.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
@@ -320,7 +322,8 @@ export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledg
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
  * @param {string} [args.acknowledgeWarnings] - Warnings digest from a prior 409, sent as the
  *  `Acknowledge-Warnings` header so the server lets the gated action proceed.
- * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<object|string|undefined>} - A cancellable promise.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<object|string|undefined>} - A cancellable
+ *  promise.
  */
 export function defaultListExecuteAction({
     target,
