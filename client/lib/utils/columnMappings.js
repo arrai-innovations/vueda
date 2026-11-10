@@ -5,7 +5,8 @@
  * Boolean types resolve to `ColumnBoolean`; date/time/datetime types resolve to
  * `ColumnDateTime`; duration types resolve to `ColumnDuration`; `JSON` resolves to
  * `ColumnJson`; file and image types resolve to `ColumnFile`; foreign-key relations
- * resolve to `ColumnModelLink`. Any unmapped type falls back to `ColumnText`,
+ * resolve to `ColumnModelLink`; to-many relations resolve to `ColumnModelLinks`.
+ * Any unmapped type falls back to `ColumnText`,
  * reproducing the historical plain-text cell.
  */
 import merge from "lodash-es/merge.js";
@@ -88,9 +89,7 @@ export const columnMappings = {
     },
     // Foreign-key / one-to-one relations. ColumnModelLink derives the target
     // model from the field's `appLabel`/`model` (server-populated for writable
-    // relations) and degrades to label text when unavailable. Many-relations
-    // (M2M) are intentionally unmapped for now; ColumnModelLink renders an
-    // array value as plain text rather than a single link.
+    // relations) and degrades to label text when unavailable.
     PrimaryKeyRelatedField: {
         ForeignKey: {
             column: "ColumnModelLink",
@@ -99,6 +98,20 @@ export const columnMappings = {
         },
         OneToOneField: {
             column: "ColumnModelLink",
+            columnProps: { view: "read" },
+        },
+    },
+    // To-many relations: a many-to-many field reports `ManyToManyField`, and a
+    // reverse foreign key reports `ForeignKey`. ColumnModelLinks lists the
+    // related labels from an expanded value, and the count from an unexpanded one.
+    ManyRelatedField: {
+        ManyToManyField: {
+            column: "ColumnModelLinks",
+            columnProps: { view: "read" },
+            default: true,
+        },
+        ForeignKey: {
+            column: "ColumnModelLinks",
             columnProps: { view: "read" },
         },
     },
