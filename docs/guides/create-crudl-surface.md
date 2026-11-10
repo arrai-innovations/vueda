@@ -348,7 +348,7 @@ The `actionRedirect` parameter is required. It specifies the route the guard sho
 
 The `requireModelInfo` guard computes its allowlist by intersecting server-advertised actions from model-info, any `routeActions` restrictions from client model-config, and workflow transition codes. This is the {@term Route Admission} check. The guard normalizes action names through a static action-map utility. The server uses `retrieve` and `partial_update`, while the client uses `read` and `update` in route paths. This normalization is automatic; you do not need to manually translate between naming conventions when defining routes.
 
-Once routes are wired, the `ViewActionRouter` component handles runtime view resolution. It selects the concrete view component based on the action parameter: built-in CRUDL components for standard actions (`list`, `create`, `read`, `update`), or dynamically imported project-level components for custom actions. No per-model client code is needed for standard CRUDL surfaces.
+Once routes are wired, the `ViewActionRouter` component handles runtime view resolution. It picks the view component for the action parameter. A project file in `src/views` named for the view, such as `ViewList.vue` or `ViewListInventoryProduct.vue`, replaces the built-in view. Without such a file, the router renders the built-in CRUDL view, so standard CRUDL surfaces need no per-model client code. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) gives the full lookup order.
 
 After the baseline CRUDL surface is working, view behavior can be customized through model config without forking core components. See [Configure CRUDL Views](./configure-crud-views) for the configuration API.
 

@@ -262,7 +262,7 @@ The prompt describes only the action. Describe other effects, such as ending ses
 
 ## ViewExecuteTransition
 
-{@api vue:component:ViewExecuteTransition} confirms a workflow {@term Transition} when the project supplies no view for its code. It renders the same confirmation as `ViewAction`, in the `info` tone, so the `ViewAction` demos above show its layout. Like `ViewAction`, its chips show the records' names from the form's lookup.
+{@api vue:component:ViewExecuteTransition} confirms a workflow {@term Transition} when the project supplies neither a view for its code nor its own `src/views/ViewExecuteTransition.vue`. It renders the same confirmation as `ViewAction`, in the `info` tone, so the `ViewAction` demos above show its layout. Like `ViewAction`, its chips show the records' names from the form's lookup.
 
 The view differs from `ViewAction` in its copy and its request:
 
