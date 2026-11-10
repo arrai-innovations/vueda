@@ -112,6 +112,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {boolean} detail - A boolean indicating whether the action applies to a detail view.
  * @property {boolean} bulk - A boolean indicating whether the action can be applied in bulk.
  * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) supported by the action.
+ * @property {string} [urlPath] - The URL segment that the server routes an extra action at, such as `mark_paid` or
+ *  `settle-up`. Built-in CRUD actions have none.
  * @property {Array<{name: string, type: string, required: boolean, description?: string}>} [parameters] - A list of parameter objects for the action, including type and optional descriptions.
  * @property {string} [appLabel] - The app label associated with the action, if relevant.
  * @property {string} [model] - The model name the action applies to, if relevant.

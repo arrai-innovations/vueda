@@ -241,7 +241,7 @@ A request option that returns a related object inline in place of its primary ke
 
 ## Extra Action
 
-An {@term Action} that a viewset declares with VUEDA's `action` decorator, in addition to the built-in actions. It targets one object when declared `detail=True` and the model otherwise; a {@term Bulk Action} can target several objects. Model info reports it by its `url_name`.
+An {@term Action} that a viewset declares with VUEDA's `action` decorator, in addition to the built-in actions. It targets one object when declared `detail=True` and the model otherwise; a {@term Bulk Action} can target several objects. Model info reports it by its `url_name`. Model info also reports its `url_path`, which is the URL segment that the router serves it at.
 
 - Names: [`action`]{@api py:function:vueda.core.decorators.action}; [`detail`]{@api py:param:vueda.core.decorators.action.detail}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#server-action-declaration-and-route-partitioning)
@@ -366,7 +366,7 @@ The `model_actions` list in {@term Model Info}: the actions the model's viewset 
 
 ## Model API Path
 
-The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`.
+The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`. The `modelAction` and `modelDetailAction` templates mark the action's URL segment with the `:action_url_path` placeholder.
 
 - Names: [`getListUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getListUrl}; [`getDetailUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getDetailUrl}; [`setCustomUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#setCustomUrl}; [`VuedaRouter`]{@api py:class:vueda.core.routers.VuedaRouter}; `modelList`; `modelDetail`; `modelAction`; `modelDetailAction`
 - Described in: [Create a CRUD Surface for a New Model](../guides/create-crud-surface.md#router-and-url-wiring)

@@ -99,10 +99,14 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
-    /** HTTP method used for the action request (ignored for destroy actions, which always use DELETE). */
+    /**
+     * HTTP method used for the action request. Without it, the form sends `PUT` when the action's `methodNames` in
+     * model info lists `put`, and otherwise the first write method that it lists. Destroy actions ignore this prop and
+     * always use `DELETE`.
+     */
     requestMethod: {
         type: String,
-        default: "PUT",
+        default: undefined,
     },
     /** When true, performs a dry-run validation request before the final submission. */
     enableDryRun: {

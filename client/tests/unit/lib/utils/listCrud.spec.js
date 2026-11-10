@@ -76,7 +76,7 @@ describe("lib/utils/listCrud.js", () => {
             expect(getListUrl).toHaveBeenCalledWith({
                 app: "blog",
                 model: "post",
-                action: undefined,
+                urlPath: undefined,
                 query: "?p=2",
             });
             expect(url).toBe("/list/?p=2");
@@ -373,11 +373,27 @@ describe("lib/utils/listCrud.js", () => {
                 acknowledgeWarnings: "d1",
             });
 
-            expect(getListUrl).toHaveBeenCalledWith({ app: "blog", model: "post", action: "archive" });
+            expect(getListUrl).toHaveBeenCalledWith({ app: "blog", model: "post", urlPath: "archive" });
             expect(captured.options).toMatchObject({ method: "PATCH", credentials: "include" });
             expect(captured.options.headers).toMatchObject({ "Dry-Run": "true", "Acknowledge-Warnings": "d1" });
             expect(JSON.parse(captured.options.body)).toEqual({ pks: ["1", "2"], reason: "stale" });
             expect(result).toEqual({ archived: 2 });
+        });
+
+        scopedIt("builds the list action url from urlPath", async () => {
+            getListUrl.mockReturnValue("/list/settle-up/");
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                Promise.resolve(transform(new Response(null, { status: 204 }))),
+            );
+
+            await listCrud.defaultListExecuteAction({
+                target: { app: "billing", model: "invoice" },
+                pks: ["1"],
+                action: "settle",
+                urlPath: "settle-up",
+            });
+
+            expect(getListUrl).toHaveBeenCalledWith({ app: "billing", model: "invoice", urlPath: "settle-up" });
         });
 
         scopedIt("defaults to PUT", async () => {

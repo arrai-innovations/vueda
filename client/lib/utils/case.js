@@ -137,14 +137,6 @@ export const getCRUDName = memoize(
 );
 
 /**
- * Converts a dashed URL name to an underscored action name and returns it.
- *
- * @param {string} params - The url name.
- * @returns {string} The action name.
- */
-export const getServerActionName = memoize((urlName) => urlName?.replace?.(/-/g, "_") || "", unwrapNested);
-
-/**
  * For turning various `dev_strs` or `DevStrs` or `devStrs` into a human-readable titles (`Dev Strs`).
  *
  * @param {string} model - The model name.

@@ -3,7 +3,7 @@
  * @description Provides URL templates and builder functions for all VUEDA API endpoints.
  */
 import { unwrapNested } from "@arrai-innovations/reactive-helpers";
-import { getServerActionName, getServerRoutePart } from "@vueda/utils/case.js";
+import { getServerRoutePart } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 
 const defaultUrls = {
@@ -19,9 +19,9 @@ const defaultUrls = {
     infoServer: "/routes/vueda.info/server_info/",
     // storeUser fills {pk} and {token} from the reset link; the server reads them from the query string.
     isResetLinkValid: "/routes/vueda.user/reset-password/?pk={pk}&token={token}",
-    modelAction: "/routes/:app/:model/:action_name/",
+    modelAction: "/routes/:app/:model/:action_url_path/",
     modelDetail: "/routes/:app/:model/:pk/",
-    modelDetailAction: "/routes/:app/:model/:pk/:action_name/",
+    modelDetailAction: "/routes/:app/:model/:pk/:action_url_path/",
     modelList: "/routes/:app/:model/",
     reauthenticate: "/routes/vueda.user/reauthenticate/",
     recoveryCodes: "/routes/vueda.user/2fa/recovery-codes/",
@@ -79,17 +79,21 @@ export const resetCustomUrls = () => {
 /**
  * Get a VUEDA list or list action URL.
  *
+ * A list action URL comes from the `modelAction` template. The action's URL segment replaces the template's
+ * `:action_url_path` placeholder.
+ *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
- * @param {string} [action] - The action name, if any.
+ * @param {string} [urlPath] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
+ *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
-export const getListUrl = ({ app, model, action, query = "" }) => {
-    const urlTemplate = getUrl(action ? "modelAction" : "modelList");
+export const getListUrl = ({ app, model, urlPath, query = "" }) => {
+    const urlTemplate = getUrl(urlPath ? "modelAction" : "modelList");
     let url = urlTemplate.replace(":app", app.toLowerCase()).replace(":model", getServerRoutePart(model));
-    if (action) {
-        url = url.replace(":action_name", getServerActionName(action));
+    if (urlPath) {
+        url = url.replace(":action_url_path", unwrapNested(urlPath));
     }
     return `${httpOrHttpsHostname}${url}${query}`;
 };
@@ -97,22 +101,26 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
 /**
  * Get a VUEDA detail or detail action URL.
  *
+ * A detail action URL comes from the `modelDetailAction` template. The action's URL segment replaces the template's
+ * `:action_url_path` placeholder.
+ *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
  * @param {string} pk - The primary key.
- * @param {string} [action] - The action name, if any.
+ * @param {string} [urlPath] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
+ *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
-export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {
-    const urlTemplate = getUrl(action ? "modelDetailAction" : "modelDetail");
+export const getDetailUrl = ({ app, model, pk, urlPath, query = "" }) => {
+    const urlTemplate = getUrl(urlPath ? "modelDetailAction" : "modelDetail");
     const appStr = app.toLowerCase();
     const modelStr = getServerRoutePart(model);
     const pkStr = unwrapNested(pk);
-    const actionStr = getServerActionName(action);
+    const urlPathStr = unwrapNested(urlPath);
     let url = urlTemplate.replace(":app", appStr).replace(":model", modelStr).replace(":pk", pkStr);
-    if (actionStr) {
-        url = url.replace(":action_name", actionStr);
+    if (urlPathStr) {
+        url = url.replace(":action_url_path", urlPathStr);
     }
     return `${httpOrHttpsHostname}${url}${unwrapNested(query)}`;
 };

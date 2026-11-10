@@ -24,6 +24,7 @@ vi.mock("@vueda/utils/fetchSupport.js", async () => {
 });
 
 const modelConfig = {
+    loading: false,
     info: { pk: "id", verboseName: "customer", verboseNamePlural: "customers" },
     config: { actionRedirects: { default: "update" }, fetchFields: ["account"], expand: [] },
 };

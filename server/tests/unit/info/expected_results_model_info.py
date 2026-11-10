@@ -62,6 +62,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.distributor",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -242,6 +243,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.optiontype",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -298,6 +300,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.optiontype",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -633,6 +636,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.cart",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -664,6 +668,7 @@ EXPECTED_RESULTS = [
                     "description": "abandoned-carts-count store.cart",
                     "detail": False,
                     "method_names": ["get"],
+                    "url_path": "abandoned_carts_count",
                 },
                 {
                     "name": "create-order",
@@ -671,6 +676,7 @@ EXPECTED_RESULTS = [
                     "description": "create-order store.cart",
                     "detail": True,
                     "method_names": ["post"],
+                    "url_path": "create_order",
                     "parameters": ["pk"],
                 },
                 {
@@ -679,6 +685,7 @@ EXPECTED_RESULTS = [
                     "description": "dry-run-outer store.cart",
                     "detail": False,
                     "method_names": ["post"],
+                    "url_path": "dry_run_outer",
                 },
                 {
                     "name": "dry-run-inner",
@@ -686,6 +693,7 @@ EXPECTED_RESULTS = [
                     "description": "dry-run-inner store.cart",
                     "detail": False,
                     "method_names": ["post"],
+                    "url_path": "dry_run_inner",
                 },
             ],
             "expected_actions_customer": [
@@ -734,6 +742,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.cart",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -742,6 +751,7 @@ EXPECTED_RESULTS = [
                     "description": "abandoned-carts-count store.cart",
                     "detail": False,
                     "method_names": ["get"],
+                    "url_path": "abandoned_carts_count",
                 },
                 {
                     "name": "create-order",
@@ -749,6 +759,7 @@ EXPECTED_RESULTS = [
                     "description": "create-order store.cart",
                     "detail": True,
                     "method_names": ["post"],
+                    "url_path": "create_order",
                     "parameters": ["pk"],
                 },
                 {
@@ -757,6 +768,7 @@ EXPECTED_RESULTS = [
                     "description": "dry-run-outer store.cart",
                     "detail": False,
                     "method_names": ["post"],
+                    "url_path": "dry_run_outer",
                 },
                 {
                     "name": "dry-run-inner",
@@ -764,6 +776,7 @@ EXPECTED_RESULTS = [
                     "description": "dry-run-inner store.cart",
                     "detail": False,
                     "method_names": ["post"],
+                    "url_path": "dry_run_inner",
                 },
             ],
             "expected_expands": [
@@ -1178,6 +1191,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.customerorder",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -1203,6 +1217,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.customerorder",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -1595,6 +1610,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.inventoryrecordreason",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -1806,6 +1822,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.product",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -1831,6 +1848,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.product",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -2401,6 +2419,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.productoption",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -2426,6 +2445,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.productoption",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -3243,6 +3263,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.inventoryrecord",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -4038,6 +4059,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.cartitem",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -4071,6 +4093,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.cartitem",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -4386,6 +4409,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.packingbox",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -4442,6 +4466,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.packingbox",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -4694,6 +4719,7 @@ EXPECTED_RESULTS = [
                     "description": "test-action store.orderitemcompositepk",
                     "detail": False,
                     "method_names": ["post"],
+                    "url_path": "test_action",
                 },
             ],
             "expected_actions_customer": [
@@ -4725,6 +4751,7 @@ EXPECTED_RESULTS = [
                     "description": "test-action store.orderitemcompositepk",
                     "detail": False,
                     "method_names": ["post"],
+                    "url_path": "test_action",
                 },
             ],
             "expected_expands": [
@@ -5117,6 +5144,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.ordercompositepk",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -5173,6 +5201,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.ordercompositepk",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -5423,6 +5452,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.distributorproxy",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
             ],
@@ -5603,6 +5633,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.note",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {
@@ -5659,6 +5690,7 @@ EXPECTED_RESULTS = [
                     "description": "history-list store.note",
                     "detail": True,
                     "method_names": ["get"],
+                    "url_path": "history_list",
                     "parameters": ["pk"],
                 },
                 {

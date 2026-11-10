@@ -6,6 +6,7 @@ import { reactive } from "vue";
 
 const mocks = vi.hoisted(() => {
     const modelConfig = {
+        loading: false,
         info: { verboseName: "person", verboseNamePlural: "people" },
         config: { actionRedirects: { default: "detail" } },
     };
@@ -72,6 +73,7 @@ function createFetchState(objectsInOrder = [{ id: 1 }, { id: 2 }]) {
 
 describe("lib/use/useModelAction.js", () => {
     beforeEach(() => {
+        modelConfig.loading = false;
         modelConfig.info = { verboseName: "person", verboseNamePlural: "people" };
         modelConfig.config = { actionRedirects: { default: "detail" } };
         mocks.fallbackList = createInstanceStub();
@@ -169,6 +171,7 @@ describe("lib/use/useModelAction.js", () => {
 
             expect(instanceList.executeAction).toHaveBeenCalledWith({
                 action: "archive",
+                urlPath: "archive",
                 pks: [4, 7],
                 requestMethod: "PATCH",
                 formData: { reason: "stale" },
@@ -188,10 +191,97 @@ describe("lib/use/useModelAction.js", () => {
 
             expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith({
                 action: "archive",
-                requestMethod: undefined,
+                urlPath: "archive",
+                requestMethod: "PUT",
                 formData: undefined,
                 dryRun: false,
                 acknowledgeWarnings: undefined,
+            });
+        });
+
+        describe("URL segment and method from model info", () => {
+            beforeEach(() => {
+                modelConfig.info = {
+                    verboseName: "invoice",
+                    verboseNamePlural: "invoices",
+                    actions: [
+                        { name: "send", detail: true, bulk: false, methodNames: ["post"], urlPath: "send" },
+                        { name: "mark-paid", detail: true, bulk: false, methodNames: ["put"], urlPath: "mark_paid" },
+                        {
+                            name: "settle",
+                            detail: true,
+                            bulk: true,
+                            methodNames: ["get", "patch"],
+                            urlPath: "settle-up",
+                        },
+                    ],
+                };
+            });
+
+            scopedIt("sends POST, for the dry run and the confirmed request, to a POST-only action", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(reactive({ app: "billing", model: "invoice", action: "send", pk: "9" })),
+                );
+
+                await modelAction.runAction({ dryRun: true });
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledTimes(2);
+                for (const [args] of mocks.instanceObject.executeAction.mock.calls) {
+                    expect(args).toMatchObject({ action: "send", urlPath: "send", requestMethod: "POST" });
+                }
+            });
+
+            scopedIt("sends a detail action to its reported urlPath", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(reactive({ app: "billing", model: "invoice", action: "mark-paid", pk: "9" })),
+                );
+
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({ action: "mark-paid", urlPath: "mark_paid", requestMethod: "PUT" }),
+                );
+            });
+
+            scopedIt("sends a bulk action to its reported urlPath with its first write method", async () => {
+                const instanceList = createInstanceStub();
+                const modelAction = await withSetup(() =>
+                    useModelAction(
+                        reactive({
+                            app: "billing",
+                            model: "invoice",
+                            action: "settle",
+                            instanceList,
+                            fetchState: createFetchState([{ id: 4 }, { id: 7 }]),
+                        }),
+                    ),
+                );
+
+                await modelAction.runAction({});
+
+                expect(instanceList.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        action: "settle",
+                        urlPath: "settle-up",
+                        pks: [4, 7],
+                        requestMethod: "PATCH",
+                    }),
+                );
+            });
+
+            scopedIt("sends the requestMethod prop instead of the reported method", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(
+                        reactive({ app: "billing", model: "invoice", action: "send", pk: "9", requestMethod: "PUT" }),
+                    ),
+                );
+
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({ urlPath: "send", requestMethod: "PUT" }),
+                );
             });
         });
 
@@ -276,6 +366,14 @@ describe("lib/use/useModelAction.js", () => {
             expect(modelAction.state.readyToDryRun.value).toBe(true);
             await modelAction.runAction({ dryRun: true });
             expect(modelAction.state.readyToDryRun.value).toBe(true);
+        });
+
+        scopedIt("waits for model info to load", async () => {
+            modelConfig.loading = true;
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
         });
 
         scopedIt("stays false when dry runs are disabled", async () => {

@@ -88,7 +88,7 @@ The all-pages promise resolves when every page has arrived. The first failure on
 
 `defaultObjectsDelete` deletes several objects. It sends `DELETE` to the list URL with the JSON body `{ pks: [...], ...formData }`.
 
-`defaultListExecuteAction` runs a named action on several objects. It sends `{ pks: [...], ...formData }` to the model's list action URL. The method is `PUT` unless the caller passes `requestMethod`.
+`defaultListExecuteAction` runs a named action on several objects. It sends `{ pks: [...], ...formData }` to the model's list action URL. The URL's action segment is `urlPath`, which defaults to `action`. The method is `PUT` unless the caller passes `requestMethod`. {@api js:function:@arrai-innovations/vueda/use/useModelAction#useModelAction} gives both execute adapters the `urlPath` that model info reports for the action, and a method that the action accepts.
 
 Both send the CSRF token. When `dryRun` is set, they send the `Dry-Run: true` header, which asks the server for a {@term Dry Run}. When the caller passes an `acknowledgeWarnings` digest, they send it as the `Acknowledge-Warnings` header, which answers a {@term Warning Confirmation}. [Action Contract and Availability](./action-contract-and-availability.md#dry-run-and-mutation-semantics) describes which endpoints honor a dry run.
 
@@ -96,14 +96,14 @@ Both send the CSRF token. When `dryRun` is set, they send the `Dry-Run: true` he
 
 `setupDefaultObjectCrud` registers six adapters:
 
-| Adapter                                                                                 | Request                                                                                 |
-| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}      | `GET` to the detail URL                                                                 |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}        | `POST` to the list URL; to the detail action URL when `target` has `pk` and `action`    |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate}        | `PUT` to the detail URL for `object[pkKey]`                                             |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectPatch}         | `PATCH` to the detail URL for `pk`, with `partialObject` as the body                    |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}        | `DELETE` to the detail URL, with `formData` as a JSON body when passed                  |
-| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectExecuteAction} | The action name as the detail URL's action segment; `PUT` unless `requestMethod` is set |
+| Adapter                                                                                 | Request                                                                                                   |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectRetrieve}      | `GET` to the detail URL                                                                                   |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectCreate}        | `POST` to the list URL; to the detail action URL when `target` has `pk` and `action`                      |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectUpdate}        | `PUT` to the detail URL for `object[pkKey]`                                                               |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectPatch}         | `PATCH` to the detail URL for `pk`, with `partialObject` as the body                                      |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectDelete}        | `DELETE` to the detail URL, with `formData` as a JSON body when passed                                    |
+| {@api js:function:@arrai-innovations/vueda/utils/objectCrud#defaultObjectExecuteAction} | `urlPath` as the detail URL's action segment, defaulting to `action`; `PUT` unless `requestMethod` is set |
 
 Retrieve, create, update, and patch add `params` to the URL only when the fields parameter `f` or the expand parameter `e` has entries. Create, update, and patch send the CSRF token. They choose between a JSON body and a multipart body, as [Multipart Saves](#multipart-saves) describes. These three send the `Acknowledge-Warnings` header when the caller passes a digest. Delete and execute action send the CSRF token, the `Dry-Run` header, and the `Acknowledge-Warnings` header, as the list adapters do.
 

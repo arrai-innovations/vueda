@@ -87,6 +87,13 @@ class ModelInfoActionSerializer(serializers.Serializer):
         required=False,
         help_text="Additional parameters needed to call the action, such as `pk`.",
     )
+    url_path = serializers.CharField(
+        required=False,
+        help_text=(
+            "URL segment that the router serves an extra action at, from the `url_path` argument of `@action`. "
+            "It defaults to the action's method name. Present on extra actions only."
+        ),
+    )
 
 
 class ModelInfoFieldSerializer(serializers.Serializer):
@@ -319,6 +326,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                         "args",
                         "kwargs",
                     ],
+                    "url_path": "history_list",
                 },
             ],
         },

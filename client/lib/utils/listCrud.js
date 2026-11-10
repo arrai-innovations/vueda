@@ -94,7 +94,9 @@ export function singlePagePaginatedListCrudAdaptor({
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, pk, action, resultsKey = "results" } = target;
     const query = makeSearchParamsString(params, repeatedParams);
-    const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
+    const url = pk
+        ? getDetailUrl({ app, model, pk, urlPath: action, query })
+        : getListUrl({ app, model, urlPath: action, query });
     if (!params?.[PAGE_PARAM] || params?.[PAGE_PARAM] === 1) {
         clearObjects();
     }
@@ -158,7 +160,9 @@ export function allPagePaginatedListCrudAdaptor({
     setColumnTotals,
 }) {
     const { app, model, pk, action, resultsKey = "results" } = target;
-    const baseUrl = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
+    const baseUrl = pk
+        ? getDetailUrl({ app, model, pk, urlPath: action })
+        : getListUrl({ app, model, urlPath: action });
     clearObjects();
     const controller = new AbortController();
     const limit = pLimit(4);
@@ -260,7 +264,7 @@ export function allPagePaginatedListCrudAdaptor({
 export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
-    const url = getListUrl({ app, model, action });
+    const url = getListUrl({ app, model, urlPath: action });
     return cancellableFetch(
         url,
         {
@@ -290,7 +294,9 @@ export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledg
  *    model: string,
  * }} args.target - The arguments for the CRUD operation.
  * @param {string[]} args.pks - The PKs of the objects to act on.
- * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} args.action - The action name, as model info reports it.
+ * @param {string} [args.urlPath] - The url's action segment. `useModelAction` passes the `urlPath` that model info
+ *  reports for the action. Defaults to `action`.
  * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
  * @param {object} [args.formData] - Form values submitted with the action, merged into the request body.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
@@ -302,6 +308,7 @@ export function defaultListExecuteAction({
     target,
     pks,
     action,
+    urlPath = action,
     requestMethod = "PUT",
     formData,
     dryRun,
@@ -309,7 +316,7 @@ export function defaultListExecuteAction({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model } = target;
-    const url = getListUrl({ app, model, action });
+    const url = getListUrl({ app, model, urlPath });
     return cancellableFetch(
         url,
         {

@@ -142,6 +142,7 @@ const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 
 const modelConfig = {
+    loading: false,
     info: { verboseName: "Person", verboseNamePlural: "People" },
     config: { actionRedirects: { default: "detail" } },
 };

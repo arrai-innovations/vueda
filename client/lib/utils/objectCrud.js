@@ -51,7 +51,7 @@ export function defaultObjectRetrieve({ target, pk, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = params ? makeSearchParamsString(params) : "";
-    const url = getDetailUrl({ app, model, pk, action, query });
+    const url = getDetailUrl({ app, model, pk, urlPath: action, query });
 
     return cancellableFetch(
         url,
@@ -87,7 +87,9 @@ export function defaultObjectCreate({ target, object, params, acknowledgeWarning
     const { app, model, action, pk } = target;
     const query = params ? makeSearchParamsString(params) : "";
     const controller = new AbortController();
-    const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
+    const url = pk
+        ? getDetailUrl({ app, model, pk, urlPath: action, query })
+        : getListUrl({ app, model, urlPath: action, query });
 
     const body = encodeObjectBody(object);
     const headers = {
@@ -147,7 +149,7 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params, ackn
     const { app, model, action } = target;
     const pk = object[pkKey];
     const query = params ? makeSearchParamsString(params) : "";
-    const url = getDetailUrl({ app, model, pk, action, query });
+    const url = getDetailUrl({ app, model, pk, urlPath: action, query });
 
     const body = encodeObjectBody(object);
     const headers = {
@@ -203,7 +205,7 @@ export function defaultObjectPatch({ target, pk, partialObject, params, acknowle
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = params ? makeSearchParamsString(params) : "";
-    const url = getDetailUrl({ app, model, pk, action, query });
+    const url = getDetailUrl({ app, model, pk, urlPath: action, query });
 
     const body = encodeObjectBody(partialObject);
     const headers = {
@@ -256,7 +258,7 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
     const query = deleteArgs ? makeSearchParamsString(deleteArgs) : "";
-    const url = getDetailUrl({ app, model, pk, action, query });
+    const url = getDetailUrl({ app, model, pk, urlPath: action, query });
 
     return cancellableFetch(
         url,
@@ -282,7 +284,9 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
  * @param {object} args - The arguments object.
  * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {string} args.pk - The primary key of the object to act on.
- * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} args.action - The action name, as model info reports it.
+ * @param {string} [args.urlPath] - The url's action segment. `useModelAction` passes the `urlPath` that model info
+ *  reports for the action. Defaults to `action`.
  * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
  * @param {object} [args.formData] - Form values submitted with the action, sent as the request body.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
@@ -293,6 +297,7 @@ export function defaultObjectExecuteAction({
     target,
     pk,
     action,
+    urlPath = action,
     requestMethod = "PUT",
     formData,
     dryRun,
@@ -300,7 +305,7 @@ export function defaultObjectExecuteAction({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model } = target;
-    const url = getDetailUrl({ app, model, pk, action });
+    const url = getDetailUrl({ app, model, pk, urlPath });
 
     return cancellableFetch(
         url,

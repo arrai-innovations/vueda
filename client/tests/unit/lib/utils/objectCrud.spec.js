@@ -77,7 +77,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "1",
-                action: undefined,
+                urlPath: undefined,
                 query: "?f=id&e=owner",
             });
         });
@@ -173,7 +173,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "2",
-                action: undefined,
+                urlPath: undefined,
                 query: "?f=id&e=owner",
             });
             expect(result).toEqual({ id: 1 });
@@ -288,7 +288,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "7",
-                action: undefined,
+                urlPath: undefined,
                 query: "?f=id&e=owner",
             });
         });
@@ -401,7 +401,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: 2,
-                action: undefined,
+                urlPath: undefined,
                 query: "?f=id&e=owner",
             });
         });
@@ -448,7 +448,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "article-123",
-                action: undefined,
+                urlPath: undefined,
                 query: "",
             });
         });
@@ -551,7 +551,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "3",
-                action: undefined,
+                urlPath: undefined,
                 query: "?f=id&foo=bar",
             });
             expect(result).toBeUndefined();
@@ -570,7 +570,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "4",
-                action: undefined,
+                urlPath: undefined,
                 query: "",
             });
             expect(result).toBeUndefined();
@@ -665,13 +665,34 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "3",
-                action: "archive",
+                urlPath: "archive",
             });
             expect(captured.url).toBe("detail-action-url");
             expect(captured.options).toMatchObject({ method: "POST", credentials: "include" });
             expect(captured.options.headers).toMatchObject({ "Dry-Run": "true", "Acknowledge-Warnings": "d1" });
             expect(JSON.parse(captured.options.body)).toEqual({ reason: "stale" });
             expect(result).toEqual({ archived: true });
+        });
+
+        it("builds the detail action url from urlPath", async () => {
+            getDetailUrl.mockReturnValue("detail-action-url");
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                Promise.resolve(transform(new Response(null, { status: 204 }))),
+            );
+
+            await objectCrud.defaultObjectExecuteAction({
+                target: { app: "billing", model: "invoice" },
+                pk: "3",
+                action: "settle",
+                urlPath: "settle-up",
+            });
+
+            expect(getDetailUrl).toHaveBeenCalledWith({
+                app: "billing",
+                model: "invoice",
+                pk: "3",
+                urlPath: "settle-up",
+            });
         });
 
         it("defaults to PUT and sends no body without form data", async () => {

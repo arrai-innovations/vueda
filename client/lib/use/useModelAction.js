@@ -4,6 +4,7 @@
  */
 import { useListInstance, useObjectInstance } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { getActionRequestMethod } from "@vueda/utils/actionMap.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import startCase from "lodash-es/startCase.js";
@@ -25,7 +26,8 @@ import { useRoute, useRouter } from "vue-router";
  *  instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
  *  Omit it to use a private transport-only list.
  * @property {(values: object) => object} [transformSubmitDataFn] - Optional form-value transform.
- * @property {string} [requestMethod] - HTTP method used for non-destroy action requests.
+ * @property {string} [requestMethod] - HTTP method used for non-destroy action requests. Without it, the method comes
+ *  from the action's `methodNames` in model info, through {@link getActionRequestMethod}.
  * @property {boolean} [enableDryRun] - Whether to perform dry-run validation.
  * @property {"info"|"success"|"warning"|"danger"|"neutral"} [tone] - Sentiment tone.
  * @property {string} [bannerTitle] - Optional banner title.
@@ -59,7 +61,8 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('vue').ComputedRef<string>} bannerDescription - Banner description.
  * @property {import('vue').ComputedRef<string>} bannerIconName - Icon name for the current tone.
  * @property {import('vue').ComputedRef<boolean>} readyToDryRun - Whether the action can run a dry-run request right now
- *  (a target is present, dry-run is enabled, and the action instance is idle). Carries no per-target memory of its
+ *  (a target is present, dry-run is enabled, model info has loaded, and the action instance is idle). Model info gives
+ *  the action's URL segment and request method, so the dry run waits for it. Carries no per-target memory of its
  *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
  * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys, for a
  *  consumer to key its own "already dry-ran this one" bookkeeping off of.
@@ -132,6 +135,12 @@ export function useModelAction(props) {
     });
     const actionInstance = computed(() => (bulk.value ? instanceList : instanceObject));
 
+    // The action's model info entry gives the URL segment that the router serves the action at, and the HTTP methods
+    // that the action accepts. An action that model info does not list uses its name as the URL segment.
+    const actionInfo = computed(() => modelConfig.info?.actions?.find((action) => action.name === props.action));
+    const urlPath = computed(() => actionInfo.value?.urlPath ?? props.action);
+    const requestMethod = computed(() => props.requestMethod ?? getActionRequestMethod(actionInfo.value?.methodNames));
+
     const modelVerboseName = computed(() =>
         bulk.value
             ? modelConfig.info?.verboseNamePlural || getLowerTitle(getPluralizedTitle(props.model))
@@ -189,7 +198,9 @@ export function useModelAction(props) {
         }
     });
 
-    // Dry-run readiness waits for both a target and an idle action instance. It carries no per-target memory of its
+    // Dry-run readiness waits for a target, loaded model info, and an idle action instance. Model info gives the
+    // action's URL segment and request method, so a dry run sent before it loads would go to the wrong URL or use the
+    // wrong method. Readiness carries no per-target memory of its
     // own -- the dry run itself toggles instance loading, so without a latch somewhere the readiness watcher would
     // retrigger for the same target. `dryRunTarget` gives a consumer (`useActionForm`'s dry-run watcher) an identity
     // to latch against instead.
@@ -215,6 +226,7 @@ export function useModelAction(props) {
                 props.model &&
                 props.action &&
                 props.enableDryRun !== false &&
+                modelConfig.loading === false &&
                 pks.value.length > 0 &&
                 !actionInstance.value?.state?.loading
             ),
@@ -287,13 +299,19 @@ export function useModelAction(props) {
                     : instance.executeAction({
                           ...shared,
                           action: props.action,
+                          urlPath: urlPath.value,
                           pks: runPks,
-                          requestMethod: props.requestMethod,
+                          requestMethod: requestMethod.value,
                       });
             } else {
                 result = isDestroy
                     ? instance.delete({ ...shared, keepObject: dryRun })
-                    : instance.executeAction({ ...shared, action: props.action, requestMethod: props.requestMethod });
+                    : instance.executeAction({
+                          ...shared,
+                          action: props.action,
+                          urlPath: urlPath.value,
+                          requestMethod: requestMethod.value,
+                      });
             }
 
             const promise = Promise.resolve(result).then((response) => {

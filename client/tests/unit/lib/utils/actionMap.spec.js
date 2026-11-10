@@ -1,4 +1,4 @@
-import { getActionName, getViewName, unroutedActionNames } from "@vueda/utils/actionMap.js";
+import { getActionName, getActionRequestMethod, getViewName, unroutedActionNames } from "@vueda/utils/actionMap.js";
 
 describe("lib/utils/actionMap.js", () => {
     it("maps read to retrieve", () => {
@@ -20,5 +20,29 @@ describe("lib/utils/actionMap.js", () => {
     it("lists partial_update as an action without a client route", () => {
         expect(unroutedActionNames.has("partial_update")).toBe(true);
         expect(unroutedActionNames.has("update")).toBe(false);
+    });
+
+    describe("getActionRequestMethod", () => {
+        it("chooses PUT when the action accepts it", () => {
+            expect(getActionRequestMethod(["post", "put", "delete"])).toBe("PUT");
+        });
+
+        it("chooses the only write method that the action accepts", () => {
+            expect(getActionRequestMethod(["post"])).toBe("POST");
+        });
+
+        it("skips read methods to reach the first write method", () => {
+            expect(getActionRequestMethod(["get", "head", "options", "post"])).toBe("POST");
+        });
+
+        it("chooses the first write method in list order", () => {
+            expect(getActionRequestMethod(["delete", "patch"])).toBe("DELETE");
+        });
+
+        it("chooses PUT when the action lists no write method", () => {
+            expect(getActionRequestMethod(["get"])).toBe("PUT");
+            expect(getActionRequestMethod([])).toBe("PUT");
+            expect(getActionRequestMethod()).toBe("PUT");
+        });
     });
 });
