@@ -77,6 +77,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} typeSerializer - The serializer type of the field.
  * @property {boolean} many - A boolean indicating whether the field is a `ListField` or relation with multiple entries.
  * @property {boolean} readOnly - A boolean indicating whether the field is read-only.
+ * @property {string[]} [readOnlyActions] - The write actions that cannot set the field, such as `["update", "partial_update"]`. The server sends this key only when the field is writable for some actions and locked for others.
  * @property {boolean} required - A boolean indicating whether the field is required.
  * @property {string} [helpText] - The help text for the field.
  * @property {number} [maxValue] - The maximum value allowed for the field.
@@ -123,6 +124,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * @typedef {object} ExpandInfo
  * @property {string} name - The name of the expand field.
+ * @property {boolean} readOnly - Whether every write ignores the expanded object.
+ * @property {string[]} [readOnlyActions] - The write actions that ignore the expanded object, such as `["update", "partial_update"]`. The server sends this key only when the expand is writable for some actions and locked for others.
+ * @property {boolean} many - Whether the expand holds a list of objects.
  * @property {string[]} [fields] - An array of field names that can be expanded.
  * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects for the expanded model.
  * @property {string} [appLabel] - The app label of the expanded (related) model.

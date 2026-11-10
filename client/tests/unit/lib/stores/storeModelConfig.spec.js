@@ -1133,6 +1133,116 @@ describe("lib/stores/storeModelConfig.js", () => {
         });
     });
 
+    describe("fields and expands locked for one write action", () => {
+        // A timesheet whose serializer locks `employee` for update and `supervisor` for create, and
+        // declares an expand for each. `boss` expands `supervisor` through its `source`.
+        const field = (label, extra = {}) => ({ label, many: false, readOnly: false, required: false, ...extra });
+        const expand = (name, extra = {}) => ({
+            name,
+            readOnly: false,
+            many: false,
+            appLabel: "empl",
+            model: "employee",
+            f: { id: field("ID", { readOnly: true, pk: true }), number: field("Number") },
+            ...extra,
+        });
+        const updateActions = ["update", "partial_update"];
+        const lockedModelInfo = {
+            ...dummyModelInfo,
+            fields: {
+                id: field("ID", { readOnly: true, pk: true }),
+                period_start: field("Period Start"),
+                employee: field("Employee", { readOnlyActions: updateActions }),
+                supervisor: field("Supervisor", { readOnlyActions: ["create"] }),
+                created_at: field("Created At", { readOnly: true }),
+            },
+            expand: [
+                expand("employee", { readOnlyActions: updateActions }),
+                expand("supervisor", { readOnlyActions: ["create"] }),
+                expand("boss", { readOnlyActions: ["create"] }),
+            ],
+        };
+
+        beforeEach(() => {
+            mockedFetchModelInfo.mockResolvedValue(lockedModelInfo);
+        });
+
+        const getConfig = (view, genericConfig, specificConfigs) => {
+            const store = storeModelConfig();
+            if (genericConfig || specificConfigs) {
+                store.setConfig({ app: "testApp", model: "testModel" }, genericConfig || {}, specificConfigs);
+            }
+            return store.getConfig({ app: "testApp", model: "testModel", view });
+        };
+
+        scopedIt("leaves a create-locked field out of the create form", async () => {
+            const config = await getConfig("create");
+            expect(config.displayFields).toEqual(["period_start", "employee"]);
+            expect(config.submitFields).toEqual(["period_start", "employee"]);
+            expect(config.fieldDetails.supervisor.readOnly).toBe(true);
+            expect(config.fieldDetails.employee.readOnly).toBe(false);
+        });
+
+        scopedIt("shows an update-locked field read-only on the update form and does not submit it", async () => {
+            const config = await getConfig("update");
+            expect(config.displayFields).toEqual(["period_start", "employee", "supervisor", "created_at"]);
+            expect(config.submitFields).toEqual(["period_start", "supervisor"]);
+            expect(config.fieldDetails.employee.readOnly).toBe(true);
+            expect(config.fieldDetails.supervisor.readOnly).toBe(false);
+        });
+
+        scopedIt("marks the expands that each form view's action locks read-only", async () => {
+            const update = await getConfig("update");
+            expect(update.expandDetails.employee.readOnly).toBe(true);
+            expect(update.expandDetails.supervisor.readOnly).toBe(false);
+            expect(update.expandDetails.boss.readOnly).toBe(false);
+
+            const create = await getConfig("create");
+            expect(create.expandDetails.employee.readOnly).toBe(false);
+            expect(create.expandDetails.supervisor.readOnly).toBe(true);
+            expect(create.expandDetails.boss.readOnly).toBe(true);
+        });
+
+        scopedIt("renders a configured expand of a locked field read-only", async () => {
+            const update = await getConfig("update", { expand: ["employee"] });
+            expect(update.fieldDetails.employee.readOnly).toBe(true);
+            expect(update.fieldDetails["employee.number"].readOnly).toBe(false);
+            expect(update.submitFields).not.toContain("employee");
+
+            const create = await getConfig("create", { expand: ["boss"] });
+            expect(create.fieldDetails.boss.readOnly).toBe(true);
+        });
+
+        scopedIt("leaves the list and read views unchanged", async () => {
+            for (const view of ["list", "read", null]) {
+                const config = await getConfig(view);
+                expect(config.displayFields).toEqual(["period_start", "employee", "supervisor", "created_at"]);
+                expect(config.submitFields).toEqual(["period_start", "employee", "supervisor"]);
+                expect(config.fieldDetails.employee.readOnly).toBe(false);
+                expect(config.fieldDetails.supervisor.readOnly).toBe(false);
+                expect(config.expandDetails.employee.readOnly).toBe(false);
+                expect(config.expandDetails.supervisor.readOnly).toBe(false);
+            }
+        });
+
+        scopedIt("lets a model-wide config override the defaults for a locked field", async () => {
+            const config = await getConfig("update", {
+                fieldDetails: { employee: { readOnly: false } },
+                expandDetails: { employee: { readOnly: false } },
+                submitFields: ["period_start", "employee"],
+            });
+            expect(config.fieldDetails.employee.readOnly).toBe(false);
+            expect(config.expandDetails.employee.readOnly).toBe(false);
+            expect(config.submitFields).toEqual(["period_start", "employee"]);
+        });
+
+        scopedIt("lets a model-wide displayFields show a create-locked field", async () => {
+            const config = await getConfig("create", { displayFields: ["period_start", "supervisor"] });
+            expect(config.displayFields).toEqual(["period_start", "supervisor"]);
+            expect(config.fieldDetails.supervisor.readOnly).toBe(true);
+        });
+    });
+
     describe("Caching and concurrency", () => {
         scopedIt("caches the built configuration", async () => {
             const store = storeModelConfig();

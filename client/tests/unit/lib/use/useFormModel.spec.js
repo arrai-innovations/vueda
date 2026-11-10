@@ -501,6 +501,109 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.fieldComponents.department).toBe(availableFields.FieldSetSingularStackedInline);
         });
     });
+    describe("fields and expands locked for one write action", () => {
+        // Model info for a timesheet whose serializer locks `employee` for update and `supervisor`
+        // for create, with an expand of each.
+        const relation = (name, readOnlyActions) => ({
+            name,
+            label: name,
+            typeSerializer: "PrimaryKeyRelatedField",
+            typeModel: "ForeignKey",
+            many: false,
+            choices: true,
+            readOnly: false,
+            required: false,
+            readOnlyActions,
+        });
+        const expand = (name, readOnlyActions) => ({
+            name,
+            readOnly: false,
+            many: false,
+            appLabel: "empl",
+            model: "employee",
+            readOnlyActions,
+            f: {
+                number: {
+                    name: "number",
+                    typeSerializer: "CharField",
+                    typeModel: "CharField",
+                    many: false,
+                    readOnly: false,
+                },
+            },
+        });
+        const lockedModelInfo = {
+            pk: "id",
+            fields: {
+                id: { name: "id", typeSerializer: "IntegerField", typeModel: "AutoField", readOnly: true, pk: true },
+                employee: relation("employee", ["update", "partial_update"]),
+                supervisor: relation("supervisor", ["create"]),
+            },
+            expand: [expand("employee", ["update", "partial_update"]), expand("supervisor", ["create"])],
+            actions: [],
+        };
+
+        /**
+         * Build form state from the config that the real model config store builds for a view.
+         *
+         * @param {string} view - The form's view.
+         * @param {string[]} configExpand - The model config's `expand`.
+         * @returns {Promise<object>} The form state.
+         */
+        async function buildLockedForm(view, configExpand = []) {
+            vi.doMock("@vueda/stores/storeModelInfo.js", () => ({
+                storeModelInfo: () => ({ fetchModelInfo: vi.fn().mockResolvedValue(lockedModelInfo) }),
+            }));
+            const { createPinia, setActivePinia } = await import("pinia");
+            setActivePinia(createPinia());
+            const { storeModelConfig } = await import("@vueda/stores/storeModelConfig.js");
+            const store = storeModelConfig();
+            store.setConfig({ app: "foo", model: "bar" }, { expand: configExpand });
+            modelConfig.config = await store.getConfig({ app: "foo", model: "bar", view });
+
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const props = makeBaseProps({
+                view,
+                fields: ["employee", "supervisor"],
+                expand: undefined,
+                fieldDetails: undefined,
+                expandDetails: undefined,
+            });
+            const state = await withSetup(() => useFormModel(props));
+            await flushPromises();
+            return state;
+        }
+
+        scopedIt("renders an update-locked field read-only on the update form", async () => {
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const state = await buildLockedForm("update");
+
+            expect(state.widgetComponents.employee).toBe(availableWidgets.WidgetReadOnly);
+            expect(state.fieldProps.employee.readOnly).toBe(true);
+            expect(state.fieldProps.supervisor.readOnly).toBe(false);
+        });
+
+        scopedIt("renders the inline of an update-locked expand read-only on the update form", async () => {
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+            const state = await buildLockedForm("update", ["employee", "supervisor"]);
+
+            expect(state.fieldComponents.employee).toBe(availableFields.FieldSetSingularStackedInline);
+            expect(state.fieldProps.employee.readOnly).toBe(true);
+            expect(state.fieldProps.supervisor.readOnly).toBe(false);
+        });
+
+        scopedIt("renders the inline of a create-locked expand read-only on the create form", async () => {
+            const { availableFields } = await import("@vueda/utils/formLookups.js");
+
+            const state = await buildLockedForm("create", ["employee", "supervisor"]);
+
+            expect(state.fieldComponents.supervisor).toBe(availableFields.FieldSetSingularStackedInline);
+            expect(state.fieldProps.supervisor.readOnly).toBe(true);
+            expect(state.fieldProps.employee.readOnly).toBe(false);
+        });
+    });
     describe("reverse foreign key", () => {
         const relationDetail = (typeModel, extra = {}) => ({
             name: "items",

@@ -48,7 +48,7 @@ import { defineStore } from "pinia";
  * @property {string[]} displayFields - field names to display by default
  * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
  * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key. Create and update views leave out a reverse foreign key that the form's `expand` does not name, because forms show that field read-only.
+ * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key. Create and update views leave out a reverse foreign key that the form's `expand` does not name, because forms show that field read-only. Each view's default also leaves out a field that model info locks for that view's write action in `readOnlyActions`.
  * @property {string[]} expand - field names to expand; empty unless the model config names some
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
@@ -109,6 +109,34 @@ import { defineStore } from "pinia";
  * @property {{[fieldName:string]: object}} [columnProps] - extra props to pass a field's list column adapter, by field name
  * @property {object} [actionRedirects] - action-specific redirect mapping to merge with defaults.
  */
+
+/**
+ * Build the default config for one form view from the locks that model info reports for its write action.
+ *
+ * The server reports a lock in `readOnlyActions`, on a field entry or on an expand entry. A field or
+ * expand that is read-only for every action has `readOnly` set instead, and needs no lock here.
+ *
+ * The config marks each locked field and expand `readOnly`, so the form renders it read-only. Its
+ * `submitFields` leaves out the locked fields. A create form also leaves them out of `displayFields`,
+ * because it has no value to show for them yet.
+ *
+ * @param {import('@vueda/stores/storeModelInfo.js').ModelInfo} modelInfo - The model info to read.
+ * @param {string[]} writableFields - The visible field names that are not read-only for every action.
+ * @param {"create"|"update"} action - The write action that the view sends. It also names the view.
+ * @returns {OverridingModelConfig} The view's default config.
+ */
+const getWriteViewDefaults = (modelInfo, writableFields, action) => {
+    const isLocked = (info) => info?.readOnlyActions?.includes(action) === true;
+    const lockedFields = Object.keys(modelInfo.fields).filter((f) => isLocked(modelInfo.fields[f]));
+    const lockedExpands = modelInfo.expand.filter(isLocked).map((e) => e.name);
+    const submitFields = writableFields.filter((f) => !lockedFields.includes(f));
+    return {
+        ...(action === "create" ? { displayFields: submitFields } : {}),
+        submitFields,
+        fieldDetails: Object.fromEntries(lockedFields.map((f) => [f, { readOnly: true }])),
+        expandDetails: Object.fromEntries(lockedExpands.map((e) => [e, { readOnly: true }])),
+    };
+};
 
 /**
  * Get a default configuration object for a model based on model info.
@@ -205,9 +233,11 @@ const getDefaultFromModelInfo = (modelInfo) => {
             },
         },
         {
-            // Field lists here are fallbacks only: `mergeSimpleProperties` uses them when no custom
-            // config names the list or the `fields` shorthand, so they never override an integrator.
-            create: { displayFields: writableFields },
+            // Field lists and details here are fallbacks only. The merge steps apply them below any
+            // custom config, and use a field list only when no custom config names the list or the
+            // `fields` shorthand. They never override an integrator.
+            create: getWriteViewDefaults(modelInfo, writableFields, "create"),
+            update: getWriteViewDefaults(modelInfo, writableFields, "update"),
             list: { displayFields: listFields },
         },
     ];
@@ -485,7 +515,8 @@ const flattenExpansionDetails = (
             ...defaultGenericFieldDetail,
             ...defaultGenericExpand,
         };
-        const configsInPriorityOrder = [customGenericExpand, defaultSpecificExpand, customSpecificExpand];
+        // A view's default details sit below both custom configs, so an integrator's model-wide override wins.
+        const configsInPriorityOrder = [defaultSpecificExpand, customGenericExpand, customSpecificExpand];
 
         // merge the expand details
         // keys of f merge, all other keys replace, as we expect non object values
@@ -562,7 +593,8 @@ const mergeDeepProperties = (
         const newDetailsObject = {
             ...defaultGenericDetails,
         };
-        const configsInPriorityOrder = [genericDetails, defaultSpecificDetails, specificDetails];
+        // A view's default details sit below both custom configs, so an integrator's model-wide override wins.
+        const configsInPriorityOrder = [defaultSpecificDetails, genericDetails, specificDetails];
         for (const overridingConfig of configsInPriorityOrder) {
             for (const fieldName in overridingConfig) {
                 if (fieldName in newDetailsObject) {
