@@ -80,7 +80,7 @@ class ModelInfoActionSerializer(serializers.Serializer):
     bulk = serializers.BooleanField(help_text="Whether the action acts on several objects at once.")
     method_names = serializers.ListField(
         child=serializers.ChoiceField(choices=["get", "post", "put", "patch", "delete"]),
-        help_text="HTTP methods the action accepts.",
+        help_text="HTTP methods of the action that the requesting user passes the permission check for.",
     )
     parameters = serializers.ListField(
         child=serializers.CharField(),

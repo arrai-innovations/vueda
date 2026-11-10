@@ -737,13 +737,6 @@ EXPECTED_RESULTS = [
                     "parameters": ["pk"],
                 },
                 {
-                    "name": "abandoned-carts-count",
-                    "bulk": False,
-                    "description": "abandoned-carts-count store.cart",
-                    "detail": False,
-                    "method_names": ["get"],
-                },
-                {
                     "name": "create-order",
                     "bulk": False,
                     "description": "create-order store.cart",
