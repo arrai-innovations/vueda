@@ -54,7 +54,7 @@ To correct a field inside an [expand]{@term Expand}, override `get_field_model_i
 
 ## Add Display-Only Value Labels
 
-Set `field_display_choices` when a stored value needs a read-only label but should stay an ordinary editable field. For example, a boolean can keep its toggle widget and still show domain labels in read-only views:
+Set `field_display_choices` when a stored value needs a read-only label but should stay an ordinary editable field. For example, a boolean can keep its toggle widget and still show domain labels in read views and lists:
 
 ```python
 class SubmissionSerializer(VuedaSerializer):
@@ -71,7 +71,7 @@ class SubmissionSerializer(VuedaSerializer):
         fields = ["id", "submitted"] + VuedaSerializer.Meta.fields
 ```
 
-The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels only when it shows the field read-only. They do not change serializer validation, model choices, or the editable widget.
+The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels in read views and in list columns. They do not change serializer validation, model choices, or the editable widget.
 
 A field that declares its own choices, such as a model field with `choices`, needs no `field_display_choices`. Its `choices` entry already holds the labels, and the client shows them when the field is read-only. When a serializer sets `field_display_choices` for such a field, the `display_choices` labels take precedence in read-only views.
 

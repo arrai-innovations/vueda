@@ -1,4 +1,10 @@
-import { choiceDisplay, choiceLabel, choiceValuesMatch, fieldChoiceOptions } from "@vueda/utils/choiceLabels.js";
+import {
+    choiceDisplay,
+    choiceLabel,
+    choiceValuesMatch,
+    fieldChoiceOptions,
+    findChoice,
+} from "@vueda/utils/choiceLabels.js";
 
 const choices = [
     { label: "Office", value: "office" },
@@ -43,12 +49,39 @@ describe("lib/utils/choiceLabels.js", () => {
             expect(choiceValuesMatch("false", false)).toBe(true);
         });
 
+        it("matches a null value to a static None option value", () => {
+            expect(choiceValuesMatch("None", null)).toBe(true);
+        });
+
+        it("matches a null value to a null option value", () => {
+            expect(choiceValuesMatch(null, null)).toBe(true);
+        });
+
         it("does not match null to the string null", () => {
             expect(choiceValuesMatch("null", null)).toBe(false);
         });
 
+        it("does not match undefined to a static None option value", () => {
+            expect(choiceValuesMatch("None", undefined)).toBe(false);
+        });
+
         it("does not match different values", () => {
             expect(choiceValuesMatch("office", "field")).toBe(false);
+        });
+    });
+
+    describe("findChoice", () => {
+        it("returns the matching option", () => {
+            expect(findChoice("field", choices)).toBe(choices[1]);
+        });
+
+        it("returns undefined when no option matches", () => {
+            expect(findChoice("remote", choices)).toBeUndefined();
+        });
+
+        it("reads the value from the given option key", () => {
+            const option = { name: "Office", id: "office" };
+            expect(findChoice("office", [option], "id")).toBe(option);
         });
     });
 

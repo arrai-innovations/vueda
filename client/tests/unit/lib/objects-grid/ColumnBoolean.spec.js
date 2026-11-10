@@ -5,7 +5,7 @@ import { defineComponent, h } from "vue";
 let bdProps;
 const BooleanDisplayStub = defineComponent({
     name: "BooleanDisplayStub",
-    props: { value: null, trueLabel: String, falseLabel: String, inline: Boolean },
+    props: { value: null, trueLabel: String, falseLabel: String, options: Array, inline: Boolean },
     setup(props) {
         return () => {
             bdProps = { ...props };
@@ -57,9 +57,39 @@ describe("lib/objects-grid/ColumnBoolean.vue", () => {
     scopedIt("does not leak the remaining cell context props onto the display root", () => {
         const wrapper = mount(ColumnBoolean, {
             props: { value: true },
-            attrs: { field: "is_active", formatted: "true", obj: { id: 1 } },
+            attrs: { formatted: "true", obj: { id: 1 } },
         });
-        expect(wrapper.get('[data-qa="bd"]').attributes("field")).toBeUndefined();
+        expect(wrapper.get('[data-qa="bd"]').attributes("formatted")).toBeUndefined();
         wrapper.unmount();
+    });
+
+    describe("Option labels", () => {
+        const choices = [
+            { label: "Standard handling", value: false },
+            { label: "Expedited handling", value: true },
+        ];
+
+        scopedIt("forwards the field's displayChoices to BooleanDisplay", () => {
+            const displayChoices = [{ label: "Submitted", value: true }];
+            const wrapper = mount(ColumnBoolean, {
+                props: { value: true, field: { name: "submitted", choices, displayChoices } },
+            });
+            expect(bdProps.options).toEqual(displayChoices);
+            wrapper.unmount();
+        });
+
+        scopedIt("forwards the field's static choices when it has no displayChoices", () => {
+            const wrapper = mount(ColumnBoolean, { props: { value: true, field: { name: "expedited", choices } } });
+            expect(bdProps.options).toEqual(choices);
+            wrapper.unmount();
+        });
+
+        scopedIt("forwards no options for a field without static choices", () => {
+            const wrapper = mount(ColumnBoolean, {
+                props: { value: true, field: { name: "is_active", choices: false } },
+            });
+            expect(bdProps.options).toEqual([]);
+            wrapper.unmount();
+        });
     });
 });

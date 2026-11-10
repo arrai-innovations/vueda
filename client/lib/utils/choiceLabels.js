@@ -25,9 +25,11 @@ export function fieldChoiceOptions(field) {
 /**
  * Check whether an option's value matches a stored value.
  *
- * Model info reports option values as strings, while a record can store a number or a boolean.
- * The two values match when they are equal or when their string forms are equal.
+ * Model info reports static option values as the server's string forms, while a record can store a number,
+ * a boolean, or `null`. The two values match when they are equal or when their server string forms are equal.
+ * The server string form of `null` is `"None"`, so a static `None` choice matches a `null` value.
  * The strings `"true"` and `"false"` match in any letter case.
+ * An `undefined` value matches only another `undefined` value.
  *
  * @param {unknown} optionValue - The value of an option.
  * @param {unknown} fieldValue - The stored value.
@@ -37,14 +39,36 @@ export function choiceValuesMatch(optionValue, fieldValue) {
     if (optionValue === fieldValue) {
         return true;
     }
-    if (optionValue === null || optionValue === undefined || fieldValue === null || fieldValue === undefined) {
+    if (optionValue === undefined || fieldValue === undefined) {
         return false;
     }
-    const normalizeBooleanString = (value) => {
-        const lowerValue = value.toLowerCase();
-        return lowerValue === "true" || lowerValue === "false" ? lowerValue : value;
-    };
-    return normalizeBooleanString(String(optionValue)) === normalizeBooleanString(String(fieldValue));
+    return serverChoiceString(optionValue) === serverChoiceString(fieldValue);
+}
+
+/**
+ * The string that the server makes from a choice value, with `"true"` and `"false"` in lower case.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function serverChoiceString(value) {
+    const stringValue = value === null ? "None" : String(value);
+    const lowerValue = stringValue.toLowerCase();
+    return lowerValue === "true" || lowerValue === "false" ? lowerValue : stringValue;
+}
+
+/**
+ * Find the option that matches one stored value.
+ *
+ * The result is `undefined` when no option matches.
+ *
+ * @param {unknown} fieldValue - The stored value.
+ * @param {Array<{[key: string]: unknown}>} options - The label options.
+ * @param {string} [optionValue] - The option key that holds the value. It defaults to `value`.
+ * @returns {{[key: string]: unknown}|undefined} The matching option.
+ */
+export function findChoice(fieldValue, options, optionValue = "value") {
+    return options.find((option) => choiceValuesMatch(option?.[optionValue], fieldValue));
 }
 
 /**
@@ -58,8 +82,7 @@ export function choiceValuesMatch(optionValue, fieldValue) {
  * @returns {unknown} The label for the stored value.
  */
 export function choiceLabel(fieldValue, options, { optionLabel = "label", optionValue = "value" } = {}) {
-    const choice = options.find((option) => choiceValuesMatch(option?.[optionValue], fieldValue));
-    return choice?.[optionLabel] ?? fieldValue;
+    return findChoice(fieldValue, options, optionValue)?.[optionLabel] ?? fieldValue;
 }
 
 /**
