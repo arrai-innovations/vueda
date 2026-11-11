@@ -32,6 +32,9 @@ export const availableColumns = {
     ColumnDuration: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnDuration.vue")).default),
     ),
+    ColumnEmail: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnEmail.vue")).default),
+    ),
     ColumnFile: markRaw(defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnFile.vue")).default)),
     ColumnJson: markRaw(defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnJson.vue")).default)),
     ColumnModelLink: markRaw(
@@ -40,4 +43,5 @@ export const availableColumns = {
     ColumnModelLinks: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLinks.vue")).default),
     ),
+    ColumnUrl: markRaw(defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnUrl.vue")).default)),
 };

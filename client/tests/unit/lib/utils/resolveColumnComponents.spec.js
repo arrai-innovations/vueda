@@ -137,6 +137,31 @@ describe("lib/utils/resolveColumnComponents.js", () => {
         });
     });
 
+    describe("email and URL type defaults", () => {
+        scopedIt.each([
+            ["EmailField", "EmailField", "ColumnEmail"],
+            ["EmailField", "CharField", "ColumnEmail"],
+            ["URLField", "URLField", "ColumnUrl"],
+            ["URLField", "TextField", "ColumnUrl"],
+        ])("a %s over a model %s resolves to %s", (typeSerializer, typeModel, column) => {
+            const field = { name: "contact", typeSerializer, typeModel };
+            expect(resolveColumnComponent(field)).toBe(availableColumns[column]);
+            expect(resolveColumnProps(field)).toEqual({});
+        });
+
+        scopedIt.each([["EmailField"], ["URLField"]])(
+            "a prop override, then a model config override, replaces the %s default",
+            (type) => {
+                const field = { name: "contact", typeSerializer: type, typeModel: type };
+                expect(resolveColumnComponent(field, undefined, { contact: CustomColumn })).toBe(CustomColumn);
+                expect(resolveColumnComponent(field, { contact: OtherColumn }, { contact: CustomColumn })).toBe(
+                    OtherColumn,
+                );
+                expect(resolveColumnComponent(field, { contact: "ColumnText" })).toBe(availableColumns.ColumnText);
+            },
+        );
+    });
+
     describe("foreign-key type defaults", () => {
         scopedIt("ForeignKey resolves to ColumnModelLink with view read", () => {
             const field = { name: "category", typeSerializer: "PrimaryKeyRelatedField", typeModel: "ForeignKey" };

@@ -103,11 +103,24 @@ export const defaultFieldMappings = {
             default: true,
         },
     },
+    // A serializer EmailField or URLField can sit over a model CharField or TextField, so the
+    // mapping covers those model types as well as its own.
     EmailField: {
         EmailField: {
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { type: "email" },
+            readOnlyWidget: availableWidgets.WidgetEmailReadOnly,
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "email" },
+            readOnlyWidget: availableWidgets.WidgetEmailReadOnly,
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "email" },
+            readOnlyWidget: availableWidgets.WidgetEmailReadOnly,
         },
     },
     FileField: {
@@ -323,7 +336,18 @@ export const defaultFieldMappings = {
         URLField: {
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { type: "url" },
+            readOnlyWidget: availableWidgets.WidgetUrlReadOnly,
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "url" },
+            readOnlyWidget: availableWidgets.WidgetUrlReadOnly,
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "url" },
+            readOnlyWidget: availableWidgets.WidgetUrlReadOnly,
         },
     },
     UUIDField: {

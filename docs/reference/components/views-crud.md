@@ -197,7 +197,7 @@ After a successful create, the view opens the new record's update view. The [`re
 
 ## ViewRead
 
-{@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, file, image, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
+{@api vue:component:ViewRead} shows one record as read-only label and value rows, through a {@api vue:component:FormModel} in the `read` view. Each field renders through its read-only widget, which is {@api vue:component:WidgetReadOnly} by default. Boolean, date, datetime, time, duration, email, URL, file, image, and `JSON` fields have type-specific read-only widgets ({@api js:module:@arrai-innovations/vueda/utils/fieldMappings}).
 
 A heading above the fields names the record by its {@term Formatted Name}. The heading scrolls with the fields and is not part of the sticky header, so a long name wraps. A skeleton holds its place while the record loads. A model whose serializer leaves out `formatted_name` gets no heading. The [`record-name`]{@api vue:component:ViewRead:slot:record-name} slot replaces the heading.
 
