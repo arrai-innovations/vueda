@@ -48,13 +48,19 @@ const VIEW_NAME = "update";
  * @property {string} pk - Primary key of the instance to fetch and edit.
  *
  * Optional data-fetching overrides.
- * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response; overrides the model config default when non-empty.
- * @property {string[]} [submitFields] - Field paths sent in the update request body, which also carries the primary key. Overrides the model config default when non-empty.
- * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the instance.
- * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
+ * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response;
+ *  overrides the model config default when non-empty.
+ * @property {string[]} [submitFields] - Field paths sent in the update request body, which also carries the primary
+ *  key. Overrides the model config default when non-empty.
+ * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the
+ *  instance.
+ * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the
+ *  instance.
  *
  * Optional form overrides.
- * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's
+ *  `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets
+ *  them.
  * @property {string[]} [fields] - Field names that the form renders. Replaces the model config list.
  * @property {object} [fieldDetails] - Map of field paths to field detail overrides.
  * @property {string[]} [expand] - Relations that the form renders as inline fieldsets. Replaces the model config list.
@@ -64,18 +70,28 @@ const VIEW_NAME = "update";
  * @property {object} [fieldProps] - Map of field paths to props for each field component.
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
- * @property {'list'|'read'|null} [redirectAfter] - Named view to redirect to after a successful update; null stays on the current page.
+ * @property {'list'|'read'|null} [redirectAfter] - Named view to redirect to after a successful update; null stays on
+ *  the current page.
  */
 
 /**
  * @typedef {object} ViewUpdateContext
- * @property {object} formInitialValue - Reactive object populated with the fetched instance data; passed as v-model to FormModel.
- * @property {import('@vueda/use/useForm.js').FormContext} formContext - The form context; provide it under FormContextSymbol so child field components can inject it.
- * @property {import('@vueda/use/useObjectForm.js').ObjectFormInstance} objectForm - The submit-side form state and submit trigger.
+ * @property {object} formInitialValue - Reactive object populated with the fetched instance data; passed as v-model to
+ *  FormModel.
+ * @property {import('@vueda/use/useForm.js').FormContext} formContext - The form context; provide it under
+ *  FormContextSymbol so child field components can inject it.
+ * @property {import('@vueda/use/useObjectForm.js').ObjectFormInstance} objectForm - The submit-side form state and
+ *  submit trigger.
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
- * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The fetch-side object instance (display/read).
- * @property {import('vue').UnwrapNestedRefs<import('@vueda/use/useDetailView.js').DetailViewInstanceGroup>} instance - Computed display state.
- * @property {import('vue').UnwrapNestedRefs<import('@vueda/use/useDetailView.js').DetailViewActionsGroup>} actions - Available action and transition lists.
+ * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The fetch-side object
+ *  instance (display/read).
+ * @property {import('vue').UnwrapNestedRefs<import('@vueda/use/useDetailView.js').DetailViewInstanceGroup>} instance -
+ *  Computed display state.
+ * @property {import('vue').UnwrapNestedRefs<import('@vueda/use/useDetailView.js').DetailViewActionsGroup>} actions -
+ *  Available action and transition lists.
+ * @property {import('@vueda/use/useObjectChangeNotice.js').ObjectChangeNotice} changeNotice - Whether someone else
+ *  saved or deleted the record since it loaded, and `reload`, which discards the form's edits and loads the saved
+ *  record.
  */
 
 /**
@@ -112,9 +128,11 @@ export function useViewUpdate(options) {
         widgetProps: toRef(options, "widgetProps"),
         formModelVariant: toRef(options, "formModelVariant"),
         objectForm: undefined,
+        // An update view holds unsaved edits, so it reports a pushed change instead of applying it.
+        noticeChanges: true,
     });
 
-    const { modelConfig, instanceObject, instance, actions } = useDetailView(
+    const { modelConfig, instanceObject, instance, actions, changeNotice } = useDetailView(
         internalOptions,
         formContextProps.initialValues,
     );
@@ -205,5 +223,6 @@ export function useViewUpdate(options) {
         instanceObject,
         instance,
         actions,
+        changeNotice,
     };
 }

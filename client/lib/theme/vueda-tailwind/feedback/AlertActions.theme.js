@@ -13,7 +13,9 @@ patchTheme({
      */
     AlertActions: {
         /**
-         * The inline action row for alert follow-up controls. It shares the alert content column with {@api theme-key:AlertTitle.root} and {@api theme-key:AlertDescription.root}, so buttons align under the message instead of under the icon.
+         * The inline action row for alert follow-up controls. It shares the alert content column with
+         * {@api theme-key:AlertTitle.root} and {@api theme-key:AlertDescription.root}, so buttons align under the
+         * message instead of under the icon.
          */
         root: {
             class: "col-start-2 mt-2 inline-flex gap-2",

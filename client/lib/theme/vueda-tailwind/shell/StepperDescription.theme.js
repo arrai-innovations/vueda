@@ -13,7 +13,8 @@ patchTheme({
      */
     StepperDescription: {
         /**
-         * The supporting text beneath a step title. It uses muted extra-small text for optional detail below the primary label.
+         * The supporting text beneath a step title. It uses muted extra-small text for optional detail below the
+         * primary label.
          */
         root: {
             class: "text-xs text-muted-foreground",

@@ -13,7 +13,8 @@ patchTheme({
      */
     DialogTitle: {
         /**
-         * The primary heading for a dialog. It uses compact semibold type sized for modal content, not page-level display text.
+         * The primary heading for a dialog. It uses compact semibold type sized for modal content, not page-level
+         * display text.
          */
         root: {
             class: "text-lg leading-none font-semibold",

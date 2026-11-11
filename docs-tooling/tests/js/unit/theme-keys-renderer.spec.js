@@ -65,6 +65,14 @@ describe("renderThemeKeysBundle", () => {
         expect(page).toContain("[_ButtonBase](../_ButtonBase.md)");
     });
 
+    it("family index page rows show the whole first paragraph of a wrapped description", () => {
+        const button = bundle.families.flatMap((family) => family.components).find((c) => c.name === "Button");
+        button.description = "Primary button surface\nused across action contexts.\n\nA second paragraph.";
+        const page = renderThemeKeysBundle(bundle).get("theming/keys/family/theme-keys.md");
+        expect(page).toContain("| Primary button surface used across action contexts. |");
+        expect(page).not.toContain("A second paragraph.");
+    });
+
     it("family index page sections by banner group when groups are present", () => {
         const page = outputs.get("theming/keys/family/theme-keys.md");
         const metaIdx = page.indexOf("## Button-family meta keys");

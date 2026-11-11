@@ -14,7 +14,13 @@ patchTheme({
      * focusable and increment with arrow keys.
      */
     DateField: {
-        /** The input-shaped shell hosting the editable date segments. Same hairline + focus + `aria-invalid` recipe as {@api theme-key:Input.root}, with the row of {@api theme-key:DateFieldInput.root} segments laid out as flex items inside; sizes pick the standard `h-vueda-control*` tier from `base.css § Control sizing`. The read-only treatment swaps to `bg-muted/50` so a frozen date field reads as the same surface family as a read-only text input. */
+        /**
+         * The input-shaped shell hosting the editable date segments. Same hairline + focus + `aria-invalid` recipe as
+         * {@api theme-key:Input.root}, with the row of {@api theme-key:DateFieldInput.root} segments laid out as flex
+         * items inside; sizes pick the standard `h-vueda-control*` tier from `base.css § Control sizing`. The read-only
+         * treatment swaps to `bg-muted/50` so a frozen date field reads as the same surface family as a read-only text
+         * input.
+         */
         root: ({ size }) => ({
             class: [
                 // Shell and surface.

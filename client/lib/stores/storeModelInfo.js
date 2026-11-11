@@ -75,6 +75,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} typeDb - The database type of the field.
  * @property {string} typeModel - The model type of the field.
  * @property {string} typeSerializer - The serializer type of the field.
+ * @property {string[]} [typeSerializerAncestors] - The serializer field classes that the `typeSerializer` class
+ *  inherits from, nearest first. Type mappings fall back to these names when `typeSerializer` has no entry. The list is
+ *  empty, or missing, when the field needs no fallback.
  * @property {boolean} many - A boolean indicating whether the field is a `ListField` or relation with multiple entries.
  * @property {boolean} readOnly - A boolean indicating whether the field is read-only.
  * @property {boolean} required - A boolean indicating whether the field is required.
@@ -85,8 +88,10 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {number} [minLength] - The minimum length allowed for the field (for strings).
  * @property {number} [maxDigits] - The maximum number of digits allowed for the field (for decimals).
  * @property {number} [decimalPlaces] - The number of decimal places allowed for the field (for decimals).
- * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the field has choices. If it does, it's an array of label/value pairs.
- * @property {LabelValuePair[]} [displayChoices] - Read-only display labels for stored values. Does not affect editable choices.
+ * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the field has choices. If it does, it's an array
+ *  of label/value pairs.
+ * @property {LabelValuePair[]} [displayChoices] - Read-only display labels for stored values. Does not affect editable
+ *  choices.
  * @property {boolean} [pk] - Indicates whether the field is a primary key.
  * @property {boolean} [hidden] - Indicates whether the field is hidden in the UI.
  * @property {string[]} [lookupExprs] - Array of lookup expressions for filtering.
@@ -112,7 +117,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {boolean} detail - A boolean indicating whether the action applies to a detail view.
  * @property {boolean} bulk - A boolean indicating whether the action can be applied in bulk.
  * @property {string[]} methodNames - The HTTP methods (e.g., GET, POST) that the current user may call the action with.
- * @property {Array<{name: string, type: string, required: boolean, description?: string}>} [parameters] - A list of parameter objects for the action, including type and optional descriptions.
+ * @property {Array<{name: string, type: string, required: boolean, description?: string}>} [parameters] - A list of
+ *  parameter objects for the action, including type and optional descriptions.
  * @property {string} [appLabel] - The app label associated with the action, if relevant.
  * @property {string} [model] - The model name the action applies to, if relevant.
  * @property {boolean} [confirm] - A boolean indicating if user confirmation is required before performing the action.
@@ -124,7 +130,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @typedef {object} ExpandInfo
  * @property {string} name - The name of the expand field.
  * @property {string[]} [fields] - An array of field names that can be expanded.
- * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects for the expanded model.
+ * @property {{[fieldName: string]: FieldInfo}} [f] - A mapping of field names to their respective `FieldInfo` objects
+ *  for the expanded model.
  * @property {string} [appLabel] - The app label of the expanded (related) model.
  * @property {string} [model] - The model name of the expanded (related) model.
  * @property {boolean} [requiresPermission] - Indicates whether expanding this field requires special permissions.
@@ -171,11 +178,13 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * Basic filter information.
  * @property {string} label - The label of the filter.
  * @property {string} fieldClass - The django-filters FilterField class for the filter.
- * @property {string} inputType - The django-filters determined HTML input type for the filter, derived from the widget associated with the field.
+ * @property {string} inputType - The django-filters determined HTML input type for the filter, derived from the widget
+ *  associated with the field.
  * @property {string} [helpText] - The help text for the filter, may be absent.
  * @property {boolean} hidden - Indicates whether the filter is hidden.
  * @property {boolean} required - Indicates whether the filter is required.
- * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the filter has choices. If it does, it's an array of label/value pairs.
+ * @property {boolean|LabelValuePair[]} [choices] - Indicates whether the filter has choices. If it does, it's an array
+ *  of label/value pairs.
  * @property {string} typeDb - The database type of the field.
  * @property {string} typeModel - The model type of the field.
  * @property {string} typeFilter - The filter type of the field.
@@ -191,7 +200,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {object[]} [validators] - Array of validator objects applied to the filter.
  *
  * Error handling.
- * @property {{[code: string]: string}} errorMessages - A map of server-side error codes to their corresponding messages.
+ * @property {{[code: string]: string}} errorMessages - A map of server-side error codes to their corresponding
+ *  messages.
  *
  * Lookup expressions.
  * @property {LookupExpr[]} lookupExprs - The Django filter lookup expressions available for the filter.
@@ -224,7 +234,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * which the server does not report; this section says which totals exist, not how to ask for them.
  *
  * @typedef {object} ColumnTotalsInfo
- * @property {string[]} fields - The total names a client may request, in declaration order. Each is also the key its value comes back under in the paginated response's `columnTotals`, and is named after the column it renders under rather than after the field path the server sums for it.
+ * @property {string[]} fields - The total names a client may request, in declaration order. Each is also the key its
+ *  value comes back under in the paginated response's `columnTotals`, and is named after the column it renders under
+ *  rather than after the field path the server sums for it.
  */
 
 /**
@@ -251,12 +263,14 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *  requests transitions, states, and history only for a model that reports `true`. The workflow endpoints
  *  still decide what the user may see and do.
  * @property {string} pk - The primary key field of the model.
- * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo` objects.
+ * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo`
+ *  objects.
  * @property {ActionInfo[]} actions - The actions that can be performed on the model.
  * @property {ExpandInfo[]} expand - The expandable fields of the model.
  * @property {OrderingInfo} ordering - The fields available for ordering the model, plus the server's default sort.
  * @property {{[filterName: string]: FilterInfo}} filtering - The fields available for filtering the model.
- * @property {ColumnTotalsInfo} columnTotals - The column totals a `list` request may ask for, and the parameter that asks for them.
+ * @property {ColumnTotalsInfo} columnTotals - The column totals a `list` request may ask for, and the parameter that
+ *  asks for them.
  * @property {PermissionInfo[]} permissions - The permissions available for the model.
  * @property {string[]} [methods] - The HTTP methods supported by the model (e.g., ["GET", "POST"]).
  * @property {string[]} [requiredFields] - A list of field names that are required for creating or updating the model.
@@ -272,7 +286,8 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *
  * @function FetchModelInfo
  * @param {{ app: string, model: string }} args - The arguments for fetching model info.
- * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise that resolves to the model information.
+ * @returns {import('@vueda/utils/fetchSupport.js').MaybeCancellablePromise<ModelInfo>} A promise that resolves to the
+ *  model information.
  * @throws {ModelInfoError} Throws an error if the fetch operation fails.
  */
 
@@ -407,7 +422,8 @@ export const storeModelInfo = defineStore("modelInfo", {
                                 if (key.startsWith("model_")) {
                                     key = k.slice(6);
                                 }
-                                // In client code, we consistently use `expand` (not `expands`), matching `omit` not `omits`
+                                // In client code, we consistently use `expand` (not `expands`), matching `omit` not
+                                // `omits`
                                 if (key === "expands") {
                                     key = "expand";
                                 }

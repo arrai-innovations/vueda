@@ -1,6 +1,7 @@
 /**
  * @module use/useFilterForm
- * @description Manages reactive filter form values, translating field-type-specific initial values and range fields into URL-ready query parameters.
+ * @description Manages reactive filter form values, translating field-type-specific initial values and range fields
+ *  into URL-ready query parameters.
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { FilterFieldMappings } from "@vueda/utils/fieldMappings.js";
@@ -12,7 +13,8 @@ import { reactive, readonly, toRef, watch } from "vue";
 /**
  * @typedef {object} UseFilterFieldProps
  * @property {string} filterName - The name for the filter.
- * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each
+ *  available filter details, by filter name
  */
 
 /**
@@ -27,7 +29,8 @@ import { reactive, readonly, toRef, watch } from "vue";
  * It determines the field's default value and any extra filter configuration (like whether it's a range or an array),
  *
  * @param {UseFilterFieldProps} props - Props that include the filter name and filter metadata.
- * @returns {Readonly<UseFilterFieldRawState>} - A readonly reactive object containing the initial values and filter configuration.
+ * @returns {Readonly<UseFilterFieldRawState>} - A readonly reactive object containing the initial values and filter
+ *  configuration.
  */
 export function useFilterField(props, queryValue) {
     const state = reactive(
@@ -110,7 +113,8 @@ export function getFilterParams(filterName, filterDetails) {
  * The query keys whose array values the list request sends as repeated keys: the keys of every
  * filter whose type sets `repeatedKey` in {@link FilterFieldMappings}.
  *
- * @param {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Filter configuration by filter name.
+ * @param {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Filter
+ *  configuration by filter name.
  * @returns {string[]} The repeated query keys.
  */
 export function getRepeatedFilterParams(filterableDetails) {
@@ -154,7 +158,8 @@ export function getFilterQueryValue(filterName, filterDetails, query) {
  * per suffix) and raw-object values (a choice widget's `{ value, label }`
  * shape collapses to its `value`).
  *
- * @param {{field: string, param: string|string[], value: any, isValueRawObject?: boolean}[]} filters - The active filter list.
+ * @param {{field: string, param: string|string[], value: any, isValueRawObject?: boolean}[]} filters - The active
+ *  filter list.
  * @returns {{[key: string]: any}} The flat query-param object.
  */
 export function filtersToParams(filters) {

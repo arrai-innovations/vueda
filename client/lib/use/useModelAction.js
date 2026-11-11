@@ -20,9 +20,10 @@ import { useRoute, useRouter } from "vue-router";
  * @property {string} [actionSuccessSummary] - Toast summary shown on successful action completion.
  * @property {string} [actionErrorSummary] - Toast summary shown when the action fails.
  * @property {string} [confirmMessage] - Confirmation message shown to the user before submitting.
- * @property {{ objectsInOrder?: object[], objectsMap?: Map<string, object> }} [fetchState] - Selected-object fetch state.
- * @property {import('@arrai-innovations/reactive-helpers').ListManager|import('@arrai-innovations/reactive-helpers').ListInstance} [instanceList] - List
- *  instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
+ * @property {{ objectsInOrder?: object[], objectsMap?: Map<string, object> }} [fetchState] - Selected-object fetch
+ *  state.
+ * @property {import('@arrai-innovations/reactive-helpers').ListManager|import('@arrai-innovations/reactive-helpers').ListInstance} [instanceList] -
+ *  List instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
  *  Omit it to use a private transport-only list.
  * @property {(values: object) => object} [transformSubmitDataFn] - Optional form-value transform.
  * @property {string} [requestMethod] - HTTP method used for non-destroy action requests.
@@ -61,8 +62,8 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('vue').ComputedRef<boolean>} readyToDryRun - Whether the action can run a dry-run request right now
  *  (a target is present, dry-run is enabled, and the action instance is idle). Carries no per-target memory of its
  *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
- * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys, for a
- *  consumer to key its own "already dry-ran this one" bookkeeping off of.
+ * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys,
+ *  for a consumer to key its own "already dry-ran this one" bookkeeping off of.
  */
 
 /**

@@ -13,13 +13,15 @@ patchTheme({
      */
     ScrollArea: {
         /**
-         * The root wrapper for a custom scroll area. It establishes relative positioning for scrollbars without adding surface chrome.
+         * The root wrapper for a custom scroll area. It establishes relative positioning for scrollbars without adding
+         * surface chrome.
          */
         root: {
             class: "relative",
         },
         /**
-         * The focusable viewport inside a scroll area. It inherits the parent radius and exposes a keyboard focus outline around the scrolling region.
+         * The focusable viewport inside a scroll area. It inherits the parent radius and exposes a keyboard focus
+         * outline around the scrolling region.
          */
         viewport: {
             class: "size-full rounded-[inherit] transition-colors focus-visible:focus-ring",

@@ -12,11 +12,18 @@ patchTheme({
      * Section of related items inside CommandList, with a heading row.
      */
     CommandGroup: {
-        /** A section of related {@api theme-key:CommandItem.root} rows inside {@api theme-key:CommandList.root}. See also: {@api theme-key:ComboboxGroup.root}; identical recipe. */
+        /**
+         * A section of related {@api theme-key:CommandItem.root} rows inside {@api theme-key:CommandList.root}. See
+         * also: {@api theme-key:ComboboxGroup.root}; identical recipe.
+         */
         root: {
             class: ["text-foreground overflow-hidden p-1"],
         },
-        /** The optional heading row above a group's items. See also: {@api theme-key:ComboboxGroup.heading}; identical caps-mono-micro eyebrow on `--muted-foreground`. The class-order difference (no leading `font-mono`) is incidental: the rendered recipe matches because `font-mono` is restated later in the list. */
+        /**
+         * The optional heading row above a group's items. See also: {@api theme-key:ComboboxGroup.heading}; identical
+         * caps-mono-micro eyebrow on `--muted-foreground`. The class-order difference (no leading `font-mono`) is
+         * incidental: the rendered recipe matches because `font-mono` is restated later in the list.
+         */
         heading: {
             class: [
                 // Layout and type.

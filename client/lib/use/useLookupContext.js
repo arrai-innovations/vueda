@@ -1,6 +1,7 @@
 /**
  * @module use/useLookupContext
- * @description Creates and provides a shared lookup context that batches and deduplicates object fetch requests across multiple consumers.
+ * @description Creates and provides a shared lookup context that batches and deduplicates object fetch requests across
+ *  multiple consumers.
  */
 import { CancellablePromise, deepUnref, useList, useObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
@@ -13,7 +14,8 @@ import debounce from "lodash-es/debounce.js";
 import { effectScope, nextTick, provide, reactive, readonly } from "vue";
 
 /**
- * Creates and provides a shared lookup context that batches and deduplicates object fetch requests across multiple consumers.
+ * Creates and provides a shared lookup context that batches and deduplicates object fetch requests across multiple
+ * consumers.
  *
  * @returns {object} The lookup context instance.
  */
@@ -36,7 +38,8 @@ export function useLookupContext() {
     const consumerPromises = {};
     /**
      *  The cancellable promises we are handed by the list/object manager.
-     *  @type {{[key:string]: {[pk:string]: import('@arrai-innovations/reactive-helpers').CancellablePromise<boolean> }}} */
+     *  @type {{[key:string]: {[pk:string]: import('@arrai-innovations/reactive-helpers').CancellablePromise<boolean> }}}
+     */
     const inflightPromises = {};
     /** @type {import('vue').Reactive<{[key:string]: {[pk:string]: object}}>} */
     const results = reactive({});
@@ -136,7 +139,8 @@ export function useLookupContext() {
      * @param {boolean} isList
      * @param {string} key
      * @param {string[]} pks
-     * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<boolean>|import('@arrai-innovations/reactive-helpers').MaybeCancellablePromise<never>} - true if the request was successful, false otherwise.
+     * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<boolean>|import('@arrai-innovations/reactive-helpers').MaybeCancellablePromise<never>} -
+     *  true if the request was successful, false otherwise.
      */
     function runRequestBatch({ fields, expand }, { config, instance }, isList, key, pks) {
         // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -384,7 +388,8 @@ export function useLookupContext() {
     /**
      * The lookup context object.
      * @type {object}
-     * @property {function(app:string, model:string, fields:string[], expand:string[], pk:string):import('@arrai-innovations/reactive-helpers').CancellablePromise<object>} requestObject - The function to request an object.
+     * @property {function(app:string, model:string, fields:string[], expand:string[], pk:string):import('@arrai-innovations/reactive-helpers').CancellablePromise<object>} requestObject -
+     *  The function to request an object.
      */
     const lookupContext = {
         /**

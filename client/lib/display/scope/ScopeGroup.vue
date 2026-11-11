@@ -19,7 +19,9 @@ defineOptions({});
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** Active scopes, each `{ name, label, keys, source, clearable }`; `name` and `source` together identify a scope. */
+    /**
+     * Active scopes, each `{ name, label, keys, source, clearable }`; `name` and `source` together identify a scope.
+     */
     scopes: {
         type: Array,
         default: () => [],
@@ -35,7 +37,10 @@ const props = defineProps({
     },
 });
 const emit = defineEmits([
-    /** Emitted with the array of scope objects the reader asked to clear: one from a chip, every clearable scope from Clear scopes. */
+    /**
+     * Emitted with the array of scope objects the reader asked to clear: one from a chip, every clearable scope from
+     * Clear scopes.
+     */
     "clear",
 ]);
 

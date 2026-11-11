@@ -19,21 +19,24 @@ import { computed, nextTick, onDeactivated, onUnmounted, reactive, watch } from 
 
 /**
  * @typedef {object} ActionFormProps
- * @property {(options: { formValues: object, dryRun: boolean, acknowledgeWarnings?: string }) => Promise<any>} [runAction] - Executes
- *  the action. `acknowledgeWarnings` carries the warnings digest of a confirmed retry; implementations should forward
- *  it as the `Acknowledge-Warnings` header (see `useModelAction`).
+ * @property {(options: { formValues: object, dryRun: boolean, acknowledgeWarnings?: string }) => Promise<any>} [runAction] -
+ *  Executes the action. `acknowledgeWarnings` carries the warnings digest of a confirmed retry; implementations should
+ *  forward it as the `Acknowledge-Warnings` header (see `useModelAction`).
  * @property {string} [actionSuccessSummary] - Toast text on success.
  * @property {string} [actionErrorSummary] - Toast text on failure.
  * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [fetchState] - Data-fetch status.
- * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [actionState] - Action execution status.
+ * @property {{ errored: boolean, error: Error|null, loading: boolean|undefined }} [actionState] - Action execution
+ *  status.
  * @property {boolean} [hasInput] - Whether the form has input fields that must be validated before submission.
- * @property {boolean} [requireModified] - When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty (sign-in, forgot-password) where modification is not a meaningful concept.
- * @property {(reason: "success"|"cancel") => Promise<boolean|void>} [redirectTo] - Called after success or cancel. After
- *  success, the form stays locked until it unmounts, so the view it leaves cannot submit again while the destination
- *  loads. Resolve `false` when the call did not navigate away, such as when there was no destination or the router
- *  rejected the navigation, to unlock the form instead.
+ * @property {boolean} [requireModified] - When `false`, skips the "no changes detected" guard. Defaults to `true`. Set
+ *  to `false` for forms that start empty (sign-in, forgot-password) where modification is not a meaningful concept.
+ * @property {(reason: "success"|"cancel") => Promise<boolean|void>} [redirectTo] - Called after success or cancel.
+ *  After success, the form stays locked until it unmounts, so the view it leaves cannot submit again while the
+ *  destination loads. Resolve `false` when the call did not navigate away, such as when there was no destination or the
+ *  router rejected the navigation, to unlock the form instead.
  * @property {(response: any) => void} [onSubmissionSuccessHandler] - Replaces the default success toast and redirect.
- * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} [onSubmissionErrorHandler] - Replaces the default error toast.
+ * @property {(args: { error: Error, formContext: import('@vueda/use/useForm.js').FormContext, toast: any }) => Promise<boolean>} [onSubmissionErrorHandler] -
+ *  Replaces the default error toast.
  * @property {(options: {
  *     error: import('@vueda/utils/errors.js').ConfirmationRequiredError,
  *     formContext: import('@vueda/use/useForm.js').FormContext,

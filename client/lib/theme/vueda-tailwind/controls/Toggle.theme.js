@@ -14,7 +14,16 @@ patchTheme({
      * CTA (`--primary`).
      */
     Toggle: {
-        /** The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete with a CTA on the same surface. Two variants (default, `outline`) and three size tiers ride the shared `h-vueda-control*` scale; the `outline` variant wears the same `hairline-border-strong` edge, darkening to `hairline-foreground` on hover, as {@api theme-key:_ButtonOutline.root} (an inset box-shadow, not a layout border, so it DPR-tracks and matches intrinsic width), and `min-w-vueda-control*` keeps a single-icon toggle square. Disabled items use `--disabled-foreground` ink and a `--border` outline; pressed items keep a `--disabled` fill while unpressed items stay transparent. */
+        /**
+         * The on/off button shell. Reads as a Button shape (control radius, `text-sm font-medium`, 16px icon) but the
+         * pressed state (`data-state=on`) paints `--accent` instead of `--primary` so a pressed toggle does not compete
+         * with a CTA on the same surface. Two variants (default, `outline`) and three size tiers ride the shared
+         * `h-vueda-control*` scale; the `outline` variant wears the same `hairline-border-strong` edge, darkening to
+         * `hairline-foreground` on hover, as {@api theme-key:_ButtonOutline.root} (an inset box-shadow, not a layout
+         * border, so it DPR-tracks and matches intrinsic width), and `min-w-vueda-control*` keeps a single-icon toggle
+         * square. Disabled items use `--disabled-foreground` ink and a `--border` outline; pressed items keep a
+         * `--disabled` fill while unpressed items stay transparent.
+         */
         root: ({ variant, size }) => ({
             class: [
                 // Layout and type.

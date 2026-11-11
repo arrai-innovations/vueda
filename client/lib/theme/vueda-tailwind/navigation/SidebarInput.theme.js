@@ -12,7 +12,10 @@ patchTheme({
      * SidebarInput styles search or filter fields embedded in a sidebar.
      */
     SidebarInput: {
-        /** Sidebar-local input chrome. It binds hairline and focus colors to sidebar tokens rather than generic input tokens. */
+        /**
+         * Sidebar-local input chrome. It binds hairline and focus colors to sidebar tokens rather than generic input
+         * tokens.
+         */
         root: {
             class: [
                 // Surface and sizing.

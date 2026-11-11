@@ -346,27 +346,35 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return field_type
 
     @staticmethod
-    def get_model_fields_serializer_field_type(field_name, model_field, many):
+    def _get_serializer_type_field(model_field, many):
+        """
+        Return the serializer field whose class names a field's ``type_serializer``.
+
+        That is the field itself, or the child of a list field. The result is ``None`` when ``model_field`` is.
+        """
         if model_field is None:
-            return
+            return None
 
         if hasattr(model_field, "field"):
             model_field = model_field.field
 
         child_field = model_field.child if many and hasattr(model_field, "child") else None
 
-        if isinstance(child_field, _UnvalidatedField):
-            child_field = None
+        if child_field is None or isinstance(child_field, _UnvalidatedField):
+            return model_field
+        return child_field
 
-        # Get the field type.
-        if child_field is None:
-            field_type = model_field.__class__.__name__
-        else:
-            field_type = child_field.__class__.__name__
+    @staticmethod
+    def get_model_fields_serializer_field_type(field_name, model_field, many):
+        type_field = ModelInfoSerializer._get_serializer_type_field(model_field, many)
+        if type_field is None:
+            return
+
+        field_type = type_field.__class__.__name__
 
         # A ReadOnlyField carries no type of its own, so assume it is a CharField. A
         # FormattedNameField, or a subclass of it, serves a string under any field name.
-        if field_type == "ReadOnlyField" or isinstance(child_field or model_field, FormattedNameField):
+        if field_type == "ReadOnlyField" or isinstance(type_field, FormattedNameField):
             field_type = "CharField"
 
         # formatted_name is always a string, whatever field class serves it: the built
@@ -375,6 +383,39 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             field_type = "CharField"
 
         return field_type
+
+    @staticmethod
+    def get_model_fields_serializer_field_ancestors(field_name, model_field, many, field_type):
+        """
+        Return the serializer field classes that the field's ``type_serializer`` class inherits from.
+
+        The names are in method resolution order, nearest first. They include only Django REST framework
+        ``Field`` subclasses, and stop before ``Field`` itself. A client that has no mapping for
+        ``type_serializer`` tries each ancestor in turn, so a project's subclass of a stock field gets the stock
+        field's mapping.
+
+        The list is empty when ``field_type`` is not the class name of the field, such as a ``ReadOnlyField``
+        that is reported as a ``CharField``. The reported type then already names the mapping to use.
+
+        The list is also empty for a nested serializer, including the ``ListSerializer`` that ``many=True``
+        builds. The client renders a nested serializer as an inline and never looks it up in the type mappings.
+
+        Args:
+            field_name: The field's name on the serializer.
+            model_field: The serializer field.
+            many: Whether the field holds a list.
+            field_type: The ``type_serializer`` that model info reports for the field.
+        """
+        type_field = ModelInfoSerializer._get_serializer_type_field(model_field, many)
+        if type_field is None or field_type != type_field.__class__.__name__:
+            return []
+        if isinstance(type_field, serializers.BaseSerializer):
+            return []
+        return [
+            klass.__name__
+            for klass in type_field.__class__.__mro__[1:]
+            if issubclass(klass, serializers.Field) and klass is not serializers.Field
+        ]
 
     def get_model_fields_data(self, serializer, *, excluded_fields=frozenset(), context=None):
         pk_field = serializer.Meta.model._meta.pk.name
@@ -385,7 +426,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             if field_name in excluded_fields:
                 continue
 
-            many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
+            # A MultipleChoiceField holds a list of choices without being a ListField.
+            many = isinstance(
+                field, (serializers.ListField, serializers.ManyRelatedField, serializers.MultipleChoiceField)
+            )
             if many:
                 child_field = field.child if many and hasattr(field, "child") else None
                 if isinstance(child_field, _UnvalidatedField):
@@ -404,6 +448,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             field_type_db = self.get_model_fields_db_field_type(field_name, model_field, many)
             field_type_model = self.get_model_fields_model_field_type(field_name, model_field, many)
             field_type_serializer = self.get_model_fields_serializer_field_type(field_name, field, many)
+            field_type_serializer_ancestors = self.get_model_fields_serializer_field_ancestors(
+                field_name, field, many, field_type_serializer
+            )
 
             field_data = {
                 "choices": False,
@@ -415,6 +462,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "type_db": field_type_db,
                 "type_model": field_type_model,
                 "type_serializer": field_type_serializer,
+                "type_serializer_ancestors": field_type_serializer_ancestors,
             }
             # Sent only when a serializer field sets it, like the optional constraint keys below.
             if "list_default" in field.style:

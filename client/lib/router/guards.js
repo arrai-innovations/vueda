@@ -1,6 +1,7 @@
 /**
  * @module router/guards
- * @description Vue Router navigation guards for enforcing authentication, group membership, and model info availability.
+ * @description Vue Router navigation guards for enforcing authentication, group membership, and model info
+ *  availability.
  */
 import { toast } from "@arrai-innovations/vue-sonner";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";

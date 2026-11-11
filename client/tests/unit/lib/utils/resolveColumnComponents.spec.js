@@ -1,3 +1,4 @@
+import toManyPayloads from "../../../../../server/tests/fixtures/to-many-list-payloads.json";
 import { scopedIt } from "@tests/unit/utils.js";
 import { availableColumns } from "@vueda/utils/columnLookups.js";
 import { columnMappings } from "@vueda/utils/columnMappings.js";
@@ -22,6 +23,19 @@ describe("lib/utils/resolveColumnComponents.js", () => {
     });
 
     describe("resolveColumnComponent precedence", () => {
+        scopedIt("resolves a serializer field subclass through its ancestor's column", () => {
+            const stock = { name: "a", typeSerializer: "PrimaryKeyRelatedField", typeModel: "ForeignKey" };
+            const subclass = {
+                name: "a",
+                typeSerializer: "PickDistributorField",
+                typeSerializerAncestors: ["PrimaryKeyRelatedField", "RelatedField"],
+                typeModel: "ForeignKey",
+            };
+            expect(resolveColumnComponent(subclass)).toBe(resolveColumnComponent(stock));
+            expect(resolveColumnComponent(subclass)).not.toBe(availableColumns.ColumnText);
+            expect(resolveColumnProps(subclass)).toEqual(resolveColumnProps(stock));
+        });
+
         scopedIt("falls back to ColumnText when nothing matches", () => {
             const component = resolveColumnComponent({ name: "a", typeSerializer: "CharField" });
             expect(component).toBe(availableColumns.ColumnText);
@@ -156,6 +170,33 @@ describe("lib/utils/resolveColumnComponents.js", () => {
                 app: "catalog",
                 model: "widgetcategory",
             });
+        });
+    });
+
+    describe("to-many type defaults", () => {
+        // The field descriptors carry the server's real model-info types for each to-many field.
+        const toManyFields = toManyPayloads.map((payload) => [
+            payload.scenario,
+            {
+                name: payload.field,
+                typeSerializer: payload.model_info.type_serializer,
+                typeModel: payload.model_info.type_model,
+            },
+        ]);
+
+        scopedIt.each(toManyFields)("%s resolves to ColumnModelLinks with view read", (_, field) => {
+            expect(resolveColumnComponent(field)).toBe(availableColumns.ColumnModelLinks);
+            expect(resolveColumnProps(field)).toEqual({ view: "read" });
+        });
+
+        scopedIt.each(toManyFields)("%s uses a view-prop column override in place of the default", (_, field) => {
+            expect(resolveColumnComponent(field, { [field.name]: CustomColumn })).toBe(CustomColumn);
+        });
+
+        scopedIt.each(toManyFields)("%s uses a model-config column override in place of the default", (_, field) => {
+            expect(resolveColumnComponent(field, undefined, { [field.name]: "ColumnText" })).toBe(
+                availableColumns.ColumnText,
+            );
         });
     });
 

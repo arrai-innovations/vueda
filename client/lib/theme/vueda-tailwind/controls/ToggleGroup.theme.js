@@ -12,7 +12,12 @@ patchTheme({
      * Layout shell for a row of ToggleGroupItems.
      */
     ToggleGroup: {
-        /** The row layout for a set of {@api theme-key:ToggleGroupItem.root} children. The `--gap` custom property is driven by the consumer's `spacing` prop, which lets the same group render as a gapped row or (at `spacing=0`) as a segmented control where child items drop their outer radii and shared borders. The `group/toggle-group` Tailwind group label lets items react to group-level state. */
+        /**
+         * The row layout for a set of {@api theme-key:ToggleGroupItem.root} children. The `--gap` custom property is
+         * driven by the consumer's `spacing` prop, which lets the same group render as a gapped row or (at `spacing=0`)
+         * as a segmented control where child items drop their outer radii and shared borders. The `group/toggle-group`
+         * Tailwind group label lets items react to group-level state.
+         */
         root: {
             class: ["group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-vueda-control"],
         },

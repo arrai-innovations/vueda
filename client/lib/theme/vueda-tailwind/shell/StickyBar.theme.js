@@ -13,7 +13,8 @@ patchTheme({
      */
     StickyBar: {
         /**
-         * The sticky action-bar wrapper. It stays anchored just above the page edge and translates out of view when `hidden` is true.
+         * The sticky action-bar wrapper. It stays anchored just above the page edge and translates out of view when
+         * `hidden` is true.
          */
         root: ({ hidden }) => {
             return {
@@ -43,7 +44,8 @@ patchTheme({
             ],
         },
         /**
-         * The primary control cluster inside the sticky bar. It wraps compact action buttons and pushes secondary content to the far side.
+         * The primary control cluster inside the sticky bar. It wraps compact action buttons and pushes secondary
+         * content to the far side.
          */
         primary: {
             class: [
@@ -52,7 +54,8 @@ patchTheme({
             ],
         },
         /**
-         * The secondary control cluster inside the sticky bar. It keeps trailing controls aligned while allowing them to wrap on narrow widths.
+         * The secondary control cluster inside the sticky bar. It keeps trailing controls aligned while allowing them
+         * to wrap on narrow widths.
          */
         secondary: {
             class: [
@@ -61,7 +64,8 @@ patchTheme({
             ],
         },
         /**
-         * The dirty-state badge inside the sticky bar. It uses primary tint, uppercase micro text, and pill radius to read as transient state rather than a command.
+         * The dirty-state badge inside the sticky bar. It uses primary tint, uppercase micro text, and pill radius to
+         * read as transient state rather than a command.
          */
         dirty: {
             class: [

@@ -12,7 +12,11 @@ patchTheme({
      * NavigationPaginationBar styles a pagination bar anchored below a navigation surface.
      */
     NavigationPaginationBar: {
-        /** Footer bar for table and objects-grid pagination, seated against the bottom of card-like data surfaces. The `px-5 py-3` padding matches the list chrome rhythm (e.g. {@api theme-key:ViewList.underActionsBar}) so the chrome above and below the grid read as a matched frame. */
+        /**
+         * Footer bar for table and objects-grid pagination, seated against the bottom of card-like data surfaces. The
+         * `px-5 py-3` padding matches the list chrome rhythm (e.g. {@api theme-key:ViewList.underActionsBar}) so the
+         * chrome above and below the grid read as a matched frame.
+         */
         root: {
             class: [
                 // Layout and spacing.

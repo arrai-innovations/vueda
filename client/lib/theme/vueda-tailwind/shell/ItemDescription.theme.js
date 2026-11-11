@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemDescription: {
         /**
-         * The secondary item copy. It clamps to two lines, uses muted body text, and styles links as quiet inline affordances.
+         * The secondary item copy. It clamps to two lines, uses muted body text, and styles links as quiet inline
+         * affordances.
          */
         root: {
             class: [

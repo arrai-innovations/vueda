@@ -14,7 +14,15 @@ patchTheme({
      * Combobox-the-searchable-picker.
      */
     SelectTrigger: {
-        /** The pressable surface that opens a {@api theme-key:SelectContent.root}. Wears the editable field recipe: a `bg-field` fill on a bottom-only `field-line`, square `rounded-vueda-field` corners, and a `hover:bg-field-hover` step, so a picker that sets a value reads as a field rather than a button. Focus recolours the bottom line to `--ring` and adds the focus ring. Three size tiers ride `h-vueda-control*` plus matching `px-vueda-control-px*`, and `aria-invalid` swaps that line and the focus-ring shadow to destructive. Placeholder text mutes to `--muted-foreground` so an unselected trigger reads as empty rather than as a chosen value. */
+        /**
+         * The pressable surface that opens a {@api theme-key:SelectContent.root}. Wears the editable field recipe: a
+         * `bg-field` fill on a bottom-only `field-line`, square `rounded-vueda-field` corners, and a
+         * `hover:bg-field-hover` step, so a picker that sets a value reads as a field rather than a button. Focus
+         * recolours the bottom line to `--ring` and adds the focus ring. Three size tiers ride `h-vueda-control*` plus
+         * matching `px-vueda-control-px*`, and `aria-invalid` swaps that line and the focus-ring shadow to destructive.
+         * Placeholder text mutes to `--muted-foreground` so an unselected trigger reads as empty rather than as a
+         * chosen value.
+         */
         root: {
             class: [
                 // Placeholder, icons, and interaction colors.

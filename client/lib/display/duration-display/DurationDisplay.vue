@@ -28,7 +28,10 @@ const UNITS = [
 
 const props = defineProps({
     ...THEME_OVERRIDE_PROPS,
-    /** The value to present, as a Django duration string or a number of seconds. `null`, `undefined`, and `""` render the dash. */
+    /**
+     * The value to present, as a Django duration string or a number of seconds. `null`, `undefined`, and `""` render
+     * the dash.
+     */
     value: {
         type: [String, Number],
         default: undefined,

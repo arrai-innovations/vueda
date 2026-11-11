@@ -1,6 +1,7 @@
 /**
  * @module use/useFieldSetTabularInline
- * @description Extends the inline field-set composable with responsive breakpoint logic to switch between table and stacked display modes.
+ * @description Extends the inline field-set composable with responsive breakpoint logic to switch between table and
+ *  stacked display modes.
  */
 import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
@@ -10,10 +11,16 @@ import { useBreakpoints } from "@vueuse/core";
 import merge from "lodash-es/merge.js";
 import { computed, reactive, readonly, toRefs } from "vue";
 
-/** Vue component props definition for tabular inline field-set components. Inherits all props from FIELD_SET_INLINE_PROPS for use in table-style repeatable child-row layouts. */
+/**
+ * Vue component props definition for tabular inline field-set components. Inherits all props from
+ * FIELD_SET_INLINE_PROPS for use in table-style repeatable child-row layouts.
+ */
 export const FIELD_SET_TABULAR_INLINE_PROPS = { ...FIELD_SET_INLINE_PROPS };
 
-/** Array of Vue event names emitted by tabular inline field-set components. Pass to the `emits` option of a tabular inline field-set component. */
+/**
+ * Array of Vue event names emitted by tabular inline field-set components. Pass to the `emits` option of a tabular
+ * inline field-set component.
+ */
 export const FIELD_SET_TABULAR_INLINE_EMITS = [...FIELD_EMITS, "update:visible"];
 
 /**
@@ -55,12 +62,12 @@ const handleIsTableUpdate = (state, newValue) => {
 /**
  * @typedef {object} FieldSetTabularInlineRawState
  * @property {boolean} [isTable=true] - Whether the fieldset is displayed as a table.
- * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The displayable field objects, excluding actions.
- *  Includes an 'item-action-bar' field first when actions exist or editable unsaved rows can be removed.
+ * @property {import('vue').ComputedRef<object[]>} computedFieldObjects - The displayable field objects, excluding
+ *  actions. Includes an 'item-action-bar' field first when actions exist or editable unsaved rows can be removed.
  * @property {import('vue').ComputedRef<object>} computedFieldProps - The computed field props, including the form
  *  model's field props.
- * @property {{ widgetContext: import('@vueda/use/useWidget.js').WidgetContext, props: import('vue').UnwrapNestedRefs<object> }[]} widgetContextItems - The widget
- *  contexts registered from within the fieldset.
+ * @property {{ widgetContext: import('@vueda/use/useWidget.js').WidgetContext, props: import('vue').UnwrapNestedRefs<object> }[]} widgetContextItems -
+ *  The widget contexts registered from within the fieldset.
  */
 
 // @property {import('@vueda/use/useWidget.js').WidgetContext[]} widgetContexts - The widget contexts registered from
@@ -75,13 +82,15 @@ const handleIsTableUpdate = (state, newValue) => {
 
 /**
  * @typedef {object} FieldSetTabularInlineContext
- * @property {import('vue').Readonly<FieldSetTabularInlineState>} state - The reactive state of the FieldSetTabularInline.
+ * @property {import('vue').Readonly<FieldSetTabularInlineState>} state - The reactive state of the
+ *  FieldSetTabularInline.
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
  * @property {import('@vueda/use/useField.js').FieldContext} fieldSetContext - The field context object.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The form model's reactive state.
- * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames - The resolved slot
- *  name instances by original slot name.
- * @property {import('@vueda/use/useTheme.js').UseThemeReturnFunction} theme - The theme fn for the FieldSetTabularInline.
+ * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames -
+ *  The resolved slot name instances by original slot name.
+ * @property {import('@vueda/use/useTheme.js').UseThemeReturnFunction} theme - The theme fn for the
+ *  FieldSetTabularInline.
  * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
  * @property {BoundHandleIsTableUpdate} handleIsTableUpdate - The method to update the isTable state.
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.

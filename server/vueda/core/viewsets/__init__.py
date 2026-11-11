@@ -69,6 +69,7 @@ from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.core.utils import unwrap_expandable_field
 from vueda.history.actions import build_action_groups
 from vueda.history.queries import action_groups_for
 from vueda.history.queries import events_in_groups
@@ -647,11 +648,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_fields.add(field_name)
                     valid_expands.add(field_name)
 
-                    serializer_settings = {}
-                    if isinstance(serializer_data, tuple):  # rest_flex_fields2 only tests for tuple.
-                        child_serializer, serializer_settings = serializer_data
-                    else:
-                        child_serializer = serializer_data
+                    child_serializer, serializer_settings = unwrap_expandable_field(serializer_data)
 
                     if isinstance(child_serializer, str):
                         child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
@@ -703,6 +700,45 @@ def permitted_expand_depths(serializer):
     :returns: One dot count per permitted path.
     """
     return [path.count(".") for path in serializer.context.get("permitted_expands") or ()]
+
+
+def flex_param_max_depth(serializer, *submitted_names):
+    """
+    Return how deep validation walks the expand tree for the submitted ``f`` and ``e`` names.
+
+    The walk goes one level below the deepest submitted name. It also goes at least as deep as the
+    action's permit list, so an error message can list a dotted permit (see ``permitted_expand_depths``).
+
+    :param serializer: The action's serializer, whose context may hold ``permitted_expands``.
+    :param submitted_names: Each collection of submitted names, such as the ``f`` values and the ``e`` values.
+    :returns: The depth to pass to ``get_recursive_expands_and_fields``.
+    """
+    dot_counts = [name.count(".") for names in submitted_names for name in names]
+    return max(dot_counts + permitted_expand_depths(serializer)) + 1
+
+
+def invalid_expand_errors(serializer, submitted_expand_fields):
+    """
+    Map each ``e`` value that ``serializer`` cannot expand to its message, by the rules of a read.
+
+    Without a permit list, a value is valid when it names a declared expand, a dotted path that each
+    level declares, or a wildcard at a level that has expands. With a permit list, a value is valid only
+    when the list holds it, or when it is a wildcard.
+
+    ``NoExtraFieldsSerializerMixin.to_internal_value`` calls this, so a write whose view runs no check of
+    its own still gets the messages that ``validate_flex_expand_and_field_param`` gives.
+
+    :param serializer: The serializer whose expands and permit list decide validity.
+    :param submitted_expand_fields: The ``e`` values from the request.
+    :returns: A dict of invalid expand to message. It is empty when every value is valid.
+    """
+    if not submitted_expand_fields:
+        return {}
+    max_depth = flex_param_max_depth(serializer, submitted_expand_fields)
+    valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
+        serializer, 0, max_depth
+    )
+    return invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
 
 
 def invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands):
@@ -1532,14 +1568,7 @@ class NoExtraFieldsForViewSetMixin:
             submitted_expand_fields = frozenset(
                 serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
             )
-            max_depth = (
-                max(
-                    [field.count(".") for field in submitted_fields]
-                    + [field.count(".") for field in submitted_expand_fields]
-                    + permitted_expand_depths(serializer)
-                )
-                + 1
-            )
+            max_depth = flex_param_max_depth(serializer, submitted_fields, submitted_expand_fields)
             valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = (
                 get_recursive_expands_and_fields(serializer, 0, max_depth)
             )
@@ -1554,7 +1583,7 @@ class NoExtraFieldsForViewSetMixin:
                 gfk_fields = {
                     name
                     for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
-                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                    if unwrap_expandable_field(data)[0] is GenericForeignKeySerializer
                 }
                 if gfk_fields:
                     extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)

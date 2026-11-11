@@ -56,10 +56,12 @@ export function actionRequestHeaders({ dryRun, acknowledgeWarnings } = {}) {
  * @param {string} options.messagePrefix - The message used when the response is a plain failure.
  * @param {Set<number>} [options.successStatuses] - Statuses that count as success. Defaults to every `response.ok`
  *  status; pass a set to hold a handler to specific codes (delete accepts only 204, plus 200 during a dry run).
- * @param {Set<number>} [options.emptyStatuses=new Set([204])] - Success statuses whose body is not read back to the caller.
+ * @param {Set<number>} [options.emptyStatuses=new Set([204])] - Success statuses whose body is not read back to the
+ *  caller.
  * @param {boolean} [options.bulk=false] - Whether this request targets the bulk path or detailed path.
  *  Passed straight through to `ConfirmationRequiredError` so the renderer knows which warnings shape to expect back.
- * @returns {Promise<{[key: string]: any}|string|undefined>} The decoded response data, or undefined for an empty status.
+ * @returns {Promise<{[key: string]: any}|string|undefined>} The decoded response data, or undefined for an empty
+ *  status.
  * @throws {import("@vueda/utils/errors.js").FormValidationError} On a 400.
  * @throws {import("@vueda/utils/errors.js").ConfirmationRequiredError} On a 409.
  * @throws {import("@vueda/utils/errors.js").FetchError} On any other unsuccessful status.
@@ -86,8 +88,9 @@ export async function readActionResponse(
  * A Promise that can be cancelled.
  *
  * @typedef {Promise<any> & { cancel: () => Promise<void>|void }} CancellablePromise
- * future: webstorm doesn't understand import("@arrai-innovations/reactive-helpers/use/cancellableIntent.js").CancellablePromise
- *  so we are copying the type definition here
+ * future: webstorm doesn't understand
+ * import("@arrai-innovations/reactive-helpers/use/cancellableIntent.js").CancellablePromise so we are copying the type
+ * definition here
  */
 
 /**
@@ -105,7 +108,8 @@ export async function readActionResponse(
  * @param {import("@vueda/utils/errors.js").FetchError} [ErrorClass=FetchError] - The error class to throw.
  * @param {Set<number>} [emptyResponseCodes=new Set([204])] - The response codes that are considered empty.
  * @param {*} [emptyResponseValue=undefined] - The value to return if the response is empty.
- * @param {(response: Response, data: any) => Error} [errorResolver] - Custom error factory; defaults to constructing ErrorClass.
+ * @param {(response: Response, data: any) => Error} [errorResolver] - Custom error factory; defaults to constructing
+ *  ErrorClass.
  * @returns {CancellablePromise<{[key: string]: any}|string|[emptyResponseValue: any]>} The response data.
  * @throws {import("@vueda/utils/errors.js").FetchError} If the fetch fails, in a way that is not an empty response.
  */

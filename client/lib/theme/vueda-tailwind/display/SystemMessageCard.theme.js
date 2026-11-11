@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * SystemMessageCard provides the centered card chassis for system-level states such as not found, loading, and deactivate screens. Its named group scope routes tone-specific crest styling from the root.
+     * SystemMessageCard provides the centered card chassis for system-level states such as not found, loading, and
+     * deactivate screens. Its named group scope routes tone-specific crest styling from the root.
      */
     SystemMessageCard: {
         /** Centered card chassis with the named tone group used by crest descendants. */
@@ -22,7 +23,10 @@ patchTheme({
                 "px-8 pt-8 pb-7",
             ],
         },
-        /** Header row containing the icon tile, meta column, and optional status code, separated from the body by a bottom rule. */
+        /**
+         * Header row containing the icon tile, meta column, and optional status code, separated from the body by a
+         * bottom rule.
+         */
         crest: {
             class: ["flex items-start gap-3 pb-4 border-b-hairline"],
         },
