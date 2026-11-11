@@ -2149,7 +2149,7 @@ describe("lib/views/ViewList.vue", () => {
         });
 
         scopedIt(
-            "shows Reset sort only when the active sort differs from the server default, and restores it on click",
+            "shows Reset sort only when the active sort differs from the server default, restores it on click, and shows it again after a change",
             async () => {
                 mockedInject.mockReturnValueOnce({});
                 modelConfig.config.sortables = ["name", "created_at"];
@@ -2167,6 +2167,13 @@ describe("lib/views/ViewList.vue", () => {
 
                 expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
                 expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+
+                // Flipping the default's direction makes the sort differ again.
+                await wrapper.get('[data-qa="sort-chip-toggle"]').trigger("click");
+                await vue.nextTick();
+
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["created_at"]);
+                expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
                 wrapper.unmount();
             },
         );
