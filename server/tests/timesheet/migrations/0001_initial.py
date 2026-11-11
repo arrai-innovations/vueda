@@ -43,13 +43,18 @@ class Migration(migrations.Migration):
                         editable=False,
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="+",
+                        related_name="approved_timesheets",
                         to="employee.employee",
                     ),
                 ),
                 (
                     "reviewers",
-                    models.ManyToManyField(editable=False, related_name="+", to="employee.employee"),
+                    models.ManyToManyField(
+                        editable=False,
+                        related_name="reviewed_timesheets",
+                        related_query_name="reviewed_timesheet",
+                        to="employee.employee",
+                    ),
                 ),
             ],
             options={

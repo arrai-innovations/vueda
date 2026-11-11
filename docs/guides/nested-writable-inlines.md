@@ -220,7 +220,7 @@ To clear a sibling field's server error when the user leaves a row field, follow
 
 **`{"items": [{"order": ["This field is required."]}]}`.** The child serializer lists the parent's foreign key. Remove it from the child's `fields`, or make it optional. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md#save-time-child-validation) describes how the server validates each child when it saves.
 
-**Nested children are not created or updated.** The relation uses `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`, so the server discards its data. Use a writable serializer. The server also discards the data when the write may not set the relation: `exclude_create_fields` or `exclude_update_fields` lists it, or its model field has `editable=False`. [Read-Only Relations](../core-concepts/nested-write-compatibility.md#read-only-relations) lists these cases.
+**Nested children are not created or updated.** The relation uses `VuedaReadonlySerializer` or `VuedaReadonlyListSerializer`, so the server discards its data. Use a writable serializer. The server also discards the data when the write may not set the relation: `exclude_create_fields` or `exclude_update_fields` lists it, or its model field has `editable=False`. For inline children, the relation is a reverse one. It is locked when the child model's foreign key to the parent has `editable=False`. [Read-Only Relations](../core-concepts/nested-write-compatibility.md#read-only-relations) lists these cases.
 
 **Children disappear after an update.** The body sent the relation's key without them. Send every child that you keep, with its primary key, or leave the key out.
 

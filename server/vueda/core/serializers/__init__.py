@@ -116,9 +116,17 @@ def _model_field_is_editable(model, name):
     Return whether a write may set the model field ``name`` of ``model``.
 
     A field declared with ``editable=False`` cannot be set, including a forward many-to-many field and a
-    generic foreign key. A relation whose rows point at ``model`` counts as editable, because the parent
-    writes those rows through an expand. Django marks such a relation ``editable=False`` all the same. It
-    covers a reverse foreign key, reverse one-to-one, reverse many-to-many, and a ``GenericRelation``.
+    generic foreign key.
+
+    A reverse relation follows the forward field that declares it. This covers a reverse foreign key,
+    reverse one-to-one, and reverse many-to-many. Django marks every reverse relation ``editable=False``, but
+    the reverse side writes the same rows as the forward field. Locking that field with ``editable=False``
+    therefore locks both sides. ``name`` matches a reverse relation by its accessor name, such as
+    ``timesheet_set``, which is the attribute that a serializer reads.
+
+    A ``GenericRelation`` counts as editable, and so does its reverse side. It is declared on the parent, but
+    it holds another model's rows, as a reverse foreign key does. Django marks it ``editable=False`` all the
+    same.
 
     A name that is not a model field counts as editable. So does any name when ``model`` is ``None``.
     """
@@ -127,12 +135,18 @@ def _model_field_is_editable(model, name):
     try:
         model_field = model._meta.get_field(name)
     except FieldDoesNotExist:
-        return True
+        # _meta.get_field() knows a reverse relation only by its query name, which differs from the accessor
+        # name when the relation has no related_name, or a related_query_name of its own.
+        model_field = next(
+            (relation for relation in model._meta.related_objects if relation.get_accessor_name() == name), None
+        )
+        if model_field is None:
+            return True
     if model_field.editable:
         return True
-    # Django's reverse relation objects are auto-created and have no column. A GenericRelation is declared on
-    # the parent, but like a reverse foreign key it holds rows of another model.
-    return model_field.one_to_many or (model_field.auto_created and not model_field.concrete)
+    if isinstance(model_field, models.ForeignObjectRel):
+        return isinstance(model_field.field, GenericRelation) or model_field.field.editable
+    return isinstance(model_field, GenericRelation)
 
 
 def _expand_is_locked(model, name, expand_options, excluded):
@@ -150,7 +164,7 @@ def _expand_is_locked(model, name, expand_options, excluded):
     because it describes no particular write.
     """
     # A dotted source, such as "employee.user", writes through the relation that its first part names.
-    source = expand_options.get("source", name).split(".", 1)[0]
+    source = (expand_options.get("source") or name).split(".", 1)[0]
     if name in excluded or source in excluded:
         return True
     if "read_only" in expand_options:

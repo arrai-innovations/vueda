@@ -19,6 +19,7 @@ from typing import ClassVar
 
 import pytest
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
@@ -26,9 +27,14 @@ from rest_framework.test import APIRequestFactory
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.employee.models import Employee
+from tests.employee.serializers import EmployeeSerializer
+from tests.store.models import CustomerOrder
 from tests.timesheet.models import Timesheet
+from tests.timesheet.models import TimesheetEntry
 from tests.timesheet.serializers import TimesheetLockedExpandsSerializer
+from tests.timesheet.serializers import TimesheetSerializer
 from tests.timesheet.viewsets import TimesheetLockedExpandsViewSet
+from vueda.core.serializers import VuedaSerializer
 from vueda.core.serializers import _expand_is_locked
 from vueda.core.serializers import _model_field_is_editable
 from vueda.workflow.models import ObjectState
@@ -263,14 +269,100 @@ def test_model_info_reports_an_expand_of_an_editable_false_field_as_read_only():
     assert expands["manager"] is False
 
 
+class TimesheetApprovalSerializer(VuedaSerializer):
+    """
+    Expands ``approved_by``, which is ``editable=False``, and ``approver``, which unlocks it with ``read_only: False``.
+
+    It has no ``ExcludeFieldsSerializerMixin``, because check ``vueda_core.E008`` rejects that mixin on a nested
+    serializer.
+    """
+
+    class Meta(VuedaSerializer.Meta):
+        model = Timesheet
+        fields = ["id", "period_start", "period_end", "approved_by"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "approved_by": (EmployeeSerializer, {}),
+            "approver": (EmployeeSerializer, {"source": "approved_by", "read_only": False}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class TimesheetEntryWithTimesheetApprovalSerializer(VuedaSerializer):
+    """Expands an entry's timesheet with ``TimesheetApprovalSerializer``, so its expands sit one level down."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = TimesheetEntry
+        fields = ["id", "timesheet", "date", "hours"] + VuedaSerializer.Meta.fields
+        expandable_fields = {"timesheet": (TimesheetApprovalSerializer, {})}
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+@pytest.mark.django_db
+def test_nested_expand_level_locks_an_editable_false_field_of_its_own_model():
+    # The nested serializer's model decides editable=False, so the lock reaches a nested level too.
+    # drf-writable-nested saves no level below the first, so this lock changes only the nested validation and
+    # the response.
+    serializer = TimesheetEntryWithTimesheetApprovalSerializer(
+        **{EXPAND_PARAM: ["timesheet.approved_by", "timesheet.approver"]}
+    )
+
+    timesheet_field = serializer.fields["timesheet"]
+    assert timesheet_field.read_only is False
+    assert timesheet_field.fields["approved_by"].read_only is True
+    # An explicit read_only option still wins over editable=False at a nested level.
+    assert timesheet_field.fields["approver"].read_only is False
+
+
+class EmployeeWithTimesheetApprovalsSerializer(VuedaSerializer):
+    """
+    Expands the reverse relations of ``Timesheet.approved_by`` and ``Timesheet.reviewers``, both ``editable=False``.
+
+    ``unlocked_reviewed_timesheets`` expands ``reviewed_timesheets`` with ``read_only: False``, which unlocks it.
+    """
+
+    class Meta(VuedaSerializer.Meta):
+        model = Employee
+        fields = ["id", "employee_number"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "approved_timesheets": (TimesheetSerializer, {"many": True}),
+            "reviewed_timesheets": (TimesheetSerializer, {"many": True}),
+            "unlocked_reviewed_timesheets": (
+                TimesheetSerializer,
+                {"source": "reviewed_timesheets", "many": True, "read_only": False},
+            ),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+@pytest.mark.django_db
+def test_expand_of_a_reverse_relation_is_locked_when_its_forward_field_is_editable_false():
+    # The reverse side writes the same rows as the forward field, so editable=False on the forward field locks it.
+    serializer = EmployeeWithTimesheetApprovalsSerializer(
+        **{EXPAND_PARAM: ["approved_timesheets", "reviewed_timesheets", "unlocked_reviewed_timesheets"]}
+    )
+
+    assert serializer.fields["approved_timesheets"].read_only is True
+    assert serializer.fields["reviewed_timesheets"].read_only is True
+    assert serializer.fields["unlocked_reviewed_timesheets"].read_only is False
+
+
 @pytest.mark.parametrize(
     "model, field_name, editable",
     [
         (Timesheet, "employee", True),
         (Timesheet, "approved_by", False),
         (Timesheet, "reviewers", False),
+        # A reverse relation follows the forward field that declares it, so editable=False locks both sides.
+        (Employee, "approved_timesheets", False),
+        # Its query name is reviewed_timesheet, so this row shows the lookup by accessor name.
+        (Employee, "reviewed_timesheets", False),
         # A reverse foreign key: Django marks it editable=False, but the parent writes its rows.
         (Timesheet, "timesheet_entries", True),
+        # A reverse one-to-one and a reverse many-to-many: Django marks both editable=False, but the parent
+        # writes their rows.
+        (CustomerOrder, "shipment", True),
+        # user_set is the accessor name. Its query name is user.
+        (Group, "user_set", True),
         # A GenericRelation holds another model's rows, like a reverse foreign key.
         (ObjectState, "object_state_proxy", True),
         (ObjectStateProxy, "object", False),
@@ -286,6 +378,8 @@ def test_model_field_is_editable(model, field_name, editable):
     [
         ("employee", {}, frozenset(), False),
         ("employee", {}, frozenset({"employee"}), True),
+        # DRF reads source=None as the field's own name.
+        ("employee", {"source": None}, frozenset({"employee"}), True),
         # An expand whose source names an excluded field is locked.
         ("manager", {"source": "supervisor"}, frozenset({"supervisor"}), True),
         # A dotted source writes through the relation that its first part names.
