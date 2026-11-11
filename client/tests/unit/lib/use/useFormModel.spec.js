@@ -577,6 +577,71 @@ describe("lib/use/useFormModel.js", () => {
             });
         }
     });
+    describe("email and URL fields over a model CharField or TextField", () => {
+        /**
+         * Build form state for a form with one `contact` field.
+         *
+         * @param {string} view - The form's view.
+         * @param {object} detail - The field's details.
+         * @returns {Promise<object>} The form state.
+         */
+        async function buildContactForm(view, detail) {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const fieldDetails = { contact: { name: "contact", readOnly: false, many: false, ...detail } };
+            modelConfig.config = { fieldDetails };
+            const props = makeBaseProps({ view, fields: ["contact"], fieldDetails });
+            const state = await withSetup(() => useFormModel(props));
+            await flushPromises();
+            return state;
+        }
+
+        const cases = [
+            ["EmailField", "CharField", "WidgetEmailReadOnly", "email"],
+            ["EmailField", "TextField", "WidgetEmailReadOnly", "email"],
+            ["URLField", "CharField", "WidgetUrlReadOnly", "url"],
+            ["URLField", "TextField", "WidgetUrlReadOnly", "url"],
+        ];
+
+        for (const [typeSerializer, typeModel, readOnlyWidget, inputType] of cases) {
+            scopedIt(`edits ${typeSerializer} over a ${typeModel} with a text input`, async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildContactForm("update", { typeSerializer, typeModel });
+
+                expect(state.widgetComponents.contact).toBe(availableWidgets.WidgetTextInput);
+                expect(state.widgetProps.contact.type).toBe(inputType);
+            });
+
+            scopedIt(`shows ${typeSerializer} over a ${typeModel} with ${readOnlyWidget} on a read view`, async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildContactForm("read", { typeSerializer, typeModel });
+
+                expect(state.widgetComponents.contact).toBe(availableWidgets[readOnlyWidget]);
+            });
+
+            scopedIt(`edits a many-valued ${typeSerializer} over a ${typeModel} with one input per value`, async () => {
+                const { availableFields, availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildContactForm("update", { typeSerializer, typeModel, many: true });
+
+                expect(state.widgetComponents.contact).toBe(availableWidgets.WidgetTextInput);
+                expect(state.fieldProps.contact.manyComponent).toBe(availableFields.FormField);
+            });
+
+            scopedIt(`edits ${typeSerializer} with choices over a ${typeModel} with a dropdown`, async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+                const choices = [{ value: "a", label: "A" }];
+
+                const single = await buildContactForm("update", { typeSerializer, typeModel, choices });
+                expect(single.widgetComponents.contact).toBe(availableWidgets.WidgetSelectDropdown);
+
+                const many = await buildContactForm("update", { typeSerializer, typeModel, choices, many: true });
+                expect(many.widgetComponents.contact).toBe(availableWidgets.WidgetCombobox);
+                expect(many.widgetProps.contact.multiple).toBe(true);
+            });
+        }
+    });
     describe("read-only widget of a slug relation", () => {
         const slugDetail = (extra = {}) => ({
             name: "country",

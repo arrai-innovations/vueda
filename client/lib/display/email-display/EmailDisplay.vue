@@ -7,9 +7,10 @@ import { computed } from "vue";
  * Presents an email address as a `mailto:` link. The link text is the address as stored.
  *
  * Only one plain address becomes a link: text, one `@`, then more text, with no whitespace and
- * none of `?`, `&`, `,`, or `;`. Any other value shows as plain text. A `mailto:` URL can carry
+ * none of `?`, `&`, `,`, `;`, or `%`. Any other value shows as plain text. A `mailto:` URL can carry
  * headers and extra recipients, so a stored value that skipped the server's validator must not
- * add them to the viewer's draft.
+ * add them to the viewer's draft. `%` is excluded too, because a mail client that decodes the
+ * address before splitting it would read `%3F` and `%2C` as those delimiters.
  *
  * A null, absent, or empty value renders the same dash that {@link FileDisplay} uses.
  */
@@ -38,8 +39,9 @@ const props = defineProps({
 
 const theme = useTheme("EmailDisplay", props);
 
-// One address: no header delimiters (`?`, `&`), no recipient separators (`,`, `;`), no whitespace.
-const PLAIN_ADDRESS = /^[^\s@?&,;]+@[^\s@?&,;]+$/;
+// One address: no header delimiters (`?`, `&`), no recipient separators (`,`, `;`), no percent-encoded
+// form of either (`%`), and no whitespace.
+const PLAIN_ADDRESS = /^[^\s@?&,;%]+@[^\s@?&,;%]+$/;
 
 const isEmpty = computed(() => !props.value);
 

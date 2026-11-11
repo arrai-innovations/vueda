@@ -400,8 +400,20 @@ export const choiceFieldMappings = {
             manyWidgetProps: { multiple: true },
         },
     },
+    // The CharField and TextField entries match the CharField choice entries, for a serializer
+    // EmailField or URLField over those model types.
     EmailField: {
         EmailField: { widget: availableWidgets.WidgetTextInput, widgetProps: { type: "email" }, default: true },
+        CharField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
     },
     ManyRelatedField: {
         ManyToManyField: {
@@ -456,6 +468,16 @@ export const choiceFieldMappings = {
             manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
         },
     },
 };
@@ -525,6 +547,14 @@ export const manyFieldMappings = {
             widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FormField },
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     FileField: {
@@ -624,6 +654,14 @@ export const manyFieldMappings = {
             widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FormField },
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     UUIDField: {

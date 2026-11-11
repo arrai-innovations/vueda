@@ -48,7 +48,7 @@ The adapters render as follows:
 - `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No". When the field has labels for its values, `ColumnBoolean` renders the label that matches the value instead. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A null value with a matching label renders that label in place of the dash.
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
-- `ColumnEmail` renders {@api vue:component:EmailDisplay}: a `mailto:` link whose text is the address as stored. A value that is not one plain address renders as text. That covers a value with whitespace, `?`, `&`, `,`, or `;`, which could add headers or recipients to the draft.
+- `ColumnEmail` renders {@api vue:component:EmailDisplay}: a `mailto:` link whose text is the address as stored. A value that is not one plain address renders as text. That covers a value with whitespace, `?`, `&`, `,`, `;`, or `%`, which could add headers or recipients to the draft.
 - `ColumnFile` renders {@api vue:component:FileDisplay}: a link to the file, labelled with the file name.
 - `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
 - `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}. The label renders as plain text when the viewer cannot open that view.

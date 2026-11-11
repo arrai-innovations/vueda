@@ -28,6 +28,8 @@ describe("lib/display/email-display/EmailDisplay.vue", () => {
             ["a comma-separated recipient", "sales@domain.invalid,other@domain.invalid"],
             ["a semicolon-separated recipient", "sales@domain.invalid;other@domain.invalid"],
             ["whitespace", "sales @domain.invalid"],
+            ["an encoded header", "sales%3Fbcc%3Dother%40domain.invalid@domain.invalid"],
+            ["an encoded recipient separator", "sales@domain.invalid%2Cother%40domain.invalid"],
             ["no @", "sales"],
             ["two @", "sales@team@domain.invalid"],
             ["nothing before the @", "@domain.invalid"],
