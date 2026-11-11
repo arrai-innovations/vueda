@@ -30,13 +30,14 @@ patchTheme({
         toolbar: {
             class: ["flex flex-row flex-wrap items-center gap-0.5", "border-b-hairline bg-muted/50 px-1.5 py-1"],
         },
-        /** Toolbar buttons use compact slab control styling. */
+        /** Toolbar buttons use compact slab control styling. A disabled button takes the disabled ink and ignores the pointer, so it shows no hover state. */
         toolbarButton: {
             class: [
                 "inline-flex items-center justify-center",
                 "rounded px-1.5 py-0.5 text-sm font-medium text-muted-foreground",
                 "hover:bg-accent hover:text-accent-foreground",
                 "active:bg-accent-active active:text-accent-foreground",
+                "disabled:text-disabled-foreground disabled:pointer-events-none",
             ],
         },
         /** The active toolbar button uses the same accent surface as selected menu actions. */
