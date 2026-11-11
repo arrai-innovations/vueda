@@ -2353,6 +2353,51 @@ class Command(BaseCommand):
                 del changes[app_label]
         return changes
 
+    def _split_unmatched_changes_by_owner(self, app_data, model_name, workflow_model_name):
+        """Split the app's unmatched changes into those that belong to one model and those that belong to none.
+
+        A change belongs to the model whose content type ``_get_content_type_for_model`` returns for
+        it, which is how matching decides it. A change that belongs to another of the app's models is
+        left out of both lists. A change belongs to no model when this database never recorded its
+        workflow, or when its workflow belongs to a model outside the app. Every model's debug output
+        lists those changes, so none is dropped.
+
+        Each list holds ``(migration_name, change)`` pairs in migration order.
+        """
+        content_type_ids = app_data["models_to_content_type_ids"]
+        own_content_type_id = content_type_ids[model_name]
+        app_content_type_ids = frozenset(content_type_ids.values())
+
+        own_changes = []
+        unowned_changes = []
+        for migration_name, migration_data in app_data["migrations"].items():
+            for change in migration_data["changes_by_model_name"].get(workflow_model_name, ()):
+                if "matches_history" in change:
+                    continue
+
+                content_type = self._get_content_type_for_model(
+                    workflow_model_name, change["history_type"], change["changes"]
+                )
+                if content_type is None or content_type.pk not in app_content_type_ids:
+                    unowned_changes.append((migration_name, change))
+                elif content_type.pk == own_content_type_id:
+                    own_changes.append((migration_name, change))
+
+        return own_changes, unowned_changes
+
+    def _print_unmatched_changes(self, heading, changes):
+        if not changes:
+            return
+
+        self.stdout.write("")
+        self.stdout.write(self.style.HTTP_NOT_FOUND(heading))
+        self.stdout.write("")
+
+        for migration_name, change in changes:
+            self.stdout.write(self.style.MIGRATE_HEADING(f"  Change from {migration_name} does not match history:"))
+            self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
+            self.stdout.write(f"      {change}")
+
     def print_debug(self, debug_name, app_data):
         if debug_name in self.debug or "all" in self.debug:
             _app_name, model_name, workflow_model_name = debug_name.rsplit(".", 2)
@@ -2382,23 +2427,11 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.HTTP_NOT_MODIFIED("    History:"))
                         self.stdout.write(f"      {queryset.filter(pk=change['matches_history']).values()}")
 
-            heading_printed = False
-            for migration_name, migration_data in app_data["migrations"].items():
-                for change in migration_data["changes_by_model_name"].get(workflow_model_name, ()):
-                    if "matches_history" not in change:
-                        if not heading_printed:
-                            heading_printed = True
-                            self.stdout.write("")
-                            self.stdout.write(
-                                self.style.HTTP_NOT_FOUND(f"Changes not matching history records - {debug_name}")
-                            )
-                            self.stdout.write("")
-
-                        self.stdout.write(
-                            self.style.MIGRATE_HEADING(f"  Change from {migration_name} does not match history:")
-                        )
-                        self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
-                        self.stdout.write(f"      {change}")
+            own_changes, unowned_changes = self._split_unmatched_changes_by_owner(
+                app_data, model_name, workflow_model_name
+            )
+            self._print_unmatched_changes(f"Changes not matching history records - {debug_name}", own_changes)
+            self._print_unmatched_changes(f"Changes not belonging to a recorded model - {debug_name}", unowned_changes)
 
             heading_printed = False
             if unmatched.exists():

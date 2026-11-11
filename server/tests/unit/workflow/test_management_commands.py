@@ -9,6 +9,7 @@ from pathlib import Path
 from pprint import pformat
 from typing import ClassVar
 
+import pgtrigger
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -3381,6 +3382,127 @@ class TestManagementCommandWorkflowMovedCodes(GeneratesWorkflowMigrations, BaseT
                 pytest.fail("".join(results))
 
             assert "No workflow changes detected." in "".join(results), "".join(results)
+
+
+class TestManagementCommandWorkflowDebugUnmatchedChanges(
+    GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand
+):
+    """The ``--debug`` sections that list changes no recorded write matched, in an app with two workflow models.
+
+    Each model gets its own workflow and state, and a generated migration captures both. The state
+    events are then emptied, so neither state change in that migration matches a recorded write.
+    Each model's debug output has to list only the state change that belongs to it.
+    """
+
+    workflow_app_label = "workflow_moved_codes"
+
+    STATE_CODES: ClassVar[dict[str, str]] = {
+        "workflowmovedfrom": "from_state",
+        "workflowmovedto": "to_state",
+    }
+
+    @staticmethod
+    def clear_events(workflow_model):
+        """Empty one event table, as if this database never recorded those writes."""
+        event_model = workflow_model.pgh_event_model
+        with pgtrigger.ignore(f"{event_model._meta.label}:append_only"):
+            event_model.objects.all().delete()
+
+    def generate_migration_with_a_state_per_model(self, migration_dir):
+        for model_name, state_code in self.STATE_CODES.items():
+            content_type = ContentType.objects.get(app_label="workflow_moved_codes", model=model_name)
+            workflow = models.Workflow.objects.create(
+                code=f"{model_name}_workflow",
+                name=f"{model_name} workflow",
+                content_type=content_type,
+                historical_app_label="workflow_moved_codes",
+                historical_model=model_name,
+            )
+            models.State.objects.create(workflow=workflow, code=state_code, name=state_code)
+
+        self.generate_workflow_migration_or_fail(migration_dir)
+
+    def state_debug_sections(self):
+        """Return each debug section of the state output, keyed by its heading, as the state codes it lists."""
+        arguments = ["makeworkflowmigrations", "workflow_moved_codes", "--import-instead", "--dry-run"]
+        for model_name in self.STATE_CODES:
+            arguments += ["--debug", f"tests.workflow_moved_codes.{model_name}.state"]
+
+        succeeded, results = self.call_command_capturing_output(*arguments)
+        if not succeeded:
+            pytest.fail("".join(results))
+
+        sections = {}
+        heading = None
+        for line in "".join(results).splitlines():
+            if not line.strip():
+                continue
+            if not line.startswith(" "):
+                heading = line.strip()
+                sections.setdefault(heading, set())
+                continue
+            for state_code in self.STATE_CODES.values():
+                if f"'code': '{state_code}'" in line:
+                    sections[heading].add(state_code)
+
+        return sections
+
+    @clear_info_registry_before_test()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
+    def test_unmatched_change_listed_only_under_its_own_model(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_moved_codes": "tests.workflow_moved_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_moved_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            self.generate_migration_with_a_state_per_model(migration_dir)
+            self.clear_events(models.State)
+
+            sections = self.state_debug_sections()
+
+            for model_name, state_code in self.STATE_CODES.items():
+                heading = f"Changes not matching history records - tests.workflow_moved_codes.{model_name}.state"
+                assert sections.get(heading) == {state_code}, sections
+
+            assert not any(heading.startswith("Changes not belonging") for heading in sections), sections
+
+    @clear_info_registry_before_test()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
+    def test_unmatched_change_of_an_unrecorded_workflow_listed_under_every_model(self, settings):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_moved_codes": "tests.workflow_moved_codes",
+        }
+        append_installed_apps(settings, "tests.workflow_moved_codes")
+
+        with self.temporary_migration_module(settings, app_label="workflow_moved_codes") as migration_dir:
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_moved_codes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            self.generate_migration_with_a_state_per_model(migration_dir)
+            # With no workflow recorded, no state change can be traced to a model.
+            self.clear_events(models.State)
+            self.clear_events(models.Workflow)
+
+            sections = self.state_debug_sections()
+
+            all_state_codes = set(self.STATE_CODES.values())
+            for model_name in self.STATE_CODES:
+                heading = f"Changes not belonging to a recorded model - tests.workflow_moved_codes.{model_name}.state"
+                assert sections.get(heading) == all_state_codes, sections
+
+            assert not any(heading.startswith("Changes not matching") for heading in sections), sections
 
 
 class TestManagementCommandUtils:
