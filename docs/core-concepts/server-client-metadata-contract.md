@@ -140,4 +140,4 @@ A `source` failure is exempt in three cases:
 
 A `<field>_lookup_expression` failure is never exempt. The expression feeds [`models.F()`]{@api ext:django:django.db.models.F} for queryset annotation and Django admin's `lookup_field()`. Both resolve in the database, so a broken expression also breaks those uses, whatever the metadata says.
 
-**Serializer-only registration blocks navigation.** With empty `model_actions`, the route guard blocks every route for the model with an "Action Not Found" toast. That is the intended state for a model without its own CRUD surface.
+**Serializer-only registration blocks navigation.** With empty `model_actions`, the route guard blocks every route for the model with an "Action Unavailable" toast. That is the intended state for a model without its own CRUD surface.

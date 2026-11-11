@@ -151,7 +151,9 @@ function selectedKeysFromQuery(value) {
  * @param {string[]} [params.groups=null] - The groups required to access the views.
  * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
  *  Required when `groups` names at least one group.
- * @param {object} params.actionRedirect - The route to redirect if model/action not found.
+ * @param {object} params.actionRedirect - The route to redirect to when the model or the action is unavailable to
+ *  the user. The redirect adds the refused route's full path to the query as `redirect`, which `ViewNotFound`
+ *  describes. Point it at a route that `requireModelInfo` does not guard, so a refusal cannot loop.
  * @param {import('vue').App} params.vueApp - The Vue app instance.
  * @param {import('vue-router').Router} params.router - The Vue router instance.
  * @param {import('pinia').Pinia} params.pinia - The Pinia instance.

@@ -94,6 +94,20 @@ function resolveRedirect(redirectTo, router) {
 }
 
 /**
+ * Resolve a redirect object and record the location it replaces as a `redirect` query value.
+ *
+ * @param {(import('vue-router').RouteLocationRaw|string)} redirectTo - The redirect object or path.
+ * @param {import('vue-router').RouteLocationNormalized} to - The target route that the redirect replaces.
+ * @param {import('vue-router').Router} router - The router instance.
+ * @returns {import('vue-router').RouteLocationNormalizedLoaded} The resolved redirect object, with the target
+ *  route's full path in `query.redirect`.
+ */
+function resolveRedirectFrom(redirectTo, to, router) {
+    const resolvedRedirectTo = resolveRedirect(redirectTo, router);
+    return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
+}
+
+/**
  * Require the user to be authenticated.
  *
  * @example
@@ -124,10 +138,10 @@ function resolveRedirect(redirectTo, router) {
  *  Rejects with the request error when the current-user request fails, which rejects the navigation.
  */
 export async function requireAuth(redirectTo, to, router, pinia) {
-    const resolvedRedirectTo = resolveRedirect(redirectTo, router);
+    const resolvedRedirectTo = resolveRedirectFrom(redirectTo, to, router);
     const userStore = await waitForCurrentUser(pinia);
     if (!userStore.loggedIn) {
-        return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
+        return resolvedRedirectTo;
     }
 }
 
@@ -163,7 +177,7 @@ export async function requireAuth(redirectTo, to, router, pinia) {
  *  Rejects with the request error when the current-user request fails, which rejects the navigation.
  */
 export async function requireRecentAuth(redirectTo, to, router, pinia) {
-    const resolvedRedirectTo = resolveRedirect(redirectTo, router);
+    const resolvedRedirectTo = resolveRedirectFrom(redirectTo, to, router);
     const userStore = storeUser(pinia);
     const isRecent = () => userStore.loggedIn && !userStore.authPendingFlow;
     if (!currentUserRequestSucceeded(userStore)) {
@@ -172,7 +186,7 @@ export async function requireRecentAuth(redirectTo, to, router, pinia) {
         await userStore.fetchCurrentUser();
     }
     if (!isRecent()) {
-        return { ...resolvedRedirectTo, query: { ...resolvedRedirectTo.query, redirect: to.fullPath } };
+        return resolvedRedirectTo;
     }
 }
 
@@ -313,6 +327,11 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * When the server denies model info itself with a 403, the guard shows a "Permission Denied" toast instead of
  * "Model Not Found". The toast only reports the refusal. The server enforces it.
  *
+ * Every redirect carries the refused route's full path as a `redirect` query value, the same value that
+ * `requireAuth` adds, so the destination can say which location was refused. An action that model info does not
+ * list shows an "Action Unavailable" toast. Model info lists only the actions that the user may perform, so the
+ * guard cannot tell an action that the user may not use from one that the model does not have.
+ *
  * @param {import('vue').App} instance - The Vue app instance.
  * @param {import('vue-router').RouteLocationRaw} redirectTo - Where to redirect if model info is not found or
  *  is denied, the action is not allowed, or the route is a transition and workflow discovery is denied.
@@ -320,8 +339,8 @@ export async function requireGroups(instance, toastArgs, groups, redirectTo, to,
  * @param {import('vue-router').Router} router - The router instance.
  * @param {import('pinia').Pinia} pinia - The Pinia instance.
  * @returns {Promise<boolean|import('vue-router').RouteLocationNormalizedLoaded>} `true` when the model exists
- *  and the action is allowed, a redirect route when it does not, or `false` to cancel the navigation because
- *  the authenticated user changed while the metadata was being fetched.
+ *  and the action is allowed, a redirect route with a `redirect` query value when it does not, or `false` to
+ *  cancel the navigation because the authenticated user changed while the metadata was being fetched.
  */
 export async function requireModelInfo(instance, redirectTo, to, router, pinia) {
     try {
@@ -361,13 +380,13 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
                     workflowDenial.responseData?.detail ?? "You do not have permission to perform this action.",
                 duration: 15000,
             });
-            return resolveRedirect(redirectTo, router);
+            return resolveRedirectFrom(redirectTo, to, router);
         }
         if (transitionCodes.includes(actionName)) {
             return true;
         }
-        toast.error("Action Not Found");
-        return resolveRedirect(redirectTo, router);
+        toast.error("Action Unavailable");
+        return resolveRedirectFrom(redirectTo, to, router);
     } catch (e) {
         if (e instanceof AuthScopeInvalidatedError) {
             // The authenticated user changed while this navigation was resolving, so the metadata it
@@ -385,11 +404,11 @@ export async function requireModelInfo(instance, redirectTo, to, router, pinia) 
                 description: e.responseData?.detail ?? "You do not have permission to perform this action.",
                 duration: 15000,
             });
-            return resolveRedirect(redirectTo, router);
+            return resolveRedirectFrom(redirectTo, to, router);
         }
         if (e instanceof ModelInfoError) {
             toast.error("Model Not Found");
-            return resolveRedirect(redirectTo, router);
+            return resolveRedirectFrom(redirectTo, to, router);
         }
         throw e;
     }

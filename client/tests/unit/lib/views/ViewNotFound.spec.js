@@ -220,6 +220,77 @@ describe("lib/views/ViewNotFound.vue", () => {
         });
     });
 
+    describe("Refused route", () => {
+        /**
+         * Mount the view on the route a guard redirect lands on: the not-found record resolved with no
+         * path of its own, carrying the refused location as `query.redirect`.
+         *
+         * @param {*} redirect - The `redirect` query value.
+         * @returns {import('@vue/test-utils').VueWrapper} The mounted view.
+         */
+        const mountRefused = (redirect) => {
+            mockedUseRouter.mockReturnValue({
+                currentRoute: { value: { path: "/", query: { redirect } } },
+                push: pushSpy,
+                back: backSpy,
+            });
+            mockedUseSuggestRoutes.mockReturnValue(
+                ref([{ matchedPath: "/:app/:model/:action/", score: 0.9, route: { name: "x", params: {} } }]),
+            );
+            return mount(ViewNotFound);
+        };
+
+        scopedIt("names the refused path in the crest without a status code", () => {
+            const wrapper = mountRefused("/blog/post/create/?returnPath=%2F");
+            const text = wrapper.text();
+            expect(text).toContain("Page unavailable");
+            expect(text).toContain("/blog/post/create/");
+            expect(text).not.toContain("Route not found");
+            expect(text).not.toContain("404");
+        });
+
+        scopedIt("says the page is unavailable without claiming no route matched", () => {
+            const wrapper = mountRefused("/blog/post/create/");
+            const blurb = wrapper.find('[data-qa="view-not-found-blurb"]').text();
+            expect(blurb).toBe(
+                "This page is not available. It may not exist, or your account may not have access to it.",
+            );
+        });
+
+        scopedIt("shows the refused path's segments without marking any bad", () => {
+            const wrapper = mountRefused("/blog/post/create/");
+            expect(wrapper.findComponent(TriedUrlCalloutStub).props("segments")).toEqual([
+                { text: "/blog", bad: false },
+                { text: "/post", bad: false },
+                { text: "/create", bad: false },
+            ]);
+        });
+
+        scopedIt("hides the suggestion list", () => {
+            const wrapper = mountRefused("/blog/post/create/");
+            expect(wrapper.find('[data-qa="view-not-found-suggestions"]').exists()).toBe(false);
+        });
+
+        scopedIt("reports the full refused location in the route row", () => {
+            const wrapper = mountRefused("/blog/post/create/?returnPath=%2F");
+            expect(wrapper.findComponent(DiagnosticStripStub).props("rows")).toEqual([
+                { label: "route", value: "/blog/post/create/?returnPath=%2F" },
+            ]);
+        });
+
+        scopedIt("describes its own path when the redirect value is not a path", () => {
+            for (const redirect of ["https://example.com/", ["/a/", "/b/"], ""]) {
+                const wrapper = mountRefused(redirect);
+                expect(wrapper.text()).toContain("Route not found");
+                expect(wrapper.text()).toContain("404");
+                expect(wrapper.findComponent(DiagnosticStripStub).props("rows")).toEqual([
+                    { label: "route", value: "/" },
+                ]);
+                wrapper.unmount();
+            }
+        });
+    });
+
     describe("Actions", () => {
         scopedIt("renders Back and Go to home buttons", () => {
             const wrapper = mount(ViewNotFound);
