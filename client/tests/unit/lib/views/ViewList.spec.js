@@ -2559,6 +2559,51 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt(
+            "reads displayFields, fieldDetails, and fetchFields refs that a direct useViewList caller passes",
+            async () => {
+                useModelInfo();
+                const { useViewList } = await import("@vueda/use/useViewList.js");
+                const displayFields = ref(["site"]);
+                const fieldDetails = ref({ site: { label: "Location" } });
+                const fetchFields = ref(["site", "notes"]);
+                let viewList;
+                const Harness = defineComponent({
+                    setup() {
+                        viewList = useViewList({
+                            app: "app",
+                            model: "model",
+                            displayFields,
+                            fieldDetails,
+                            fetchFields,
+                        });
+                        return () => null;
+                    },
+                });
+                mockedInject.mockReturnValueOnce({});
+                const wrapper = mount(Harness);
+                await vue.nextTick();
+                const columnNames = () => viewList.list.computedFieldObjects.map((field) => field.name);
+                const requestedFields = () => mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM];
+
+                expect(columnNames()).toEqual(["site"]);
+                expect(viewList.list.computedFieldObjects[0].label).toBe("Location");
+                expect(viewList.sort.fieldDetails.site.label).toBe("Location");
+                expect(requestedFields()).toEqual(["id", "site", "notes"]);
+
+                displayFields.value = ["site", "customer"];
+                fieldDetails.value = { site: { label: "Branch" } };
+                fetchFields.value = ["site", "customer"];
+                await vue.nextTick();
+
+                expect(columnNames()).toEqual(["site", "customer"]);
+                expect(viewList.list.computedFieldObjects[0].label).toBe("Branch");
+                expect(viewList.sort.fieldDetails.site.label).toBe("Branch");
+                expect(requestedFields()).toEqual(["id", "site", "customer"]);
+                wrapper.unmount();
+            },
+        );
+
         scopedIt("updates prop columns when model info arrives after mount", async () => {
             modelConfig.config.fieldDetails = {};
             const wrapper = await mountList({ displayFields: ["site"] });
