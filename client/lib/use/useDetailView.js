@@ -65,9 +65,11 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
+import { useObjectChangeNotice } from "@vueda/use/useObjectChangeNotice.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { objectStreamsEnabled } from "@vueda/utils/objectStreams.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
@@ -99,6 +101,8 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
  * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
+ * @property {boolean} [noticeChanges] - For a view that holds unsaved edits, such as update. After `setupObjectStreams()`, the object subscription keeps the record current, the form keeps the values that it loaded, and the returned `changeNotice` reports the difference. `currentActionAvailable` reads the actions that the record allowed when the form took its values, with or without live updates.
+ * @property {boolean} [subscribe] - For a view that shows no edits, such as read. After `setupObjectStreams()`, the view fetches the record again when the server reports a change, and the form values follow it. Without live updates, the option has no effect.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
  * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
@@ -135,6 +139,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The `useObject` result; exposes `.state.object`, `.state.loading`, `.state.error`, `.state.relatedObjects`, `.state.calculatedObjects`, etc.
  * @property {import('vue').UnwrapNestedRefs<DetailViewInstanceGroup>} instance - Computed display state: title, loading, errors, and form wiring.
  * @property {import('vue').UnwrapNestedRefs<DetailViewActionsGroup>} actions - Available action and transition lists.
+ * @property {import('@vueda/use/useObjectChangeNotice.js').ObjectChangeNotice} changeNotice - Whether someone else changed or deleted the record, and `reload`. Stays clear unless `noticeChanges` is set.
  */
 
 /**
@@ -228,31 +233,64 @@ export function useDetailView(options, formInitialValue) {
             [EXPAND_PARAM]: computed(() => formModelExpand(formModelProps.value, modelConfig.config?.expand)),
         },
         intendToRetrieve,
+        intendToSubscribe: computed(
+            () => (!!options.subscribe || !!options.noticeChanges) && objectStreamsEnabled() && validAndActive.value,
+        ),
         relatedObjectRules: toRef(options, "relatedObjectRules"),
         calculatedObjectRules: toRef(options, "calculatedObjectRules"),
     });
 
     const instanceObject = useObject({ props: instanceObjectProps });
 
+    /**
+     * The form values of a record. A formatted name fetched only for the header stays out, so the
+     * form holds just the fields that the field list asked for.
+     *
+     * @param {object} object
+     * @returns {object}
+     */
+    function formValuesOf(object) {
+        return omit(
+            cloneDeep(object),
+            "available_actions",
+            "valid_transitions",
+            ...(addsFormattedName.value ? ["formatted_name"] : []),
+        );
+    }
+
+    // The actions that the record allowed when the form took its values. A view that holds edits checks
+    // its own action against these, so a pushed change never replaces the form while the user edits it.
+    /** @type {import('vue').Ref<string[]|undefined>} */
+    const baselineAvailableActions = ref(undefined);
+
+    function assignFormInitialValue() {
+        assignReactiveObject(formInitialValue, formValuesOf(instanceObject.state.object));
+        baselineAvailableActions.value = cloneDeep(instanceObject.state.object?.available_actions);
+    }
+
     watch(
         [validAndActive, toRef(instanceObject.state, "loading")],
         ([vAA, loading]) => {
             if (vAA && loading === false) {
-                // A formatted name fetched only for the header stays out of the form values, so the
-                // form holds just the fields that the field list asked for.
-                assignReactiveObject(
-                    formInitialValue,
-                    omit(
-                        cloneDeep(instanceObject.state.object),
-                        "available_actions",
-                        "valid_transitions",
-                        ...(addsFormattedName.value ? ["formatted_name"] : []),
-                    ),
-                );
+                assignFormInitialValue();
             }
         },
         { immediate: true },
     );
+
+    if (options.subscribe && objectStreamsEnabled()) {
+        // A pushed change replaces the object in place, without a loading cycle. A deleted record
+        // keeps its last values on screen.
+        watch(
+            () => instanceObject.state.object,
+            () => {
+                if (validAndActive.value && !instanceObject.state.deleted) {
+                    assignFormInitialValue();
+                }
+            },
+            { deep: true },
+        );
+    }
 
     /** @type {import('vue').Ref<Error|null>} */
     const myError = ref(null);
@@ -310,7 +348,9 @@ export function useDetailView(options, formInitialValue) {
         if (!object) {
             return true;
         }
-        const objectAvailableActions = object.available_actions;
+        const objectAvailableActions = options.noticeChanges
+            ? baselineAvailableActions.value
+            : object.available_actions;
         if (!objectAvailableActions) {
             return true;
         }
@@ -347,9 +387,19 @@ export function useDetailView(options, formInitialValue) {
         return new Set(candidates.filter((name) => detailActions.value.includes(name)));
     });
 
+    const changeNotice = useObjectChangeNotice({
+        enabled: () => !!options.noticeChanges && validAndActive.value,
+        current: () => formValuesOf(instanceObject.state.object),
+        baseline: () => formInitialValue,
+        deleted: () => instanceObject.state.deleted,
+        busy: () => instanceObject.state.loading !== false || !!options.objectForm?.state?.loading,
+        reload: assignFormInitialValue,
+    });
+
     return {
         modelConfig,
         instanceObject,
+        changeNotice,
         instance: reactive({
             validAndActive,
             titleStr,

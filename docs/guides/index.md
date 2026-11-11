@@ -15,6 +15,7 @@ Guides are task-focused how-tos for integrators. They assume you know your domai
 ## Environment & Networking
 
 - [Configure the Cache and Sessions](configure-cache-and-sessions.md): Choose a cache backend through `CACHE_URL`, keep sessions readable across worker processes, and verify the result.
+- [Set Up Websocket Subscriptions](set-up-websocket-subscriptions.md): Enable optional live change notices, with change capture, websocket routing, the listener process, and proxy settings.
 - [Local HTTPS Development](local-https-setup.md): Set up mkcert, uvicorn TLS, and Vite HTTPS for a production-like local environment with secure cookies.
 
 ## Coding Agents

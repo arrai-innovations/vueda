@@ -58,7 +58,7 @@ beforeEach(async () => {
     mockComposableResult = {
         formInitialValue: reactive({}),
         formContext: {
-            state: reactive({ values: {}, anyModified: false }),
+            state: reactive({ values: {}, anyModified: false, anyTouched: false }),
             getFirstErrorField: vi.fn(() => null),
         },
         objectForm: {
@@ -96,6 +96,7 @@ beforeEach(async () => {
             detailActions: [],
             availableTransitions: [],
         }),
+        changeNotice: reactive({ changed: false, deleted: false, reload: vi.fn() }),
     };
     useViewUpdate.mockReturnValue(mockComposableResult);
 });
@@ -158,6 +159,66 @@ describe("lib/views/ViewUpdate.vue", () => {
 
             const [emittedContext] = wrapper.emitted("form-context")[0];
             expect(emittedContext).toBe(mockComposableResult.formContext);
+        });
+    });
+
+    describe("Change notice", () => {
+        const mountView = async (options = {}) => {
+            const { default: ViewUpdate } = await import("@vueda/views/ViewUpdate.vue");
+            return mount(ViewUpdate, { props: { app: "a", model: "m", pk: "1" }, ...options });
+        };
+
+        scopedIt("shows nothing while the record is unchanged", async () => {
+            const wrapper = await mountView();
+
+            expect(wrapper.find('[data-qa="update-changed-notice"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="update-deleted-notice"]').exists()).toBe(false);
+        });
+
+        scopedIt("offers a reload when someone else saves, and keeps the form", async () => {
+            mockComposableResult.changeNotice.changed = true;
+            const wrapper = await mountView();
+
+            const notice = wrapper.find('[data-qa="update-changed-notice"]');
+            expect(notice.text()).toContain("This widget changed after you opened it.");
+            expect(notice.text()).not.toContain("discards your edits");
+            expect(wrapper.find("form").exists()).toBe(true);
+
+            await wrapper.find('[data-qa="update-changed-reload"]').trigger("click");
+            expect(mockComposableResult.changeNotice.reload).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("warns that a reload discards edits once the user has touched a field", async () => {
+            mockComposableResult.changeNotice.changed = true;
+            mockComposableResult.formContext.state.anyTouched = true;
+            const wrapper = await mountView();
+
+            expect(wrapper.find('[data-qa="update-changed-notice"]').text()).toContain(
+                "Reloading discards your edits.",
+            );
+        });
+
+        scopedIt("reports a deleted record without a reload", async () => {
+            mockComposableResult.changeNotice.deleted = true;
+            const wrapper = await mountView();
+
+            expect(wrapper.find('[data-qa="update-deleted-notice"]').text()).toContain(
+                "This widget was deleted after you opened it.",
+            );
+            expect(wrapper.find('[data-qa="update-changed-reload"]').exists()).toBe(false);
+        });
+
+        scopedIt("lets the change-notice slot replace the notice", async () => {
+            mockComposableResult.changeNotice.changed = true;
+            const wrapper = await mountView({
+                slots: {
+                    "change-notice": ({ changed, edited }) =>
+                        h("p", { "data-qa": "custom-notice" }, `${changed}:${edited}`),
+                },
+            });
+
+            expect(wrapper.find('[data-qa="custom-notice"]').text()).toBe("true:false");
+            expect(wrapper.find('[data-qa="update-changed-notice"]').exists()).toBe(false);
         });
     });
 

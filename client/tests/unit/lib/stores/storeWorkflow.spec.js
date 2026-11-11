@@ -221,6 +221,28 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(mockedFetchHelper).not.toHaveBeenCalled();
         });
 
+        scopedIt("fetches again after forgetObjectHistory, and keeps other objects cached", async () => {
+            mockedFetchHelper.mockResolvedValue(history);
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            await store.fetchObjectHistory("app", "model", "1");
+            await store.fetchObjectHistory("app", "model", "2");
+
+            store.forgetObjectHistory("app", "model", "1");
+
+            expect(store.objectHistories[key]["1"]).toBeUndefined();
+            expect(store.objectHistories[key]["2"]).toEqual(history);
+            mockedFetchHelper.mockClear();
+            await store.fetchObjectHistory("app", "model", "1");
+            expect(mockedFetchHelper).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("forgets nothing when the model has no cached histories", () => {
+            const store = storeWorkflow();
+
+            expect(() => store.forgetObjectHistory("app", "other", "1")).not.toThrow();
+        });
+
         scopedIt("shares one request between concurrent calls for the same object", async () => {
             mockedFetchHelper.mockResolvedValue(history);
             const store = storeWorkflow();
