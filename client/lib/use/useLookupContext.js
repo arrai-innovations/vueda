@@ -69,11 +69,12 @@ export function useLookupContext() {
      * @returns {Promise<{ config: object, instance: import('@vueda/reactive-helpers/use/useList.js').ListManager|import('@vueda/reactive-helpers/use/useObject.js').ObjectManager }>}
      */
     async function acquireManager({ isList, args }) {
+        // Fetch the model info before taking an idle manager, so a refused fetch leaves the pool as it was.
+        const pkKey = (await modelInfoStore.fetchModelInfo(args)).pk + "";
+
         const pool = isList ? idleLists : idleObjects;
         const busy = isList ? busyLists : busyObjects;
         let entry = pool.pop();
-
-        const pkKey = (await modelInfoStore.fetchModelInfo(args)).pk + "";
 
         if (!entry) {
             // Create a new instance
@@ -193,12 +194,14 @@ export function useLookupContext() {
                 let instanceCancel = null;
                 const batchPromise = CancellablePromise(
                     (async () => {
-                        const entry = await acquireManager({
-                            isList,
-                            args,
-                            pks,
-                        });
+                        // Acquired inside the try, so a refused model info still rejects every consumer below.
+                        let entry;
                         try {
+                            entry = await acquireManager({
+                                isList,
+                                args,
+                                pks,
+                            });
                             const outcomePromise = runRequestBatch(args, entry, isList, key, pks);
                             instanceCancel = outcomePromise.cancel;
                             const outcome = await outcomePromise;
@@ -269,10 +272,18 @@ export function useLookupContext() {
                                 }
                             });
 
-                            if (isList) {
+                            // When acquireManager failed, there is no manager to return to its pool.
+                            if (entry) {
+                                const busy = isList ? busyLists : busyObjects;
+                                const busyIndex = busy.indexOf(entry);
+                                if (busyIndex !== -1) {
+                                    busy.splice(busyIndex, 1);
+                                }
+                            }
+                            if (entry && isList) {
                                 entry.instance.clearList();
                                 idleLists.push(entry);
-                            } else {
+                            } else if (entry) {
                                 entry.instance.clear();
                                 idleObjects.push(entry);
                             }

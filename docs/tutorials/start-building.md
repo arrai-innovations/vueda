@@ -486,9 +486,9 @@ VUEDA enforces {@term CRUDL} permissions by default. Each model gets five permis
 
 The `inventory` app has more permissions than these 15. VUEDA records each model's history in an event model (`productevent`, `optiontypeevent`, and `productoptionevent`), and each event model gets its own five permissions. Reading a product's history needs only `inventory.read_product`, so the group below leaves the event model permissions out.
 
-The group also needs `contenttypes.read_contenttype` and `contenttypes.list_contenttype`. The client reads each model's metadata ({@term Model Info}) before it opens the model, and those two permissions gate that metadata. [Model Info Access](../core-concepts/permission-model.md#model-info-access) explains this gate.
+The client reads each model's metadata ({@term Model Info}) before it opens the model. The server answers a user who may act on the model, so the group needs no other permission. [Model Info Access](../core-concepts/permission-model.md#model-info-access) explains this check.
 
-The script below creates a group with the 15 model permissions and the two model info permissions, `contenttypes.read_contenttype` and `contenttypes.list_contenttype`. It then creates a user in that group:
+The script below creates a group with the 15 model permissions. It then creates a user in that group:
 
 ```console
 uv run python manage.py shell -c '
@@ -499,12 +499,8 @@ model_permissions = Permission.objects.filter(
     content_type__app_label="inventory",
     content_type__model__in=["product", "optiontype", "productoption"],
 )
-model_info_permissions = Permission.objects.filter(
-    content_type__app_label="contenttypes",
-    codename__in=["read_contenttype", "list_contenttype"],
-)
 group, _ = Group.objects.get_or_create(name="Inventory Editors")
-group.permissions.set([*model_permissions, *model_info_permissions])
+group.permissions.set(model_permissions)
 user = get_user_model().objects.create_user(email="you@example.com", password="your-password", name="You")
 user.groups.add(group)
 '

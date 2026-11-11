@@ -47,11 +47,18 @@ On a workflow-enabled model, `ObjectPermissions` can defer its own model-scope d
 
 ## Model Info Access
 
-{@term Model Info} has its own permission gate. The gate is separate from the permissions of the model that the metadata describes. Each model info entry is a {@term Content Type}, so `ObjectPermissions` checks content type codenames on [`ModelInfoViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoViewSet}.
+[`ModelInfoViewSet`]{@api py:class:vueda.info.viewsets.ModelInfoViewSet} answers a signed-in user who may act on the model that the {@term Model Info} describes. The user must pass at least one of the actions that its `model_actions` lists:
 
-Getting model info for one model requires `contenttypes.read_contenttype`. The list of registered models requires `contenttypes.list_contenttype`. A user without them gets `403` from model info, even when the user holds every permission on the model itself. The client loads model info before it opens a model's route, so that user cannot open any model in the client. Grant both permissions to every group whose users work in the client.
+- each built-in action that the user passes through the permission classes of the model's own viewset, including a workflow state grant;
+- each extra action that the viewset allows the user.
 
-These two permissions grant access to metadata only. Each request to the model's own endpoints still needs the model's own codename.
+A model registered with `register_serializer` has no viewset and no actions. Its model info answers a user who holds one of the model's CRUD codenames, or whom a workflow state grants one. `PERMISSION_NAMES_MAPPING` renames each codename.
+
+Any other user gets `403`. The list of registered models holds only the models whose model info the user may read. It is empty for a user who may act on no model. Model info needs no `contenttypes` permission.
+
+A state rule that denies an action does not count against the user here. A deny applies to an object in that state, and model info describes the model rather than any one object.
+
+The client loads model info before it opens a model's route, so a user whom model info refuses can open no route of the model. Model info gives access to metadata only. Each request to the model's own endpoints still runs the model's own permission checks.
 
 ## Server Authority and UI Visibility
 

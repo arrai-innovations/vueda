@@ -30,6 +30,7 @@ from rest_framework import generics
 from rest_framework import mixins
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
+from rest_framework.permissions import BasePermission
 from rest_framework.utils.model_meta import get_field_info
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -42,6 +43,27 @@ from vueda.info.registration import get_registration
 from vueda.info.serializers import ModelInfoChoicesSerializer
 from vueda.info.serializers import ModelInfoFilterSetChoicesSerializer
 from vueda.info.serializers import ModelInfoSerializer
+from vueda.info.serializers import model_info_is_permitted
+
+
+class ModelInfoPermission(BasePermission):
+    """
+    Let a signed-in user read the model info of each model that they may act on.
+
+    ``has_permission`` refuses a user who is not signed in. ``has_object_permission`` passes a model when
+    ``model_info_is_permitted`` passes it, which is when the model's ``model_actions`` would not be empty. No
+    ``contenttypes`` permission is needed.
+
+    The list endpoint does not reach ``has_object_permission``. ``ModelInfoViewSet.get_queryset`` drops each
+    model that ``model_info_is_permitted`` refuses, so the list holds only the models whose detail the user may
+    read.
+    """
+
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        return model_info_is_permitted(obj, request, view)
 
 
 class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
@@ -63,6 +85,23 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
     object = None  # type: ContentType
     queryset = ContentType.objects.all()
     serializer_class = ModelInfoSerializer
+    permission_classes = [ModelInfoPermission]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._called_viewsets = {}
+
+    def called_viewset(self, viewset_class):
+        """
+        Return the instance of ``viewset_class`` that this request runs its action permission checks on.
+
+        DRF builds a new ``ModelInfoViewSet`` for each request, so each request gets new instances. The permission
+        check and the ``model_actions`` of the response share each instance. ``check_action_permission`` keeps its
+        answers on the instance, so a check that decided access is not run again for the response.
+        """
+        if viewset_class not in self._called_viewsets:
+            self._called_viewsets[viewset_class] = viewset_class()
+        return self._called_viewsets[viewset_class]
 
     def initial(self, request, *args, **kwargs):
         if "app_label" in self.kwargs and "model" in self.kwargs:
@@ -76,7 +115,19 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
         return super().initial(request, *args, **kwargs)
 
     def get_queryset(self):
-        return ContentType.objects.filter(pk__in=get_registered_content_types())
+        """
+        Return the registered models. The list keeps only those whose model info the user may read.
+
+        A model that ``model_info_is_permitted`` refuses would answer ``403`` on the detail endpoint, so the list
+        leaves it out. A user who may act on no registered model gets an empty list.
+        """
+        queryset = ContentType.objects.filter(pk__in=get_registered_content_types())
+        if self.action != "list":
+            return queryset
+        permitted = tuple(
+            content_type.pk for content_type in queryset if model_info_is_permitted(content_type, self.request, self)
+        )
+        return queryset.filter(pk__in=permitted)
 
     def get_object(self):
         obj = generics.get_object_or_404(

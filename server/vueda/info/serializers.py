@@ -46,12 +46,14 @@ from vueda.core.ordering import ordering_fields_entry_name
 from vueda.core.ordering import ordering_path_field
 from vueda.core.ordering import ordering_term_field_names
 from vueda.core.ordering import ordering_term_is_ascending
+from vueda.core.patch_django import get_permission_codename
 from vueda.core.paths import PUBLIC_PATH_SEP
 from vueda.core.paths import annotation_path_output_field
 from vueda.core.paths import has_public_ordering_name
 from vueda.core.paths import orm_ordering_path_to_public
 from vueda.core.paths import query_path_field
 from vueda.core.permissions import check_action_permission
+from vueda.core.permissions import has_matching_state_grant
 from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
@@ -70,6 +72,145 @@ from vueda.info.schema import ModelInfoFieldSerializer
 from vueda.info.schema import ModelInfoFilterSerializer
 from vueda.info.schema import ModelInfoOrderingSerializer
 from vueda.info.schema import ModelInfoPermissionSerializer
+
+
+def iter_model_actions(called_viewset, request):
+    """
+    Yield the ``model_actions`` entries of the model that ``called_viewset`` serves, for the user of ``request``.
+
+    ``called_viewset`` is an instance of the model's canonical viewset, which runs the permission checks. Its
+    permission cache keeps each answer for the rest of the request. A caller that passes the same instance twice
+    therefore pays for each check once.
+
+    Each item is a pair. Its first value is ``True`` for an extra action and ``False`` for a built-in action.
+    Its second value is the entry. Built-in actions come first, in the order that ``implemented_builtin_actions``
+    returns. The entries are not sorted.
+
+    A built-in action is yielded when ``check_action_permission`` passes it at model scope. An extra action is
+    yielded when the viewset's ``get_allowed_extra_actions`` allows it. A viewset without that hook does not
+    filter its extra actions, so an extra action of such a viewset is yielded only when the user passes at least
+    one of its HTTP methods. With no request, every action is yielded.
+    The generator checks each built-in action only when the caller asks for the next entry, so a caller that stops
+    at the first entry skips the later built-in checks. ``get_allowed_extra_actions`` decides every extra action
+    in one call, so a caller that reaches the extra actions pays for all of their checks.
+    """
+    viewset = type(called_viewset)
+    user = request.user if request is not None else None
+
+    # The class's queryset names the model without building a queryset. get_queryset() can read the request,
+    # which a viewset built here does not have.
+    queryset = viewset.queryset if getattr(viewset, "queryset", None) is not None else called_viewset.get_queryset()
+    meta = queryset.model._meta
+    app_label = meta.app_label
+    model_name = meta.model_name
+
+    for action in implemented_builtin_actions(viewset):
+        if user is not None and not check_action_permission(called_viewset, request, None, action):
+            continue
+
+        action_item_data = {
+            "name": action,
+            "description": f"{action} {app_label}.{model_name}",
+            "detail": False,
+            "bulk": False,
+            "method_names": [METHOD_MAPPING[action]],
+        }
+        if action in ("destroy",):
+            action_item_data["bulk"] = True
+
+        if action not in ("list", "create"):
+            action_item_data["detail"] = True
+            parameters = viewset.detail_args
+            if parameters:
+                action_item_data["parameters"] = parameters
+        yield False, action_item_data
+
+    if hasattr(called_viewset, "get_allowed_extra_actions"):
+        allowed_extra_actions = called_viewset.get_allowed_extra_actions(request)
+    else:
+        allowed_extra_actions = None
+    for extra_action in called_viewset.get_extra_actions():
+        # Remove actions you are not allowed to do.
+        if allowed_extra_actions is not None and extra_action.url_name not in allowed_extra_actions:
+            continue
+
+        method_names = permitted_extra_action_methods(called_viewset, request, None, extra_action)
+        # A viewset with get_allowed_extra_actions has decided which extra actions to offer. One without it
+        # offers every extra action, so drop one that the user passes no method of here.
+        if allowed_extra_actions is None and not method_names:
+            continue
+
+        signature = inspect.signature(extra_action)
+        parameters = signature.parameters if extra_action.detail else ()
+        extra_action_data = {
+            "name": extra_action.url_name,
+            "description": f"{extra_action.url_name} {app_label}.{model_name}",
+            "detail": extra_action.detail,
+            "bulk": extra_action.bulk,
+            "method_names": method_names,
+        }
+        parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
+        if parameters:
+            extra_action_data["parameters"] = parameters
+        yield True, extra_action_data
+
+
+# The CRUD actions, as Django names them. get_permission_codename renames each through PERMISSION_NAMES_MAPPING.
+MODEL_INFO_CODENAME_ACTIONS = ("add", "view", "change", "delete", "list")
+# The actions that a VuedaReadonlySerializer offers.
+MODEL_INFO_READONLY_CODENAME_ACTIONS = ("view", "list")
+
+
+def model_info_codenames(model, serializer):
+    """
+    Return the codenames of the CRUD permissions that ``serializer`` offers on ``model``, without the app label.
+
+    A ``VuedaReadonlySerializer`` offers only the ``read`` and ``list`` codenames. Every other serializer offers all
+    five. ``PERMISSION_NAMES_MAPPING`` renames each codename, as for every other permission check.
+    """
+    if serializer is not None and issubclass(serializer, VuedaReadonlySerializer):
+        actions = MODEL_INFO_READONLY_CODENAME_ACTIONS
+    else:
+        actions = MODEL_INFO_CODENAME_ACTIONS
+    return tuple(get_permission_codename(action, model._meta) for action in actions)
+
+
+def model_info_is_permitted(content_type, request, view=None):
+    """
+    Return whether the user of ``request`` may read the model info of the model that ``content_type`` names.
+
+    A model registered with a viewset passes when ``iter_model_actions`` yields at least one action, which is
+    when its ``model_actions`` list is not empty. A model registered with ``register_serializer`` has no
+    actions. It passes when the user holds one of the model's CRUD codenames, or a workflow state grants one
+    of them. ``model_info_codenames`` names those codenames, which ``model_permissions`` also lists.
+
+    With no request, every model passes, as ``iter_model_actions`` yields every action then.
+
+    ``view`` is the ``ModelInfoViewSet`` that serves the request. Its ``called_viewset`` gives the instance of the
+    model's viewset that the response's ``model_actions`` also checks, so neither repeats the other's checks.
+
+    A workflow state that denies a codename does not count here. A deny depends on the state of one object, and
+    model info describes the model rather than any one object.
+
+    ``content_type`` must name a registered model.
+    """
+    if request is None:
+        return True
+
+    registration = get_registration(content_type)
+    viewset = registration["viewset"]
+    if viewset is not None:
+        called_viewset = view.called_viewset(viewset) if hasattr(view, "called_viewset") else viewset()
+        return next(iter_model_actions(called_viewset, request), None) is not None
+
+    model = content_type.model_class()
+    permissions = tuple(
+        f"{model._meta.app_label}.{codename}" for codename in model_info_codenames(model, registration["serializer"])
+    )
+    user = request.user
+    return any(user.has_perm(permission) for permission in permissions) or has_matching_state_grant(
+        model, user, permissions
+    )
 
 
 class UnnameableOrderingTermError(Exception):
@@ -189,7 +330,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
     @cached_property
     def canonical(self):
-        return get_registration(self.instance.pk)
+        return get_registration(self.instance)
 
     def get_verbose_name(self, instance: object) -> str:
         return instance.model_class()._meta.verbose_name
@@ -232,20 +373,8 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         serializer = get_serializer_for_model(model) if model is not None else None
 
         if serializer is not None and issubclass(serializer, VuedaReadonlySerializer):
-            permission_read_name = "read"
-            if "read" in settings.PERMISSION_NAMES_MAPPING:
-                permission_read_name = settings.PERMISSION_NAMES_MAPPING["read"]
-
-            permission_list_name = "list"
-            if "list" in settings.PERMISSION_NAMES_MAPPING:
-                permission_list_name = settings.PERMISSION_NAMES_MAPPING["list"]
-
-            permissions = permissions.filter(
-                codename__in=(
-                    f"{permission_read_name}_{instance.model}",
-                    f"{permission_list_name}_{instance.model}",
-                )
-            )
+            # The same codenames that let a user read a serializer-only model's info.
+            permissions = permissions.filter(codename__in=model_info_codenames(model, serializer))
 
         return list(permissions.values("codename", "name"))
 
@@ -506,77 +635,27 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         Each extra action lists the HTTP methods that the requesting user passes, from
         :func:`vueda.core.permissions.permitted_extra_action_methods` with no instance. With no
         request, it lists every method that the action accepts.
-        """
-        # To do this, we'll need to have a canonical viewset for each model
-        from vueda.core.viewsets import VuedaViewSet  # noqa F401
 
-        viewset = self.canonical["viewset"]  # type: VuedaViewSet
+        ``iter_model_actions`` builds each entry. The model info gate on ``ModelInfoViewSet`` reads the same
+        entries, so a user gets model info exactly when this list is not empty.
+        """
+        viewset = self.canonical["viewset"]
         if viewset is None:
             return []
-        called_viewset = viewset()
 
-        request = self.context.get("request", None)
-        user = request.user if request is not None else None
+        # The ModelInfoViewSet shares one instance of the model's viewset with its permission check, so the checks
+        # that decided access are not run again here.
+        view = self.context.get("view")
+        called_viewset = view.called_viewset(viewset) if hasattr(view, "called_viewset") else viewset()
 
-        queryset = viewset().get_queryset()
-        meta = queryset.model._meta
-        app_label = meta.app_label
-        model_name = meta.model_name
+        builtin_actions = []
+        extra_actions = []
+        for is_extra_action, action_data in iter_model_actions(called_viewset, self.context.get("request")):
+            (extra_actions if is_extra_action else builtin_actions).append(action_data)
 
-        action_data = []
-        for action in implemented_builtin_actions(viewset):
-            if user is not None and not check_action_permission(called_viewset, request, None, action):
-                continue
-
-            action_item_data = {
-                "name": action,
-                "description": f"{action} {app_label}.{model_name}",
-                "detail": False,
-                "bulk": False,
-                "method_names": [METHOD_MAPPING[action]],
-            }
-            if action in ("destroy",):
-                action_item_data["bulk"] = True
-
-            if action not in ("list", "create"):
-                action_item_data["detail"] = True
-                parameters = viewset.detail_args
-                if parameters:
-                    action_item_data["parameters"] = parameters
-            action_data.append(action_item_data)
-
-        action_data.sort(key=lambda x: x["name"])
-
-        all_extra_actions = []
-        if hasattr(called_viewset, "get_allowed_extra_actions"):
-            allowed_extra_actions = called_viewset.get_allowed_extra_actions(request)
-        else:
-            allowed_extra_actions = None
-        for extra_action in called_viewset.get_extra_actions():
-            # Remove actions you are not allowed to do.
-            if allowed_extra_actions is not None and extra_action.url_name not in allowed_extra_actions:
-                continue
-
-            signature = inspect.signature(extra_action)
-            parameters = signature.parameters if extra_action.detail else ()
-            extra_action_data = {
-                "name": extra_action.url_name,
-                "description": f"{extra_action.url_name} {app_label}.{model_name}",
-                "detail": extra_action.detail,
-                "bulk": extra_action.bulk,
-                "method_names": permitted_extra_action_methods(called_viewset, request, None, extra_action),
-            }
-            parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
-            if parameters:
-                extra_action_data["parameters"] = parameters
-
-            all_extra_actions.append(extra_action_data)
-
-        all_extra_actions.sort(key=lambda x: x["name"])
-
-        action_data.extend(all_extra_actions)
-
-        return action_data
+        builtin_actions.sort(key=lambda x: x["name"])
+        extra_actions.sort(key=lambda x: x["name"])
+        return builtin_actions + extra_actions
 
     @conditional_extend_schema_field_decorator(ModelInfoExpandSerializer(many=True))
     def get_model_expands(self, instance):
