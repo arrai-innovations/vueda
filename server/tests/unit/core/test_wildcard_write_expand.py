@@ -6,8 +6,8 @@ body is read as if ``e`` held only its other names, cut off at any wildcard segm
 reads every relation as a primary key, and ``e=supervisor,*`` reads ``supervisor`` as a nested object.
 
 ``TimesheetWildcardWriteViewSet`` sets no write permit list. ``TimesheetPermittedWildcardWriteViewSet``
-permits only ``employee`` on ``PUT`` and ``PATCH``. A nested object that holds only a primary key links the
-existing row without saving it.
+permits only ``employee`` and the ``manager`` alias on ``PUT`` and ``PATCH``. A nested object that holds only a
+primary key links the existing row without saving it.
 """
 
 import datetime
@@ -17,11 +17,14 @@ from typing import ClassVar
 import pytest
 from django.conf import settings
 from django.urls import reverse
+from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.employee.models import Employee
 from tests.timesheet.models import Timesheet
+from tests.timesheet.serializers import TimesheetWildcardWriteSerializer
 from tests.timesheet.viewsets import TimesheetWildcardWriteViewSet
 
 
@@ -131,7 +134,29 @@ class TestWildcardWriteExpand(BaseTestUserMixin):
         assert timesheet.employee_id == other_employee.pk
         assert timesheet.supervisor_id == other_employee.pk
         assert response.data["employee"]["id"] == other_employee.pk
+        assert response.data["manager"]["id"] == other_employee.pk
         assert response.data["supervisor"] == other_employee.pk
+
+    def test_wildcard_with_a_permit_list_rejects_an_expand_only_name_in_the_body(
+        self, authenticated_client, timesheet, original_employee, other_employee
+    ):
+        # Before #682, the permit list replaced `*`, so `manager` was swapped in and wrote `supervisor` through
+        # its `source`. A wildcard now swaps nothing, so `manager` is not a field of the body.
+        response = authenticated_client.patch(
+            reverse(
+                "timesheet.timesheetpermittedwildcardwrite-detail",
+                kwargs={"pk": timesheet.pk},
+                query={EXPAND_PARAM: "*"},
+            ),
+            data={"manager": {"id": other_employee.pk}},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert len(response.data["manager"]) == 1
+        assert str(response.data["manager"][0]).startswith("Invalid field.")
+        timesheet.refresh_from_db()
+        assert timesheet.supervisor_id == original_employee.pk
 
     def test_wildcard_create_requires_no_relation_beyond_the_plain_fields(
         self, authenticated_client, original_employee
@@ -293,6 +318,50 @@ class TestWildcardWriteExpand(BaseTestUserMixin):
         assert response.status_code == HTTPStatus.OK, response_body(response)
         timesheet.refresh_from_db()
         assert timesheet.supervisor_id == other_employee.pk
+
+    def build_serializer_with_expand_argument(self, timesheet, request_expand, data):
+        """Build the view's serializer for a `PATCH` whose request sends `request_expand`, with `expand=supervisor`."""
+        request = Request(
+            APIRequestFactory().patch("/", {}, format="json", QUERY_STRING=f"{EXPAND_PARAM}={request_expand}")
+        )
+        request.user = self.users["test_user@domain.invalid"]
+        view = TimesheetWildcardWriteViewSet(
+            request=request, action="partial_update", format_kwarg=None, kwargs={"pk": timesheet.pk}
+        )
+        return TimesheetWildcardWriteSerializer(
+            timesheet,
+            data=data,
+            partial=True,
+            **{EXPAND_PARAM: ["supervisor"]},
+            context={"request": request, "view": view},
+        )
+
+    def test_expand_argument_replaces_the_request_e_in_the_e_check(self, timesheet, other_employee):
+        # The request's `e=nope` would fail the `e` check. The `expand` argument replaces it, so the check
+        # sees only `supervisor`, and `supervisor` reads a nested object.
+        serializer = self.build_serializer_with_expand_argument(
+            timesheet, "nope", {"supervisor": {"id": other_employee.pk}}
+        )
+
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        timesheet.refresh_from_db()
+        assert timesheet.supervisor_id == other_employee.pk
+
+    def test_expand_argument_replaces_the_request_e_in_the_body_swap(
+        self, timesheet, original_employee, other_employee
+    ):
+        # The request's `e=employee` would swap `employee` for a nested serializer. The `expand` argument
+        # replaces it, so `employee` stays a primary key field and rejects the object.
+        serializer = self.build_serializer_with_expand_argument(
+            timesheet, "employee", {"employee": {"id": other_employee.pk}}
+        )
+
+        assert not serializer.is_valid()
+        assert [error.code for error in serializer.errors["employee"]] == ["incorrect_type"]
+        timesheet.refresh_from_db()
+        assert timesheet.employee_id == original_employee.pk
 
     @pytest.mark.parametrize("expand", ["nope", "supervisor.nope", "*.*"])
     def test_action_that_runs_no_viewset_check_rejects_invalid_names_like_a_read(

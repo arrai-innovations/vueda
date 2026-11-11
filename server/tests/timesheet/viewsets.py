@@ -170,10 +170,11 @@ class TimesheetWildcardWriteViewSet(viewsets.VuedaViewSet):
 
 
 class TimesheetPermittedWildcardWriteViewSet(TimesheetWildcardWriteViewSet):
-    """An update may expand only ``employee``, so a wildcard expands only that name.
+    """An update may expand only ``employee`` and ``manager``, so a wildcard expands only those names.
 
-    ``PUT`` reads ``permit_update_expands`` and ``PATCH`` reads ``permit_partial_update_expands``.
+    ``manager`` is an alias of ``supervisor`` and not a field of the body. ``PUT`` reads ``permit_update_expands``
+    and ``PATCH`` reads ``permit_partial_update_expands``.
     """
 
-    permit_update_expands = ["employee"]
-    permit_partial_update_expands = ["employee"]
+    permit_update_expands = ["employee", "manager"]
+    permit_partial_update_expands = ["employee", "manager"]
