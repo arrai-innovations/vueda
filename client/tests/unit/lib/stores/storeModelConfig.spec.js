@@ -757,6 +757,41 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.fieldDetails).toHaveProperty("timesheet_days.day");
         });
 
+        describe("readOnly of an expanded relation", () => {
+            // The form renders an expanded relation as an inline fieldset, and the inline reads
+            // `fieldDetails[<name>].readOnly`. For a name in `expand`, that entry is the plain field merged
+            // with the expand descriptor, and the descriptor's `readOnly` wins.
+            for (const [plainReadOnly, expandReadOnly] of [
+                [true, true],
+                [true, false],
+                [false, true],
+            ]) {
+                scopedIt(
+                    `is ${expandReadOnly} when the plain field says ${plainReadOnly} and the expand says ${expandReadOnly}`,
+                    async () => {
+                        const store = storeModelConfig();
+                        store.builtConfigs = {};
+                        store.initialized = {};
+
+                        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+                        customModelInfo.fields.employee = {
+                            label: "Employee",
+                            many: false,
+                            readOnly: plainReadOnly,
+                            required: false,
+                            typeSerializer: "PrimaryKeyRelatedField",
+                        };
+                        customModelInfo.expand.find((expand) => expand.name === "employee").readOnly = expandReadOnly;
+                        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+                        store.setConfig({ app: "testApp", model: "testModel" }, { expand: ["employee"] });
+
+                        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+                        expect(config.fieldDetails.employee.readOnly).toBe(expandReadOnly);
+                    },
+                );
+            }
+        });
+
         scopedIt("keeps a view-specific expand to that view", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
