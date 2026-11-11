@@ -224,6 +224,7 @@ Update renders as the filled primary button, and the [`primaryActions`]{@api vue
   </div>
   <footer class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     <span>choice labels: {@api vue:component:WidgetReadOnly} shows the label of the field's matching option, so the stored <code>enterprise</code> reads "Enterprise"</span>
+    <span>links: {@api vue:component:WidgetUrlReadOnly} links the primary domain, and {@api vue:component:WidgetEmailReadOnly} links the billing email with <code>mailto:</code></span>
     <span>read rows: {@api theme-key:Field} in its <code>read</code> orientation, a label column beside the value with a hairline under each row; labels are muted and top-aligned against values that wrap</span>
     <span>action bar: one button per detail action the record allows, then one per valid transition. Update is the filled primary button; Destroy takes the destructive tone</span>
     <span>page title: supplied by the docs harness, as a layout would; the view sends its title and its non-detail actions to it</span>
