@@ -53,7 +53,7 @@ The other keys depend on the slot:
 
 The `list` callbacks write into the instance: `pushObjects` adds rows, `clearObjects` empties the list, and the other two store pagination and {@term Column Totals}.
 
-Callers add their own keys to that object. VUEDA's action and delete flows pass `dryRun`, `acknowledgeWarnings`, `formData`, and `requestMethod`.
+Callers add their own keys to that object. VUEDA's action and delete flows pass `dryRun`, `acknowledgeWarnings`, and `formData`. The action flow also passes `urlPath` and `requestMethod`.
 
 An adapter must return a promise. The instance stores a non-promise return as an `invalid-promise` error. The resolved value means:
 
