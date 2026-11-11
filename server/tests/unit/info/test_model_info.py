@@ -22,8 +22,6 @@ from vueda.workflow.models import StatePermission
 
 
 ADMIN_PERMISSIONS = (
-    ("contenttypes", "ContentType", "list"),
-    ("contenttypes", "ContentType", "read"),
     ("store", "Cart", "delete"),
     ("store", "Cart", "list"),
     ("store", "Cart", "read"),
@@ -59,6 +57,8 @@ ADMIN_PERMISSIONS = (
     ("store", "InventoryRecordReason", "list"),
     ("store", "InventoryRecordReason", "read"),
     ("store", "InventoryRecordReason", "update"),
+    # InvoiceLine is registered without a viewset, so a CRUD codename is what lets Admin read its model info.
+    ("store", "InvoiceLine", "read"),
     ("store", "Note", "create"),
     ("store", "Note", "delete"),
     ("store", "Note", "list"),
@@ -126,9 +126,16 @@ ADMIN_PERMISSIONS = (
     ("employee", "User", "update"),
 )
 
+# The models that Customer may not act on. Their model info answers 403, and the list leaves them out.
+CUSTOMER_REFUSED_MODELS = frozenset(
+    {
+        ("store", "inventoryrecord"),
+        ("store", "inventoryrecordreason"),
+        ("store", "invoiceline"),
+    }
+)
+
 CUSTOMER_PERMISSIONS = (
-    ("contenttypes", "ContentType", "list"),
-    ("contenttypes", "ContentType", "read"),
     ("store", "Cart", "create"),
     ("store", "Cart", "delete"),
     ("store", "Cart", "read"),
@@ -302,8 +309,10 @@ class BaseModelInfoDetail(BaseModelInfo):
     """
     The detail response for every registered model, checked against the expected results. Subclasses
     differ only in who asks: ``expected_actions_key`` names the actions the subclass's user is
-    allowed to see.
+    allowed to see. ``refused_models`` names the models whose model info answers 403 for that user.
     """
+
+    refused_models: ClassVar[frozenset] = frozenset()
 
     expected_actions_key: ClassVar[str]
 
@@ -465,6 +474,10 @@ class BaseModelInfoDetail(BaseModelInfo):
             data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: EXPANDED_FIELDS},
         )
 
+        if (app_label, model_name) in self.refused_models:
+            assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+            return
+
         expected_actions_key = self.expected_actions_key
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
@@ -494,9 +507,12 @@ class TestModelInfoList(BaseModelInfo):
         response = authenticated_client.get(reverse("info.model_info-list"), format="json")
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        # Compare 'app_label.model' instead of totals, so you can see what is missing.
+        # Compare 'app_label.model' instead of totals, so you can see what is missing. The list leaves out the
+        # models whose detail answers 403 for Customer.
         assert {f"{result['app_label']}.{result['model']}" for result in response.data["results"]} == {
-            f"{result[0]}.{result[1]}" for result in EXPECTED_RESULTS
+            f"{result[0]}.{result[1]}"
+            for result in EXPECTED_RESULTS
+            if (result[0], result[1]) not in CUSTOMER_REFUSED_MODELS
         }
 
 
@@ -512,6 +528,7 @@ class TestModelInfoSerializerCustomer(BaseModelInfoDetail):
     test_data_class = CustomerTestData
     user_email = "test_customer_1@domain.invalid"
     expected_actions_key = "expected_actions_customer"
+    refused_models = CUSTOMER_REFUSED_MODELS
 
 
 def get_model_action_names_expecting_ok(client, app_label, model_name):
@@ -535,18 +552,11 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
     """
 
     groups_to_create: ClassVar[dict] = {
-        "No Distributor Permission": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
-        ],
+        "No Distributor Permission": [],
         "Distributor Lister": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Distributor", "list"),
         ],
         "Distributor Reader": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Distributor", "read"),
         ],
     }
@@ -576,10 +586,17 @@ class TestHistoryActionMetadataAvailability(BaseTestUserMixin, BaseTestGroupMixi
         yield
         info.registration.get_empty_registry()
 
-    def test_no_permission_reports_no_actions_at_all(self, api_client):
+    def test_no_permission_refuses_the_model_info(self, api_client):
+        # With no permitted action, not even `history-list`, the user may not read the model info at all.
         api_client.force_authenticate(user=self.users["no_permission@domain.invalid"])
 
-        assert get_model_action_names_expecting_ok(api_client, "store", "distributor") == set()
+        response = api_client.get(
+            reverse("info.model_info-detail", args=("store", "distributor")),
+            format="json",
+            data={settings.REST_FLEX_FIELDS2["EXPAND_PARAM"]: "model_actions"},
+        )
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
     def test_list_permission_alone_does_not_grant_history_access(self, api_client):
         api_client.force_authenticate(user=self.users["lister@domain.invalid"])
@@ -606,8 +623,6 @@ class TestModelActionsOfReadOnlyViewSet(BaseTestUserMixin, BaseTestGroupMixin):
 
     groups_to_create: ClassVar[dict] = {
         "Customer Data Admin": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "CustomerData", "list"),
             ("store", "CustomerData", "read"),
             ("store", "CustomerData", "create"),
@@ -683,10 +698,7 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
     """
 
     groups_to_create: ClassVar[dict] = {
-        "Order Metadata Viewer": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
-        ],
+        "Order Metadata Viewer": [],
     }
 
     users_to_create: ClassVar[dict] = {
@@ -741,18 +753,12 @@ class TestModelActionsSeparatesListFromRetrieve(BaseTestUserMixin, BaseTestGroup
 
     groups_to_create: ClassVar[dict] = {
         "Distributor Lister Only": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Distributor", "list"),
         ],
         "Distributor Reader Only": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Distributor", "read"),
         ],
         "Distributor Lister And Reader": [
-            ("contenttypes", "ContentType", "list"),
-            ("contenttypes", "ContentType", "read"),
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
         ],

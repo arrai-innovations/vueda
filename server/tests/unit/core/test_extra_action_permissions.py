@@ -35,12 +35,6 @@ from vueda.vdq.serializers import SentItemSerializer
 from vueda.vdq.viewsets import SentItemViewSet
 
 
-MODEL_INFO_READER = [
-    ("contenttypes", "ContentType", "list"),
-    ("contenttypes", "ContentType", "read"),
-]
-
-
 class DenyAll(BasePermission):
     def has_permission(self, request, view):
         return False
@@ -125,11 +119,12 @@ def registry():
 
 @pytest.mark.django_db
 class TestResendAvailability(BaseTestUserMixin, BaseTestGroupMixin):
-    groups_to_create: ClassVar[dict] = {"Model Info Reader": MODEL_INFO_READER}
+    # `read` lets both users read the model info of `sentitem`, which needs at least one permitted action.
+    groups_to_create: ClassVar[dict] = {"Sent Item Reader": [("vueda_vdq", "SentItem", "read")]}
 
     users_to_create: ClassVar[dict] = {
-        "resender@domain.invalid": {"name": "Resender", "password": "testpass", "groups": ["Model Info Reader"]},
-        "no-resend@domain.invalid": {"name": "No Resend", "password": "testpass", "groups": ["Model Info Reader"]},
+        "resender@domain.invalid": {"name": "Resender", "password": "testpass", "groups": ["Sent Item Reader"]},
+        "no-resend@domain.invalid": {"name": "No Resend", "password": "testpass", "groups": ["Sent Item Reader"]},
     }
 
     @pytest.fixture(autouse=True)
@@ -153,12 +148,10 @@ class TestResendAvailability(BaseTestUserMixin, BaseTestGroupMixin):
 class TestDeactivateAvailability(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Gadget Reader": [
-            *MODEL_INFO_READER,
             ("bulk_actions", "IntegerKeyGadget", "list"),
             ("bulk_actions", "IntegerKeyGadget", "read"),
         ],
         "Gadget Editor": [
-            *MODEL_INFO_READER,
             ("bulk_actions", "IntegerKeyGadget", "list"),
             ("bulk_actions", "IntegerKeyGadget", "read"),
             ("bulk_actions", "IntegerKeyGadget", "update"),
@@ -221,10 +214,11 @@ class TestDeactivateAvailability(BaseTestUserMixin, BaseTestGroupMixin):
 @pytest.mark.django_db
 class TestExtraActionPermissionClasses(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
-        "No Distributor Permission": MODEL_INFO_READER,
-        "Distributor Reader": [*MODEL_INFO_READER, ("store", "Distributor", "read")],
+        # Model info needs no permission of its own. This user reads it through the actions that every user
+        # passes, such as `open-to-all`.
+        "No Distributor Permission": [],
+        "Distributor Reader": [("store", "Distributor", "read")],
         "Distributor Admin": [
-            *MODEL_INFO_READER,
             ("store", "Distributor", "list"),
             ("store", "Distributor", "read"),
             ("store", "Distributor", "create"),
