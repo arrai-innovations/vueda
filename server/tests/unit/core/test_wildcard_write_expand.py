@@ -2,12 +2,13 @@
 A write accepts a wildcard and dotted names in ``e`` (#682).
 
 On a write, a wildcard shapes only the response, which expands every permitted relation as on a read. The
-body is read as if ``e`` held only its other names, cut off at any wildcard segment. ``e=*`` alone therefore
-reads every relation as a primary key, and ``e=supervisor,*`` reads ``supervisor`` as a nested object.
+body is read as if ``e`` held only the first level of each name that is not a wildcard. ``e=*`` alone
+therefore reads every relation as a primary key, and ``e=supervisor,*`` reads ``supervisor`` as a nested object.
 
 ``TimesheetWildcardWriteViewSet`` sets no write permit list. ``TimesheetPermittedWildcardWriteViewSet``
-permits only ``employee`` and the ``manager`` alias on ``PUT`` and ``PATCH``. A nested object that holds only a
-primary key links the existing row without saving it.
+permits only ``employee`` and the ``manager`` alias on ``PUT`` and ``PATCH``. One test writes through
+``TimesheetLockedExpandsViewSet`` from #678, whose serializer locks ``employee`` on an update. A nested object
+that holds only a primary key links the existing row without saving it.
 """
 
 import datetime
@@ -455,3 +456,25 @@ class TestWildcardWriteExpand(BaseTestUserMixin):
         )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+
+    def test_wildcard_beside_an_excluded_name_expands_it_and_leaves_it_unchanged(
+        self, authenticated_client, timesheet, original_employee, other_employee
+    ):
+        # `e=employee,*` swaps `employee` for a nested serializer, and the lock from #678 makes it read-only,
+        # because `TimesheetLockedExpandsSerializer` lists `employee` in `exclude_update_fields`. The write
+        # ignores the object, and the response still expands `employee` and the wildcard's other relations.
+        response = authenticated_client.patch(
+            reverse(
+                "timesheet.timesheetlockedexpands-detail",
+                kwargs={"pk": timesheet.pk},
+                query={EXPAND_PARAM: "employee,*"},
+            ),
+            data={"employee": {"id": other_employee.pk}},
+            format="json",
+        )
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        timesheet.refresh_from_db()
+        assert timesheet.employee_id == original_employee.pk
+        assert response.data["employee"]["id"] == original_employee.pk
+        assert response.data["manager"]["id"] == original_employee.pk
