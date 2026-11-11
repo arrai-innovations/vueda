@@ -74,7 +74,14 @@ function createFetchState(objectsInOrder = [{ id: 1 }, { id: 2 }]) {
 describe("lib/use/useModelAction.js", () => {
     beforeEach(() => {
         modelConfig.loading = false;
-        modelConfig.info = { verboseName: "person", verboseNamePlural: "people" };
+        modelConfig.info = {
+            verboseName: "person",
+            verboseNamePlural: "people",
+            actions: [
+                { name: "archive", detail: true, bulk: true, methodNames: ["put"], urlPath: "archive" },
+                { name: "destroy", detail: true, bulk: true, methodNames: ["delete"] },
+            ],
+        };
         modelConfig.config = { actionRedirects: { default: "detail" } };
         mocks.fallbackList = createInstanceStub();
         mocks.instanceObject = createInstanceStub();
@@ -349,6 +356,98 @@ describe("lib/use/useModelAction.js", () => {
             // The views hand the same state to the form as `fetchState`; left in place the error would
             // also render as a fetch-failure banner beside whatever useActionForm reports.
             expect(mocks.instanceObject.clearError).toHaveBeenCalled();
+        });
+    });
+
+    describe("View-only actions", () => {
+        beforeEach(() => {
+            modelConfig.info.actions = [
+                { name: "close", detail: true, bulk: true, methodNames: ["get"], urlPath: "close" },
+            ];
+        });
+
+        scopedIt("sends no request when methodNames lists no write method", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "close", pk: "9" })),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
+            await expect(modelAction.runAction({})).rejects.toThrow(
+                "Only viewing is permitted. You cannot close this record.",
+            );
+            expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("sends no request for an action that model info does not list", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "reopen", pk: "9" })),
+            );
+
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            await expect(modelAction.runAction({})).rejects.toThrow();
+            expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("reports view-only only after model info loads", async () => {
+            modelConfig.loading = true;
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "close", pk: "9" })),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(false);
+        });
+
+        scopedIt("is ready to dry run with a host runAction for an action that model info does not list", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "approve", pk: "9", runAction: vi.fn() }),
+                ),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(false);
+            expect(modelAction.state.readyToDryRun.value).toBe(true);
+        });
+
+        scopedIt("sends the requestMethod prop", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "close", pk: "9", requestMethod: "POST" }),
+                ),
+            );
+
+            expect(modelAction.state.viewOnly.value).toBe(false);
+            await modelAction.runAction({});
+            expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                expect.objectContaining({ urlPath: "close", requestMethod: "POST" }),
+            );
+        });
+
+        scopedIt("runs destroy through the delete handler when model info lists it", async () => {
+            modelConfig.info.actions.push({ name: "destroy", detail: true, bulk: true, methodNames: ["delete"] });
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBe("DELETE");
+            await modelAction.runAction({});
+            expect(mocks.instanceObject.delete).toHaveBeenCalled();
+        });
+
+        scopedIt("blocks destroy when model info does not list it, even with the requestMethod prop", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "destroy", pk: "9", requestMethod: "DELETE" }),
+                ),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            await expect(modelAction.runAction({})).rejects.toThrow();
+            expect(mocks.instanceObject.delete).not.toHaveBeenCalled();
         });
     });
 

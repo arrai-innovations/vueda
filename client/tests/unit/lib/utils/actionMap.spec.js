@@ -39,10 +39,10 @@ describe("lib/utils/actionMap.js", () => {
             expect(getActionRequestMethod(["delete", "patch"])).toBe("DELETE");
         });
 
-        it("chooses PUT when the action lists no write method", () => {
-            expect(getActionRequestMethod(["get"])).toBe("PUT");
-            expect(getActionRequestMethod([])).toBe("PUT");
-            expect(getActionRequestMethod()).toBe("PUT");
+        it("chooses no method when the action lists no write method", () => {
+            expect(getActionRequestMethod(["get"])).toBeNull();
+            expect(getActionRequestMethod([])).toBeNull();
+            expect(getActionRequestMethod()).toBeNull();
         });
     });
 });

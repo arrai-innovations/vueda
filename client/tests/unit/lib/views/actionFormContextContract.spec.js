@@ -25,7 +25,12 @@ vi.mock("@vueda/utils/fetchSupport.js", async () => {
 
 const modelConfig = {
     loading: false,
-    info: { pk: "id", verboseName: "customer", verboseNamePlural: "customers" },
+    info: {
+        pk: "id",
+        verboseName: "customer",
+        verboseNamePlural: "customers",
+        actions: [{ name: "destroy", detail: true, bulk: true, methodNames: ["delete"] }],
+    },
     config: { actionRedirects: { default: "update" }, fetchFields: ["account"], expand: [] },
 };
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => modelConfig }));

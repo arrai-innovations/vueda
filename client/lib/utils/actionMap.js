@@ -48,15 +48,17 @@ const writeMethodNames = new Set(["post", "put", "patch", "delete"]);
  * Chooses the HTTP method that the action views send for an action.
  *
  * The result is `"PUT"` when `methodNames` lists `put`. Otherwise, it is the first write method in `methodNames`, in
- * uppercase. When `methodNames` lists no write method, the result is `"PUT"`.
+ * uppercase. The result is `null` when `methodNames` lists no write method or is missing, because the action views
+ * send only a method that `methodNames` lists.
  *
  * @param {string[]} [methodNames] - The action's `methodNames` from model info, such as `["get", "post"]`.
- * @returns {string} The uppercase HTTP method, such as `"POST"`.
+ * @returns {string|null} The uppercase HTTP method, such as `"POST"`. The result is `null` when there is no method
+ *  to send.
  */
 export const getActionRequestMethod = (methodNames = []) => {
     if (methodNames.includes("put")) {
         return "PUT";
     }
     const writeMethod = methodNames.find((methodName) => writeMethodNames.has(methodName));
-    return writeMethod ? writeMethod.toUpperCase() : "PUT";
+    return writeMethod ? writeMethod.toUpperCase() : null;
 };

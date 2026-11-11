@@ -26,8 +26,11 @@ import { useRoute, useRouter } from "vue-router";
  *  instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
  *  Omit it to use a private transport-only list.
  * @property {(values: object) => object} [transformSubmitDataFn] - Optional form-value transform.
+ * @property {(options?: ModelActionRunOptions) => Promise<any>} [runAction] - Host function that sends the action
+ *  request in place of the default `runAction`. When it is set, `readyToDryRun` and `viewOnly` do not require a
+ *  request method.
  * @property {string} [requestMethod] - HTTP method used for non-destroy action requests. Without it, the method comes
- *  from the action's `methodNames` in model info, through {@link getActionRequestMethod}.
+ *  from the action's `methodNames` in model info, through {@link getActionRequestMethod}. Destroy ignores this prop.
  * @property {boolean} [enableDryRun] - Whether to perform dry-run validation.
  * @property {"info"|"success"|"warning"|"danger"|"neutral"} [tone] - Sentiment tone.
  * @property {string} [bannerTitle] - Optional banner title.
@@ -66,6 +69,16 @@ import { useRoute, useRouter } from "vue-router";
  *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
  * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys, for a
  *  consumer to key its own "already dry-ran this one" bookkeeping off of.
+ *
+ * Permission state.
+ * @property {import('vue').ComputedRef<string|null>} requestMethod - The HTTP method that the action sends. For
+ *  destroy, it comes from the action's `methodNames` in model info. For any other action, it is the `requestMethod`
+ *  prop when set, and otherwise comes from `methodNames`. The value is `null` when the user may not run the action.
+ *  `readyToDryRun` and `runAction` require a method.
+ * @property {import('vue').ComputedRef<boolean>} viewOnly - Whether model info has loaded, no host `runAction` is set,
+ *  and the action has no request method to send. The user can view the records but cannot run the action.
+ * @property {import('vue').ComputedRef<string>} viewOnlyMessage - The message that tells the user that only viewing is
+ *  permitted and that the action cannot be executed.
  */
 
 /**
@@ -73,7 +86,7 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
  * @property {ModelActionRawState} state - Reactive action state.
  * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
- *  crud handlers.
+ *  crud handlers. Rejects with `viewOnlyMessage` and sends no request when `requestMethod` is `null`.
  * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Goes to the route's
  *  `returnPath` query value when it has one. Otherwise it goes to the model config's `actionRedirects` entry for
  *  the action. Resolves `false` when the router reports a navigation failure, so `useActionForm` keeps the form usable.
@@ -140,7 +153,14 @@ export function useModelAction(props) {
     // turned into underscores, which is the router's default segment for an extra action.
     const actionInfo = computed(() => modelConfig.info?.actions?.find((action) => action.name === props.action));
     const urlPath = computed(() => actionInfo.value?.urlPath ?? props.action.replace(/-/g, "_"));
-    const requestMethod = computed(() => props.requestMethod ?? getActionRequestMethod(actionInfo.value?.methodNames));
+    // Destroy always sends `DELETE` through the delete handlers, so its method comes from model info alone. The default
+    // request runs only when it has a method. A host that passes `runAction` sends the request itself.
+    const isDestroy = computed(() => props.action === "destroy");
+    const requestMethod = computed(() => {
+        const reportedMethod = getActionRequestMethod(actionInfo.value?.methodNames);
+        return isDestroy.value ? reportedMethod : (props.requestMethod ?? reportedMethod);
+    });
+    const viewOnly = computed(() => modelConfig.loading === false && !props.runAction && !requestMethod.value);
 
     const modelVerboseName = computed(() =>
         bulk.value
@@ -165,6 +185,12 @@ export function useModelAction(props) {
         }
         return `Failed to ${props.action} ${props.model} `;
     });
+
+    const viewOnlyMessage = computed(
+        () =>
+            `Only viewing is permitted. You cannot ${actionVerboseNameLowerCase.value} ` +
+            (bulk.value ? "these records." : "this record."),
+    );
 
     const confirmMessage = computed(() => {
         if (props.confirmMessage) {
@@ -228,6 +254,7 @@ export function useModelAction(props) {
                 props.action &&
                 props.enableDryRun !== false &&
                 modelConfig.loading === false &&
+                !!(props.runAction || requestMethod.value) &&
                 pks.value.length > 0 &&
                 !actionInstance.value?.state?.loading
             ),
@@ -279,10 +306,12 @@ export function useModelAction(props) {
      */
     const runAction = ({ formValues = {}, dryRun = false, acknowledgeWarnings } = {}) => {
         try {
+            if (!requestMethod.value) {
+                throw new Error(viewOnlyMessage.value);
+            }
             const instance = actionInstance.value;
             const runTarget = dryRunTarget.value;
             let cancelled = false;
-            const isDestroy = props.action === "destroy";
             const runPks = [...pks.value];
             const shared = {
                 formData: props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined,
@@ -295,7 +324,7 @@ export function useModelAction(props) {
 
             let result;
             if (bulk.value) {
-                result = isDestroy
+                result = isDestroy.value
                     ? instance.bulkDelete({ ...shared, pks: runPks, keepObjects: dryRun })
                     : instance.executeAction({
                           ...shared,
@@ -305,7 +334,7 @@ export function useModelAction(props) {
                           requestMethod: requestMethod.value,
                       });
             } else {
-                result = isDestroy
+                result = isDestroy.value
                     ? instance.delete({ ...shared, keepObject: dryRun })
                     : instance.executeAction({
                           ...shared,
@@ -357,6 +386,9 @@ export function useModelAction(props) {
             bannerIconName,
             readyToDryRun,
             dryRunTarget,
+            requestMethod,
+            viewOnly,
+            viewOnlyMessage,
         },
         runAction,
         redirectTo,
