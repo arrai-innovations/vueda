@@ -1,11 +1,14 @@
 /**
  * @module utils/columnMappings
- * @description Default mappings from DRF serializer field types to list column adapter components. Mirrors `fieldMappings.js` (which maps types to form widgets). Resolved via the shared `getTypeMapping` helper, keyed `typeSerializer -> typeModel`.
+ * @description Default mappings from DRF serializer field types to list column adapter components. Mirrors
+ *  `fieldMappings.js` (which maps types to form widgets). Resolved via the shared `getTypeMapping` helper, keyed
+ *  `typeSerializer -> typeModel`.
  *
  * Boolean types resolve to `ColumnBoolean`; date/time/datetime types resolve to
  * `ColumnDateTime`; duration types resolve to `ColumnDuration`; `JSON` resolves to
  * `ColumnJson`; file and image types resolve to `ColumnFile`; foreign-key relations
- * resolve to `ColumnModelLink`. Any unmapped type falls back to `ColumnText`,
+ * resolve to `ColumnModelLink`; to-many relations resolve to `ColumnModelLinks`.
+ * Any unmapped type falls back to `ColumnText`,
  * reproducing the historical plain-text cell.
  */
 import merge from "lodash-es/merge.js";
@@ -14,9 +17,11 @@ import merge from "lodash-es/merge.js";
  * Describes how a DRF serializer field type maps to a list column adapter.
  *
  * @typedef {object} ColumnMappingEntry
- * @property {string} column - The adapter name, a key into `availableColumns`. A name with no entry makes the column report an error.
+ * @property {string} column - The adapter name, a key into `availableColumns`. A name with no entry makes the column
+ *  report an error.
  * @property {object} [columnProps] - Default props forwarded to the adapter for this type.
- * @property {boolean} [default] - Whether this is the default mapping for its serializer field type (used when `typeModel` is unknown).
+ * @property {boolean} [default] - Whether this is the default mapping for its serializer field type (used when
+ *  `typeModel` is unknown).
  */
 
 /** @type {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} */
@@ -88,9 +93,7 @@ export const columnMappings = {
     },
     // Foreign-key / one-to-one relations. ColumnModelLink derives the target
     // model from the field's `appLabel`/`model` (server-populated for writable
-    // relations) and degrades to label text when unavailable. Many-relations
-    // (M2M) are intentionally unmapped for now; ColumnModelLink renders an
-    // array value as plain text rather than a single link.
+    // relations) and degrades to label text when unavailable.
     PrimaryKeyRelatedField: {
         ForeignKey: {
             column: "ColumnModelLink",
@@ -102,13 +105,28 @@ export const columnMappings = {
             columnProps: { view: "read" },
         },
     },
+    // To-many relations: a many-to-many field reports `ManyToManyField`, and a
+    // reverse foreign key reports `ForeignKey`. ColumnModelLinks lists the
+    // related labels from an expanded value, and the count from an unexpanded one.
+    ManyRelatedField: {
+        ManyToManyField: {
+            column: "ColumnModelLinks",
+            columnProps: { view: "read" },
+            default: true,
+        },
+        ForeignKey: {
+            column: "ColumnModelLinks",
+            columnProps: { view: "read" },
+        },
+    },
 };
 
 /**
  * Deep-merge custom column mappings into the defaults. Mirrors
  * `mergeDefaultFieldMappings`. Mutates and returns the shared `columnMappings`.
  *
- * @param {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} customMappings - Custom mappings to merge in.
+ * @param {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} customMappings - Custom mappings to
+ *  merge in.
  * @returns {{[typeSerializer: string]: {[typeModel: string]: ColumnMappingEntry}}} The merged mappings.
  */
 export function mergeColumnMappings(customMappings) {

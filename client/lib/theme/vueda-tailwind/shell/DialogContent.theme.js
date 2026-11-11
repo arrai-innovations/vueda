@@ -13,7 +13,9 @@ patchTheme({
      */
     DialogContent: {
         /**
-         * The dialog surface. Standard dialogs use fixed viewport centering, the modal radius, and overlay shadow; full-screen dialogs replace that geometry with a viewport-filling surface. Both own the paired background and foreground tokens.
+         * The dialog surface. Standard dialogs use fixed viewport centering, the modal radius, and overlay shadow;
+         * full-screen dialogs replace that geometry with a viewport-filling surface. Both own the paired background and
+         * foreground tokens.
          */
         root: ({ fullScreen }) => {
             const geometry = fullScreen
@@ -39,7 +41,8 @@ patchTheme({
             };
         },
         /**
-         * The close control inside the dialog surface. It stays low-emphasis until hover or focus and uses the shared ring color for keyboard focus.
+         * The close control inside the dialog surface. It stays low-emphasis until hover or focus and uses the shared
+         * ring color for keyboard focus.
          */
         close: {
             class: [

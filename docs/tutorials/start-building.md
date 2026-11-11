@@ -621,7 +621,7 @@ Open `http://localhost:5173/sign-in/` in your browser.
 3. After login you should land on `/welcome/`.
 4. Navigate to `http://localhost:5173/inventory/product/list/`. The Starter Kit product you created with curl appears here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. The server router registers each model under the same name (see [Router and URLs](#router-and-urls)).
 5. Use the "Create" action to add a product and verify it appears in the list.
-6. Open `http://localhost:5173/inventory/product/read/1` to see the Starter Kit read view, then try update and destroy from there. The next section links list rows to this view.
+6. Open `http://localhost:5173/inventory/product/read/1` to see the Starter Kit read view, then try update from there. To try destroy, open the product that you created in step 5 and destroy it. Keep Starter Kit, because [Add Workflow to a Model](add-workflow.md) uses it. The next section links list rows to the read view.
 
 ### Customize with Model Config
 

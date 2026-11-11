@@ -13,7 +13,8 @@ patchTheme({
      */
     SheetContent: {
         /**
-         * The edge-attached sheet surface. It maps the `side` prop to slide direction, edge border, size, and overlay shadow while preserving a flex column body.
+         * The edge-attached sheet surface. It maps the `side` prop to slide direction, edge border, size, and overlay
+         * shadow while preserving a flex column body.
          */
         root: ({ side }) => {
             const sideClasses = {
@@ -38,7 +39,8 @@ patchTheme({
             };
         },
         /**
-         * The close control inside a sheet. It stays visually quiet until hover or focus and uses the same keyboard focus outline as dialog close controls.
+         * The close control inside a sheet. It stays visually quiet until hover or focus and uses the same keyboard
+         * focus outline as dialog close controls.
          */
         close: {
             class: [

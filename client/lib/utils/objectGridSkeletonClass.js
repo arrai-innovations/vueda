@@ -2,6 +2,7 @@
  * @module utils/objectGridSkeletonClass
  * @description Returns Tailwind classes to size a Skeleton for each field type in an object grid.
  */
+import { isSerializerType } from "@vueda/utils/getTypeMapping.js";
 
 /**
  * Returns Tailwind size and shape classes appropriate for a given field type.
@@ -22,7 +23,7 @@ export function getSkeletonClassForField(field) {
         return "size-4 rounded-vueda-control";
     }
 
-    if (field.typeSerializer === "BooleanField") {
+    if (isSerializerType(field, "BooleanField")) {
         return "h-3.5 w-12 rounded-full";
     }
 

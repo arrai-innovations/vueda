@@ -1,6 +1,7 @@
 /**
  * @module use/useWidget
- * @description Provides the shared props, emits, and reactive context for form widget components, bridging field context with widget-level value handling and validation state.
+ * @description Provides the shared props, emits, and reactive context for form widget components, bridging field
+ *  context with widget-level value handling and validation state.
  */
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import isEqual from "lodash-es/isEqual.js";
@@ -127,10 +128,10 @@ export const WIDGET_EMITS = [
  *
  * // *** Value Handling ***
  * @property {any} [modelValue] - The widget’s bound value (v-model).
- * @property {import('vue').Ref<ValueAdapter>|ValueAdapter|null} [fieldToWidget=null] - The value adapter for turing form
- *  values into values suitable for UI concerns.
- * @property {import('vue').Ref<ValueAdapter>|ValueAdapter|null} [widgetToField=null] - The value adapter for the widget values
- *  back into form values, for validation and submission concerns.
+ * @property {import('vue').Ref<ValueAdapter>|ValueAdapter|null} [fieldToWidget=null] - The value adapter for turing
+ *  form values into values suitable for UI concerns.
+ * @property {import('vue').Ref<ValueAdapter>|ValueAdapter|null} [widgetToField=null] - The value adapter for the widget
+ *  values back into form values, for validation and submission concerns.
  *
  * // *** Disabled Behavior ***
  * @property {boolean} [disabled=false] - Whether the widget is disabled.
@@ -159,7 +160,8 @@ export const WIDGET_EMITS = [
  * @typedef {object} WidgetContextRawState
  *
  * // *** Identification & Metadata ***
- * @property {import('vue').ComputedRef<string>} combinedName - The effective name of the widget, from props or field context.
+ * @property {import('vue').ComputedRef<string>} combinedName - The effective name of the widget, from props or field
+ *  context.
  * @property {import('vue').ComputedRef<string>} [formModelName] - The form model name from the field context.
  *
  * // *** Display ***
@@ -169,10 +171,12 @@ export const WIDGET_EMITS = [
  *
  * // *** Validation ***
  * @property {import('vue').ComputedRef<boolean>} required - Whether the widget is required.
- * @property {import('vue').ComputedRef<{invalid: boolean, warning: boolean}>} validationState - Validation state flags. `warning` excludes the invalid case, so the two are never both set.
+ * @property {import('vue').ComputedRef<{invalid: boolean, warning: boolean}>} validationState - Validation state flags.
+ *  `warning` excludes the invalid case, so the two are never both set.
  *
  * // *** Value Handling ***
- * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective form value (local or contextual).
+ * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective form value (local or
+ *  contextual).
  * @property {import('vue').WritableComputedRef<any>} adaptedValue - The widget’s value adapted for UI concerns.
  * @property {import('vue').ComputedRef<ValueAdapter|null>} fieldToWidget - The value adapter for turing form
  *  values into values suitable for UI concerns.
@@ -187,7 +191,8 @@ export const WIDGET_EMITS = [
  * @property {import('vue').ComputedRef<boolean>} disabled - Whether the widget is disabled.
  *
  * // *** Dependency Management ***
- * @property {import('vue').ComputedRef<{[path: string]: any}>} [dependencyValues] - Dependency values from context, if any.
+ * @property {import('vue').ComputedRef<{[path: string]: any}>} [dependencyValues] - Dependency values from context, if
+ *  any.
  */
 
 /**

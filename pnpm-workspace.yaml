@@ -29,16 +29,16 @@ overrides:
   "dompurify@<=3.4.16": ">=3.4.17 <4"
   # esbuild 0.24.x stopped at 0.24.2; the fix first shipped in 0.25.0.
   "esbuild@<=0.24.2": ">=0.25.0 <0.26"
-  "fast-uri@<3.1.8": ">=3.1.8 <4"
-  "fast-xml-parser@<5.7.0": ">=5.7.0 <6"
+  "fast-uri@<3.1.9": ">=3.1.9 <4"
+  "fast-xml-parser@<5.12.0": ">=5.12.0 <6"
   "flatted@<=3.4.1": ">=3.4.2 <4"
   "form-data@>=4.0.0 <4.0.6": ">=4.0.6 <5"
-  "handlebars@<4.7.9": ">=4.7.9 <5"
+  "handlebars@<4.7.10": ">=4.7.10 <5"
   "js-cookie@<=3.0.5": ">=3.0.6 <4"
   "js-yaml@>=4.0.0 <4.3.2": ">=4.3.2 <5"
   "linkify-it@<=5.0.1": ">=5.0.2 <6"
   "lodash@<=4.17.23": ">=4.17.24 <5"
-  "markdown-it@>=13.0.0 <14.3.1": ">=14.3.1 <15"
+  "markdown-it@>=13.0.0 <14.3.3": ">=14.3.3 <15"
   "minimatch@<3.1.4": ">=3.1.4 <4"
   "minimatch@>=5.0.0 <5.1.8": ">=5.1.8 <6"
   "minimatch@>=9.0.0 <9.0.7": ">=9.0.7 <10"
@@ -52,11 +52,11 @@ overrides:
   "rollup@>=4.0.0 <4.59.0": ">=4.59.0 <5"
   "shell-quote@>=1.1.0 <1.11.0": ">=1.11.0 <2"
   "source-map-js@>=1.0.0 <1.2.2": ">=1.2.2 <2"
-  "stream-json@<=3.4.0": ">=3.4.1 <4"
+  "stream-json@<3.7.0": ">=3.7.0 <4"
   "underscore@<=1.13.7": ">=1.13.8 <2"
-  "undici@>=6.0.0 <6.28.1": ">=6.28.1 <7"
-  "vite@>=6.0.0 <=6.4.2": ">=6.4.3 <7"
-  "vitest@<4.1.11": ">=4.1.11 <5"
+  "undici@>=6.0.0 <6.29.1": ">=6.29.1 <7"
+  "vite@>=6.0.0 <=6.4.3": ">=6.4.4 <7"
+  "vitest@<4.1.12": ">=4.1.12 <5"
   "vue@<3.5.42": ">=3.5.42 <4"
   "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8"
   "ws@>=8.0.0 <8.20.1": ">=8.20.1 <9"
@@ -67,18 +67,35 @@ overrides:
 auditConfig:
   ignoreGhsas:
     # vite dev-server advisories (dev-only, dev-server-only). The fixes are
-    # vite 6.4.2+ and 6.4.3+, but they reach us only through vitepress@1.6.4,
-    # which pins vite ^5.4.14 and has no 5.x backport. vite 6/7 support lands in
-    # vitepress 2.x, still alpha as of 2026-06. Revisit when vitepress 2 ships
+    # vite 6.4.2+ to 6.4.4+, which the vite override above pulls in for every
+    # vite 6 path. The rest reach us only through vitepress@1.6.4, which pins
+    # vite ^5.4.14 and has no 5.x backport. vite 6/7 support lands in
+    # vitepress 2.x, still alpha as of 2026-11. Revisit when vitepress 2 ships
     # stable; until then this never reaches shipped code.
     - GHSA-4w7w-66w2-5vf9
     - GHSA-fx2h-pf6j-xcff
     - GHSA-v6wh-96g9-6wx3
+    - GHSA-587h-7wmj-h5pm
+    - GHSA-698v-4r3x-3vcv
+    - GHSA-9jrq-w75r-8gcw
+    - GHSA-r825-w8mm-5pxw
+    - GHSA-rq7h-c2jc-7f22
     # braces stack-exhaustion DoS on deeply nested patterns (dev-only). No
     # patched release exists as of 2026-10; 3.0.3 is the latest. It reaches us
     # only through client's del-cli build cleanup, which expands patterns we
     # write. Revisit when braces ships a fix.
     - GHSA-vfj7-8cjw-p6xm
+    # glob AbortSignal cancellation bypass (dev-only). The only fix is glob
+    # 14.0.2, but js-beautify (through @vue/test-utils) and @redocly/cli
+    # declare glob ^13, so an override would force a major bump on them. Both
+    # walk paths that our own config names, and neither passes an AbortSignal
+    # from untrusted input. Revisit when either moves to glob 14.
+    - GHSA-3g3m-2fjr-6pw4
+    # minimatch globparts amplification DoS (dev-only). The only fix is
+    # minimatch 11.0.1, but @typescript-eslint/typescript-estree declares
+    # minimatch ^9. It matches patterns from our own ESLint and tsconfig files.
+    # Revisit when typescript-eslint moves to minimatch 11.
+    - GHSA-g3hv-75wg-m249
 
 peerDependencyRules:
   allowedVersions:

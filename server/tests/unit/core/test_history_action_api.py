@@ -26,6 +26,8 @@ from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
+from tests.product.models import Product
+from tests.product.viewsets import ProductViewSet
 from tests.store import models as store_models
 from tests.store import viewsets as store_viewsets
 from vueda.core.audit import audited_action
@@ -785,23 +787,25 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
         assert "history-list" in response.data["available_actions"]
 
 
+AVAILABLE_ACTIONS_QUERIES_PER_ROW = 27
+"""The most queries that one ``store.customerorder`` row of ``available_actions`` may add to a list response."""
+
+
 @pytest.mark.django_db
 class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     """
-    ``available_actions`` must not cost anything on a response that doesn't carry it, and the
-    ``history-list`` read gate must reuse the CRUD loop's own ``retrieve`` decision for the same
-    row rather than running a second permission pass for it.
+    ``available_actions`` must not cost anything on a response that doesn't carry it, and each
+    permission question about a row is answered once per request.
 
-    ``store.customerorder`` is under the ``order_fulfillment`` workflow, so its ``retrieve`` check
-    resolves through ``has_matching_state_grant`` / ``check_state_permission``, the exact path a
-    duplicate permission pass would pay for twice. That is the model and the workflow-state-grant
-    shape PR #288's review measured its query-cost numbers against.
+    ``store.customerorder`` is under the ``order_fulfillment`` workflow, so its read checks resolve
+    through ``has_matching_state_grant`` / ``check_state_permission``, the path that a duplicate
+    permission pass would pay for twice.
     """
 
     groups_to_create: ClassVar[dict] = {
         # "list" is a static grant so the list endpoint itself is reachable; "read" comes only
-        # from the workflow-state grant each test row shares, so every row's own retrieve check
-        # -- and therefore its history-list gate -- goes through has_matching_state_grant.
+        # from the workflow-state grant each test row shares, so every row's retrieve and
+        # history-list checks go through has_matching_state_grant.
         "Order Non Reader": [
             ("store", "CustomerOrder", "list"),
         ],
@@ -899,60 +903,28 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
         assert "available_actions" not in response.data["results"][0], response_body(response)
         get_value.assert_not_called()
 
-    def test_a_multi_row_list_reuses_each_rows_own_retrieve_check(self, api_client):
+    def test_each_row_of_available_actions_costs_at_most_the_per_row_budget(self, api_client):
         """
-        The history-list gate reuses the CRUD loop's own ``retrieve`` decision for each row of a
-        list response, rather than running a second permission pass per row, which would add
-        several queries per row to a page that requests ``available_actions``.
-        ``test_the_crud_loop_and_the_history_list_gate_check_retrieve_on_the_same_viewset_instance``
-        proves this for one row's detail response; this extends the same spy to every row of a
-        list response.
+        Each row of a list response that requests ``available_actions`` costs at most
+        ``AVAILABLE_ACTIONS_QUERIES_PER_ROW`` queries. Every row's ``retrieve``, ``list``,
+        ``update``, ``partial_update``, ``destroy``, and ``history-list`` checks reach the workflow
+        state tables.
         """
         order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
-        orders = self.make_orders(5, order_state, start_at=999)
+        first_order = self.make_orders(1, order_state, start_at=999)[0]
         # Every order shares this one workflow state, so one grant on it covers every row.
-        self.grant_read_by_state(orders[0])
-        api_client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
+        self.grant_read_by_state(first_order)
 
-        retrieve_query_counts_by_row = {}
+        self.make_orders(1, order_state, start_at=1000)
+        small = self.count_list_queries_expecting_ok(api_client, "id,available_actions")
 
-        def spy(viewset, request, instance, action):
-            with CaptureQueriesContext(connection) as ctx:
-                permitted = check_action_permission(viewset, request, instance, action)
-            if action == "retrieve" and instance is not None:
-                if instance.pk not in retrieve_query_counts_by_row:
-                    retrieve_query_counts_by_row[instance.pk] = []
-                retrieve_query_counts_by_row[instance.pk].append(len(ctx.captured_queries))
-            return permitted
+        added_rows = 5
+        self.make_orders(added_rows, order_state, start_at=2000)
+        large = self.count_list_queries_expecting_ok(api_client, "id,available_actions")
 
-        with (
-            mock.patch("vueda.core.serializers.fields.check_action_permission", side_effect=spy),
-            mock.patch("vueda.core.viewsets.check_action_permission", side_effect=spy),
-        ):
-            response = api_client.get(
-                reverse(
-                    "store.customerorder-list",
-                    query={
-                        settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions",
-                        settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
-                    },
-                ),
-            )
-        self.assert_response(response, HTTPStatus.OK)
-        assert len(retrieve_query_counts_by_row) == len(orders)
+        assert (large - small) / added_rows <= AVAILABLE_ACTIONS_QUERIES_PER_ROW
 
-        for pk, query_counts in retrieve_query_counts_by_row.items():
-            assert len(query_counts) >= 2, (  # noqa: PLR2004
-                f"expected row {pk} to be checked for retrieve by both the CRUD loop and the "
-                f"history-list gate, got {len(query_counts)} check(s)"
-            )
-            assert query_counts[0] > 0, f"row {pk}'s first retrieve check must actually touch the database"
-            assert all(count == 0 for count in query_counts[1:]), (
-                f"row {pk}'s retrieve check ran a second permission pass ({query_counts}) instead of "
-                f"reusing the CRUD loop's cached decision for that row -- this is PR #288's round-1 regression"
-            )
-
-    def test_the_history_list_gate_reuses_the_crud_loops_retrieve_check(self):
+    def test_a_repeated_check_is_served_from_cache(self):
         order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
         order = self.make_orders(1, order_state, start_at=999)[0]
         self.grant_read_by_state(order)
@@ -970,9 +942,28 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
             permitted_again = check_action_permission(viewset, request, order, "retrieve")
         assert permitted_again is True
         assert len(second_check.captured_queries) == 0, (
-            "a second check for the same (action, instance) on the same viewset instance must be "
-            "served from cache -- this is what lets history-list availability reuse the CRUD loop's "
-            "own retrieve check instead of running a second permission pass for the same row"
+            "a second check for the same (action, instance) on the same viewset instance must be served from cache"
+        )
+
+    def test_a_repeated_history_list_check_is_served_from_cache(self):
+        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
+        order = self.make_orders(1, order_state, start_at=999)[0]
+        self.grant_read_by_state(order)
+
+        user = get_user_model().objects.get(email="non_reader@domain.invalid")
+        request = AvailableActionsRequest(user=user)
+        viewset = store_viewsets.CustomerOrderViewSet()
+
+        with CaptureQueriesContext(connection) as first_check:
+            allowed = viewset.get_allowed_extra_actions(request, instance=order)
+        assert "history-list" in allowed
+        assert len(first_check.captured_queries) > 0, "the first check must actually touch the database"
+
+        with CaptureQueriesContext(connection) as second_check:
+            allowed_again = viewset.get_allowed_extra_actions(request, instance=order)
+        assert allowed_again == allowed
+        assert len(second_check.captured_queries) == 0, (
+            "a second extra-action check for the same instance on the same viewset instance must be served from cache"
         )
 
     def test_the_cache_is_not_shared_across_different_actions_or_instances(self):
@@ -1004,46 +995,76 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
             "checking the same action for a different row must not be served from order_a's cache entry"
         )
 
-    def test_the_crud_loop_and_the_history_list_gate_check_retrieve_on_the_same_viewset_instance(self, api_client):
-        """
-        The cache-sharing unit test above assumes the CRUD loop behind ``available_actions``
-        (``AvailableActionsField.get_value``) and the history-list gate
-        (``VuedaViewSet.get_allowed_extra_actions`` / ``_read_permitted``) check ``retrieve`` on
-        the very same viewset instance -- that assumption is what makes the cache in
-        ``check_action_permission`` actually pay off. This test drives a real detail request
-        through both call sites and verifies that assumption holds in production, rather than
-        only in a test that constructs the shared instance by hand.
-        """
-        order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
-        order = self.make_orders(1, order_state, start_at=999)[0]
-        self.grant_read_by_state(order)
-        api_client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
 
-        retrieve_calls = []
+@pytest.mark.django_db
+class TestHistoryActionAvailabilityFollowsViewSetPermissionClasses(
+    BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin
+):
+    """
+    ``history-list`` follows every permission class of its viewset, not only the read codename.
+    ``CartViewSet`` also requires the requester to have created the cart, unless they are an admin.
+    """
 
-        def spy(viewset, request, instance, action):
-            if action == "retrieve" and instance is not None and instance.pk == order.pk:
-                retrieve_calls.append(id(viewset))
-            return check_action_permission(viewset, request, instance, action)
+    groups_to_create: ClassVar[dict] = {
+        "Cart Reader": [
+            ("store", "Cart", "list"),
+            ("store", "Cart", "read"),
+        ],
+    }
 
-        with (
-            mock.patch("vueda.core.serializers.fields.check_action_permission", side_effect=spy),
-            mock.patch("vueda.core.viewsets.check_action_permission", side_effect=spy),
-        ):
-            response = api_client.get(
-                reverse(
-                    "store.customerorder-detail",
-                    kwargs={"pk": order.pk},
-                    query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "available_actions"},
-                ),
-            )
+    users_to_create: ClassVar[dict] = {
+        "cart_reader@domain.invalid": {"name": "Cart Reader", "password": "testpass", "groups": ["Cart Reader"]},
+        "other_customer@domain.invalid": {"name": "Other Customer", "password": "testpass"},
+    }
+
+    def test_history_list_is_offered_only_on_the_readers_own_cart(self, api_client):
+        reader = self.users["cart_reader@domain.invalid"]
+        own_cart = store_models.Cart.objects.create(customer=store_models.Customer.objects.create(user=reader))
+        other_cart = store_models.Cart.objects.create(
+            customer=store_models.Customer.objects.create(user=self.users["other_customer@domain.invalid"])
+        )
+        api_client.force_authenticate(user=reader)
+
+        response = api_client.get(
+            reverse("store.cart-list", query={settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions"})
+        )
+
         self.assert_response(response, HTTPStatus.OK)
-        assert "history-list" in response.data["available_actions"]
+        actions_by_cart = {row["id"]: row["available_actions"] for row in response.data["results"]}
+        assert "history-list" in actions_by_cart[own_cart.pk]
+        assert "history-list" not in actions_by_cart[other_cart.pk]
 
-        assert len(retrieve_calls) >= 2, (  # noqa: PLR2004
-            "expected both the CRUD loop and the history-list gate to check retrieve for this row"
-        )
-        assert len(set(retrieve_calls)) == 1, (
-            "the CRUD loop and the history-list gate checked retrieve on different viewset instances "
-            "-- check_action_permission's per-instance cache cannot pay off across them"
-        )
+
+@pytest.mark.django_db
+class TestHistoryActionAvailabilityFollowsRowLevelPermissions(BaseTestUserMixin, BaseTestGroupMixin):
+    """
+    ``history-list`` on one object follows that object's row-level read rule. A purchaser may read
+    a product only while it is available for sale.
+    """
+
+    groups_to_create: ClassVar[dict] = {
+        "Product Purchaser": [
+            ("product", "Product", "read"),
+            ("product", "Product", "purchase"),
+        ],
+    }
+
+    users_to_create: ClassVar[dict] = {
+        "purchaser@domain.invalid": {"name": "Purchaser", "password": "testpass", "groups": ["Product Purchaser"]},
+    }
+
+    def allowed_extra_actions(self, product):
+        request = AvailableActionsRequest(user=get_user_model().objects.get(email="purchaser@domain.invalid"))
+        return ProductViewSet().get_allowed_extra_actions(request, instance=product)
+
+    def test_history_list_is_offered_on_a_product_the_purchaser_may_read(self):
+        self.users  # noqa: B018 -- creates the purchaser and its group
+        product = Product.objects.create(name="Apple", available_for_sale=True)
+
+        assert "history-list" in self.allowed_extra_actions(product)
+
+    def test_history_list_is_not_offered_on_a_product_the_purchaser_may_not_read(self):
+        self.users  # noqa: B018 -- creates the purchaser and its group
+        product = Product.objects.create(name="Banana", available_for_sale=False)
+
+        assert "history-list" not in self.allowed_extra_actions(product)

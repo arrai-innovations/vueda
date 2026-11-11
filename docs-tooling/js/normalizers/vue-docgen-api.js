@@ -572,7 +572,8 @@ function parseEmitsEntries(arrContent) {
  * Handles string literals, JSDoc comments, and `...IDENTIFIER` spread elements.
  *
  * @param {string} arrContent - Content between the outer brackets (not including them)
- * @param {Function|null} nestedResolver - Called with an identifier name for spread elements; returns entries array or null
+ * @param {Function|null} nestedResolver - Called with an identifier name for spread elements; returns entries array or
+ *  null
  * @returns {{ name: string, description?: string }[]}
  */
 function parseSlotArrayEntries(arrContent, nestedResolver = null) {
@@ -662,7 +663,8 @@ function parseSlotArrayEntries(arrContent, nestedResolver = null) {
  *
  * @param {string} source - Source code to search in
  * @param {string} identifier - Name of the exported constant to find
- * @param {Function|null} nestedResolver - Called with an identifier name for nested spreads; returns entries array or null
+ * @param {Function|null} nestedResolver - Called with an identifier name for nested spreads; returns entries array or
+ *  null
  * @returns {{ kind: 'slots', entries: Array }|null}
  */
 export function parseSlotConstant(source, identifier, nestedResolver = null) {
@@ -726,7 +728,8 @@ export function parseSpreadFunctionAnnotation(source, identifier) {
  *
  * @param {string} source - Source code to search in
  * @param {string} identifier - Name of the exported constant to find
- * @param {Function|null} nestedResolver - Called with an identifier name for nested spreads; returns entries array or null
+ * @param {Function|null} nestedResolver - Called with an identifier name for nested spreads; returns entries array or
+ *  null
  * @returns {{ kind: 'props'|'emits', entries: Array }|null}
  */
 export function parseSpreadConstant(source, identifier, nestedResolver = null) {
@@ -791,7 +794,8 @@ const defaultRepoRoot = getRepoRoot();
 export class VueDocgenNormalizer extends Normalizer {
     /**
      * @param {object} [options]
-     * @param {(filePath: string) => string} [options.fileResolver] - Override for reading file contents (useful in tests)
+     * @param {(filePath: string) => string} [options.fileResolver] - Override for reading file contents (useful in
+     *  tests)
      * @param {string} [options.repoRoot] - Override for the repository root path (useful in tests)
      */
     constructor({ fileResolver, repoRoot } = {}) {

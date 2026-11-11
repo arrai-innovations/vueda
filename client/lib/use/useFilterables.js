@@ -1,6 +1,7 @@
 /**
  * @module use/useFilterables
- * @description Resolves a model's filterable field list and per-field details by merging a model config instance with caller-supplied overrides.
+ * @description Resolves a model's filterable field list and per-field details by merging a model config instance with
+ *  caller-supplied overrides.
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import isEqual from "lodash-es/isEqual.js";
@@ -8,14 +9,17 @@ import { reactive, readonly, unref, watch } from "vue";
 
 /**
  * @typedef {object} UseFilterablesOverrides
- * @property {import('vue').Ref<string[]|undefined>|string[]|undefined} filterables - Field names to display; overrides the model config's declared list when set.
- * @property {import('vue').Ref<object|undefined>|object|undefined} filterableDetails - Per-field detail overrides merged with the model config's declared details.
+ * @property {import('vue').Ref<string[]|undefined>|string[]|undefined} filterables - Field names to display; overrides
+ *  the model config's declared list when set.
+ * @property {import('vue').Ref<object|undefined>|object|undefined} filterableDetails - Per-field detail overrides
+ *  merged with the model config's declared details.
  */
 
 /**
  * @typedef {object} UseFilterablesRawState
  * @property {string[]} filterables - The filters to display, either passed in or from config.
- * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - The merged filterableDetails, either passed in, from config or from server info.
+ * @property {{[filterName:string]:import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - The merged
+ *  filterableDetails, either passed in, from config or from server info.
  */
 
 /**
@@ -32,7 +36,9 @@ import { reactive, readonly, unref, watch } from "vue";
  *
  * @param {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - An existing model config instance.
  * @param {UseFilterablesOverrides} props - Overrides for the model config's declared filterables/details.
- * @param {import('vue').UnwrapNestedRefs<UseFilterablesRawState>} [state] - Target object to write `filterables`/`filterableDetails` into. Pass a caller-owned object (e.g. one already consumed by a downstream `deep` watch) to write in place, rather than bridging through a second wrapped object. Defaults to a fresh one.
+ * @param {import('vue').UnwrapNestedRefs<UseFilterablesRawState>} [state] - Target object to write
+ *  `filterables`/`filterableDetails` into. Pass a caller-owned object (e.g. one already consumed by a downstream `deep`
+ *  watch) to write in place, rather than bridging through a second wrapped object. Defaults to a fresh one.
  * @returns {UseFilterablesState} The merged, reactive filterable field list and details.
  */
 export function useFilterables(

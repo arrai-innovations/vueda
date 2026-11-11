@@ -12,7 +12,10 @@ patchTheme({
      * DropdownMenuRadioItem styles one option in a radio-style dropdown menu group.
      */
     DropdownMenuRadioItem: {
-        /** Mutually exclusive menu row. Same layout as {@api theme-key:DropdownMenuCheckboxItem.root}; selection state comes from the radio primitive. */
+        /**
+         * Mutually exclusive menu row. Same layout as {@api theme-key:DropdownMenuCheckboxItem.root}; selection state
+         * comes from the radio primitive.
+         */
         root: {
             class: [
                 // Interactive states.

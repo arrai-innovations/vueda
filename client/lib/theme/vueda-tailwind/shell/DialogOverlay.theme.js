@@ -13,7 +13,8 @@ patchTheme({
      */
     DialogOverlay: {
         /**
-         * The dialog backdrop layer. It fills the viewport with the shared overlay token and fades with dialog state changes.
+         * The dialog backdrop layer. It fills the viewport with the shared overlay token and fades with dialog state
+         * changes.
          */
         root: {
             class: [

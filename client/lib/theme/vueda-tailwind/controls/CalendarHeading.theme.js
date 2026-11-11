@@ -12,7 +12,10 @@ patchTheme({
      * The month-year title text inside a CalendarHeader.
      */
     CalendarHeading: {
-        /** The month-year title text inside a {@api theme-key:CalendarHeader.root}. Single-line `text-sm font-medium`; sits centred between the prev / next nav buttons. */
+        /**
+         * The month-year title text inside a {@api theme-key:CalendarHeader.root}. Single-line `text-sm font-medium`;
+         * sits centred between the prev / next nav buttons.
+         */
         root: {
             class: ["text-sm font-medium"],
         },

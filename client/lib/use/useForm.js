@@ -40,7 +40,8 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {{[path: string]: boolean}} touched - Whether each field has been touched (blurred).
  * @property {boolean} anyTouched - Whether any field has been touched.
  * @property {string|null} focused - The currently focused field (if any).
- * @property {boolean} submitted - Whether the form has had a submission attempt (set by setAllTouched, cleared by reset).
+ * @property {boolean} submitted - Whether the form has had a submission attempt (set by setAllTouched, cleared by
+ *  reset).
  *
  * // *** Tracking & Modification ***
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
@@ -54,11 +55,17 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {boolean} anyIgnored - Whether any field has been ignored.
  *
  * // *** Dependency Management ***
- * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
+ * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via
+ *  registerDependencyValues.
  *
  * // *** Field Metadata ***
- * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same path, new component instance) is not left labelless by the outgoing instance's cleanup.
- * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages where the reader can see them, keyed by field path. True when any live registration for the path reports that it does. A path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from one a field already shows.
+ * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by
+ *  field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same
+ *  path, new component instance) is not left labelless by the outgoing instance's cleanup.
+ * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages where
+ *  the reader can see them, keyed by field path. True when any live registration for the path reports that it does. A
+ *  path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from
+ *  one a field already shows.
  */
 
 /**
@@ -596,24 +603,28 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *
  * // *** Form Reset & State Management ***
  * @property {() => void} reset - Reset the form to its initial values.
- * @property {(displayFields: string[], arrayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
+ * @property {(displayFields: string[], arrayFields: string[]) => string|null} getFirstErrorField - Get the first
+ *  displayed field with an error.
  *
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
- * @property {(name: string, index: number) => void} removeArrayItem - Remove an array entry and shift its indexed errors, messages, touched, ignored, and focused state with the remaining values.
+ * @property {(name: string, index: number) => void} removeArrayItem - Remove an array entry and shift its indexed
+ *  errors, messages, touched, ignored, and focused state with the remaining values.
  * @property {(name: string, value: any) => void} updateInitialValue - Update a field's initial value.
  * @property {(name: string) => void} deleteInitialValue - Delete a field's initial value.
  *
  * // *** Error & Message Handling ***
- * @property {(name: string, childIndex?: number) => void} clearErrors - Clear all errors for a field, or a child's errors if childIndex is given.
+ * @property {(name: string, childIndex?: number) => void} clearErrors - Clear all errors for a field, or a child's
+ *  errors if childIndex is given.
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
  * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's
  *  messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(error: import('@vueda/utils/errors.js').ServerFeedbackError) => void} handleServerFormValidationError - Handle server feedback that should be ingested into form state.
+ * @property {(error: import('@vueda/utils/errors.js').ServerFeedbackError) => void} handleServerFormValidationError -
+ *  Handle server feedback that should be ingested into form state.
  * @property {(name: string, dependants: string[]|undefined) => void} clearServerErrors - clear errors and messages for
  *  the named field and optionally dependants
  *
@@ -655,7 +666,8 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(id: string) => boolean} unregisterLabel -
  *  Unregister a previously registered label hook by its registration id.
  * @property {(name: string, showsErrorsHook: () => boolean) => string} registerShowsErrors -
- *  Register a hook reporting whether a rendered field displays its own error messages, grouped by field path; returns a registration id.
+ *  Register a hook reporting whether a rendered field displays its own error messages, grouped by field path; returns a
+ *  registration id.
  * @property {(id: string) => boolean} unregisterShowsErrors -
  *  Unregister a previously registered shows-errors hook by its registration id.
  */

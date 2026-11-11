@@ -13,7 +13,8 @@ patchTheme({
      */
     AlertDialogDescription: {
         /**
-         * The supporting copy below an alert dialog title. It uses muted small text so consequence detail supports the title without competing with the action buttons.
+         * The supporting copy below an alert dialog title. It uses muted small text so consequence detail supports the
+         * title without competing with the action buttons.
          */
         root: {
             class: "text-muted-foreground text-sm",

@@ -12,7 +12,10 @@ patchTheme({
      * MenubarCheckboxItem styles a toggleable menubar choice with an indicator.
      */
     MenubarCheckboxItem: {
-        /** Toggleable menubar row with reserved indicator space. Differs from dropdown by using the tighter menubar row radius. */
+        /**
+         * Toggleable menubar row with reserved indicator space. Differs from dropdown by using the tighter menubar row
+         * radius.
+         */
         root: {
             class: [
                 // Interactive states.

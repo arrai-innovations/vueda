@@ -1,6 +1,7 @@
 /**
  * @module utils/buildForm
- * @description Builds and manages reactive form state, resolving field and widget components from configuration and props.
+ * @description Builds and manages reactive form state, resolving field and widget components from configuration and
+ *  props.
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
@@ -47,9 +48,9 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
  *     [key: string]: any
  * }) => void} assignStateObjectsIfChanged - Assign state objects if they have changed.
  * @property {(
- *    (key: string, detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo, baseExpanded?: boolean, fieldName?: string) =>
- *        import('vue').ComputedRef<import('vue').Component>
- * )} setFieldComponent - Set the component for a field.
+ *    (key: string, detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo, baseExpanded?: boolean,
+ *    fieldName?: string) => import('vue').ComputedRef<import('vue').Component> )} setFieldComponent - Set the component
+ *    for a field.
  * @property {(
  *     key: string,
  *     detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
@@ -77,9 +78,12 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
  * component itself. Throws when nothing resolves, naming the field and its app and model: an
  * absent reference, a name missing from `lookup`, or a function that returns no component.
  *
- * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or mapping value to resolve.
- * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in (`availableFields` or `availableWidgets`).
- * @param {{kind: "field"|"widget", fieldName: string, app?: string, model?: string}} context - What is being resolved, for the error message.
+ * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or
+ *  mapping value to resolve.
+ * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in
+ *  (`availableFields` or `availableWidgets`).
+ * @param {{kind: "field"|"widget", fieldName: string, app?: string, model?: string}} context - What is being resolved,
+ *  for the error message.
  * @returns {import('vue').Component} The resolved component.
  */
 export function resolveComponent(candidate, lookup, { kind, fieldName, app, model }) {
@@ -109,10 +113,14 @@ export function resolveComponent(candidate, lookup, { kind, fieldName, app, mode
  *
  * @param {import('vue').UnwrapNestedRefs<PropsRaw>} props - The reactive props object containing form metadata.
  * @param {import('vue').UnwrapNestedRefs<StateRaw>} state - The target reactive object to manage for form state.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getFieldComponent - Function to retrieve the component for a given field.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getFieldProps - Function to retrieve field-specific properties.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getWidgetComponent - Function to retrieve the widget for a given field.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getWidgetProps - Function to retrieve widget-specific properties.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getFieldComponent -
+ *  Function to retrieve the component for a given field.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getFieldProps - Function to retrieve
+ *  field-specific properties.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getWidgetComponent -
+ *  Function to retrieve the widget for a given field.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getWidgetProps - Function to retrieve
+ *  widget-specific properties.
  * @returns {BuildForm} Functions for managing form configuration and updating reactive state.
  */
 export function buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps) {

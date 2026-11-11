@@ -12,7 +12,10 @@ patchTheme({
      * SidebarMenuBadge styles small count or status badges aligned to sidebar menu buttons.
      */
     SidebarMenuBadge: {
-        /** Count or status badge anchored to a menu button. Tone handling stays local to sidebar tokens and hides in icon-collapsed mode. */
+        /**
+         * Count or status badge anchored to a menu button. Tone handling stays local to sidebar tokens and hides in
+         * icon-collapsed mode.
+         */
         root: ({ tone }) => ({
             class: [
                 // Positioning and layout.

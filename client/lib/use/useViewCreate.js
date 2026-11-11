@@ -85,10 +85,14 @@ const VIEW_NAME = "create";
  * @property {string} model - Django model name.
  *
  * Optional form overrides.
- * @property {string[]} [submitFields] - Field paths sent in the create request body; overrides the model config default when non-empty.
- * @property {string[]} [fetchFields] - Field names the server returns in the create response; overrides the model config default when non-empty.
+ * @property {string[]} [submitFields] - Field paths sent in the create request body; overrides the model config default
+ *  when non-empty.
+ * @property {string[]} [fetchFields] - Field names the server returns in the create response; overrides the model
+ *  config default when non-empty.
  * @property {'list'|'update'|'read'} [redirectAfter] - Named view to redirect to after a successful create.
- * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's
+ *  `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets
+ *  them.
  * @property {string[]} [fields] - Field names that the form renders. Replaces the model config list.
  * @property {object} [fieldDetails] - Map of field paths to field detail overrides.
  * @property {string[]} [expand] - Relations that the form renders as inline fieldsets. Replaces the model config list.
@@ -102,26 +106,36 @@ const VIEW_NAME = "create";
 
 /**
  * @typedef {object} ViewCreateInstanceGroup
- * @property {string} titleStr - Page title derived from the model verbose name (e.g. "Create Widget"). Empty until the verbose name is known.
+ * @property {string} titleStr - Page title derived from the model verbose name (e.g. "Create Widget"). Empty until the
+ *  verbose name is known.
  * @property {boolean} pageLoading - True while model configuration is loading.
- * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit buttons.
- * @property {Error|null} combinedError - The first active error across model config, instance, and form submission; null when none.
+ * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit
+ *  buttons.
+ * @property {Error|null} combinedError - The first active error across model config, instance, and form submission;
+ *  null when none.
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
- * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
- * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value.
+ * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`;
+ *  empty string when no error.
+ * @property {object} combinedFormProps - Every prop for the FormModel component, from
+ *  {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave
+ *  undefined keeps the model config value.
  */
 
 /**
  * @typedef {object} ViewCreateActionsGroup
- * @property {string[]} nonDetailActions - Action names that appear in the page-title button area (non-detail, not the create view itself).
+ * @property {string[]} nonDetailActions - Action names that appear in the page-title button area (non-detail, not the
+ *  create view itself).
  */
 
 /**
  * @typedef {object} ViewCreateContext
- * @property {import('@vueda/use/useForm.js').FormContext} formContext - The form context; nested field components inject this via FormContextSymbol.
- * @property {import('@vueda/use/useObjectForm.js').ObjectFormInstance} objectForm - The submit-side form state and submit trigger.
+ * @property {import('@vueda/use/useForm.js').FormContext} formContext - The form context; nested field components
+ *  inject this via FormContextSymbol.
+ * @property {import('@vueda/use/useObjectForm.js').ObjectFormInstance} objectForm - The submit-side form state and
+ *  submit trigger.
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
- * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The submit-side object instance.
+ * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The submit-side object
+ *  instance.
  * @property {import('vue').UnwrapNestedRefs<ViewCreateInstanceGroup>} instance - Computed display state.
  * @property {import('vue').UnwrapNestedRefs<ViewCreateActionsGroup>} actions - Available action lists.
  */

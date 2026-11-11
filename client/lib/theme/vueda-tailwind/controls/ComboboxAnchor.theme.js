@@ -13,7 +13,12 @@ patchTheme({
      * so the popover aligns to the input.
      */
     ComboboxAnchor: {
-        /** The positioning anchor for the {@api theme-key:ComboboxList.root} popover. Pins to a 200px width by default so a Combobox that anchors to whitespace (rather than the trigger element) still has a sensible reference rectangle; consumers that wrap the trigger in the anchor inherit the trigger's width instead and can ignore this default. Layout-only slot; no chrome of its own. */
+        /**
+         * The positioning anchor for the {@api theme-key:ComboboxList.root} popover. Pins to a 200px width by default
+         * so a Combobox that anchors to whitespace (rather than the trigger element) still has a sensible reference
+         * rectangle; consumers that wrap the trigger in the anchor inherit the trigger's width instead and can ignore
+         * this default. Layout-only slot; no chrome of its own.
+         */
         root: {
             class: ["w-[200px]"],
         },

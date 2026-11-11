@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldGroup: {
         /**
-         * The stack for related fields and nested field groups. It establishes the field-group container query used by responsive fields and tightens spacing for checkbox and radio groups.
+         * The stack for related fields and nested field groups. It establishes the field-group container query used by
+         * responsive fields and tightens spacing for checkbox and radio groups.
          */
         root: {
             class: [

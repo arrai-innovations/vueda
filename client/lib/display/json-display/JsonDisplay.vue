@@ -36,7 +36,10 @@ const props = defineProps({
         type: Number,
         default: 2,
     },
-    /** Character cap for the inline form, past which the text is truncated. `0` removes the cap. The block form is never capped: a read view exists to show the whole value. */
+    /**
+     * Character cap for the inline form, past which the text is truncated. `0` removes the cap. The block form is never
+     * capped: a read view exists to show the whole value.
+     */
     maxLength: {
         type: Number,
         default: 200,

@@ -1,6 +1,7 @@
 """ViewSet base classes with atomic transactions, row-level filtering, and flex-fields."""
 
 __all__ = (
+    "AllowedExtraActionsMixin",
     "AtomicCreateModelViewSetMixin",
     "AtomicDestroyModelViewSetMixin",
     "AtomicModelViewSet",
@@ -62,12 +63,13 @@ from vueda.core.models import ActivatableBaseModel
 from vueda.core.parsers import NestedMultipartMixin
 from vueda.core.paths import path_annotation_name
 from vueda.core.paths import query_path_field
-from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
+from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.core.utils import unwrap_expandable_field
 from vueda.history.actions import build_action_groups
 from vueda.history.queries import action_groups_for
 from vueda.history.queries import events_in_groups
@@ -646,11 +648,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_fields.add(field_name)
                     valid_expands.add(field_name)
 
-                    serializer_settings = {}
-                    if isinstance(serializer_data, tuple):  # rest_flex_fields2 only tests for tuple.
-                        child_serializer, serializer_settings = serializer_data
-                    else:
-                        child_serializer = serializer_data
+                    child_serializer, serializer_settings = unwrap_expandable_field(serializer_data)
 
                     if isinstance(child_serializer, str):
                         child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
@@ -702,6 +700,45 @@ def permitted_expand_depths(serializer):
     :returns: One dot count per permitted path.
     """
     return [path.count(".") for path in serializer.context.get("permitted_expands") or ()]
+
+
+def flex_param_max_depth(serializer, *submitted_names):
+    """
+    Return how deep validation walks the expand tree for the submitted ``f`` and ``e`` names.
+
+    The walk goes one level below the deepest submitted name. It also goes at least as deep as the
+    action's permit list, so an error message can list a dotted permit (see ``permitted_expand_depths``).
+
+    :param serializer: The action's serializer, whose context may hold ``permitted_expands``.
+    :param submitted_names: Each collection of submitted names, such as the ``f`` values and the ``e`` values.
+    :returns: The depth to pass to ``get_recursive_expands_and_fields``.
+    """
+    dot_counts = [name.count(".") for names in submitted_names for name in names]
+    return max(dot_counts + permitted_expand_depths(serializer)) + 1
+
+
+def invalid_expand_errors(serializer, submitted_expand_fields):
+    """
+    Map each ``e`` value that ``serializer`` cannot expand to its message, by the rules of a read.
+
+    Without a permit list, a value is valid when it names a declared expand, a dotted path that each
+    level declares, or a wildcard at a level that has expands. With a permit list, a value is valid only
+    when the list holds it, or when it is a wildcard.
+
+    ``NoExtraFieldsSerializerMixin.to_internal_value`` calls this, so a write whose view runs no check of
+    its own still gets the messages that ``validate_flex_expand_and_field_param`` gives.
+
+    :param serializer: The serializer whose expands and permit list decide validity.
+    :param submitted_expand_fields: The ``e`` values from the request.
+    :returns: A dict of invalid expand to message. It is empty when every value is valid.
+    """
+    if not submitted_expand_fields:
+        return {}
+    max_depth = flex_param_max_depth(serializer, submitted_expand_fields)
+    valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
+        serializer, 0, max_depth
+    )
+    return invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
 
 
 def invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands):
@@ -1531,14 +1568,7 @@ class NoExtraFieldsForViewSetMixin:
             submitted_expand_fields = frozenset(
                 serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
             )
-            max_depth = (
-                max(
-                    [field.count(".") for field in submitted_fields]
-                    + [field.count(".") for field in submitted_expand_fields]
-                    + permitted_expand_depths(serializer)
-                )
-                + 1
-            )
+            max_depth = flex_param_max_depth(serializer, submitted_fields, submitted_expand_fields)
             valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = (
                 get_recursive_expands_and_fields(serializer, 0, max_depth)
             )
@@ -1553,7 +1583,7 @@ class NoExtraFieldsForViewSetMixin:
                 gfk_fields = {
                     name
                     for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
-                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                    if unwrap_expandable_field(data)[0] is GenericForeignKeySerializer
                 }
                 if gfk_fields:
                     extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
@@ -1640,6 +1670,47 @@ class PerActionSerializerMixin:
         if hasattr(self, "action") and hasattr(self, serializer_class_key):
             return getattr(self, serializer_class_key)
         return super().get_serializer_class()
+
+
+class AllowedExtraActionsMixin:
+    """
+    A ViewSet mixin that offers each extra action only to users who pass that action's
+    permission check.
+
+    An extra action is one that the viewset declares with ``@action``. ``VuedaViewSet`` and
+    ``VuedaReadOnlyViewSet`` include this mixin. Model metadata reads
+    :meth:`get_allowed_extra_actions` to build ``model_actions``, and ``AvailableActionsField``
+    reads it to build an object's ``available_actions``.
+    """
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        """
+        Return the URL names of the extra actions that ``request.user`` may use.
+
+        An extra action is offered when
+        :func:`vueda.core.permissions.permitted_extra_action_methods` returns at least one HTTP
+        method for it. That function runs the model-scope check. When ``instance`` is given, it
+        also runs the object-scope check for that object. Both checks run the permission classes
+        that the action's endpoint runs. The endpoint runs the object-scope check only when the
+        action body loads its object through ``get_object()``.
+
+        On ``VuedaViewSet``, ``history-list`` is a ``GET`` detail action. With the default
+        ``ObjectPermissions``, it is offered to a user who may read the object. ``history_list``
+        belongs to ``workflow_object_permission_actions``, so a matching workflow-state grant also
+        admits it.
+
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. Every extra action is offered in that case. An
+        override must handle that case before reading ``request.user``.
+
+        Override this method to change which extra actions are offered. An override can call
+        ``super()`` and filter the result further.
+        """
+        return {
+            extra_action.url_name
+            for extra_action in self.get_extra_actions()
+            if permitted_extra_action_methods(self, request, instance, extra_action)
+        }
 
 
 class DeactivateActionViewSetMixin:
@@ -1745,6 +1816,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    AllowedExtraActionsMixin,
     NestedMultipartMixin,
     WarningConfirmationMixin,
     FlexFieldsMixin,
@@ -1759,6 +1831,7 @@ class VuedaViewSet(
     - Flex-fields expansion (``FlexFieldsMixin``)
     - Query-parameter validation against filter and serializer fields (``NoExtraFieldsForViewSetMixin``)
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
+    - Extra actions offered only to users who pass their permission check (``AllowedExtraActionsMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
     - Override ``get_warnings_for_object`` (from ``WarningConfirmationMixin``) to gate
@@ -1941,49 +2014,6 @@ class VuedaViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_allowed_extra_actions(self, request, *, instance=None):
-        """
-        Override this function to change if a user is allowed to do a certain action.
-
-        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
-        serializer context without a request. An override must handle that case before reading
-        ``request.user``. With no request, this method offers every extra action, the same answer
-        :func:`vueda.core.permissions.check_action_permission` gives with no request.
-
-        ``history_list`` is additionally gated on read authorization here, checked the same way an
-        object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
-        ``workflow_object_permission_actions`` by default (see that attribute above), so a
-        requester whose read comes only from a matching workflow-state grant is offered
-        ``history-list`` here the same way a requester whose read comes from a model-level
-        permission already is, and both agree with what the history endpoint's own enforcement
-        answers for the same row.
-        """
-        allowed_actions = set()
-        for extra_action in self.get_extra_actions():
-            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
-                continue
-            allowed_actions.add(extra_action.url_name)
-
-        return allowed_actions
-
-    def _read_permitted(self, request, instance):
-        """
-        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
-        is ``None`` -- through this viewset's own configured permission classes.
-
-        Checked as an ordinary "retrieve" read, through
-        :func:`vueda.core.permissions.check_action_permission`, the same function an object's own
-        ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`) and model
-        metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
-        already call to check ``retrieve`` for the same row or model, on this same viewset instance, within
-        the same request. ``check_action_permission`` caches its answer per ``(action, instance)`` on that
-        viewset instance, so whichever of those two callers reaches ``retrieve`` first pays for the
-        permission pass, and this call reuses that answer instead of paying for a second one. See
-        ``check_action_permission`` for what "checked as an action" means and why ``instance=None`` takes a
-        different path than a specific object.
-        """
-        return check_action_permission(self, request, instance, "retrieve")
-
     def get_object(self):
         """
         Override this function to convert the pk kwarg to a list if the model has a composite primary key.
@@ -2050,6 +2080,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    AllowedExtraActionsMixin,
     NestedMultipartMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
@@ -2058,8 +2089,8 @@ class VuedaReadOnlyViewSet(
 ):
     """
     Read-only ViewSet for VUEDA models. Provides ``list`` and ``retrieve`` only,
-    with the same flex-fields, query-parameter validation, and row-level filtering
-    as ``VuedaViewSet``.
+    with the same flex-fields, query-parameter validation, row-level filtering, and extra-action
+    permission checks as ``VuedaViewSet``.
     """
 
     detail_args = ["pk"]
@@ -2072,22 +2103,3 @@ class VuedaReadOnlyViewSet(
 
     nulls_ordering_flip: str | Iterable[str] | None = None
     """Field names in ``nulls_ordering`` whose placement flips when the field is sorted descending."""
-
-    def get_allowed_extra_actions(self, request, *, instance=None):
-        """
-        Override this function to change if a user is allowed to do a certain action.
-
-        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
-        serializer context without a request. An override must handle that case before reading
-        ``request.user``.
-
-        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
-        unconditionally, including no read gate for ``history_list``: that action is defined only
-        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
-        nothing for a read gate to filter.
-        """
-        allowed_actions = set()
-        for extra_action in self.get_extra_actions():
-            allowed_actions.add(extra_action.url_name)
-
-        return allowed_actions

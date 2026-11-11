@@ -1344,11 +1344,13 @@ def get_migration_sources(import_instead=False, as_mapping=False):
 
 class Command(BaseCommand):
     help = (
-        "In the appropriate app, two files will get created. "
-        "`sql/view-view_name-0000.sql` - contains the SQL for the view. "
-        "`migrations/0000_view_name.py` - a migration that reads the appropriate files in the sql folder. "
-        "If the `migrations` and `sql` folder do not exist, they will be created, along with the apps initial "
-        "migration, and an empty migration for the view."
+        "Write a migration for each app that has workflow changes that no workflow migration has recorded yet. "
+        "The command reads the pghistory events of the workflow models. It skips writes that a workflow migration "
+        "made. It also skips edits that match a change in an existing workflow migration. For each app with "
+        "changes left, it runs makemigrations --empty. It then fills that migration with the changes in the order "
+        "that they happened, and with functions that apply them forwards and backwards. Except in a --dry-run, it "
+        "also gives local objects the states that the migration would set. Fake the new migration locally, because "
+        "the local database already has the changes."
     )
 
     def add_arguments(self, parser):

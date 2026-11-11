@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldMessage: {
         /**
-         * The validation or warning message attached to a field. It maps error severity to destructive text and all other severities to warning text.
+         * The validation or warning message attached to a field. It maps error severity to destructive text and all
+         * other severities to warning text.
          */
         root: ({ severity }) => ({
             class: [
@@ -22,7 +23,8 @@ patchTheme({
             ],
         }),
         /**
-         * The list wrapper for multiple field messages. It keeps grouped validation details compact and indented under the field message block.
+         * The list wrapper for multiple field messages. It keeps grouped validation details compact and indented under
+         * the field message block.
          */
         list: {
             class: "ml-4 flex list-disc flex-col gap-1",

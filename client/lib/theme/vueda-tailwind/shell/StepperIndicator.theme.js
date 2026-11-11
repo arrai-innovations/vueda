@@ -13,7 +13,8 @@ patchTheme({
      */
     StepperIndicator: {
         /**
-         * The circular step marker. It maps active, completed, disabled, and upcoming states to the stepper color contract.
+         * The circular step marker. It maps active, completed, disabled, and upcoming states to the stepper color
+         * contract.
          */
         root: {
             class: [

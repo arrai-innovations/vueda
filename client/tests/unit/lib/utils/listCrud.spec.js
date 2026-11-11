@@ -229,6 +229,34 @@ describe("lib/utils/listCrud.js", () => {
         expect(clearObjects).toHaveBeenCalledOnce();
     });
 
+    describe("subscriptionFilters", () => {
+        it("encodes each filter as the list request's query string does", () => {
+            expect(
+                listCrud.subscriptionFilters(
+                    { category: "a", codes: ["x", "y"], tags: ["a,1", "b"], active: true, count: 3 },
+                    ["tags"],
+                ),
+            ).toEqual({ category: "a", codes: "x,y", tags: ["a,1", "b"], active: "true", count: "3" });
+        });
+
+        it("leaves out page, search, column totals, and empty values", () => {
+            expect(
+                listCrud.subscriptionFilters({
+                    p: 2,
+                    s: "widget",
+                    ct: ["total"],
+                    empty: [],
+                    unset: undefined,
+                    kept: "1",
+                }),
+            ).toEqual({ kept: "1" });
+        });
+
+        it("returns no filters for no params", () => {
+            expect(listCrud.subscriptionFilters(undefined)).toEqual({});
+        });
+    });
+
     describe("defaultObjectsDelete", () => {
         /**
          * @param {Response} response - The response the fetch resolves.

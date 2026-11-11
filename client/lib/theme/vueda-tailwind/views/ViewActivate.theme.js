@@ -13,7 +13,12 @@ patchTheme({
      * generic view-action structure.
      */
     ViewActivate: {
-        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and the activate-flow {@api theme-key:ModelActionForm}. Empty by default; the chrome lives on the inner shells. The view also renders a centred `LoadingSpinnerBlock` while {@api theme-key:ModelActionForm}'s model config loads; that fallback inherits its own block recipe and is not themed here. */
+        /**
+         * Outer wrapper around the embedded {@api theme-key:PageTitle} and the activate-flow
+         * {@api theme-key:ModelActionForm}. Empty by default; the chrome lives on the inner shells. The view also
+         * renders a centred `LoadingSpinnerBlock` while {@api theme-key:ModelActionForm}'s model config loads; that
+         * fallback inherits its own block recipe and is not themed here.
+         */
         root: {
             class: [],
         },

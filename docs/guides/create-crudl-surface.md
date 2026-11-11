@@ -262,7 +262,7 @@ The viewset provides all five standard CRUDL actions by default: `list`, `create
 `VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
 :::
 
-Extra actions beyond the standard CRUDL set are defined using the `@action` decorator from `vueda.core.decorators`. Only add extra actions when you need distinct route or permission behavior that the standard actions do not cover. Extra actions appear in model-info's action list and are gated by `get_allowed_extra_actions` on the viewset.
+Extra actions beyond the standard CRUDL set are defined using the `@action` decorator from `vueda.core.decorators`. Only add extra actions when you need distinct route or permission behavior that the standard actions do not cover. Extra actions appear in model-info's action list when `get_allowed_extra_actions` on the viewset returns them. By default, it returns each extra action whose permission classes the user passes. Those are the classes that the action's `permission_classes` argument sets. When the action sets none, they are the viewset's classes.
 
 ## Router and URL Wiring
 

@@ -13,7 +13,11 @@ patchTheme({
      * single shell.
      */
     DateRangeField: {
-        /** The input-shell variant that joins a start / end {@api theme-key:DateRangeFieldInput.root} pair into one chip. See also: {@api theme-key:DateField.root} for the shared shell recipe; delta is that the row hosts two segment runs separated by a literal separator glyph rendered by the component rather than a single run. */
+        /**
+         * The input-shell variant that joins a start / end {@api theme-key:DateRangeFieldInput.root} pair into one
+         * chip. See also: {@api theme-key:DateField.root} for the shared shell recipe; delta is that the row hosts two
+         * segment runs separated by a literal separator glyph rendered by the component rather than a single run.
+         */
         root: ({ size }) => ({
             class: [
                 // Shell and surface.

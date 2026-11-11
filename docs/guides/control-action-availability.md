@@ -27,9 +27,9 @@ The built-in actions follow the viewset's permission class, {@api py:class:vueda
 
 ## Offer Extra Actions per User or Object
 
-Each {@term Extra Action} appears in the lists when {@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} returns it. VUEDA calls the method with no `instance` to build `model_actions`, and once per object with `instance` set to build that object's `available_actions`. The default offers every extra action and shows `history-list` only to users who can read the object.
+Each {@term Extra Action} appears in the lists when {@api py:function:vueda.core.viewsets.AllowedExtraActionsMixin.get_allowed_extra_actions} returns it. VUEDA calls the method with no `instance` to build `model_actions`, and once per object with `instance` set to build that object's `available_actions`. The default offers an extra action when the user passes the permission classes that the action's endpoint uses. With `instance` set, a detail action also needs the object permission check for that object to pass. `history-list` is a `GET` action, so with the default permission classes it appears only to users who can read the object.
 
-Override the method and start from the default set, so `history-list` keeps its read check:
+To hide an action for a rule that the permission classes do not express, override the method and start from the default set:
 
 ```python
 from vueda.core.viewsets import VuedaViewSet
@@ -38,8 +38,6 @@ from vueda.core.viewsets import VuedaViewSet
 class WidgetViewSet(VuedaViewSet):
     def get_allowed_extra_actions(self, request, *, instance=None):
         allowed = super().get_allowed_extra_actions(request, instance=instance)
-        if request is not None and not request.user.has_perm("myapp.approve_widget"):
-            allowed.discard("approve")
         if instance is not None and instance.status == "locked":
             allowed.discard("approve")
         return allowed
@@ -47,7 +45,7 @@ class WidgetViewSet(VuedaViewSet):
 
 `request` is `None` when a serializer builds the lists without a request, so check it before you read `request.user`. Name each action by its URL name, as model info reports it.
 
-This method changes only what the client offers. The `approve` endpoint still accepts any request that passes the viewset's permission class, so apply the same checks inside the action.
+This method changes only what the client offers. The `approve` endpoint still accepts a request for a locked widget from any user who passes its permission classes, so apply the same check inside the action.
 
 ## Request `available_actions` on Objects
 

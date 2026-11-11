@@ -721,9 +721,9 @@ class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin,
     Model metadata's ``history-list`` decision folds in a workflow-state grant that can settle an
     otherwise-denied model-level read, the same deferral every other CRUD action's own metadata
     discovery already relies on (``ObjectPermissions.has_permission`` deferring to
-    ``has_matching_state_grant``). This is the ``instance=None`` branch of
-    ``VuedaViewSet._read_permitted``, distinct from the per-object branch covered by
-    ``TestHistoryActionObjectAvailabilityUnderWorkflowState`` in ``test_history_action_api.py``.
+    ``has_matching_state_grant``). This is the model-scope check with no instance, distinct from
+    the per-object check covered by ``TestHistoryActionObjectAvailabilityUnderWorkflowState`` in
+    ``test_history_action_api.py``.
     """
 
     groups_to_create: ClassVar[dict] = {

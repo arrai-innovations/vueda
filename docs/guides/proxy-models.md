@@ -135,7 +135,7 @@ class DistributorProxyViewSet(VuedaViewSet):
 
 `DistributorProxy.objects.all()` returns every row of the shared table. To expose a subset of rows, filter `queryset` (for example, `DistributorProxy.objects.filter(name__startswith="North")`) or override [`get_queryset()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_queryset} and call `super()`.
 
-The [`get_allowed_extra_actions()`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions} override is optional. It gives the proxy different extra actions from the concrete model's viewset. Here, members of the `Customer` group get none. VUEDA also calls it with `request=None` when it builds metadata without a request, so check for `None` before you read `request.user`.
+The [`get_allowed_extra_actions()`]{@api py:function:vueda.core.viewsets.AllowedExtraActionsMixin.get_allowed_extra_actions} override is optional. It gives the proxy different extra actions from the concrete model's viewset. Here, members of the `Customer` group get none. VUEDA also calls it with `request=None` when it builds metadata without a request, so check for `None` before you read `request.user`.
 
 ## Routing
 

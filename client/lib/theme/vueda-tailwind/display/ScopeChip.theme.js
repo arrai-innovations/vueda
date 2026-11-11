@@ -23,7 +23,10 @@ patchTheme({
                 "bg-[color-mix(in_oklab,var(--info)_10%,transparent)] text-foreground",
             ],
         },
-        /** Label segment. Read-only; truncates a long value (such as a UUID) with an ellipsis. Carries the left pill radius, and the right one when the chip has no clear control. */
+        /**
+         * Label segment. Read-only; truncates a long value (such as a UUID) with an ellipsis. Carries the left pill
+         * radius, and the right one when the chip has no clear control.
+         */
         label: {
             class: ({ clearable }) => [
                 "min-w-0 truncate rounded-l-full py-1 pl-2.5",
@@ -34,7 +37,10 @@ patchTheme({
         divider: {
             class: ["h-4 w-hairline shrink-0 bg-[color-mix(in_oklab,var(--info)_30%,transparent)]"],
         },
-        /** Clear segment (the trailing dismiss control). Carries the right pill radius. Stretches to the chip's full height so the hover target covers the pill. */
+        /**
+         * Clear segment (the trailing dismiss control). Carries the right pill radius. Stretches to the chip's full
+         * height so the hover target covers the pill.
+         */
         remove: {
             class: [
                 "inline-flex shrink-0 items-center self-stretch rounded-r-full px-1.5 py-1 opacity-70 hover:opacity-100",

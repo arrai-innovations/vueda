@@ -1,6 +1,7 @@
 /**
  * @module use/useModelConfig
- * @description Provides a reactive, view-aware model configuration by combining server model info with client-side config store data.
+ * @description Provides a reactive, view-aware model configuration by combining server model info with client-side
+ *  config store data.
  */
 import { useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
@@ -23,8 +24,10 @@ import { effectScope, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {string[]|undefined} sorted - the default sort order for list view
  * @property {string[]|null} actions - allow list of actions to display, otherwise all actions are displayed
  * @property {{[propName: string]: any}|undefined} formProps - extra props to pass the form model
- * @property {{[fieldPath: string]: {[propName: string]: any}}|undefined} fieldProps - extra props to pass a field component in a form model
- * @property {{[fieldPath: string]: {[propName: string]: any}}|undefined} widgetProps - extra props to pass a widget component in a form model
+ * @property {{[fieldPath: string]: {[propName: string]: any}}|undefined} fieldProps - extra props to pass a field
+ *  component in a form model
+ * @property {{[fieldPath: string]: {[propName: string]: any}}|undefined} widgetProps - extra props to pass a widget
+ *  component in a form model
  */
 
 /**
@@ -56,7 +59,8 @@ import { effectScope, reactive, readonly, ref, toRef, watch } from "vue";
  * @param {import('vue').Ref<string>|string} app - The app name
  * @param {import('vue').Ref<string>|string} model - The model name
  * @param {import('vue').Ref<string>|string} [view] - What you are doing with the model
- * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list views.
+ * @returns {ModelConfigState} An object containing reactive fields and actions for create, update, read, and list
+ *  views.
  * @example
  * ```vue
  * <script setup>

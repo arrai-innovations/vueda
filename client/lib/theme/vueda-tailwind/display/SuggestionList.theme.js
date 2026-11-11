@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * SuggestionList renders typed "Did you mean?" choices for system 404 views. It combines an optional heading row with bordered suggestion rows and shape-specific trailing chips.
+     * SuggestionList renders typed "Did you mean?" choices for system 404 views. It combines an optional heading row
+     * with bordered suggestion rows and shape-specific trailing chips.
      */
     SuggestionList: {
         /** Outer suggestion stack; border treatment lives on {@api theme-key:SuggestionList.list}. */

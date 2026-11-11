@@ -14,11 +14,18 @@ patchTheme({
      * body region beneath them.
      */
     ViewCreate: {
-        /** Outer wrapper. Layout-only; PageTitle, the StickyBar, and the form body below own the visible chrome, so this stays empty by default. The `class` prop merges here. */
+        /**
+         * Outer wrapper. Layout-only; PageTitle, the StickyBar, and the form body below own the visible chrome, so this
+         * stays empty by default. The `class` prop merges here.
+         */
         root: {
             class: [],
         },
-        /** Form body region wrapping the error display and the generated form. `px-5 py-5` sets the content gutter; the horizontal `px-5` aligns the form's left edge with the {@api theme-key:StickyBar} controls and {@api theme-key:PageTitle} title above it so the page chrome reads as a continuous column. */
+        /**
+         * Form body region wrapping the error display and the generated form. `px-5 py-5` sets the content gutter; the
+         * horizontal `px-5` aligns the form's left edge with the {@api theme-key:StickyBar} controls and
+         * {@api theme-key:PageTitle} title above it so the page chrome reads as a continuous column.
+         */
         body: {
             class: ["px-5 py-5"],
         },

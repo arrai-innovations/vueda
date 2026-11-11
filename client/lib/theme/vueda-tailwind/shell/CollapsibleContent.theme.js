@@ -13,7 +13,8 @@ patchTheme({
      */
     CollapsibleContent: {
         /**
-         * The region controlled by a CollapsibleTrigger. It ships empty so feature surfaces can decide whether the content behaves like inline reveal, row detail, or raw-debug disclosure.
+         * The region controlled by a CollapsibleTrigger. It ships empty so feature surfaces can decide whether the
+         * content behaves like inline reveal, row detail, or raw-debug disclosure.
          */
         root: { class: "" },
     },

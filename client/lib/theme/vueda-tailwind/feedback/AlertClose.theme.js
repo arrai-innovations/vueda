@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * AlertClose positions a dismiss control inside an alert. It provides the compact focus and hover affordance used by closable alerts.
+     * AlertClose positions a dismiss control inside an alert. It provides the compact focus and hover affordance used
+     * by closable alerts.
      */
     AlertClose: {
         /**
-         * The positioned dismiss affordance for closable alerts. It stays visually quiet until hover or keyboard focus, then uses the shared ring color through the focus-visible outline.
+         * The positioned dismiss affordance for closable alerts. It stays visually quiet until hover or keyboard focus,
+         * then uses the shared ring color through the focus-visible outline.
          */
         root: {
             class: [

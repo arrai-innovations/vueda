@@ -12,7 +12,10 @@ patchTheme({
      * DropdownMenuItem styles a selectable command inside a dropdown menu.
      */
     DropdownMenuItem: {
-        /** Selectable menu row. Focus uses neutral accent, destructive rows tint text and focus fill without changing the surface recipe. */
+        /**
+         * Selectable menu row. Focus uses neutral accent, destructive rows tint text and focus fill without changing
+         * the surface recipe.
+         */
         root: {
             class: [
                 // Interactive states.

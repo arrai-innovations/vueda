@@ -9,6 +9,7 @@ __all__ = (
     "filter_rows_for_user",
     "has_matching_state_grant",
     "has_row_dependent_authorization",
+    "permitted_extra_action_methods",
 )
 
 from django.conf import settings
@@ -61,9 +62,13 @@ def has_matching_state_grant(model, user, required_permissions) -> bool:
 
 def check_action_permission(viewset, request, instance, action) -> bool:
     """
-    Whether ``request.user`` may perform ``action`` against ``instance`` -- or the model at
-    large, when ``instance`` is ``None`` -- through ``viewset``'s own configured permission
-    classes.
+    Whether ``request.user`` may perform the built-in ``action`` against ``instance`` -- or the
+    model at large, when ``instance`` is ``None`` -- through the permission classes that
+    ``viewset.get_permissions()`` returns for ``action``.
+
+    ``get_permissions`` runs with ``action`` as the view's action, as it does on the endpoint for
+    ``action``. A viewset that selects its permission classes by ``self.action`` is therefore
+    checked against the classes that it selects for ``action``.
 
     Checked as ``action`` over its own HTTP method, independently of whatever action the
     surrounding response is actually for: a list response does not substitute list permission for
@@ -80,48 +85,121 @@ def check_action_permission(viewset, request, instance, action) -> bool:
     generation building metadata without a live requester); every caller of this function leaves
     its result unfiltered in that case.
 
-    Caches its answer on ``viewset`` per ``(action, instance)`` for that viewset instance's own
-    lifetime -- one request -- so two callers asking the identical question (an object's own
-    ``available_actions`` checking ``retrieve``, and ``history-list`` availability checking read
-    the same way) pay for one permission pass, not two. The cache keys on ``id(instance)``, since
-    a model instance is unhashable without a primary key and a composite primary key is not
-    reliably hashable either; it holds a reference to ``instance`` alongside its answer so that id
-    cannot be freed and reassigned to an unrelated object for as long as the cache entry lives,
-    which would otherwise alias a later, different row onto this row's cached answer.
+    Caches its answer on ``viewset`` per ``(action, method, instance)`` for that viewset
+    instance's own lifetime -- one request -- so two callers asking the identical question pay for
+    one permission pass, not two. :func:`permitted_extra_action_methods` shares this cache, so
+    model metadata that decides whether an extra action is offered and which of its methods to list
+    runs each check once.
     """
-    if request is None:
-        return True
-
-    cache = viewset.__dict__.setdefault("_action_permission_cache", {})
-    cache_key = (action, id(instance) if instance is not None else None)
-    if cache_key in cache:
-        return cache[cache_key][1]
-
     # Local import: vueda.info.serializers locally imports VuedaViewSet from this package's
     # sibling module, so a module-level import here would risk the same cycle it avoids there.
     from vueda.info.serializers import METHOD_MAPPING
 
+    if instance is None:
+        return _model_scope_permitted(viewset, request, action, METHOD_MAPPING[action], {})
+    return _object_scope_permitted(viewset, request, instance, action, METHOD_MAPPING[action], {})
+
+
+def permitted_extra_action_methods(viewset, request, instance, extra_action) -> list[str]:
+    """
+    Return the HTTP methods of ``extra_action`` that ``request.user`` passes through ``viewset``'s
+    permission checks, as the routed endpoint runs them.
+
+    ``extra_action`` is a method that the viewset declares with ``@action``, as
+    ``viewset.get_extra_actions()`` returns it. The methods are lowercase and keep the order of
+    ``extra_action.mapping``. The user may use the action when the list holds at least one method.
+    The list is empty when the user passes no method.
+
+    Each method is checked against the view that the router builds for it: ``view.action`` is the
+    name of the viewset method that handles the HTTP method, and the ``@action`` init kwargs, such
+    as ``name`` and ``permission_classes``, are attributes of the view. An action that sets its own
+    ``permission_classes`` is therefore checked against those classes, and an action that sets
+    ``permission_classes=()`` passes for every user. An action that sets no ``permission_classes``
+    is checked against the viewset class's ``permission_classes``. This holds even when
+    ``viewset`` serves another extra action that sets its own.
+
+    The model-scope check runs each permission class's ``has_permission``. When ``instance`` is
+    given and the action is a detail action, the object-scope check also runs for that object
+    through ``viewset.check_object_permissions``. The endpoint runs the same check when the action
+    body loads its object through ``get_object()``. An action body that loads its object another
+    way skips that check at the endpoint, so this function can leave out a method that a direct
+    request for that object passes. A list-route action has no object, so ``instance`` does not
+    affect it.
+
+    ``request`` is ``None`` when there is no request to authorize against. Every method is returned
+    in that case.
+
+    Answers share the per-request cache of :func:`check_action_permission`.
+    """
+    check_object = instance is not None and extra_action.detail
+    view_attributes = extra_action.kwargs
+    permitted_methods = []
+    for method, action in extra_action.mapping.items():
+        if not _model_scope_permitted(viewset, request, action, method, view_attributes):
+            continue
+        if check_object and not _object_scope_permitted(viewset, request, instance, action, method, view_attributes):
+            continue
+        permitted_methods.append(method)
+    return permitted_methods
+
+
+def _model_scope_permitted(viewset, request, action, method, view_attributes) -> bool:
+    """Whether every permission class's ``has_permission`` passes for ``action`` over ``method``."""
+
+    def check(fake_request, action_view):
+        return all(permission.has_permission(fake_request, action_view) for permission in action_view.get_permissions())
+
+    return _cached_permission_check(viewset, request, None, action, method, view_attributes, check)
+
+
+def _object_scope_permitted(viewset, request, instance, action, method, view_attributes) -> bool:
+    """Whether ``viewset.check_object_permissions`` passes for ``instance`` under ``action`` over ``method``."""
+
+    def check(fake_request, action_view):
+        # Bound to `action_view`, not `viewset`, so a viewset override of
+        # `check_object_permissions` still runs -- and still sees `action` as the action under
+        # test, not whatever action the surrounding response is actually for -- while a nested
+        # call the override or the default implementation makes, such as `get_queryset()`,
+        # still runs against `viewset` itself and its real `action` (see `ActionView`).
+        type(viewset).check_object_permissions(action_view, fake_request, instance)
+        return True
+
+    return _cached_permission_check(viewset, request, instance, action, method, view_attributes, check)
+
+
+def _cached_permission_check(viewset, request, instance, action, method, view_attributes, check) -> bool:
+    """
+    Run ``check`` against a request for ``method`` and a view for ``action``, and cache its answer.
+
+    ``check`` receives the stand-in request and the :class:`~vueda.core.utils.ActionView` that
+    carries ``action`` and ``view_attributes``. A refusal that it raises counts as ``False``.
+
+    The cache lives on ``viewset`` and is keyed per ``(action, method, instance)``. It keys on
+    ``id(instance)``, since a model instance is unhashable without a primary key and a composite
+    primary key is not reliably hashable either. Each entry holds a reference to ``instance``
+    alongside its answer, so that id cannot be freed and reassigned to an unrelated object for as
+    long as the entry lives, which would otherwise alias a later, different row onto this row's
+    cached answer.
+    """
+    if request is None:
+        return True
+
+    method = method.upper()
+    cache = viewset.__dict__.setdefault("_action_permission_cache", {})
+    cache_key = (action, method, id(instance) if instance is not None else None)
+    if cache_key in cache:
+        return cache[cache_key][1]
+
     fake_request = AvailableActionsRequest(
-        method=METHOD_MAPPING[action].upper(),
+        method=method,
         user=request.user,
         authenticators=request.authenticators,
         successful_authenticator=request.successful_authenticator,
     )
-    action_view = ActionView(viewset, action)
+    action_view = ActionView(viewset, action, **view_attributes)
 
     try:
-        if instance is None:
-            permitted = all(
-                permission.has_permission(fake_request, action_view) for permission in viewset.get_permissions()
-            )
-        else:
-            # Bound to `action_view`, not `viewset`, so a viewset override of
-            # `check_object_permissions` still runs -- and still sees `action` as the action under
-            # test, not whatever action the surrounding response is actually for -- while a nested
-            # call the override or the default implementation makes, such as `get_queryset()`,
-            # still runs against `viewset` itself and its real `action` (see `ActionView`).
-            type(viewset).check_object_permissions(action_view, fake_request, instance)
-            permitted = True
+        permitted = check(fake_request, action_view)
     except (exceptions.PermissionDenied, exceptions.NotAuthenticated, DjangoPermissionDenied, Http404):
         # APIView.permission_denied() raises NotAuthenticated, not PermissionDenied, for a
         # requester whose authenticators none succeeded -- fake_request carries the real request's

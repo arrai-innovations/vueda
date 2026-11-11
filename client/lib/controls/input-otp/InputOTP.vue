@@ -7,7 +7,8 @@ import { computed, normalizeClass } from "vue";
 import { OTPInput } from "vue-input-otp";
 
 /**
- * A styled OTP (one-time password) input built on vue-input-otp's OTPInput, with slot forwarding for custom slot rendering.
+ * A styled OTP (one-time password) input built on vue-input-otp's OTPInput, with slot forwarding for custom slot
+ * rendering.
  */
 defineOptions({ inheritAttrs: false });
 

@@ -12,7 +12,10 @@ patchTheme({
      * ContextMenuCheckboxItem styles a toggleable context menu choice with an indicator.
      */
     ContextMenuCheckboxItem: {
-        /** Toggleable context-menu row with reserved indicator space. See also: {@api theme-key:DropdownMenuCheckboxItem.root}. */
+        /**
+         * Toggleable context-menu row with reserved indicator space. See also:
+         * {@api theme-key:DropdownMenuCheckboxItem.root}.
+         */
         root: {
             class: [
                 // Interactive states.
