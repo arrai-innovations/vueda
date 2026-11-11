@@ -1,6 +1,7 @@
 """ViewSet base classes with atomic transactions, row-level filtering, and flex-fields."""
 
 __all__ = (
+    "AllowedExtraActionsMixin",
     "AtomicCreateModelViewSetMixin",
     "AtomicDestroyModelViewSetMixin",
     "AtomicModelViewSet",
@@ -62,8 +63,8 @@ from vueda.core.models import ActivatableBaseModel
 from vueda.core.parsers import NestedMultipartMixin
 from vueda.core.paths import path_annotation_name
 from vueda.core.paths import query_path_field
-from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
+from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
@@ -1671,6 +1672,47 @@ class PerActionSerializerMixin:
         return super().get_serializer_class()
 
 
+class AllowedExtraActionsMixin:
+    """
+    A ViewSet mixin that offers each extra action only to users who pass that action's
+    permission check.
+
+    An extra action is one that the viewset declares with ``@action``. ``VuedaViewSet`` and
+    ``VuedaReadOnlyViewSet`` include this mixin. Model metadata reads
+    :meth:`get_allowed_extra_actions` to build ``model_actions``, and ``AvailableActionsField``
+    reads it to build an object's ``available_actions``.
+    """
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        """
+        Return the URL names of the extra actions that ``request.user`` may use.
+
+        An extra action is offered when
+        :func:`vueda.core.permissions.permitted_extra_action_methods` returns at least one HTTP
+        method for it. That function runs the model-scope check. When ``instance`` is given, it
+        also runs the object-scope check for that object. Both checks run the permission classes
+        that the action's endpoint runs. The endpoint runs the object-scope check only when the
+        action body loads its object through ``get_object()``.
+
+        On ``VuedaViewSet``, ``history-list`` is a ``GET`` detail action. With the default
+        ``ObjectPermissions``, it is offered to a user who may read the object. ``history_list``
+        belongs to ``workflow_object_permission_actions``, so a matching workflow-state grant also
+        admits it.
+
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. Every extra action is offered in that case. An
+        override must handle that case before reading ``request.user``.
+
+        Override this method to change which extra actions are offered. An override can call
+        ``super()`` and filter the result further.
+        """
+        return {
+            extra_action.url_name
+            for extra_action in self.get_extra_actions()
+            if permitted_extra_action_methods(self, request, instance, extra_action)
+        }
+
+
 class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
@@ -1774,6 +1816,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    AllowedExtraActionsMixin,
     NestedMultipartMixin,
     WarningConfirmationMixin,
     FlexFieldsMixin,
@@ -1788,6 +1831,7 @@ class VuedaViewSet(
     - Flex-fields expansion (``FlexFieldsMixin``)
     - Query-parameter validation against filter and serializer fields (``NoExtraFieldsForViewSetMixin``)
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
+    - Extra actions offered only to users who pass their permission check (``AllowedExtraActionsMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
     - Override ``get_warnings_for_object`` (from ``WarningConfirmationMixin``) to gate
@@ -1970,49 +2014,6 @@ class VuedaViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_allowed_extra_actions(self, request, *, instance=None):
-        """
-        Override this function to change if a user is allowed to do a certain action.
-
-        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
-        serializer context without a request. An override must handle that case before reading
-        ``request.user``. With no request, this method offers every extra action, the same answer
-        :func:`vueda.core.permissions.check_action_permission` gives with no request.
-
-        ``history_list`` is additionally gated on read authorization here, checked the same way an
-        object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
-        ``workflow_object_permission_actions`` by default (see that attribute above), so a
-        requester whose read comes only from a matching workflow-state grant is offered
-        ``history-list`` here the same way a requester whose read comes from a model-level
-        permission already is, and both agree with what the history endpoint's own enforcement
-        answers for the same row.
-        """
-        allowed_actions = set()
-        for extra_action in self.get_extra_actions():
-            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
-                continue
-            allowed_actions.add(extra_action.url_name)
-
-        return allowed_actions
-
-    def _read_permitted(self, request, instance):
-        """
-        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
-        is ``None`` -- through this viewset's own configured permission classes.
-
-        Checked as an ordinary "retrieve" read, through
-        :func:`vueda.core.permissions.check_action_permission`, the same function an object's own
-        ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`) and model
-        metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
-        already call to check ``retrieve`` for the same row or model, on this same viewset instance, within
-        the same request. ``check_action_permission`` caches its answer per ``(action, instance)`` on that
-        viewset instance, so whichever of those two callers reaches ``retrieve`` first pays for the
-        permission pass, and this call reuses that answer instead of paying for a second one. See
-        ``check_action_permission`` for what "checked as an action" means and why ``instance=None`` takes a
-        different path than a specific object.
-        """
-        return check_action_permission(self, request, instance, "retrieve")
-
     def get_object(self):
         """
         Override this function to convert the pk kwarg to a list if the model has a composite primary key.
@@ -2079,6 +2080,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    AllowedExtraActionsMixin,
     NestedMultipartMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
@@ -2087,8 +2089,8 @@ class VuedaReadOnlyViewSet(
 ):
     """
     Read-only ViewSet for VUEDA models. Provides ``list`` and ``retrieve`` only,
-    with the same flex-fields, query-parameter validation, and row-level filtering
-    as ``VuedaViewSet``.
+    with the same flex-fields, query-parameter validation, row-level filtering, and extra-action
+    permission checks as ``VuedaViewSet``.
     """
 
     detail_args = ["pk"]
@@ -2101,22 +2103,3 @@ class VuedaReadOnlyViewSet(
 
     nulls_ordering_flip: str | Iterable[str] | None = None
     """Field names in ``nulls_ordering`` whose placement flips when the field is sorted descending."""
-
-    def get_allowed_extra_actions(self, request, *, instance=None):
-        """
-        Override this function to change if a user is allowed to do a certain action.
-
-        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
-        serializer context without a request. An override must handle that case before reading
-        ``request.user``.
-
-        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
-        unconditionally, including no read gate for ``history_list``: that action is defined only
-        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
-        nothing for a read gate to filter.
-        """
-        allowed_actions = set()
-        for extra_action in self.get_extra_actions():
-            allowed_actions.add(extra_action.url_name)
-
-        return allowed_actions

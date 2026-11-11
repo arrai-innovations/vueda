@@ -116,7 +116,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} description - A detailed description of the action.
  * @property {boolean} detail - A boolean indicating whether the action applies to a detail view.
  * @property {boolean} bulk - A boolean indicating whether the action can be applied in bulk.
- * @property {string[]} methodNames - An array of HTTP methods (e.g., GET, POST) supported by the action.
+ * @property {string[]} methodNames - The HTTP methods (e.g., GET, POST) that the current user may call the action with.
  * @property {Array<{name: string, type: string, required: boolean, description?: string}>} [parameters] - A list of
  *  parameter objects for the action, including type and optional descriptions.
  * @property {string} [appLabel] - The app label associated with the action, if relevant.

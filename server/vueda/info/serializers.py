@@ -52,6 +52,7 @@ from vueda.core.paths import has_public_ordering_name
 from vueda.core.paths import orm_ordering_path_to_public
 from vueda.core.paths import query_path_field
 from vueda.core.permissions import check_action_permission
+from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
@@ -549,6 +550,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         action describes what a requester might do on some instance of the model, not a guarantee
         that holds for every instance; the per-object surfaces (an object's own
         ``available_actions``) decide that separately, through ``has_object_permission``.
+
+        Each extra action lists the HTTP methods that the requesting user passes, from
+        :func:`vueda.core.permissions.permitted_extra_action_methods` with no instance. With no
+        request, it lists every method that the action accepts.
+
+        The permission checks run against a viewset instance that carries the attributes that the
+        router gives every routed view: this request, empty ``args`` and ``kwargs``, and no
+        ``format_kwarg``. A permission class that reads ``view.request`` or ``view.kwargs``
+        therefore runs here as it runs on a route that has no URL kwargs.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -556,9 +566,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: VuedaViewSet
         if viewset is None:
             return []
-        called_viewset = viewset()
 
         request = self.context.get("request", None)
+        called_viewset = viewset(request=request, args=(), kwargs={}, format_kwarg=None)
         user = request.user if request is not None else None
 
         queryset = viewset().get_queryset()
@@ -607,7 +617,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "description": f"{extra_action.url_name} {app_label}.{model_name}",
                 "detail": extra_action.detail,
                 "bulk": extra_action.bulk,
-                "method_names": list(extra_action.mapping.keys()),
+                "method_names": permitted_extra_action_methods(called_viewset, request, None, extra_action),
             }
             parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
             if parameters:
