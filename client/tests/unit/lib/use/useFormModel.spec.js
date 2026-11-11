@@ -1,5 +1,6 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
+import omit from "lodash-es/omit.js";
 
 describe("lib/use/useFormModel.js", () => {
     let modelConfig;
@@ -514,10 +515,14 @@ describe("lib/use/useFormModel.js", () => {
         });
 
         /**
-         * Build form state for a form with one relation field.
+         * Build a form with one relation field, and copy that field's widget and props.
+         *
+         * The form computes its widget and props from `modelConfig`, which the next call replaces. The copy keeps the
+         * values that this call's field details produced, so a test can compare two builds.
          *
          * @param {object} detail - The relation's field details.
-         * @returns {Promise<object>} The form state.
+         * @returns {Promise<object>} The field's `widgetComponents`, `widgetProps`, and `fieldProps` entries, keyed by
+         *   field name.
          */
         async function buildRelationForm(detail) {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
@@ -531,7 +536,11 @@ describe("lib/use/useFormModel.js", () => {
             });
             const state = await withSetup(() => useFormModel(props));
             await flushPromises();
-            return state;
+            return {
+                widgetComponents: { groups: state.widgetComponents.groups },
+                widgetProps: { groups: { ...state.widgetProps.groups } },
+                fieldProps: { groups: { ...state.fieldProps.groups } },
+            };
         }
 
         scopedIt("renders a ManyRelatedField subclass with the stock ManyRelatedField widget and props", async () => {
@@ -542,7 +551,9 @@ describe("lib/use/useFormModel.js", () => {
 
             expect(subclass.widgetComponents.groups).toBe(stock.widgetComponents.groups);
             expect(subclass.widgetProps.groups).toEqual(stock.widgetProps.groups);
-            expect(subclass.fieldProps.groups).toEqual(stock.fieldProps.groups);
+            // The field props carry the field's own serializer type, which differs by design.
+            const typeKeys = ["typeSerializer", "typeSerializerAncestors"];
+            expect(omit(subclass.fieldProps.groups, typeKeys)).toEqual(omit(stock.fieldProps.groups, typeKeys));
         });
 
         scopedIt("uses a base entry mapped for the subclass's own name over the ancestor's choice entry", async () => {
@@ -601,6 +612,35 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.widgetComponents.groups).toBe(availableWidgets.WidgetReadOnly);
             expect(state.fieldProps.groups.readOnly).toBe(true);
         });
+
+        // Model info reports a MultipleChoiceField as `many`, because its value is a list of choices.
+        for (const typeModel of ["CharField", null]) {
+            scopedIt(
+                `renders a MultipleChoiceField over typeModel ${typeModel} with the ChoiceField multi-select`,
+                async () => {
+                    const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+                    const choiceDetail = (typeSerializer, extra = {}) => ({
+                        name: "groups",
+                        typeSerializer,
+                        typeModel,
+                        many: true,
+                        choices: [{ label: "A", value: "a" }],
+                        readOnly: false,
+                        ...extra,
+                    });
+
+                    const state = await buildRelationForm(
+                        choiceDetail("MultipleChoiceField", { typeSerializerAncestors: ["ChoiceField"] }),
+                    );
+                    // A ListField of ChoiceField reports its child's type, ChoiceField, with `many`.
+                    const listOfChoices = await buildRelationForm(choiceDetail("ChoiceField"));
+
+                    expect(state.widgetComponents.groups).toBe(availableWidgets.WidgetCombobox);
+                    expect(state.widgetProps.groups).toMatchObject({ multiple: true });
+                    expect(state.widgetProps.groups).toEqual(listOfChoices.widgetProps.groups);
+                },
+            );
+        }
     });
     describe("reverse foreign key", () => {
         const relationDetail = (typeModel, extra = {}) => ({

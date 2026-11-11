@@ -425,7 +425,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             if field_name in excluded_fields:
                 continue
 
-            many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
+            # A MultipleChoiceField holds a list of choices without being a ListField.
+            many = isinstance(
+                field, (serializers.ListField, serializers.ManyRelatedField, serializers.MultipleChoiceField)
+            )
             if many:
                 child_field = field.child if many and hasattr(field, "child") else None
                 if isinstance(child_field, _UnvalidatedField):
