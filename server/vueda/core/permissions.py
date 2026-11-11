@@ -120,8 +120,11 @@ def permitted_extra_action_methods(viewset, request, instance, extra_action) -> 
 
     The model-scope check runs each permission class's ``has_permission``. When ``instance`` is
     given and the action is a detail action, the object-scope check also runs for that object
-    through ``viewset.check_object_permissions``, which a detail endpoint runs when it loads the
-    object. A list-route action has no object, so ``instance`` does not affect it.
+    through ``viewset.check_object_permissions``. The endpoint runs the same check when the action
+    body loads its object through ``get_object()``. An action body that loads its object another
+    way skips that check at the endpoint, so this function can leave out a method that a direct
+    request for that object passes. A list-route action has no object, so ``instance`` does not
+    affect it.
 
     ``request`` is ``None`` when there is no request to authorize against. Every method is returned
     in that case.

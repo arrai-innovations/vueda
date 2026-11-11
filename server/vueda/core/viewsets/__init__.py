@@ -1662,7 +1662,8 @@ class AllowedExtraActionsMixin:
         :func:`vueda.core.permissions.permitted_extra_action_methods` returns at least one HTTP
         method for it. That function runs the model-scope check. When ``instance`` is given, it
         also runs the object-scope check for that object. Both checks run the permission classes
-        that the action's endpoint runs.
+        that the action's endpoint runs. The endpoint runs the object-scope check only when the
+        action body loads its object through ``get_object()``.
 
         On ``VuedaViewSet``, ``history-list`` is a ``GET`` detail action. With the default
         ``ObjectPermissions``, it is offered to a user who may read the object. ``history_list``

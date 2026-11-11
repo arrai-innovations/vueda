@@ -33,6 +33,8 @@ Each built-in action that the viewset implements appears when a {@term Model-Sco
 
 Extra actions appear as {@api py:function:vueda.core.viewsets.AllowedExtraActionsMixin.get_allowed_extra_actions} returns them. {@api py:class:vueda.core.viewsets.AllowedExtraActionsMixin} provides the default, and `VuedaViewSet` and {@api py:class:vueda.core.viewsets.VuedaReadOnlyViewSet} include it. The default offers an extra action when a {@term Model-Scope Check} passes for it. {@api py:function:vueda.core.permissions.permitted_extra_action_methods} runs that check with the permission classes that the action's endpoint uses. Those are the classes that the action's `permission_classes` argument sets. When the action sets none, they are the viewset's classes. The check runs once for each HTTP method that the action accepts. The action appears when at least one method passes, and its `method_names` lists only the methods that pass. `history-list` is a `GET` action, so with the default permission classes it appears for users who may read the model.
 
+The model-info request has no route for the action under test, so the view in these checks carries no URL kwargs. Its `request` is the model-info request, and its `kwargs` is empty. A permission class that reads a URL kwarg, such as `pk`, finds no value for it during these checks.
+
 `get_allowed_extra_actions` shapes metadata only. Leaving an action out hides its routes and buttons in the client. The endpoint enforces its own permission classes, and a check that the action body makes runs only at the endpoint. An override of `get_allowed_extra_actions` can hide an action for a rule that the permission classes do not express. The endpoint still answers requests for that action, so enforce the same rule in the action body.
 
 A {@term Serializer-Only Registration} has no viewset, so its model actions are empty.
@@ -43,7 +45,11 @@ Each entry carries the action's name, HTTP methods, `detail` and `bulk` flags, a
 
 {@term Available Actions} answer whether the user can perform an action on one object in its current state. The {@api py:class:vueda.core.serializers.fields.AvailableActionsField} computes the [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions} field for each serialized object.
 
-Each built-in action that the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes for that object. The check includes `list`. It runs the viewset's object permission check, so {@term Row-Level Permissions}, {@term State Permission} rules, and any override of that check apply. Extra actions appear as `get_allowed_extra_actions(request, instance=instance)` returns them. The default runs the model-scope check for each extra action. For a detail action, it also runs the object-scope check for that object, which the endpoint runs when it loads the object. An override can decide per object.
+Each built-in action that the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes for that object. The check includes `list`. It runs the viewset's object permission check, so {@term Row-Level Permissions}, {@term State Permission} rules, and any override of that check apply.
+
+Extra actions appear as `get_allowed_extra_actions(request, instance=instance)` returns them. The default runs the model-scope check for each extra action. For a detail action, it also runs the object-scope check for that object. The endpoint runs the same check when the action body loads its object through `get_object()`. An action body that loads its object another way, such as by filtering the queryset, skips that check at the endpoint. An override can decide per object.
+
+The view in these checks carries the URL kwargs of the route that serves the response. A list response's route has no `pk`. A permission class that reads `pk` therefore finds no value for it in the row checks of a list response.
 
 The server includes the field only when the request names it through {@term Sparse Fields} (`f`). An expanded object never carries it, and the server rejects a request that names it on an expanded object with `400`. The client asks for it on detail fetches, and on list fetches when the model config sets [`detailLinkField`]{@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#ModelConfig.detailLinkField}.
 
@@ -97,6 +103,6 @@ An action that takes input calls {@api py:function:vueda.core.exceptions.gate_wa
 
 **`routeActions` is narrower than the server's list.** The guard refuses a route for an action the server offers, with an "Action Not Found" toast. The toast does not say that the model config removed the action.
 
-**An override of `get_allowed_extra_actions` leaves out an action the endpoint accepts.** The client hides the action's routes and buttons, and a direct request to the endpoint still runs. The default never does this, because it runs the endpoint's own permission classes. A rule that an override adds also needs a check in the action body.
+**An override of `get_allowed_extra_actions` leaves out an action the endpoint accepts.** The client hides the action's routes and buttons, and a direct request to the endpoint still runs. A rule that an override adds also needs a check in the action body. The default runs the endpoint's own permission classes, so it agrees with the endpoint for an action whose body loads its object through `get_object()`. For a detail action whose body loads its object another way, the endpoint skips the object-scope check. The default can then leave the action out of a row's `available_actions` while a direct request for that row succeeds.
 
 **A workflow `403` is cached.** Transition routes and list transition buttons stay unavailable after the server-side cause is fixed, until the client's caches clear.
