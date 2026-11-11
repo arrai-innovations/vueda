@@ -1710,6 +1710,25 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt(
+            "offers no filters but still requests a hidden filter's URL value when it is the only filter",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                modelConfig.config.filterables = ["id"];
+                modelConfig.config.filterableDetails = { id: { typeFilter: "UUIDField", hidden: true } };
+                route.query = { id: "1,2" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+
+                // An empty list is what keeps FilterGroup from rendering the add-filter trigger.
+                expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual([]);
+                expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+                expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+                wrapper.unmount();
+            },
+        );
+
         scopedIt("keeps a hidden filter out of the menu when its type has an input mapping", async () => {
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
             mockedInject.mockReturnValueOnce({});

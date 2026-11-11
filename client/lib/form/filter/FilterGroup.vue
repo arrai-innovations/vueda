@@ -14,7 +14,9 @@ import { useRoute } from "vue-router";
  * Presentation host for a model list view's filter controls. It renders the
  * add-filter {@api vue:component:FilterMenu} (whose trigger teleports into the
  * toolbar) from the caller-resolved `filterables` / `filterableDetails` /
- * `validFilterables` and, when filters are active, a strip of removable
+ * `validFilterables`. The menu renders only when `validFilterables` is not
+ * empty, so a list that offers no filters shows no add-filter button. When
+ * filters are active, the group also renders a strip of removable
  * {@api vue:component:FilterChip}s plus a Clear filters control. Resolving
  * which fields are filterable (typically via
  * {@api js:function:@arrai-innovations/vueda/use/useViewList#useViewList}),
@@ -71,6 +73,7 @@ const props = defineProps({
     /**
      * `filterables` narrowed to non-hidden fields the client can render an editable input for
      * (e.g. `useViewList`'s `filter.validFilterables`); the field list rendered as addable/editable.
+     * When this list is empty, the add-filter menu and its trigger do not render.
      */
     validFilterables: {
         type: Array,
@@ -135,6 +138,7 @@ defineExpose({ addedFilters });
 <template>
     <div :class="theme('root')" :style="theme.hideStyle?.value">
         <filter-menu
+            v-if="validFilterables.length"
             v-model="addedFilters"
             :filterables="validFilterables"
             :filterable-details="filterableDetails"
