@@ -20,7 +20,7 @@ To link a row to its own read or update view, use a {@term Row Link}. [Link List
 
 ## How Default Columns Are Chosen
 
-VUEDA picks each column's default adapter in {@api js:property:@arrai-innovations/vueda/utils/columnMappings#columnMappings}. It looks up the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}:
+VUEDA picks each column's default adapter in {@api js:property:@arrai-innovations/vueda/utils/columnMappings#columnMappings}. It looks up the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}. When the table has no entry for both, it tries each class in [`typeSerializerAncestors`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializerAncestors}, nearest first, so a subclass of a serializer type below gets that type's adapter:
 
 | Serializer type          | Model type                       | Adapter                               | Default props                                              |
 | ------------------------ | -------------------------------- | ------------------------------------- | ---------------------------------------------------------- |

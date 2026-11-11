@@ -1,5 +1,6 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
 import flushPromises from "flush-promises";
+import omit from "lodash-es/omit.js";
 
 describe("lib/use/useFormModel.js", () => {
     let modelConfig;
@@ -500,6 +501,146 @@ describe("lib/use/useFormModel.js", () => {
             expect([...state.expansionFieldNames]).toEqual(["department.title"]);
             expect(state.fieldComponents.department).toBe(availableFields.FieldSetSingularStackedInline);
         });
+    });
+    describe("serializer field subclass", () => {
+        // A project's `RolesField` subclasses `ManyRelatedField` only to filter the rows that it reads.
+        const relationDetail = (typeSerializer, extra = {}) => ({
+            name: "groups",
+            typeSerializer,
+            typeModel: "ManyToManyField",
+            many: true,
+            choices: true,
+            readOnly: false,
+            ...extra,
+        });
+
+        /**
+         * Build a form with one relation field, and copy that field's widget and props.
+         *
+         * The form computes its widget and props from `modelConfig`, which the next call replaces. The copy keeps the
+         * values that this call's field details produced, so a test can compare two builds.
+         *
+         * @param {object} detail - The relation's field details.
+         * @returns {Promise<object>} The field's `widgetComponents`, `widgetProps`, and `fieldProps` entries, keyed by
+         *   field name.
+         */
+        async function buildRelationForm(detail) {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            modelConfig.config = { fieldDetails: { groups: detail }, expandDetails: {}, expand: [] };
+            const props = makeBaseProps({
+                view: "update",
+                fields: ["groups"],
+                expand: undefined,
+                fieldDetails: undefined,
+                expandDetails: undefined,
+            });
+            const state = await withSetup(() => useFormModel(props));
+            await flushPromises();
+            return {
+                widgetComponents: { groups: state.widgetComponents.groups },
+                widgetProps: { groups: { ...state.widgetProps.groups } },
+                fieldProps: { groups: { ...state.fieldProps.groups } },
+            };
+        }
+
+        scopedIt("renders a ManyRelatedField subclass with the stock ManyRelatedField widget and props", async () => {
+            const stock = await buildRelationForm(relationDetail("ManyRelatedField"));
+            const subclass = await buildRelationForm(
+                relationDetail("RolesField", { typeSerializerAncestors: ["ManyRelatedField"] }),
+            );
+
+            expect(subclass.widgetComponents.groups).toBe(stock.widgetComponents.groups);
+            expect(subclass.widgetProps.groups).toEqual(stock.widgetProps.groups);
+            // The field props carry the field's own serializer type, which differs by design.
+            const typeKeys = ["typeSerializer", "typeSerializerAncestors"];
+            expect(omit(subclass.fieldProps.groups, typeKeys)).toEqual(omit(stock.fieldProps.groups, typeKeys));
+        });
+
+        scopedIt("uses a base entry mapped for the subclass's own name over the ancestor's choice entry", async () => {
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            const { mergeDefaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const mappings = mergeDefaultFieldMappings({
+                RolesField: {
+                    ManyToManyField: {
+                        // A name, because the merge deep-copies a component object.
+                        widget: "WidgetTagsInput",
+                        widgetProps: { placeholder: "Roles" },
+                        default: true,
+                    },
+                },
+            });
+            try {
+                const state = await buildRelationForm(
+                    relationDetail("RolesField", { typeSerializerAncestors: ["ManyRelatedField"] }),
+                );
+                expect(state.widgetComponents.groups).toBe(availableWidgets.WidgetTagsInput);
+                expect(state.widgetProps.groups).toMatchObject({ placeholder: "Roles" });
+                // The stock ManyRelatedField choice entry adds `multiple: true`, which must not mix in.
+                expect(state.widgetProps.groups).not.toHaveProperty("multiple");
+            } finally {
+                delete mappings.RolesField;
+            }
+        });
+
+        scopedIt("uses the ancestor's entries when the subclass's entries do not cover its typeModel", async () => {
+            const { mergeDefaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const mappings = mergeDefaultFieldMappings({
+                RolesField: { ForeignKey: { widget: "WidgetTagsInput" } },
+            });
+            try {
+                const stock = await buildRelationForm(relationDetail("ManyRelatedField"));
+                const subclass = await buildRelationForm(
+                    relationDetail("RolesField", { typeSerializerAncestors: ["ManyRelatedField"] }),
+                );
+                expect(subclass.widgetComponents.groups).toBe(stock.widgetComponents.groups);
+                expect(subclass.widgetProps.groups).toEqual(stock.widgetProps.groups);
+            } finally {
+                delete mappings.RolesField;
+            }
+        });
+
+        scopedIt("renders a ManyRelatedField subclass over a reverse foreign key read-only", async () => {
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+            const state = await buildRelationForm(
+                relationDetail("OwnItemsField", {
+                    typeSerializerAncestors: ["ManyRelatedField"],
+                    typeModel: "ForeignKey",
+                }),
+            );
+
+            expect(state.widgetComponents.groups).toBe(availableWidgets.WidgetReadOnly);
+            expect(state.fieldProps.groups.readOnly).toBe(true);
+        });
+
+        // Model info reports a MultipleChoiceField as `many`, because its value is a list of choices.
+        for (const typeModel of ["CharField", null]) {
+            scopedIt(
+                `renders a MultipleChoiceField over typeModel ${typeModel} with the ChoiceField multi-select`,
+                async () => {
+                    const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+                    const choiceDetail = (typeSerializer, extra = {}) => ({
+                        name: "groups",
+                        typeSerializer,
+                        typeModel,
+                        many: true,
+                        choices: [{ label: "A", value: "a" }],
+                        readOnly: false,
+                        ...extra,
+                    });
+
+                    const state = await buildRelationForm(
+                        choiceDetail("MultipleChoiceField", { typeSerializerAncestors: ["ChoiceField"] }),
+                    );
+                    // A ListField of ChoiceField reports its child's type, ChoiceField, with `many`.
+                    const listOfChoices = await buildRelationForm(choiceDetail("ChoiceField"));
+
+                    expect(state.widgetComponents.groups).toBe(availableWidgets.WidgetCombobox);
+                    expect(state.widgetProps.groups).toMatchObject({ multiple: true });
+                    expect(state.widgetProps.groups).toEqual(listOfChoices.widgetProps.groups);
+                },
+            );
+        }
     });
     describe("reverse foreign key", () => {
         const relationDetail = (typeModel, extra = {}) => ({

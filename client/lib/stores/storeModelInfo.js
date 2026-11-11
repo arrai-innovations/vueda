@@ -75,6 +75,7 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {string} typeDb - The database type of the field.
  * @property {string} typeModel - The model type of the field.
  * @property {string} typeSerializer - The serializer type of the field.
+ * @property {string[]} [typeSerializerAncestors] - The serializer field classes that the `typeSerializer` class inherits from, nearest first. Type mappings fall back to these names when `typeSerializer` has no entry. The list is empty, or missing, when the field needs no fallback.
  * @property {boolean} many - A boolean indicating whether the field is a `ListField` or relation with multiple entries.
  * @property {boolean} readOnly - A boolean indicating whether the field is read-only.
  * @property {boolean} required - A boolean indicating whether the field is required.
