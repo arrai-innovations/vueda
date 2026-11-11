@@ -244,6 +244,19 @@ describe("lib/use/useModelAction.js", () => {
                 );
             });
 
+            scopedIt("sends an action without a reported urlPath to its name with dashes as underscores", async () => {
+                modelConfig.info.actions.push({ name: "write-off", detail: true, bulk: false, methodNames: ["put"] });
+                const modelAction = await withSetup(() =>
+                    useModelAction(reactive({ app: "billing", model: "invoice", action: "write-off", pk: "9" })),
+                );
+
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({ action: "write-off", urlPath: "write_off", requestMethod: "PUT" }),
+                );
+            });
+
             scopedIt("sends a bulk action to its reported urlPath with its first write method", async () => {
                 const instanceList = createInstanceStub();
                 const modelAction = await withSetup(() =>

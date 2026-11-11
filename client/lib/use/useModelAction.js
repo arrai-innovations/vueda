@@ -136,9 +136,10 @@ export function useModelAction(props) {
     const actionInstance = computed(() => (bulk.value ? instanceList : instanceObject));
 
     // The action's model info entry gives the URL segment that the router serves the action at, and the HTTP methods
-    // that the action accepts. An action that model info does not list uses its name as the URL segment.
+    // that the action accepts. When model info reports no `urlPath`, the URL segment is the action name with dashes
+    // turned into underscores, which is the router's default segment for an extra action.
     const actionInfo = computed(() => modelConfig.info?.actions?.find((action) => action.name === props.action));
-    const urlPath = computed(() => actionInfo.value?.urlPath ?? props.action);
+    const urlPath = computed(() => actionInfo.value?.urlPath ?? props.action.replace(/-/g, "_"));
     const requestMethod = computed(() => props.requestMethod ?? getActionRequestMethod(actionInfo.value?.methodNames));
 
     const modelVerboseName = computed(() =>
