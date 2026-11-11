@@ -81,6 +81,22 @@ class DistributorServedActionViewSet(DistributorActionsViewSet):
         )
 
 
+class ReadsRoutedViewAttributes(BasePermission):
+    """Admit a request only when the view carries this request and no ``pk`` URL kwarg."""
+
+    def has_permission(self, request, view):
+        return view.request.user == request.user and view.kwargs.get("pk") is None
+
+
+class DistributorRoutedViewAttributesViewSet(VuedaViewSet):
+    queryset = store_models.Distributor.objects.all()
+    serializer_class = store_serializers.DistributorSerializer
+
+    @action(detail=False, methods=["post"], permission_classes=[ReadsRoutedViewAttributes])
+    def reads_view(self, request):
+        raise NotImplementedError
+
+
 class DistributorActionSelectedPermissionsViewSet(VuedaViewSet):
     queryset = store_models.Distributor.objects.all()
     serializer_class = store_serializers.DistributorSerializer
@@ -292,6 +308,16 @@ class TestExtraActionPermissionClasses(BaseTestUserMixin, BaseTestGroupMixin):
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert response.data["extra_actions"] == ["history-list", "open-to-all", "read-or-write", "served-action"]
         assert response.data["create"] is True
+
+    @pytest.fixture
+    def distributor_routed_view_attributes(self, registry):
+        registry.register(store_serializers.DistributorSerializer, DistributorRoutedViewAttributesViewSet)
+
+    @pytest.mark.usefixtures("distributor_routed_view_attributes")
+    def test_an_action_class_that_reads_the_request_and_url_kwargs_is_checked(self, api_client):
+        api_client.force_authenticate(user=self.users["none@domain.invalid"])
+
+        assert model_actions_expecting_ok(api_client, "store", "distributor")["reads-view"] == ["post"]
 
     @pytest.fixture
     def distributor_action_selected_permissions(self, registry):

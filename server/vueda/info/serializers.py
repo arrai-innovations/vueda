@@ -506,6 +506,11 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         Each extra action lists the HTTP methods that the requesting user passes, from
         :func:`vueda.core.permissions.permitted_extra_action_methods` with no instance. With no
         request, it lists every method that the action accepts.
+
+        The permission checks run against a viewset instance that carries the attributes that the
+        router gives every routed view: this request, empty ``args`` and ``kwargs``, and no
+        ``format_kwarg``. A permission class that reads ``view.request`` or ``view.kwargs``
+        therefore runs here as it runs on a route that has no URL kwargs.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -513,9 +518,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: VuedaViewSet
         if viewset is None:
             return []
-        called_viewset = viewset()
 
         request = self.context.get("request", None)
+        called_viewset = viewset(request=request, args=(), kwargs={}, format_kwarg=None)
         user = request.user if request is not None else None
 
         queryset = viewset().get_queryset()
