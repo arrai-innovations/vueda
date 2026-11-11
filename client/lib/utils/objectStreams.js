@@ -24,7 +24,8 @@ export const RECONNECT_MAX_DELAY = 30000;
  * @typedef {object} StreamMessage - A message that the server sends on the socket.
  * @property {string} type - `subscribed`, `unsubscribed`, `event`, `resync_required`, or `error`.
  * @property {string} [subscription_id] - The subscription that the message is for. Errors carry none.
- * @property {string} [facet] - For an event: `object` for a write to the record's own row, `workflow_state` for a transition.
+ * @property {string} [facet] - For an event: `object` for a write to the record's own row, `workflow_state` for a
+ *  transition.
  * @property {string} [op] - For an event: `created`, `updated`, or `deleted`.
  */
 
@@ -40,7 +41,8 @@ export const RECONNECT_MAX_DELAY = 30000;
  * @typedef {object} ObjectStreamConnectionOptions - Where and how the connection opens its socket.
  * @property {string} url - The websocket URL.
  * @property {typeof WebSocket} [WebSocketImpl] - The WebSocket class. Defaults to the browser's.
- * @property {(message: string, detail?: any) => void} [log] - Receives connection problems. Defaults to `console.debug`.
+ * @property {(message: string, detail?: any) => void} [log] - Receives connection problems. Defaults to
+ *  `console.debug`.
  */
 
 /**
@@ -213,9 +215,9 @@ function forgetWorkflowHistory(target, pk) {
  *
  * The callback receives each `event` message and each `resync_required` message. A `resync_required`
  * message means that events may have been missed. The callback does not fetch the record. A workflow
- * state change or a resync also drops the record's cached workflow state history from `storeWorkflow`, because a transition
- * that someone else ran made it stale. Before `setupObjectStreams()`, nothing subscribes and the
- * callback never runs.
+ * state change or a resync also drops the record's cached workflow state history from `storeWorkflow`, because a
+ * transition that someone else ran made it stale. Before `setupObjectStreams()`, nothing subscribes and the callback
+ * never runs.
  *
  * @param {object} args - The record to watch.
  * @param {{ app: string, model: string }} args.target - The app label and model name, as in the REST route.

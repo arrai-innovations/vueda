@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * LoadingSkeletonGhost renders a bordered placeholder card with variable-width skeleton bars. It owns the shimmer treatment for system loading previews without changing the shared Skeleton recipe.
+     * LoadingSkeletonGhost renders a bordered placeholder card with variable-width skeleton bars. It owns the shimmer
+     * treatment for system loading previews without changing the shared Skeleton recipe.
      */
     LoadingSkeletonGhost: {
         /** Bordered placeholder card with the shimmer overlay owned by this loading preview. */

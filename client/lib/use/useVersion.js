@@ -1,6 +1,7 @@
 /**
  * @module use/useVersion
- * @description Tracks and provides reactive server and client version strings, and indicates when a newer client version is available.
+ * @description Tracks and provides reactive server and client version strings, and indicates when a newer client
+ *  version is available.
  */
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 import { VITE_PACKAGE_VERSION } from "@vueda/utils/constants.js";

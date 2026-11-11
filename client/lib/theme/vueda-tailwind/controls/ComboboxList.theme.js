@@ -12,7 +12,13 @@ patchTheme({
      * The floating popover surface that holds the Combobox results.
      */
     ComboboxList: {
-        /** The floating popover surface that holds the {@api theme-key:ComboboxItem.root} rows. Reads as a popover: 2px control radius, `--popover` fill, and a hairline edge with popover elevation (`overlay-hairline`), with the standard side-aware enter / exit transforms anchored on `--reka-combobox-content-transform-origin` so the surface scales out of the corner closest to the trigger. Fixed 200px width matches {@api theme-key:ComboboxAnchor.root}; the inner {@api theme-key:ComboboxViewport.root} owns scrolling. */
+        /**
+         * The floating popover surface that holds the {@api theme-key:ComboboxItem.root} rows. Reads as a popover: 2px
+         * control radius, `--popover` fill, and a hairline edge with popover elevation (`overlay-hairline`), with the
+         * standard side-aware enter / exit transforms anchored on `--reka-combobox-content-transform-origin` so the
+         * surface scales out of the corner closest to the trigger. Fixed 200px width matches
+         * {@api theme-key:ComboboxAnchor.root}; the inner {@api theme-key:ComboboxViewport.root} owns scrolling.
+         */
         root: {
             class: [
                 // Positioning, surface, and shape.

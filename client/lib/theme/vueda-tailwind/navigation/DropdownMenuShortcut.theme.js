@@ -12,7 +12,9 @@ patchTheme({
      * DropdownMenuShortcut aligns keyboard shortcut keycaps inside dropdown menu items.
      */
     DropdownMenuShortcut: {
-        /** Alignment wrapper for the trailing keyboard hint. The nested {@api theme-key:KbdGroup.root} owns the chord. */
+        /**
+         * Alignment wrapper for the trailing keyboard hint. The nested {@api theme-key:KbdGroup.root} owns the chord.
+         */
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },

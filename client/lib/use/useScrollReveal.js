@@ -28,15 +28,22 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
 
 /**
  * @typedef {object} ScrollRevealOptions
- * @property {import('vue').MaybeRefOrGetter<ScrollRevealStrategy | boolean>} [reveal] - The reveal strategy, or a boolean (revealed when `true`); pass a ref or getter of either to drive it reactively. Defaults to `scroll-up-or-idle`.
- * @property {import('vue').MaybeRefOrGetter<HTMLElement|null>} [scrollRoot] - The scroll container the behavior reacts to. Pass the scrollable element (or a ref/getter to one) when the chrome lives inside a scrollable region; the hide/reveal threshold and the scroll listener bind to it. When nullish (the default) the behavior reacts to the window.
- * @property {number} [idleDelay] - Milliseconds of scroll inactivity after which the `scroll-up-or-idle` strategy reveals the chrome. Defaults to 300.
+ * @property {import('vue').MaybeRefOrGetter<ScrollRevealStrategy | boolean>} [reveal] - The reveal strategy, or a
+ *  boolean (revealed when `true`); pass a ref or getter of either to drive it reactively. Defaults to
+ *  `scroll-up-or-idle`.
+ * @property {import('vue').MaybeRefOrGetter<HTMLElement|null>} [scrollRoot] - The scroll container the behavior reacts
+ *  to. Pass the scrollable element (or a ref/getter to one) when the chrome lives inside a scrollable region; the
+ *  hide/reveal threshold and the scroll listener bind to it. When nullish (the default) the behavior reacts to the
+ *  window.
+ * @property {number} [idleDelay] - Milliseconds of scroll inactivity after which the `scroll-up-or-idle` strategy
+ *  reveals the chrome. Defaults to 300.
  */
 
 /**
  * @typedef {object} ScrollRevealState
  * @property {boolean} isScrollingUp - Whether the most recent scroll moved toward the top.
- * @property {boolean} isPastThreshold - Whether the scroll position is past the element's original bottom edge (the chrome's spot has left the viewport).
+ * @property {boolean} isPastThreshold - Whether the scroll position is past the element's original bottom edge (the
+ *  chrome's spot has left the viewport).
  * @property {boolean} isIdle - Whether scrolling has settled for at least `idleDelay` since the last scroll.
  */
 
@@ -44,9 +51,12 @@ import { computed, onScopeDispose, ref, toValue, unref, watch } from "vue";
  * @typedef {object} ScrollRevealContext
  * @property {import('vue').ComputedRef<boolean>} hidden - `true` while the chrome should be translated out of view.
  * @property {import('vue').Ref<boolean>} isScrollingUp - Live `isScrollingUp` signal (see {@link ScrollRevealState}).
- * @property {import('vue').ComputedRef<boolean>} isPastThreshold - Live `isPastThreshold` signal (see {@link ScrollRevealState}).
+ * @property {import('vue').ComputedRef<boolean>} isPastThreshold - Live `isPastThreshold` signal (see
+ *  {@link ScrollRevealState}).
  * @property {import('vue').Ref<boolean>} isIdle - Live `isIdle` signal (see {@link ScrollRevealState}).
- * @property {() => void} remeasure - Recompute the hide threshold from the element's current position. Call after layout changes that move the element without changing its identity (the watch only remeasures when the target or element identity changes).
+ * @property {() => void} remeasure - Recompute the hide threshold from the element's current position. Call after
+ *  layout changes that move the element without changing its identity (the watch only remeasures when the target or
+ *  element identity changes).
  */
 
 /**
@@ -86,9 +96,11 @@ export function revealHidden(strategy, { isScrollingUp, isPastThreshold, isIdle 
  * is only auto-measured when the target or element identity changes; call the returned `remeasure`
  * after layout shifts that move the element in place.
  *
- * @param {import('vue').Ref<HTMLElement|null>} rootRef - Ref to the element whose original on-screen position defines the hide threshold (typically the chrome's own root).
+ * @param {import('vue').Ref<HTMLElement|null>} rootRef - Ref to the element whose original on-screen position defines
+ *  the hide threshold (typically the chrome's own root).
  * @param {ScrollRevealOptions} [options] - Reveal strategy, scroll container, and idle timing.
- * @returns {ScrollRevealContext} The reactive `hidden` flag plus the raw scroll signals (so a multi-bar host can reuse one tracker across bars) and a `remeasure` function.
+ * @returns {ScrollRevealContext} The reactive `hidden` flag plus the raw scroll signals (so a multi-bar host can reuse
+ *  one tracker across bars) and a `remeasure` function.
  */
 export function useScrollReveal(rootRef, options = {}) {
     const idleDelay = options.idleDelay ?? 300;

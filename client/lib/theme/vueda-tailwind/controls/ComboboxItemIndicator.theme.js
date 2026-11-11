@@ -12,7 +12,11 @@ patchTheme({
      * Indicator (check mark, etc.) on a selected ComboboxItem.
      */
     ComboboxItemIndicator: {
-        /** The trailing selected-state glyph on a {@api theme-key:ComboboxItem.root} (typically a check mark). `ml-auto` pushes the indicator to the row's trailing edge; size and colour are inherited from the surrounding row so the indicator picks up the highlight swap without painting its own state. */
+        /**
+         * The trailing selected-state glyph on a {@api theme-key:ComboboxItem.root} (typically a check mark). `ml-auto`
+         * pushes the indicator to the row's trailing edge; size and colour are inherited from the surrounding row so
+         * the indicator picks up the highlight swap without painting its own state.
+         */
         root: {
             class: ["ml-auto"],
         },

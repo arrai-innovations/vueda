@@ -5,7 +5,8 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive } from "vue";
 
 /**
- * Renders a single data cell in the table-layout view of ObjectsGrid, exposing field value and metadata through the `value` slot.
+ * Renders a single data cell in the table-layout view of ObjectsGrid, exposing field value and metadata through the
+ * `value` slot.
  */
 defineOptions({});
 

@@ -13,7 +13,11 @@ patchTheme({
      * rendered for a recognized workflow transition code with no project-supplied override.
      */
     ViewExecuteTransition: {
-        /** Outer wrapper around the embedded {@api theme-key:PageTitle} and {@api theme-key:ModelActionForm}. Empty by default; the two inner shells own all visible chrome, so this key exists only as the consumer-facing override surface and the data-qa anchor. */
+        /**
+         * Outer wrapper around the embedded {@api theme-key:PageTitle} and {@api theme-key:ModelActionForm}. Empty by
+         * default; the two inner shells own all visible chrome, so this key exists only as the consumer-facing override
+         * surface and the data-qa anchor.
+         */
         root: {
             class: [],
         },

@@ -78,11 +78,14 @@
 
 /**
  * @typedef {object} MakeThemeFnOptions
- * @property {SlotResolver} [slotResolver] - Function that maps `(key, kwargs)` to the returned class string. Defaults to `() => "theme"`, matching the most common existing pattern.
- * @property {string} [componentName] - Value placed on the returned function's `componentName` property. Defaults to `"StubbedComponent"`.
+ * @property {SlotResolver} [slotResolver] - Function that maps `(key, kwargs)` to the returned class string. Defaults
+ *  to `() => "theme"`, matching the most common existing pattern.
+ * @property {string} [componentName] - Value placed on the returned function's `componentName` property. Defaults to
+ *  `"StubbedComponent"`.
  * @property {boolean | undefined} [loading] - Initial value of `loading.value`. Defaults to `false` (settled).
  * @property {string} [hideStyle] - Initial value of `hideStyle.value`. Defaults to `""`.
- * @property {import("vitest").Mock} [spy] - Pre-built `vi.fn()` to wrap so the caller can assert on slot calls. Its implementation is overwritten with `slotResolver`.
+ * @property {import("vitest").Mock} [spy] - Pre-built `vi.fn()` to wrap so the caller can assert on slot calls. Its
+ *  implementation is overwritten with `slotResolver`.
  */
 
 /**
@@ -127,8 +130,10 @@ export function makeThemeFn(options = {}) {
 /**
  * @typedef {object} MakeUseThemeMockOptions
  * @property {SlotResolver} [slotResolver] - Forwarded to {@link makeThemeFn} when `themeFn` is not supplied.
- * @property {StubbedThemeFn} [themeFn] - Pre-built theme function returned by every `useTheme(...)` call. When omitted, a fresh `themeFn` is created on each call (matching specs that did not need stable identity).
- * @property {(componentName: string, props: object, context: object, keyFn?: (key: string, kwargs: object) => string) => void} [onCall] - Side effect run before the theme function is returned. Useful for capturing the arguments passed to `useTheme`.
+ * @property {StubbedThemeFn} [themeFn] - Pre-built theme function returned by every `useTheme(...)` call. When omitted,
+ *  a fresh `themeFn` is created on each call (matching specs that did not need stable identity).
+ * @property {(componentName: string, props: object, context: object, keyFn?: (key: string, kwargs: object) => string) => void} [onCall] -
+ *  Side effect run before the theme function is returned. Useful for capturing the arguments passed to `useTheme`.
  * @property {string} [mockName] - Vitest mock name applied via `.mockName(...)`. Defaults to `"mockedUseTheme"`.
  */
 

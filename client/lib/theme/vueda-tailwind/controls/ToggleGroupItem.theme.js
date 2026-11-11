@@ -14,7 +14,14 @@ patchTheme({
      * segmented unit (rounded only on the outer corners, shared borders).
      */
     ToggleGroupItem: {
-        /** The individual item inside a {@api theme-key:ToggleGroup}. Mirrors the {@api theme-key:Toggle.root} recipe (same variants, sizes, and accent-pressed treatment) and adds segmented behaviour: when the host group sets `data-spacing=0`, items drop their per-item radius and shadow and re-add them on the first and last child so the cluster reads as one slab. `min-w-0 shrink-0 px-3` overrides the Toggle minimum width so a label-bearing item grows to its content rather than staying square. Disabled items use `--disabled-foreground` ink and a `--border` outline; pressed items keep a `--disabled` fill while unpressed items stay transparent. */
+        /**
+         * The individual item inside a {@api theme-key:ToggleGroup}. Mirrors the {@api theme-key:Toggle.root} recipe
+         * (same variants, sizes, and accent-pressed treatment) and adds segmented behaviour: when the host group sets
+         * `data-spacing=0`, items drop their per-item radius and shadow and re-add them on the first and last child so
+         * the cluster reads as one slab. `min-w-0 shrink-0 px-3` overrides the Toggle minimum width so a label-bearing
+         * item grows to its content rather than staying square. Disabled items use `--disabled-foreground` ink and a
+         * `--border` outline; pressed items keep a `--disabled` fill while unpressed items stay transparent.
+         */
         root: ({ variant, size }) => ({
             class: [
                 // Layout and type.

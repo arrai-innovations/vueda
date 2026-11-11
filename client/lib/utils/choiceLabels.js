@@ -1,13 +1,15 @@
 /**
  * @module utils/choiceLabels
- * @description Turns stored choice values into their display labels. Read-only widgets and list columns share this lookup, so a value shows the same label on every page.
+ * @description Turns stored choice values into their display labels. Read-only widgets and list columns share this
+ *  lookup, so a value shows the same label on every page.
  */
 
 /**
  * Get the static options that label a field's stored values.
  *
- * The options are the descriptor's `displayChoices` when it has them. Otherwise they are its `choices` when `choices` is an array.
- * The result is empty for `choices: true`, whose options come from the choices endpoint, and for `choices: false`.
+ * The options are the descriptor's `displayChoices` when it has them. Otherwise they are its `choices` when `choices`
+ * is an array. The result is empty for `choices: true`, whose options come from the choices endpoint, and for
+ * `choices: false`.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo|undefined} field - The field descriptor from model info.
  * @returns {Array<{[key: string]: unknown}>} The label options for the field.
@@ -78,7 +80,8 @@ export function findChoice(fieldValue, options, optionValue = "value") {
  *
  * @param {unknown} fieldValue - The stored value.
  * @param {Array<{[key: string]: unknown}>} options - The label options.
- * @param {{optionLabel?: string, optionValue?: string}} [keys] - The option keys that hold the label and the value. They default to `label` and `value`.
+ * @param {{optionLabel?: string, optionValue?: string}} [keys] - The option keys that hold the label and the value.
+ *  They default to `label` and `value`.
  * @returns {unknown} The label for the stored value.
  */
 export function choiceLabel(fieldValue, options, { optionLabel = "label", optionValue = "value" } = {}) {
@@ -93,7 +96,8 @@ export function choiceLabel(fieldValue, options, { optionLabel = "label", option
  *
  * @param {unknown} fieldValue - The stored value, or an array of stored values.
  * @param {Array<{[key: string]: unknown}>} options - The label options.
- * @param {{optionLabel?: string, optionValue?: string}} [keys] - The option keys that hold the label and the value. They default to `label` and `value`.
+ * @param {{optionLabel?: string, optionValue?: string}} [keys] - The option keys that hold the label and the value.
+ *  They default to `label` and `value`.
  * @returns {unknown} The label, or the joined labels for an array value.
  */
 export function choiceDisplay(fieldValue, options, keys) {

@@ -29,7 +29,10 @@ export const FORM_MODEL_SELECTOR_PROPS = Object.freeze(["app", "model", "view"])
  * @vueda-spread props
  */
 export const VIEW_FORM_PROPS = {
-    /** Theme variant that the inner FormModel component receives as `variant`. Wins over a `variant` in the model config's `formProps` when passed. */
+    /**
+     * Theme variant that the inner FormModel component receives as `variant`. Wins over a `variant` in the model
+     * config's `formProps` when passed.
+     */
     formModelVariant: {
         type: String,
         default: undefined,
@@ -64,17 +67,26 @@ export const VIEW_FORM_PROPS = {
         type: Object,
         default: undefined,
     },
-    /** Extra props for the inner FormModel component. They win over the model config's `formProps` and lose to this view's own form props. The `app`, `model`, and `view` keys are ignored, because the view sets them. */
+    /**
+     * Extra props for the inner FormModel component. They win over the model config's `formProps` and lose to this
+     * view's own form props. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+     */
     formProps: {
         type: Object,
         default: undefined,
     },
-    /** Map of field paths to additional props passed to the field component. Replaces a `fieldProps` map in the model config's `formProps` when passed. */
+    /**
+     * Map of field paths to additional props passed to the field component. Replaces a `fieldProps` map in the model
+     * config's `formProps` when passed.
+     */
     fieldProps: {
         type: Object,
         default: undefined,
     },
-    /** Map of field paths to additional props passed to the widget component. Replaces a `widgetProps` map in the model config's `formProps` when passed. */
+    /**
+     * Map of field paths to additional props passed to the widget component. Replaces a `widgetProps` map in the model
+     * config's `formProps` when passed.
+     */
     widgetProps: {
         type: Object,
         default: undefined,
@@ -94,7 +106,8 @@ export const VIEW_FORM_MODEL_PROPS = Object.freeze(
  * Picks the form props that a view's options carry, keyed by `FormModel` prop name.
  *
  * @param {object} options - The view's props or composable options.
- * @returns {object} The values of {@link VIEW_FORM_MODEL_PROPS}, plus `variant` from `formModelVariant`. A prop that the options lack is `undefined`.
+ * @returns {object} The values of {@link VIEW_FORM_MODEL_PROPS}, plus `variant` from `formModelVariant`. A prop that
+ *  the options lack is `undefined`.
  */
 export function pickViewFormModelProps(options) {
     const picked = { variant: options.formModelVariant };
@@ -129,8 +142,10 @@ const warnedSelectorKeys = new Set();
  * @property {import('vue').MaybeRefOrGetter<string>} model - Django model name that the view renders.
  * @property {import('vue').MaybeRefOrGetter<string>} view - View name whose model config the form reads.
  * @property {import('vue').MaybeRefOrGetter<object|undefined>} configFormProps - The model config's `formProps`.
- * @property {import('vue').MaybeRefOrGetter<object|undefined>} formProps - The `formProps` object that the view received.
- * @property {import('vue').MaybeRefOrGetter<object>} viewProps - The view's own form props, keyed by `FormModel` prop name. An `undefined` value counts as not passed.
+ * @property {import('vue').MaybeRefOrGetter<object|undefined>} formProps - The `formProps` object that the view
+ *  received.
+ * @property {import('vue').MaybeRefOrGetter<object>} viewProps - The view's own form props, keyed by `FormModel` prop
+ *  name. An `undefined` value counts as not passed.
  */
 
 /**

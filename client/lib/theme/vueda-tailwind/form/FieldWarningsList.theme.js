@@ -21,15 +21,24 @@ patchTheme({
         list: {
             class: ["list-disc ps-5 text-foreground m-0"],
         },
-        /** Wrapper for a field that carries more than one message: the field-name sub-header stacked above its own message list. */
+        /**
+         * Wrapper for a field that carries more than one message: the field-name sub-header stacked above its own
+         * message list.
+         */
         field: {
             class: ["flex flex-col gap-1"],
         },
-        /** Field-name label: a sub-header above a multi-message field's list, or the inline prefix before a single-message field's text. */
+        /**
+         * Field-name label: a sub-header above a multi-message field's list, or the inline prefix before a
+         * single-message field's text.
+         */
         fieldName: {
             class: ["font-medium text-muted-foreground pr-2"],
         },
-        /** Single-line rendering for a field that carries exactly one message: `field: message` inline, no separate list. */
+        /**
+         * Single-line rendering for a field that carries exactly one message: `field: message` inline, no separate
+         * list.
+         */
         fieldInline: {
             class: ["text-foreground"],
         },

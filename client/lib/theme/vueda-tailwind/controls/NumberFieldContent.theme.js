@@ -13,7 +13,13 @@ patchTheme({
      * the increment / decrement slots when they are present.
      */
     NumberFieldContent: {
-        /** The inner wrapper that hosts {@api theme-key:NumberFieldInput.root} plus the optional stepper buttons. Reserves horizontal pad on the input (`pl-5` / `pr-5`) only when {@api theme-key:NumberFieldDecrement} / {@api theme-key:NumberFieldIncrement} are actually rendered, so a stepperless number field keeps the standard control padding and a stepper-bearing one never crashes a digit string into the glyphs. `relative` is the anchor for the absolute-positioned steppers. */
+        /**
+         * The inner wrapper that hosts {@api theme-key:NumberFieldInput.root} plus the optional stepper buttons.
+         * Reserves horizontal pad on the input (`pl-5` / `pr-5`) only when {@api theme-key:NumberFieldDecrement} /
+         * {@api theme-key:NumberFieldIncrement} are actually rendered, so a stepperless number field keeps the standard
+         * control padding and a stepper-bearing one never crashes a digit string into the glyphs. `relative` is the
+         * anchor for the absolute-positioned steppers.
+         */
         root: {
             class: [
                 // Stepper positioning and input padding hooks.

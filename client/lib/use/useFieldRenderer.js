@@ -1,6 +1,7 @@
 /**
  * @module use/useFieldRenderer
- * @description Computes the resolved components, props, slot names, and theme for rendering a field and widget pair inside a FieldRenderer component.
+ * @description Computes the resolved components, props, slot names, and theme for rendering a field and widget pair
+ *  inside a FieldRenderer component.
  */
 import { useError } from "@arrai-innovations/reactive-helpers";
 import { mergeTheme } from "@vueda/use/useTheme.js";
@@ -13,9 +14,11 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
  * @typedef {object} FieldRendererProps
  * @property {string} formModelName - The fully-qualified name of the field in the form model.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The reactive form model instance.
- * @property {{ [key: string]: unknown }} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when rendering inline.
+ * @property {{ [key: string]: unknown }} [objectGridFieldSlotProps] - Slot props passed from an ObjectGrid when
+ *  rendering inline.
  * @property {{ [key: string]: unknown }} [fieldsetStackedInlineProps] - Slot props used for stacked inline rendering.
- * @property {{ [key: string]: unknown }} [fieldProps] - Field props that win over `formModel.fieldProps[formModelName]` and attrs. Their `themeOverride` merges with the form model's instead of replacing it. Their `readOnly` is ignored.
+ * @property {{ [key: string]: unknown }} [fieldProps] - Field props that win over `formModel.fieldProps[formModelName]`
+ *  and attrs. Their `themeOverride` merges with the form model's instead of replacing it. Their `readOnly` is ignored.
  * @property {boolean} [hidden] - Whether to hide the widget from rendering.
  * @property {boolean} [hideLabel] - Overrides label visibility on the field component while retaining messages.
  * @property {boolean} isFilter - Whether to this was used with a filter model.
@@ -24,7 +27,8 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
 /**
  * @typedef {object} FieldRendererRawInstance
  * @property {import('vue').ComputedRef<import('vue').ComponentInternalInstance>} fieldComponent - The field component.
- * @property {import('vue').ComputedRef<import('vue').ComponentInternalInstance>} widgetComponent - The widget component.
+ * @property {import('vue').ComputedRef<import('vue').ComponentInternalInstance>} widgetComponent - The widget
+ *  component.
  * @property {import('vue').ComputedRef<string>} fieldSlotName - The field slot name.
  * @property {import('vue').ComputedRef<string>} widgetSlotName - The widget slot name.
  * @property {import('vue').ComputedRef<{ [key: string]: unknown }>} fieldProps - The field props.
@@ -36,7 +40,8 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
  * @property {import('vue').ComputedRef<string[]>} remainingSlots - The remaining slots.
  * @property {import('vue').ComputedRef<Error|null>} error - The error that stopped this field rendering, or `null`.
  * @property {import('vue').ComputedRef<boolean>} errored - Whether this field failed to render.
- * @property {import('vue').ComputedRef<string>} renderFailureText - Phrase naming the field and widget that failed, for `ErrorDisplay`'s `whileText`.
+ * @property {import('vue').ComputedRef<string>} renderFailureText - Phrase naming the field and widget that failed, for
+ *  `ErrorDisplay`'s `whileText`.
  * @property {() => void} clearError - Clear a captured render error so the field retries.
  * @property {() => void} stop - A function to stop the effect scope.
  */
@@ -55,7 +60,8 @@ import { computed, effectScope, markRaw, onErrorCaptured, shallowReadonly, toRaw
  * @param {FieldRendererProps} props - The props from the FieldRenderer component.
  * @param {{ [key: string]: any }} attrs - Raw `useAttrs()` output (e.g. class, id, etc.).
  * @param {import('vue').Slots} slots - Raw `useSlots()` output, for detecting scoped slot names.
- * @param {FieldContext | null} [fieldSetContext] - The injected field context if inside a fieldset; used to compute full path names.
+ * @param {FieldContext | null} [fieldSetContext] - The injected field context if inside a fieldset; used to compute
+ *  full path names.
  * @returns {import('vue').Readonly<FieldRendererRawInstance>} - The reactive field renderer instance.
  */
 export function useFieldRenderer(props, attrs, slots, fieldSetContext) {

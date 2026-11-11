@@ -265,8 +265,8 @@ describe("lib/stores/storeWorkflow.js", () => {
 
             await store.fetchObjectHistory("store", "CustomerOrder", "7");
 
-            // server/vueda/history/urls.py serves `vueda.history/workflow-state-history/<app_label>/<model>/<int:object_id>/`
-            // inside the `routes/` path.
+            // server/vueda/history/urls.py serves
+            // `vueda.history/workflow-state-history/<app_label>/<model>/<int:object_id>/` inside the `routes/` path.
             const [url, options] = mockedFetchHelper.mock.calls[0];
             expect(new URL(url).pathname).toBe("/routes/vueda.history/workflow-state-history/store/customer_order/7/");
             expect(options).toEqual({ method: "GET" });

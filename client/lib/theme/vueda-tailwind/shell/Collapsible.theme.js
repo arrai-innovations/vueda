@@ -13,7 +13,8 @@ patchTheme({
      */
     Collapsible: {
         /**
-         * The root hook for generic collapsible state. It intentionally has no visual recipe because Collapsible is a logic primitive.
+         * The root hook for generic collapsible state. It intentionally has no visual recipe because Collapsible is a
+         * logic primitive.
          */
         root: { class: "" },
     },

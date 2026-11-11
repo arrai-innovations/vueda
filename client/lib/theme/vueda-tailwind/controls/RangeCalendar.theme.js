@@ -13,7 +13,10 @@ patchTheme({
      * Composed inside date-range-picker popovers.
      */
     RangeCalendar: {
-        /** See also: {@api theme-key:Calendar.root}; identical 12px-padded surface, only the grid inside differs (the {@api theme-key:RangeCalendarCell.root} carries the range-fill state). */
+        /**
+         * See also: {@api theme-key:Calendar.root}; identical 12px-padded surface, only the grid inside differs (the
+         * {@api theme-key:RangeCalendarCell.root} carries the range-fill state).
+         */
         root: {
             class: ["p-3"],
         },

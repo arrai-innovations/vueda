@@ -14,7 +14,10 @@ patchTheme({
      * the right edge of the header.
      */
     RangeCalendarNextButton: {
-        /** See also: {@api theme-key:RangeCalendarPrevButton.root}; mirror anchored to the right edge of the header at `right-1`. */
+        /**
+         * See also: {@api theme-key:RangeCalendarPrevButton.root}; mirror anchored to the right edge of the header at
+         * `right-1`.
+         */
         root: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["absolute right-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],

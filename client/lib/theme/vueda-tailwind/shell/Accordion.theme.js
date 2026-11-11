@@ -13,7 +13,8 @@ patchTheme({
      */
     Accordion: {
         /**
-         * The root hook for the accordion wrapper. It intentionally ships without chrome so callers can compose accordion groups inside Card, Item, or plain page sections.
+         * The root hook for the accordion wrapper. It intentionally ships without chrome so callers can compose
+         * accordion groups inside Card, Item, or plain page sections.
          */
         root: { class: "" },
     },

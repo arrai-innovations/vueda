@@ -13,19 +13,22 @@ patchTheme({
      */
     FieldSeparator: {
         /**
-         * The positioned wrapper for a labelled field divider. It reserves the line height and variant-specific vertical offset used inside field groups.
+         * The positioned wrapper for a labelled field divider. It reserves the line height and variant-specific
+         * vertical offset used inside field groups.
          */
         root: {
             class: "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
         },
         /**
-         * The horizontal rule behind a field separator label. It fills the separator wrapper and aligns through the vertical center.
+         * The horizontal rule behind a field separator label. It fills the separator wrapper and aligns through the
+         * vertical center.
          */
         line: {
             class: "absolute inset-0 top-1/2",
         },
         /**
-         * The label content laid over the separator line. It uses the page background as a mask so the text remains readable over the rule.
+         * The label content laid over the separator line. It uses the page background as a mask so the text remains
+         * readable over the rule.
          */
         content: {
             class: "bg-background text-muted-foreground relative mx-auto block w-fit px-2",

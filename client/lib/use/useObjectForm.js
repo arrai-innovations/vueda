@@ -1,6 +1,7 @@
 /**
  * @module use/useObjectForm
- * @description Bridges a generic form context with an object instance, handling submission, redirection, and unsaved-change warnings.
+ * @description Bridges a generic form context with an object instance, handling submission, redirection, and
+ *  unsaved-change warnings.
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { toast } from "@arrai-innovations/vue-sonner";
@@ -205,7 +206,8 @@ export const defaultOnSubmissionError = async ({ state, error, formContext, toas
  * @param {object} options
  * @param {import('@vueda/utils/errors.js').ConfirmationRequiredError} options.error - The 409 error.
  * @param {FormContext} options.formContext - The form context.
- * @param {import('@vueda/use/useConfirmationController.js').ConfirmationController} options.confirmation - The confirmation dialog controller.
+ * @param {import('@vueda/use/useConfirmationController.js').ConfirmationController} options.confirmation - The
+ *  confirmation dialog controller.
  * @returns {Promise<boolean>} - True if the user confirmed and the save should be retried.
  */
 export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, formContext, confirmation }) => {
@@ -279,12 +281,15 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
 /**
  * @typedef {object} ObjectFormInstance
  * @property {ObjectFormState} state - The form state.
- * @property {import('@vueda/use/useConfirmationController.js').ConfirmationController} confirmation - Controller for the warning confirmation dialog.
+ * @property {import('@vueda/use/useConfirmationController.js').ConfirmationController} confirmation - Controller for
+ *  the warning confirmation dialog.
  * @property {() => Promise<void>} submit - Submit the form.
- * @property {OnSubmitNotAnyModified} onSubmitNotAnyModified - The hook to call when the form is submitted with no changes.
+ * @property {OnSubmitNotAnyModified} onSubmitNotAnyModified - The hook to call when the form is submitted with no
+ *  changes.
  * @property {OnSubmitAnyError} onSubmitAnyError - The hook to call when the form is submitted with errors.
  * @property {OnSubmissionError} onSubmissionError - The hook to call when an error occurs during submission.
- * @property {OnSubmissionWarningsRequireConfirmation} onSubmissionWarningsRequireConfirmation - The hook to call when the server requires confirmation of warnings.
+ * @property {OnSubmissionWarningsRequireConfirmation} onSubmissionWarningsRequireConfirmation - The hook to call when
+ *  the server requires confirmation of warnings.
  * @property {OnSubmissionSuccess} onSubmissionSuccess - The hook to call when submission is successful
  */
 

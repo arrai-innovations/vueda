@@ -13,7 +13,11 @@ patchTheme({
      * DateFieldInput.
      */
     DateRangeFieldInput: {
-        /** An editable segment inside a {@api theme-key:DateRangeField.root}. See also: {@api theme-key:DateFieldInput.root}; same mono + tabular + slashed-zero, accent-on-focus, `caret-transparent` recipe applies. */
+        /**
+         * An editable segment inside a {@api theme-key:DateRangeField.root}. See also:
+         * {@api theme-key:DateFieldInput.root}; same mono + tabular + slashed-zero, accent-on-focus,
+         * `caret-transparent` recipe applies.
+         */
         root: {
             class: [
                 // Segment layout and type.

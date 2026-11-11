@@ -15,7 +15,15 @@ patchTheme({
      * own.
      */
     InputGroup: {
-        /** The shell that joins an input (or textarea) with one or more addons (icon, button, kbd, helper line) into a single bordered chip. The group, not its children, owns the hairline and focus ring: child controls strip their own chrome (see {@api theme-key:InputGroupInput} / {@api theme-key:InputGroupTextarea}) and the group reacts to `focus-visible` on any `[data-slot=input-group-control]` and to `aria-invalid` on any tagged child via `:has(...)` selectors. Inline addons (`align=inline-start` / `inline-end`) stay on a single row at `h-vueda-control`; block addons (`align=block-start` / `block-end`) stack and flip the row to `flex-col` with auto height, so the same shell supports left/right glyphs and top/bottom helper rows. */
+        /**
+         * The shell that joins an input (or textarea) with one or more addons (icon, button, kbd, helper line) into a
+         * single bordered chip. The group, not its children, owns the hairline and focus ring: child controls strip
+         * their own chrome (see {@api theme-key:InputGroupInput} / {@api theme-key:InputGroupTextarea}) and the group
+         * reacts to `focus-visible` on any `[data-slot=input-group-control]` and to `aria-invalid` on any tagged child
+         * via `:has(...)` selectors. Inline addons (`align=inline-start` / `inline-end`) stay on a single row at
+         * `h-vueda-control`; block addons (`align=block-start` / `block-end`) stack and flip the row to `flex-col` with
+         * auto height, so the same shell supports left/right glyphs and top/bottom helper rows.
+         */
         root: {
             class: [
                 // Shell and surface.

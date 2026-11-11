@@ -13,7 +13,8 @@ patchTheme({
      */
     DrawerDescription: {
         /**
-         * The supporting copy inside a drawer. It uses muted small text to stay subordinate to the drawer title and body content.
+         * The supporting copy inside a drawer. It uses muted small text to stay subordinate to the drawer title and
+         * body content.
          */
         root: {
             class: "text-muted-foreground text-sm",

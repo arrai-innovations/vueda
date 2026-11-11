@@ -1,6 +1,7 @@
 /**
  * @module use/useFormModel
- * @description Builds and provides a reactive form model state by combining server model info, client model config, and field/widget component mappings.
+ * @description Builds and provides a reactive form model state by combining server model info, client model config, and
+ *  field/widget component mappings.
  */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { buildForm } from "@vueda/utils/buildForm.js";
@@ -18,7 +19,8 @@ import { provide, reactive, readonly, shallowReactive, toRef, watch } from "vue"
  * (expanded serializers, tabular inlines) are resolved separately by
  * buildForm's baseExpanded branch or custom fieldComponents overrides.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} _field - Object that contains detail of a field (unused after per-type dispatch removal).
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} _field - Object that contains detail of a field (unused
+ *  after per-type dispatch removal).
  * @returns {import('@vueda/utils/filterLookups.js').FieldComponent} The field component.
  */
 const getFieldComponent = (_field) => {
@@ -28,10 +30,13 @@ const getFieldComponent = (_field) => {
 /**
  * Pick the serializer type that every editable widget and prop lookup for a field uses.
  *
- * A choice-backed field reads the choice table before the base table, and a many-valued field reads the many table first. Each lookup must use the same serializer type. Otherwise an ancestor's choice entry would override a base entry mapped for the subclass's own name.
+ * A choice-backed field reads the choice table before the base table, and a many-valued field reads the many table
+ * first. Each lookup must use the same serializer type. Otherwise an ancestor's choice entry would override a base
+ * entry mapped for the subclass's own name.
  *
  * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - Object that contains detail of a field
- * @returns {import('@vueda/stores/storeModelInfo.js').FieldInfo} The field, with `typeSerializer` set to the chosen type.
+ * @returns {import('@vueda/stores/storeModelInfo.js').FieldInfo} The field, with `typeSerializer` set to the chosen
+ *  type.
  */
 const resolveEditableType = (field) => {
     const mappings = [defaultFieldMappings];
@@ -114,10 +119,14 @@ const getFieldProps = (field) => {
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
  * @property {string[]} fields - The fields to display, either passed in or from config.
  * @property {string[]} expand - The fields to expand, either passed in or from config.
- * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged fieldDetails, either passed in, from config or from server info.
- * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - The merged expandDetails, either passed in, from config or from server info.
- * @property {{[fieldName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed in or as a result of fieldObject or expandObject.
- * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components to use, either passed in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - The merged
+ *  fieldDetails, either passed in, from config or from server info.
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - The merged
+ *  expandDetails, either passed in, from config or from server info.
+ * @property {{[fieldName:string]:import('vue').Component}} fieldComponents - The field components to use, either passed
+ *  in or as a result of fieldObject or expandObject.
+ * @property {{[fieldName:string]: import('vue').Component}} widgetComponents - The widget components to use, either
+ *  passed in or as a result of fieldObject or expandObject.
  * @property {Set<string>} baseFieldNames - The field names that are not expanded.
  * @property {Set<string>} expansionFieldNames - The field names that are expanded.
  * @property {Set<string>} expandedFieldNames - The field names that are expanded and base.
@@ -131,10 +140,14 @@ const getFieldProps = (field) => {
  * @typedef {object} UseFormModelRawOverridableProps
  * @property {string[]|undefined} fields - The fields to display, if different from the default
  * @property {string[]|undefined} expand - The fields to expand, if different from the default
- * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents - The field components to use, if different from the default, by field path
- * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different from the default, by field path
- * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget components to use, if different from the default, by field path
- * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different from the default, by field path
+ * @property {{[fieldName:string]: [componentName:string, ()=>Promise<import('vue').Component>]}|undefined} fieldComponents -
+ *  The field components to use, if different from the default, by field path
+ * @property {{[fieldName:string]: {[key:string]: any}}|undefined} fieldProps - The field props to use, if different
+ *  from the default, by field path
+ * @property {{[fieldName:string]: ()=>Promise<import('vue').Component>}|undefined} widgetComponents - The widget
+ *  components to use, if different from the default, by field path
+ * @property {{[fieldName:string]: {[key:string]: any}}|undefined} widgetProps - The widget props to use, if different
+ *  from the default, by field path
  */
 
 /**
@@ -142,8 +155,10 @@ const getFieldProps = (field) => {
  * @property {string} app - The app name to load form configuration for
  * @property {string} model - The model name to load form configuration for
  * @property {string|undefined} view - The view name if wanting to use view specific configuration.
- * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}|undefiend} fieldDetails - The field details to use, if different from the default
- * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The expand details to use, if different from the default
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').FieldInfo}|undefiend} fieldDetails - The
+ *  field details to use, if different from the default
+ * @property {{[fieldName:string]:import('@vueda/stores/storeModelInfo.js').ExpandInfo}|undefined} expandDetails - The
+ *  expand details to use, if different from the default
  */
 
 /**

@@ -12,7 +12,10 @@ patchTheme({
      * PaginationMeta styles the compact record or page-count text shown with pagination.
      */
     PaginationMeta: {
-        /** Compact mono count text for page or record summaries. See also: {@api theme-key:NavigationPaginationBar.root}. */
+        /**
+         * Compact mono count text for page or record summaries. See also:
+         * {@api theme-key:NavigationPaginationBar.root}.
+         */
         root: {
             class: [
                 // Type and color.
