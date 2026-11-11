@@ -68,6 +68,7 @@ from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.core.utils import unwrap_expandable_field
 from vueda.history.actions import build_action_groups
 from vueda.history.queries import action_groups_for
 from vueda.history.queries import events_in_groups
@@ -646,11 +647,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_fields.add(field_name)
                     valid_expands.add(field_name)
 
-                    serializer_settings = {}
-                    if isinstance(serializer_data, tuple):  # rest_flex_fields2 only tests for tuple.
-                        child_serializer, serializer_settings = serializer_data
-                    else:
-                        child_serializer = serializer_data
+                    child_serializer, serializer_settings = unwrap_expandable_field(serializer_data)
 
                     if isinstance(child_serializer, str):
                         child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
@@ -1553,7 +1550,7 @@ class NoExtraFieldsForViewSetMixin:
                 gfk_fields = {
                     name
                     for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
-                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                    if unwrap_expandable_field(data)[0] is GenericForeignKeySerializer
                 }
                 if gfk_fields:
                     extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)

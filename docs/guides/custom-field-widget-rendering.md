@@ -244,7 +244,7 @@ mergeDefaultFieldMappings({
 });
 ```
 
-The outer key is the `typeSerializer`, and the inner key is the `typeModel`. The entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.default} applies when `typeModel` is empty. An entry can also set [`readOnlyWidget`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.readOnlyWidget} for read-only rendering, and [`widgetProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.widgetProps} or [`fieldProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.fieldProps}.
+The outer key is the `typeSerializer`, and the inner key is the `typeModel`. An entry keyed by a subclass's own serializer type wins over the entry of the stock type that it inherits from. The entry marked [`default`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.default} applies when `typeModel` is empty. An entry can also set [`readOnlyWidget`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.readOnlyWidget} for read-only rendering, and [`widgetProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.widgetProps} or [`fieldProps`]{@api js:property:@arrai-innovations/vueda/utils/fieldMappings#FieldMappingEntry.fieldProps}.
 
 ## Check the Result
 

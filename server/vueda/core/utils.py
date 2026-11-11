@@ -106,3 +106,19 @@ class ActionView:
 
 def sort_by_dot_count_alphabetically(value):
     return value.count("."), value
+
+
+def unwrap_expandable_field(field_data):
+    """
+    Split one ``Meta.expandable_fields`` value into ``(field_serializer, expand_options)``.
+
+    A value that is a tuple holds the serializer first and its options second. A tuple without options
+    gets an empty dict. An empty tuple holds no serializer, so the serializer is ``None``. Any other value
+    is the serializer itself, with an empty dict of options.
+    """
+    if isinstance(field_data, tuple):
+        return (
+            field_data[0] if field_data else None,
+            field_data[1] if len(field_data) > 1 else {},
+        )
+    return field_data, {}
