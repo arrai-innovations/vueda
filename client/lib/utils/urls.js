@@ -19,9 +19,9 @@ const defaultUrls = {
     infoServer: "/routes/vueda.info/server_info/",
     // storeUser fills {pk} and {token} from the reset link; the server reads them from the query string.
     isResetLinkValid: "/routes/vueda.user/reset-password/?pk={pk}&token={token}",
-    modelAction: "/routes/:app/:model/:action_url_path/",
+    modelAction: "/routes/:app/:model/:action_name/",
     modelDetail: "/routes/:app/:model/:pk/",
-    modelDetailAction: "/routes/:app/:model/:pk/:action_url_path/",
+    modelDetailAction: "/routes/:app/:model/:pk/:action_name/",
     modelList: "/routes/:app/:model/",
     reauthenticate: "/routes/vueda.user/reauthenticate/",
     recoveryCodes: "/routes/vueda.user/2fa/recovery-codes/",
@@ -80,20 +80,20 @@ export const resetCustomUrls = () => {
  * Get a VUEDA list or list action URL.
  *
  * A list action URL comes from the `modelAction` template. The action's URL segment replaces the template's
- * `:action_url_path` placeholder.
+ * `:action_name` placeholder.
  *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
- * @param {string} [urlPath] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
+ * @param {string} [action] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
  *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
-export const getListUrl = ({ app, model, urlPath, query = "" }) => {
-    const urlTemplate = getUrl(urlPath ? "modelAction" : "modelList");
+export const getListUrl = ({ app, model, action, query = "" }) => {
+    const urlTemplate = getUrl(action ? "modelAction" : "modelList");
     let url = urlTemplate.replace(":app", app.toLowerCase()).replace(":model", getServerRoutePart(model));
-    if (urlPath) {
-        url = url.replace(":action_url_path", unwrapNested(urlPath));
+    if (action) {
+        url = url.replace(":action_name", unwrapNested(action));
     }
     return `${httpOrHttpsHostname}${url}${query}`;
 };
@@ -102,25 +102,25 @@ export const getListUrl = ({ app, model, urlPath, query = "" }) => {
  * Get a VUEDA detail or detail action URL.
  *
  * A detail action URL comes from the `modelDetailAction` template. The action's URL segment replaces the template's
- * `:action_url_path` placeholder.
+ * `:action_name` placeholder.
  *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
  * @param {string} pk - The primary key.
- * @param {string} [urlPath] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
+ * @param {string} [action] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
  *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
-export const getDetailUrl = ({ app, model, pk, urlPath, query = "" }) => {
-    const urlTemplate = getUrl(urlPath ? "modelDetailAction" : "modelDetail");
+export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {
+    const urlTemplate = getUrl(action ? "modelDetailAction" : "modelDetail");
     const appStr = app.toLowerCase();
     const modelStr = getServerRoutePart(model);
     const pkStr = unwrapNested(pk);
-    const urlPathStr = unwrapNested(urlPath);
+    const actionStr = unwrapNested(action);
     let url = urlTemplate.replace(":app", appStr).replace(":model", modelStr).replace(":pk", pkStr);
-    if (urlPathStr) {
-        url = url.replace(":action_url_path", urlPathStr);
+    if (actionStr) {
+        url = url.replace(":action_name", actionStr);
     }
     return `${httpOrHttpsHostname}${url}${unwrapNested(query)}`;
 };

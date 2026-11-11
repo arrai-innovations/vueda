@@ -366,7 +366,7 @@ The `model_actions` list in {@term Model Info}: the actions the model's viewset 
 
 ## Model API Path
 
-The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`. The `modelAction` and `modelDetailAction` templates mark the action's URL segment with the `:action_url_path` placeholder.
+The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`. The `modelAction` and `modelDetailAction` templates mark the action's URL segment with the `:action_name` placeholder.
 
 - Names: [`getListUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getListUrl}; [`getDetailUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getDetailUrl}; [`setCustomUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#setCustomUrl}; [`VuedaRouter`]{@api py:class:vueda.core.routers.VuedaRouter}; `modelList`; `modelDetail`; `modelAction`; `modelDetailAction`
 - Described in: [Create a CRUD Surface for a New Model](../guides/create-crud-surface.md#router-and-url-wiring)

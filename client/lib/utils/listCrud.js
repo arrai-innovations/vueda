@@ -94,9 +94,7 @@ export function singlePagePaginatedListCrudAdaptor({
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, pk, action, resultsKey = "results" } = target;
     const query = makeSearchParamsString(params, repeatedParams);
-    const url = pk
-        ? getDetailUrl({ app, model, pk, urlPath: action, query })
-        : getListUrl({ app, model, urlPath: action, query });
+    const url = pk ? getDetailUrl({ app, model, pk, action, query }) : getListUrl({ app, model, action, query });
     if (!params?.[PAGE_PARAM] || params?.[PAGE_PARAM] === 1) {
         clearObjects();
     }
@@ -160,9 +158,7 @@ export function allPagePaginatedListCrudAdaptor({
     setColumnTotals,
 }) {
     const { app, model, pk, action, resultsKey = "results" } = target;
-    const baseUrl = pk
-        ? getDetailUrl({ app, model, pk, urlPath: action })
-        : getListUrl({ app, model, urlPath: action });
+    const baseUrl = pk ? getDetailUrl({ app, model, pk, action }) : getListUrl({ app, model, action });
     clearObjects();
     const controller = new AbortController();
     const limit = pLimit(4);
@@ -264,7 +260,7 @@ export function allPagePaginatedListCrudAdaptor({
 export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
-    const url = getListUrl({ app, model, urlPath: action });
+    const url = getListUrl({ app, model, action });
     return cancellableFetch(
         url,
         {
@@ -316,7 +312,7 @@ export function defaultListExecuteAction({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model } = target;
-    const url = getListUrl({ app, model, urlPath });
+    const url = getListUrl({ app, model, action: urlPath });
     return cancellableFetch(
         url,
         {

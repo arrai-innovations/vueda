@@ -21,28 +21,28 @@ describe("lib/utils/urls.js", () => {
         // The router serves an extra action at its url_path, which can hold dashes or underscores.
         scopedIt("puts a detail action's segment in the URL as given", () => {
             expect(
-                new URL(getDetailUrl({ app: "store", model: "invoice", pk: "7", urlPath: "mark-paid" })).pathname,
+                new URL(getDetailUrl({ app: "store", model: "invoice", pk: "7", action: "mark-paid" })).pathname,
             ).toBe("/routes/store/invoice/7/mark-paid/");
             expect(
-                new URL(getDetailUrl({ app: "store", model: "invoice", pk: "7", urlPath: "mark_paid" })).pathname,
+                new URL(getDetailUrl({ app: "store", model: "invoice", pk: "7", action: "mark_paid" })).pathname,
             ).toBe("/routes/store/invoice/7/mark_paid/");
         });
 
         scopedIt("puts a list action's segment in the URL as given", () => {
-            expect(new URL(getListUrl({ app: "store", model: "invoice", urlPath: "settle-up" })).pathname).toBe(
+            expect(new URL(getListUrl({ app: "store", model: "invoice", action: "settle-up" })).pathname).toBe(
                 "/routes/store/invoice/settle-up/",
             );
         });
 
-        scopedIt("fills the :action_url_path placeholder of a custom action template", () => {
-            setCustomUrl("modelAction", "/api/:app/:model/:action_url_path/");
-            setCustomUrl("modelDetailAction", "/api/:app/:model/:pk/:action_url_path/");
+        scopedIt("fills the :action_name placeholder of a custom action template", () => {
+            setCustomUrl("modelAction", "/api/:app/:model/:action_name/");
+            setCustomUrl("modelDetailAction", "/api/:app/:model/:pk/:action_name/");
 
-            expect(new URL(getListUrl({ app: "store", model: "invoice", urlPath: "settle-up" })).pathname).toBe(
+            expect(new URL(getListUrl({ app: "store", model: "invoice", action: "settle-up" })).pathname).toBe(
                 "/api/store/invoice/settle-up/",
             );
             expect(
-                new URL(getDetailUrl({ app: "store", model: "invoice", pk: "7", urlPath: "mark_paid" })).pathname,
+                new URL(getDetailUrl({ app: "store", model: "invoice", pk: "7", action: "mark_paid" })).pathname,
             ).toBe("/api/store/invoice/7/mark_paid/");
         });
     });
@@ -61,7 +61,7 @@ describe("lib/utils/urls.js", () => {
                 app: "store",
                 model: "orderitemcompositepk",
                 pk: '["1", "2"]',
-                urlPath: "test_action",
+                action: "test_action",
             });
 
             expect(decodeURIComponent(new URL(url).pathname)).toBe(

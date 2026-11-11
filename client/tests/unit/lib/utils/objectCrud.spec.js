@@ -77,7 +77,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "1",
-                urlPath: undefined,
+                action: undefined,
                 query: "?f=id&e=owner",
             });
         });
@@ -173,7 +173,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "2",
-                urlPath: undefined,
+                action: undefined,
                 query: "?f=id&e=owner",
             });
             expect(result).toEqual({ id: 1 });
@@ -288,7 +288,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "7",
-                urlPath: undefined,
+                action: undefined,
                 query: "?f=id&e=owner",
             });
         });
@@ -401,7 +401,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: 2,
-                urlPath: undefined,
+                action: undefined,
                 query: "?f=id&e=owner",
             });
         });
@@ -448,7 +448,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "article-123",
-                urlPath: undefined,
+                action: undefined,
                 query: "",
             });
         });
@@ -551,7 +551,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "3",
-                urlPath: undefined,
+                action: undefined,
                 query: "?f=id&foo=bar",
             });
             expect(result).toBeUndefined();
@@ -570,7 +570,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "4",
-                urlPath: undefined,
+                action: undefined,
                 query: "",
             });
             expect(result).toBeUndefined();
@@ -665,7 +665,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "blog",
                 model: "article",
                 pk: "3",
-                urlPath: "archive",
+                action: "archive",
             });
             expect(captured.url).toBe("detail-action-url");
             expect(captured.options).toMatchObject({ method: "POST", credentials: "include" });
@@ -691,7 +691,7 @@ describe("lib/utils/objectCrud.js", () => {
                 app: "billing",
                 model: "invoice",
                 pk: "3",
-                urlPath: "settle-up",
+                action: "settle-up",
             });
         });
 
