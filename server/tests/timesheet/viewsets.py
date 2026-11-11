@@ -3,11 +3,13 @@ from django.db.models import Max
 from django.db.models import Prefetch
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from tests.timesheet import filtersets
 from tests.timesheet import models
 from tests.timesheet import serializers
 from vueda.core import viewsets
+from vueda.core.decorators import action
 from vueda.core.viewsets import VuedaViewSet
 
 
@@ -134,3 +136,45 @@ class TimesheetLockedExpandsViewSet(viewsets.VuedaViewSet):
     queryset = models.Timesheet.objects.all()
     serializer_class = serializers.TimesheetLockedExpandsSerializer
     permission_classes = [IsAuthenticated]
+
+
+class TimesheetWildcardWriteViewSet(viewsets.VuedaViewSet):
+    """No write permit list, so a write may expand every name in ``expandable_fields``."""
+
+    queryset = models.Timesheet.objects.all()
+    serializer_class = serializers.TimesheetWildcardWriteSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=["patch"])
+    def save_through_action(self, request, pk=None):
+        """Save without the viewset's own check of ``e``, so the serializer's check is the only one."""
+        serializer = self.get_serializer(self.get_object(), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"])
+    def validate_many_through_action(self, request):
+        """Validate a list of rows with ``many=True``, so each row reads ``e`` as a bulk write does."""
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        return Response(status=204)
+
+    @action(detail=False, methods=["post"])
+    def create_many_through_action(self, request):
+        """Create a list of rows with ``many=True``, as an integrator's own bulk endpoint would."""
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)
+
+
+class TimesheetPermittedWildcardWriteViewSet(TimesheetWildcardWriteViewSet):
+    """An update may expand only ``employee`` and ``manager``, so a wildcard expands only those names.
+
+    ``manager`` is an alias of ``supervisor`` and not a field of the body. ``PUT`` reads ``permit_update_expands``
+    and ``PATCH`` reads ``permit_partial_update_expands``.
+    """
+
+    permit_update_expands = ["employee", "manager"]
+    permit_partial_update_expands = ["employee", "manager"]

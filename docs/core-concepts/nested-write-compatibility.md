@@ -21,9 +21,11 @@ Two kinds of relation take part in a nested write. A direct relation is a foreig
 
 ## Which Relations Accept Nested Data
 
-A relation accepts a nested object when its serializer field is a nested serializer. The field is either declared that way on the serializer, or the request includes the relation's name in the `e` query parameter. For each name in `e`, `to_internal_value` swaps the primary key field for the relation's nested serializer before it reads the body. [Field and Expand Semantics](./field-and-expand-semantics#sparse-fields-and-expand-on-writes) describes how `f`, `om`, and `e` apply to a write, including the check that rejects an unpermitted `e` name before the body is validated.
+A relation accepts a nested object when its serializer field is a nested serializer. The field is either declared that way on the serializer, or the request names the relation in the `e` query parameter. For the first level of each name in `e`, `to_internal_value` swaps the primary key field for the relation's nested serializer before it reads the body. `e=customer.user` swaps `customer`, and `user` stays a primary key inside it. A wildcard, such as `e=*`, swaps nothing. [Field and Expand Semantics](./field-and-expand-semantics#sparse-fields-and-expand-on-writes) describes how `f`, `om`, and `e` apply to a write, including the check that rejects an unpermitted `e` name before the body is validated.
 
-The swap runs only on a serializer that is an instance of the view's serializer class. Query parameters reach only the root serializer. An expanded child receives the expand names below it from its parent, and never reads `e` from the request itself.
+The swap runs only on a serializer that is an instance of the view's serializer class. Query parameters reach only the root serializer. While the body is validated, a swapped child gets no expands of its own, so the relations inside it accept primary keys.
+
+A swapped relation is required on a `create` or a full `update`. An expand whose options set `required: False` is optional. The nested serializer rejects `null`. An expand whose options set `allow_null: True` accepts it.
 
 DRF does not give nested serializer fields their part of the submitted body. `to_internal_value` sets `initial_data` on each nested serializer field whose name appears in the body, so a nested serializer can read its raw input while it validates. A read-only field, a relation left as a primary key, and a relation that the body omits get no `initial_data`.
 

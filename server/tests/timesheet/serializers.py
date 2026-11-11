@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
+from tests.employee.models import Employee
 from tests.employee.serializers import EmployeeSerializer
+from tests.employee.serializers import UserWithGroupsSerializer
 from tests.timesheet import models
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
@@ -116,6 +118,42 @@ class TimesheetLockedExpandsSerializer(ExcludeFieldsSerializerMixin, VuedaSerial
             "approved_by": (EmployeeSerializer, {}),
             "approver": (EmployeeSerializer, {"source": "approved_by", "read_only": False}),
             "reviewers": (EmployeeSerializer, {"many": True}),
+            "timesheet_entries": (TimesheetEntryForTimesheetSerializer, {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class EmployeeWithUserSerializer(VuedaSerializer):
+    """An employee that expands its user, so a write can name a dotted expand such as ``supervisor.user``."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = Employee
+        fields = ["id", "user", "employee_number"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "user": (UserWithGroupsSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class TimesheetWildcardWriteSerializer(VuedaSerializer):
+    """A timesheet whose expands all name a real relation, plus ``manager``, an alias of ``supervisor``."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Timesheet
+        fields = [
+            "id",
+            "period_start",
+            "period_end",
+            "employee",
+            "supervisor",
+            "timesheet_entries",
+        ] + VuedaSerializer.Meta.fields
+        read_only_fields = ["timesheet_entries"]
+        expandable_fields = {
+            "employee": (EmployeeSerializer, {}),
+            "supervisor": (EmployeeWithUserSerializer, {}),
+            # An alias of `supervisor`. A response with `e=*` expands it beside `supervisor`.
+            "manager": (EmployeeSerializer, {"source": "supervisor"}),
             "timesheet_entries": (TimesheetEntryForTimesheetSerializer, {"many": True}),
         }
         expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
