@@ -48,7 +48,7 @@ storeModelConfig().setConfig({ app: "shop", model: "order" }, null, {
 });
 ```
 
-An `expand` in the generic layer (the second argument) also applies to the list view. The list then sends `e=items,customer`, and the server answers with a `400` unless the viewset names both relations in `permit_list_expands`. [Action-Scoped Expands](../core-concepts/field-and-expand-semantics.md#action-scoped-expands) describes each action's permit list. When the viewset sets `permit_retrieve_expands`, `permit_create_expands`, or `permit_update_expands`, add both relations to each list that it sets.
+An `expand` in the generic layer (the second argument) also applies to the list view. The list then sends `e=items,customer`, and the server answers with a `400` unless the viewset names both relations in `permit_list_expands`. [Action-Scoped Expands](../core-concepts/field-and-expand-semantics.md#action-scoped-expands) describes each action's permit list. When the viewset sets `permit_retrieve_expands`, `permit_create_expands`, `permit_update_expands`, or `permit_partial_update_expands`, add both relations to each list that it sets.
 
 The update and read forms now show:
 
