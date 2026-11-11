@@ -56,9 +56,10 @@ const VERBATIM_START = /^[|#<]/;
 
 /**
  * A token that changes how Markdown or JSDoc reads a line when the token starts that line. The wrapper keeps each such
- * token on the same line as the token before it.
+ * token on the same line as the token before it. The pattern includes every token that `VERBATIM_START` matches,
+ * because the rule treats a line that starts with one of those tokens as verbatim.
  */
-const UNSAFE_LINE_START = /^(?:[-*+>|]$|#|@|\d+[.)]$)/;
+const UNSAFE_LINE_START = /^(?:[-*+>]$|[|#<@]|\d+[.)]$)/;
 
 /**
  * Splits a paragraph's text into the tokens that the wrapper places on lines. Whitespace separates tokens, except

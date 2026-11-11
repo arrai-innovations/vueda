@@ -183,6 +183,20 @@ ruleTester.run("comment-max-length", commentMaxLength, {
             errors: [{ messageId: "tooLong", line: 2 }],
         },
         {
+            name: "never starts a line with an HTML tag that the rule would leave verbatim",
+            code: lines("/**", " * Install the helpers from abcdefghij <div> first.", " */"),
+            output: lines("/**", " * Install the helpers from", " * abcdefghij <div> first.", " */"),
+            options,
+            errors: [{ messageId: "tooLong", line: 2 }],
+        },
+        {
+            name: "never starts a line with a pipe-prefixed token that the rule would leave verbatim",
+            code: lines("/**", " * Install the helpers from abcdefghij ||fallback first.", " */"),
+            output: lines("/**", " * Install the helpers from", " * abcdefghij ||fallback first.", " */"),
+            options,
+            errors: [{ messageId: "tooLong", line: 2 }],
+        },
+        {
             name: "does not split inline tags or code spans",
             code: lines("/**", " * Calls it with {@link Foo the foo} and `a b c` now.", " */"),
             output: lines("/**", " * Calls it with {@link Foo the foo} and", " * `a b c` now.", " */"),
