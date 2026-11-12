@@ -1060,7 +1060,8 @@ describe("lib/stores/storeModelConfig.js", () => {
 
     describe("per-view field defaults", () => {
         // A workflow model as model info reaches the store: camelCased, with server-maintained
-        // fields read-only and the server's `listDefault: false` on columns a list leaves out.
+        // fields read-only and the server's `listDefault: false` on columns a list leaves out. The
+        // server marks `valid_transitions` hidden, as it marks `formatted_name`.
         const field = (label, extra = {}) => ({ label, many: false, readOnly: false, required: false, ...extra });
         const workflowModelInfo = {
             ...dummyModelInfo,
@@ -1072,7 +1073,7 @@ describe("lib/stores/storeModelConfig.js", () => {
                 total_value: field("Total Value", { readOnly: true }),
                 workflow_state_code: field("Workflow State Code", { readOnly: true, listDefault: false }),
                 workflow_state_name: field("Workflow State Name", { readOnly: true }),
-                valid_transitions: field("Valid Transitions", { readOnly: true, many: true, listDefault: false }),
+                valid_transitions: field("Valid Transitions", { readOnly: true, many: true, hidden: true }),
                 created_at: field("Created At", { readOnly: true, listDefault: false }),
                 updated_at: field("Updated At", { readOnly: true, listDefault: false }),
             },
@@ -1083,7 +1084,6 @@ describe("lib/stores/storeModelConfig.js", () => {
             "total_value",
             "workflow_state_code",
             "workflow_state_name",
-            "valid_transitions",
             "created_at",
             "updated_at",
         ];
@@ -1121,6 +1121,19 @@ describe("lib/stores/storeModelConfig.js", () => {
                 expect(config.displayFields).toEqual(allFields);
                 expect(config.fetchFields).toEqual(allFields);
             }
+        });
+
+        scopedIt("leaves the hidden valid_transitions out of every default field list", async () => {
+            for (const view of ["create", "read", "update", "list", null]) {
+                const config = await getConfig(view);
+                expect(config.displayFields).not.toContain("valid_transitions");
+                expect(config.fetchFields).not.toContain("valid_transitions");
+            }
+        });
+
+        scopedIt("shows valid_transitions on the read view when displayFields lists it", async () => {
+            const config = await getConfig("read", { displayFields: ["reference", "valid_transitions"] });
+            expect(config.displayFields).toEqual(["reference", "valid_transitions"]);
         });
 
         scopedIt("defaults list columns to fields the server does not flag, and fetches only those", async () => {

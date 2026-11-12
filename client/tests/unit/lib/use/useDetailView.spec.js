@@ -654,8 +654,8 @@ describe("lib/use/useDetailView.js", () => {
             expect(objectProps.pkKey).toBe("id");
         });
 
-        scopedIt("requests valid_transitions when the model info declares the field", async () => {
-            mockModelConfig.info.fields = { valid_transitions: {} };
+        scopedIt("requests valid_transitions when the model info declares it as hidden", async () => {
+            mockModelConfig.info.fields = { valid_transitions: { hidden: true } };
             await withSetup(() => useDetailView(props, formInitialValue));
             const objectProps = useObject.mock.calls[0][0].props;
             expect(objectProps.params[FIELDS_PARAM]).toContain("valid_transitions");
