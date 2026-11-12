@@ -169,6 +169,22 @@ def clear_cache():
 
 
 @pytest.fixture(autouse=True, scope="function")
+def close_db_logging_connection():
+    """Close the ``db_logging`` connection after each test, so a test that did not declare it never inherits it open.
+
+    A test that lists ``db_logging`` in its ``databases`` opens that connection, and nothing else closes it before a
+    synchronous, non-transactional test. ``suffix_each_test`` closes connections only for transactional and
+    asynchronous tests. A later test that changes ``INSTALLED_APPS`` reloads the app registry, and
+    ``django.contrib.postgres`` then registers its type handlers on every open connection. That queries ``db_logging``
+    whenever its cached type ids were cleared, which a migration with a ``CreateExtension`` operation does. A test that
+    did not declare ``db_logging`` then fails with ``DatabaseOperationForbidden``.
+    """
+    yield
+
+    db.connections["db_logging"].close()
+
+
+@pytest.fixture(autouse=True, scope="function")
 def discard_orphaned_event_models():
     """Drop event models that history registered for a model ``isolate_apps`` has since rolled back.
 
