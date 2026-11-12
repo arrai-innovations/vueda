@@ -65,6 +65,7 @@ The check uses the adapter that the column resolves to, so a `columnComponents` 
 - {@api vue:component:ColumnModelLink} already links to the related record and keeps that target.
 - {@api vue:component:ColumnModelLinks} already links to each related record and keeps those targets.
 - {@api vue:component:ColumnFile} already links to the stored file and keeps that target.
+- {@api vue:component:ColumnEmail} and {@api vue:component:ColumnUrl} already link to the address or URL and keep that target. Set `detailLinkField` to another column to keep a row link in a list with an email or URL column.
 - A custom adapter may contain links, buttons, or other controls, so VUEDA leaves its navigation alone. Use a field slot (next section) to link custom content.
 - A column whose override does not name a component renders no cells, and the list shows an error for that column. [Customize List Column Rendering](./customize-list-column-rendering) describes the override chain.
 

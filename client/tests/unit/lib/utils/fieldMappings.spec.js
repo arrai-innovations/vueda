@@ -95,6 +95,32 @@ describe("lib/utils/fieldMappings.js", () => {
         },
     );
 
+    it.each([
+        ["EmailField", "EmailField", "WidgetEmailReadOnly", "ColumnEmail", "email"],
+        ["EmailField", "CharField", "WidgetEmailReadOnly", "ColumnEmail", "email"],
+        ["EmailField", "TextField", "WidgetEmailReadOnly", "ColumnEmail", "email"],
+        ["EmailField", undefined, "WidgetEmailReadOnly", "ColumnEmail", "email"],
+        ["URLField", "URLField", "WidgetUrlReadOnly", "ColumnUrl", "url"],
+        ["URLField", "CharField", "WidgetUrlReadOnly", "ColumnUrl", "url"],
+        ["URLField", "TextField", "WidgetUrlReadOnly", "ColumnUrl", "url"],
+        ["URLField", undefined, "WidgetUrlReadOnly", "ColumnUrl", "url"],
+    ])(
+        "maps a %s over a model %s to %s when read-only, %s in lists, and a text input when editable",
+        async (typeSerializer, typeModel, readOnlyWidget, column, inputType) => {
+            const { defaultFieldMappings } = await import("@vueda/utils/fieldMappings.js");
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            const { columnMappings } = await import("@vueda/utils/columnMappings.js");
+            const { getTypeMapping } = await import("@vueda/utils/getTypeMapping.js");
+            const field = { typeSerializer, typeModel };
+
+            const fieldMapping = getTypeMapping(defaultFieldMappings, field);
+            expect(fieldMapping.readOnlyWidget).toBe(availableWidgets[readOnlyWidget]);
+            expect(fieldMapping.widget).toBe(availableWidgets.WidgetTextInput);
+            expect(fieldMapping.widgetProps).toEqual({ type: inputType });
+            expect(getTypeMapping(columnMappings, field).column).toBe(column);
+        },
+    );
+
     it.each(["DateField", "DateTimeField", "TimeField"])(
         "maps a read-only %s to the read-only date widget",
         async (type) => {

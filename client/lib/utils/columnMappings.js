@@ -6,7 +6,8 @@
  *
  * Boolean types resolve to `ColumnBoolean`; date/time/datetime types resolve to
  * `ColumnDateTime`; duration types resolve to `ColumnDuration`; `JSON` resolves to
- * `ColumnJson`; file and image types resolve to `ColumnFile`; foreign-key relations
+ * `ColumnJson`; file and image types resolve to `ColumnFile`; email types resolve to
+ * `ColumnEmail`; URL types resolve to `ColumnUrl`; foreign-key relations
  * resolve to `ColumnModelLink`; to-many relations resolve to `ColumnModelLinks`.
  * Any unmapped type falls back to `ColumnText`,
  * reproducing the historical plain-text cell.
@@ -64,6 +65,20 @@ export const columnMappings = {
             default: true,
         },
     },
+    // A serializer EmailField or URLField can sit over a model CharField or TextField, so the
+    // mapping covers those model types as well as its own.
+    EmailField: {
+        EmailField: {
+            column: "ColumnEmail",
+            default: true,
+        },
+        CharField: {
+            column: "ColumnEmail",
+        },
+        TextField: {
+            column: "ColumnEmail",
+        },
+    },
     FileField: {
         FileField: {
             column: "ColumnFile",
@@ -89,6 +104,18 @@ export const columnMappings = {
             column: "ColumnDateTime",
             columnProps: { format: "t", showRelative: false, showTooltip: false },
             default: true,
+        },
+    },
+    URLField: {
+        URLField: {
+            column: "ColumnUrl",
+            default: true,
+        },
+        CharField: {
+            column: "ColumnUrl",
+        },
+        TextField: {
+            column: "ColumnUrl",
         },
     },
     // Foreign-key / one-to-one relations. ColumnModelLink derives the target
