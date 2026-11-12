@@ -18,6 +18,7 @@ from typing import ClassVar
 import pytest
 from django.conf import settings
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework import status
 
 from tests.conftest import BaseTestGroupMixin
@@ -346,3 +347,54 @@ class TestReadonlyForwardRelation(BaseTestUserMixin):
         cart.refresh_from_db()
         assert cart.customer_id == customer.pk
         assert str(cart.reserved_until) == "10:00:00"
+
+
+class _ParcelLabelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = store_models.ParcelLabel
+        fields = ["id", "tracking_number"]
+
+
+class _ParcelWithOptionalLabelSerializer(VuedaSerializer):
+    label = _ParcelLabelSerializer(required=False, allow_null=True)
+
+    class Meta(VuedaSerializer.Meta):
+        model = store_models.Parcel
+        fields = ["id", "reference", "label"] + VuedaSerializer.Meta.fields
+
+
+@pytest.mark.django_db
+class TestReverseOneToOneRemoval:
+    """
+    A parent update changes its reverse one-to-one child according to the value that the request sends.
+    The client's singular inline removes a saved child by sending ``null``.
+    """
+
+    def _save(self, parcel, data):
+        request = FakeRequest({}, data, "PATCH")
+        view = FakeView(
+            request, _ParcelWithOptionalLabelSerializer, queryset=store_models.Parcel.objects.filter(pk=parcel.pk)
+        )
+        serializer = _ParcelWithOptionalLabelSerializer(
+            parcel, data=data, partial=True, context={"request": request, "view": view}
+        )
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+    def test_null_deletes_the_child(self):
+        parcel = store_models.Parcel.objects.create(reference="P-1")
+        store_models.ParcelLabel.objects.create(parcel=parcel, tracking_number="T-1")
+
+        self._save(parcel, {"label": None})
+
+        assert not store_models.ParcelLabel.objects.filter(parcel=parcel).exists()
+
+    def test_omitted_key_keeps_the_child(self):
+        parcel = store_models.Parcel.objects.create(reference="P-1")
+        label = store_models.ParcelLabel.objects.create(parcel=parcel, tracking_number="T-1")
+
+        self._save(parcel, {"reference": "P-2"})
+
+        label.refresh_from_db()
+        assert label.parcel_id == parcel.pk
+        assert label.tracking_number == "T-1"

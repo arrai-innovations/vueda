@@ -326,7 +326,7 @@ The registry that maps icon names, such as `loading` or `check`, to Vue componen
 
 ## Ignored Field
 
-A {@term Field Path} marked with the form context's `ignore` method. The form leaves an ignored field out of the values it submits. In an object form, errors on an ignored path do not block submitting. An {@term Inline} ignores each saved row you mark for removal.
+A {@term Field Path} marked with the form context's `ignore` method. The form leaves an ignored field out of the values it submits. In an object form, errors on an ignored path do not block submitting. A stacked or tabular {@term Inline} ignores each saved row that you mark for removal.
 
 - Names: [`FormContext.ignore`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.ignore}; [`FieldContext.ignore`]{@api js:property:@arrai-innovations/vueda/use/useField#FieldContext.ignore}; [`submittingValues`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submittingValues}
 - Described in: [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md#ignored-fields-and-submitting-values)

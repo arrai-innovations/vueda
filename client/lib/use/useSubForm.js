@@ -61,6 +61,7 @@ export function useSubForm({ parentPath }) {
         // *** Ignored Fields & Reset Behavior ***
         ignored: {},
         anyIgnored: toRef(parentState, "anyIgnored"),
+        submittedAsNull: {},
 
         // *** Dependency Management ***
         dependencyValues: {},
@@ -114,6 +115,7 @@ export function useSubForm({ parentPath }) {
         "required",
         "valid",
         "ignored",
+        "submittedAsNull",
         "dependencyValues",
         "labels",
         "showsErrors",
@@ -181,6 +183,8 @@ export function useSubForm({ parentPath }) {
         // *** Ignore State Management ***
         ignore: buildFieldMethodProxy(parentFormContext.ignore),
         removeIgnore: buildFieldMethodProxy(parentFormContext.removeIgnore),
+        submitAsNull: buildFieldMethodProxy(parentFormContext.submitAsNull),
+        removeSubmitAsNull: buildFieldMethodProxy(parentFormContext.removeSubmitAsNull),
 
         // *** Hook Registrations ***
         registerIsModifiedHook: buildFieldMethodProxy(parentFormContext.registerIsModifiedHook),

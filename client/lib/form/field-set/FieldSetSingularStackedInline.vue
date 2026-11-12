@@ -12,7 +12,7 @@ import { FIELD_EMITS, useField } from "@vueda/use/useField.js";
 import { FIELD_SET_INLINE_PROPS, useFieldSetInline } from "@vueda/use/useFieldSetInline.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
-import { computed, toRef, watch } from "vue";
+import { computed, onBeforeUnmount, ref, toRef, watch } from "vue";
 
 /**
  * A stacked inline fieldset for editing a single related object (one-to-one
@@ -20,6 +20,12 @@ import { computed, toRef, watch } from "vue";
  * value is present, and a single stacked-inline row when a value exists.
  * Supports show/hide toggling and auto-creates the initial object when the
  * field is required or `autoCreateWhenEmpty` is set.
+ *
+ * A writable inline whose field is not required offers removal of its row. An
+ * unsaved row has a Delete button that clears the field. A saved row has a
+ * "Delete on save" toggle. The toggle keeps the row visible and makes the form
+ * submit the field as `null`, which removes the related object on save. A
+ * required inline offers neither control.
  */
 defineOptions({
     inheritAttrs: false,
@@ -44,7 +50,43 @@ const fieldSetInline = useFieldSetInline({
     emit,
     slotNames: ["create-button", "toggle-button", "field-set-level-chores", "title", "empty-state"],
     fieldSetContext,
+    addDestroyAction: true,
 });
+
+// A required relation must always hold an object, so its row offers no removal.
+const canRemove = computed(() => !fieldSetContext.state.required);
+const markedForRemoval = ref(false);
+const setMarkedForRemoval = (marked) => {
+    fieldSetContext.blur();
+    if (marked) {
+        fieldSetContext.submitAsNull();
+    } else {
+        fieldSetContext.removeSubmitAsNull();
+    }
+    markedForRemoval.value = !!marked;
+};
+const clearMark = () => {
+    if (markedForRemoval.value) {
+        setMarkedForRemoval(false);
+    }
+};
+// Loading a saved value, a field that becomes required, or a value that goes away each
+// leaves nothing for the mark to remove.
+watch(() => fieldSetContext.state.initialValue, clearMark, { deep: true });
+watch(canRemove, (removable) => {
+    if (!removable) {
+        clearMark();
+    }
+});
+watch(
+    () => fieldSetContext.state.value,
+    (value) => {
+        if (value === null || value === undefined) {
+            clearMark();
+        }
+    },
+);
+onBeforeUnmount(clearMark);
 
 const hasChoresContent = computed(
     () =>
@@ -76,15 +118,6 @@ const clearField = () => {
     fieldSetContext.state.value = null;
 };
 
-const handleDeleteSingle = (selected_) => {
-    if (selected_.length) {
-        fieldSetContext.ignore();
-    } else {
-        fieldSetContext.removeIgnore();
-    }
-    fieldSetContext.blur();
-    fieldSetInline.state.selected.value = selected_;
-};
 /* todo: this field seems very copy and pasted from FieldSetStackedInline, could
          `singular` just a prop on that component?
 */
@@ -179,8 +212,11 @@ watch(
                         :field-set-context-state="fieldSetInline.state"
                         :pk="fieldSetContext.state.value.id"
                         :read-only="props.readOnly"
+                        :removable="canRemove"
+                        saved-row-removal="toggle"
+                        :marked-for-removal="markedForRemoval"
                         @destroy-row="clearField"
-                        @update:selected="handleDeleteSingle"
+                        @update:marked-for-removal="setMarkedForRemoval"
                     >
                         <template v-for="slotName in fieldSetInline.state.remainingSlotNames" #[slotName]="slotProps">
                             <slot :name="slotName" v-bind="slotProps" />

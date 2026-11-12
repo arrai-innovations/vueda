@@ -112,6 +112,8 @@ Removal depends on the relation. The server deletes a reverse foreign key row an
 
 To keep a child, send it with its primary key. To leave every child unchanged, leave the relation's key out of the body. A create never removes rows. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md#write-order) describes the order of these steps.
 
+A reverse one-to-one relation holds one child instead of a list. To remove that child, send `null`. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md#write-order) describes this case.
+
 ## Keep a Relation Read-Only
 
 Use {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} for a relation that reads as nested objects but never takes writes. With `"many": True`, it uses {@api py:class:vueda.core.serializers.VuedaReadonlyListSerializer}.
@@ -140,6 +142,17 @@ The server discards `audit_log` data in a write body and returns no error for it
 An unsaved row has a Delete button, which removes the row from the form at once. A read-only inline, or any inline on a read view, has no destroy action.
 
 Removal runs through the parent's update. The child needs no destroy route or destroy permission, and the server still checks the parent's update permission.
+
+### Remove the Row of a Singular Inline
+
+{@api vue:component:FieldSetSingularStackedInline} also adds a destroy action to a writable inline. It offers removal only when the relation's field is not required, because a required relation must always hold an object. A required singular inline shows no Delete button and no destroy toggle.
+
+When the field is not required, the row offers removal in one of two ways:
+
+- **Unsaved row:** a Delete button clears the field at once. The inline then shows its Create button.
+- **Saved row:** a "Delete on save" toggle button marks the row. The row stays visible, and the form submits the field as `null` (see [Ignored Fields and Submitting Values](../core-concepts/form-state-and-validation-lifecycle.md#ignored-fields-and-submitting-values)). Press the toggle again to submit the row's values instead. Saving the parent removes the related object.
+
+A singular inline has no "Delete?" checkbox. To replace its toggle, fill the [`destroy-toggle`]{@api vue:component:FieldSetStackedInlineRow:slot:destroy-toggle} slot. The slot props include `action`, `pressed`, and an `onUpdate:pressed` handler that marks or clears the row.
 
 To replace the checkbox, fill the `destroy-checkbox` slot of either layout ([stacked]{@api vue:component:FieldSetStackedInlineRow:slot:destroy-checkbox}, [tabular]{@api vue:component:FieldSetTabularInline:slot:destroy-checkbox}). The slot props include `action`, `rowIndex`, `modelValue`, and an `onUpdate:modelValue` handler that marks or clears the row.
 
@@ -182,6 +195,7 @@ To replace the button, fill the `item-action-button` slot ([stacked]{@api vue:co
 The Delete button on an unsaved row is a {@api vue:component:Button} with a trash icon and the visible label "Delete". The label gives the button its accessible name, and the icon is decorative. Pick the customization point by what you change:
 
 - **Layout or extra classes on Delete:** override the [theme slot]{@term Theme Slot} {@api theme-key:FieldSetStackedInlineRow.destroyButton} or {@api theme-key:FieldSetTabularInline.destroyButton}. Singular stacked inlines use the stacked row's slot.
+- **Layout or extra classes on the "Delete on save" toggle:** override {@api theme-key:FieldSetStackedInlineRow.destroyToggle}. The toggle is a {@api vue:component:Toggle}, so {@api theme-key:Toggle.root} sets its appearance.
 - **Button appearance:** override {@api theme-key:Button.root} or its composition primitives. A {@term Theme Override} on the inline applies to that inline and its descendants, so it also changes Create and the other buttons inside it.
 - **The trash icon:** pass an [`iconOverride`]{@api js:property:@arrai-innovations/vueda/use/useIcons#ICON_OVERRIDE_PROPS} with a `typeDeleted` entry under `FieldSetStackedInlineRow` or `FieldSetTabularInline`. A `typeDeleted` entry under `Default` changes the icon for every component without its own entry.
 - **Button props or content:** fill the `destroy-button` slot ([stacked]{@api vue:component:FieldSetStackedInlineRow:slot:destroy-button}, [tabular]{@api vue:component:FieldSetTabularInline:slot:destroy-button}). Bind the slot's `onClick` handler to your button so that the button still removes the row. Theme overrides change classes only, never component props.

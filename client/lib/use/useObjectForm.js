@@ -119,14 +119,18 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
  * @returns {Promise<boolean>} True if the submission should be stopped.
  */
 export const defaultOnSubmitAnyError = async ({ state, formContext, toast }) => {
-    let ignoredFields = [];
+    // Neither an ignored field nor a field submitted as null sends its children's values, so errors
+    // on those paths cannot apply to the request.
+    const skippedPaths = Object.keys(formContext.state.submittedAsNull ?? {});
     if (formContext.state.anyIgnored) {
-        ignoredFields = Object.entries(formContext.state.ignored)
-            .filter(([, value]) => value === true)
-            .map(([key]) => key);
+        skippedPaths.push(
+            ...Object.entries(formContext.state.ignored)
+                .filter(([, value]) => value === true)
+                .map(([key]) => key),
+        );
     }
     const errors = Object.entries(formContext.state.errors).filter(
-        ([key]) => !ignoredFields.some((ignored) => key === ignored || key.startsWith(`${ignored}.`)),
+        ([key]) => !skippedPaths.some((skipped) => key === skipped || key.startsWith(`${skipped}.`)),
     );
 
     const nonServerErrors = errors

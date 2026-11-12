@@ -22,6 +22,13 @@ patchTheme({
             class: [],
         },
         /**
+         * Class hook for the saved-row destroy toggle, which a singular stacked inline shows. Variant and size come
+         * from the component; appearance comes from {@api theme-key:Toggle}.
+         */
+        destroyToggle: {
+            class: [],
+        },
+        /**
          * Bordered row card with dirty and selected-for-destroy state chrome. The row wraps so that the action bar can
          * take its own line below the fields.
          */
