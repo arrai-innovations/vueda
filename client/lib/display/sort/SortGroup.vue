@@ -9,7 +9,8 @@ import { VueDraggableNext as draggable } from "vue-draggable-next";
 
 /**
  * Renders the active sort order as a strip of removable {@api vue:component:SortChip}s,
- * plus a Reset sort control (shown only when the active sort differs from `defaultSorted`).
+ * plus a Reset sort control. Reset sort shows only while the active sort is nonempty and
+ * differs from `defaultSorted`.
  * Each chip toggles its own direction; removing a chip drops that field from the sort
  * (the remove control itself is hidden once only one chip remains, since there is
  * nothing left to remove down to); dragging a chip by its priority ordinal reorders
@@ -29,8 +30,10 @@ const props = defineProps({
     /**
      * The server's default sort order, in the same `-`-prefixed representation as `sorted`.
      * Read only to decide whether Reset sort has anything to do: the control is hidden whenever
-     * `sorted` already matches it. Reset itself emits an empty `update:sorted` rather than this
-     * array, leaving the host to resolve what "the default" means — see the `update:sorted` event.
+     * `sorted` already matches it. The control is also hidden while `sorted` is empty, because
+     * Reset would only emit the empty sort the host already holds. Reset itself emits an empty
+     * `update:sorted` rather than this array, leaving the host to resolve what "the default"
+     * means. See the `update:sorted` event.
      */
     defaultSorted: {
         type: Array,
@@ -103,14 +106,16 @@ const apply = (next) => {
 };
 const toggle = (base) => apply(toggleSortField(localSorted.value, base));
 const remove = (base) => apply(removeSortField(localSorted.value, base));
-// Hidden once the active sort already matches the default, since there is nothing to reset.
-const matchesDefault = computed(() => sameOrder(localSorted.value, props.defaultSorted));
+// Reset emits an empty sort, so it has nothing to do while the sort is already empty (a host that
+// assigns what it receives keeps it empty) or already matches the default (where `useViewList`
+// lands after resolving the empty sort).
+const canReset = computed(() => localSorted.value.length > 0 && !sameOrder(localSorted.value, props.defaultSorted));
 // Emits an empty sort, not `defaultSorted`: the host is what turns that into the default (see the
 // `update:sorted` event). `localSorted` is emptied along with it and the chips disappear until the
 // host echoes the default back through `sorted`, which is the same optimistic round-trip every
 // other edit here makes.
 const resetToDefault = () => {
-    if (!matchesDefault.value) {
+    if (canReset.value) {
         apply([]);
     }
 };
@@ -123,13 +128,9 @@ const slots = useSlots();
 </script>
 
 <template>
-    <!-- Renders with no active chips when the sort has been cleared down to nothing
-         but still differs from the default, so Reset sort stays reachable. -->
-    <div
-        v-if="items.length || !matchesDefault"
-        :class="hosted ? theme('subgroup') : theme('strip')"
-        data-qa="sort-group-strip"
-    >
+    <!-- Renders nothing while the sort is empty: there are no chips, and Reset sort has
+         nothing to do. -->
+    <div v-if="items.length" :class="hosted ? theme('subgroup') : theme('strip')" data-qa="sort-group-strip">
         <span :class="theme('eyebrow')">Sort</span>
         <!-- Drag-reorder the active sort. The handle is each chip's grip + ordinal
              (`.drag-handle`), which only renders with more than one chip, so a lone
@@ -166,7 +167,7 @@ const slots = useSlots();
             </sort-chip>
         </draggable>
         <Button
-            v-if="!matchesDefault"
+            v-if="canReset"
             emphasis="outline"
             size="sm"
             :class="theme('clear')"

@@ -205,12 +205,65 @@ describe("lib/display/sort/SortGroup.vue", () => {
         expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
     });
 
-    scopedIt("keeps Reset sort reachable with no active chips when the default is non-empty", () => {
-        // The sort was cleared down to nothing (e.g. via a hand-edited URL), which
-        // still differs from a non-empty default, so the strip stays mounted.
+    scopedIt("hides Reset sort while the sort is empty, even with a non-empty default", () => {
+        // Reset emits an empty sort, so with nothing sorted it would change nothing.
         const wrapper = mount(SortGroup, { props: { sorted: [], defaultSorted: ["mrr"] } });
-        expect(wrapper.find('[data-qa="sort-group-strip"]').exists()).toBe(true);
-        expect(wrapper.findAll('[data-qa="sort-chip"]')).toHaveLength(0);
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="sort-group-strip"]').exists()).toBe(false);
+    });
+
+    scopedIt("shows Reset sort for an active sort when the default is empty", () => {
+        const wrapper = mount(SortGroup, { props: { sorted: ["mrr"], defaultSorted: [] } });
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
+    });
+
+    scopedIt("hides Reset sort when both the sort and the default are empty", () => {
+        const wrapper = mount(SortGroup, { props: { sorted: [], defaultSorted: [] } });
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+    });
+
+    // Mounts SortGroup under a host that answers each `update:sorted` with `resolve`, the way a
+    // real host feeds its new sort back through the `sorted` prop.
+    const mountWithHost = (resolve, { sorted, defaultSorted }) => {
+        const Host = defineComponent({
+            setup() {
+                const state = reactive({ sorted });
+                return () =>
+                    h(SortGroup, {
+                        sorted: state.sorted,
+                        defaultSorted,
+                        "onUpdate:sorted": (next) => {
+                            state.sorted = resolve(next);
+                        },
+                    });
+            },
+        });
+        return mount(Host);
+    };
+
+    scopedIt("hides Reset sort after a reset under a host that assigns what it receives", async () => {
+        const wrapper = mountWithHost((next) => next, { sorted: ["-updated"], defaultSorted: ["mrr"] });
+        await wrapper.get('[data-qa="sort-reset"]').trigger("click");
+        await nextTick();
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="sort-group-strip"]').exists()).toBe(false);
+    });
+
+    scopedIt("hides Reset sort after a reset under a host that resolves an empty sort to the default", async () => {
+        // Mirrors `useViewList`, which answers an empty sort by applying `defaultSorted`.
+        const defaultSorted = ["mrr"];
+        const wrapper = mountWithHost((next) => (next.length ? next : [...defaultSorted]), {
+            sorted: ["-updated"],
+            defaultSorted,
+        });
+        await wrapper.get('[data-qa="sort-reset"]').trigger("click");
+        await nextTick();
+        expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+        expect(wrapper.find('[data-qa="sort-chip"]').attributes("data-field")).toBe("mrr");
+
+        // Toggling the default's direction makes the sort differ again.
+        await wrapper.get('[data-qa="stub-toggle"]').trigger("click");
+        await nextTick();
         expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
     });
 });

@@ -13,7 +13,7 @@
  * `/routes/` endpoints; see `demoApi.js` for the seam and `showcaseRecords.js` for the
  * rows and endpoint builders that pair with the metadata here.
  *
- * Every field here renders a self-contained widget (text, url, static-choice
+ * Every field here renders a self-contained widget (text, url, email, static-choice
  * select, decimal, toggle, textarea). No relation/lookup fields are used, so
  * nothing reaches out to a server at render time.
  */
@@ -85,6 +85,16 @@ export const customerModelInfo = {
             typeDb: "URLField",
             typeModel: "URLField",
             typeSerializer: "URLField",
+            many: false,
+            readOnly: false,
+            required: false,
+        },
+        contactEmail: {
+            name: "contactEmail",
+            label: "Billing email",
+            typeDb: "EmailField",
+            typeModel: "EmailField",
+            typeSerializer: "EmailField",
             many: false,
             readOnly: false,
             required: false,

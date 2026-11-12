@@ -22,20 +22,22 @@ To link a row to its own read or update view, use a {@term Row Link}. [Link List
 
 VUEDA picks each column's default adapter in {@api js:property:@arrai-innovations/vueda/utils/columnMappings#columnMappings}. It looks up the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}. When the table has no entry for both, it tries each class in [`typeSerializerAncestors`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializerAncestors}, nearest first, so a subclass of a serializer type below gets that type's adapter:
 
-| Serializer type          | Model type                       | Adapter                               | Default props                                              |
-| ------------------------ | -------------------------------- | ------------------------------------- | ---------------------------------------------------------- |
-| `BooleanField`           | `BooleanField`                   | {@api vue:component:ColumnBoolean}    |                                                            |
-| `NullBooleanField`       | `NullBooleanField`               | `ColumnBoolean`                       |                                                            |
-| `DateField`              | `DateField`                      | {@api vue:component:ColumnDateTime}   | `{ showTime: false }`                                      |
-| `DateTimeField`          | `DateTimeField`                  | `ColumnDateTime`                      | `{ showTime: true }`                                       |
-| `TimeField`              | `TimeField`                      | `ColumnDateTime`                      | `{ format: "t", showRelative: false, showTooltip: false }` |
-| `DurationField`          | `DurationField`                  | {@api vue:component:ColumnDuration}   |                                                            |
-| `DurationSecondsField`   | `DurationField`                  | `ColumnDuration`                      |                                                            |
-| `FileField`              | `FileField`                      | {@api vue:component:ColumnFile}       |                                                            |
-| `ImageField`             | `ImageField`                     | `ColumnFile`                          |                                                            |
-| `JSONField`              | `JSONField`                      | {@api vue:component:ColumnJson}       |                                                            |
-| `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField`   | {@api vue:component:ColumnModelLink}  | `{ view: "read" }`                                         |
-| `ManyRelatedField`       | `ManyToManyField` / `ForeignKey` | {@api vue:component:ColumnModelLinks} | `{ view: "read" }`                                         |
+| Serializer type          | Model type                               | Adapter                               | Default props                                              |
+| ------------------------ | ---------------------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| `BooleanField`           | `BooleanField`                           | {@api vue:component:ColumnBoolean}    |                                                            |
+| `NullBooleanField`       | `NullBooleanField`                       | `ColumnBoolean`                       |                                                            |
+| `DateField`              | `DateField`                              | {@api vue:component:ColumnDateTime}   | `{ showTime: false }`                                      |
+| `DateTimeField`          | `DateTimeField`                          | `ColumnDateTime`                      | `{ showTime: true }`                                       |
+| `TimeField`              | `TimeField`                              | `ColumnDateTime`                      | `{ format: "t", showRelative: false, showTooltip: false }` |
+| `DurationField`          | `DurationField`                          | {@api vue:component:ColumnDuration}   |                                                            |
+| `DurationSecondsField`   | `DurationField`                          | `ColumnDuration`                      |                                                            |
+| `EmailField`             | `EmailField` / `CharField` / `TextField` | {@api vue:component:ColumnEmail}      |                                                            |
+| `FileField`              | `FileField`                              | {@api vue:component:ColumnFile}       |                                                            |
+| `ImageField`             | `ImageField`                             | `ColumnFile`                          |                                                            |
+| `JSONField`              | `JSONField`                              | {@api vue:component:ColumnJson}       |                                                            |
+| `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField`           | {@api vue:component:ColumnModelLink}  | `{ view: "read" }`                                         |
+| `ManyRelatedField`       | `ManyToManyField` / `ForeignKey`         | {@api vue:component:ColumnModelLinks} | `{ view: "read" }`                                         |
+| `URLField`               | `URLField` / `CharField` / `TextField`   | {@api vue:component:ColumnUrl}        |                                                            |
 
 Every other type renders through {@api vue:component:ColumnText}. That includes choice fields and a single `SlugRelatedField`. A to-many `SlugRelatedField` reports the serializer type `ManyRelatedField`, so it renders through `ColumnModelLinks`. Its unexpanded value is an array of slugs, and the cell shows their count. Issue [#143](https://github.com/arrai-innovations/vueda/issues/143) tracks the default for slug columns.
 
@@ -46,12 +48,15 @@ The adapters render as follows:
 - `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No". When the field has labels for its values, `ColumnBoolean` renders the label that matches the value instead. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A null value with a matching label renders that label in place of the dash.
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
+- `ColumnEmail` renders {@api vue:component:EmailDisplay}: a `mailto:` link whose text is the address as stored. A value that is not one plain address renders as text. That covers a value with whitespace, `?`, `&`, `,`, `;`, or `%`, which could add headers or recipients to the draft.
 - `ColumnFile` renders {@api vue:component:FileDisplay}: a link to the file, labelled with the file name.
 - `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
 - `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}. The label renders as plain text when the viewer cannot open that view.
+- `ColumnUrl` renders {@api vue:component:UrlDisplay}: a link to the URL, whose text is the URL as stored. Only an `http` or `https` URL becomes a link. Any other value, such as a `javascript:` URL, renders as text. The link opens in the same tab and sends no referrer.
+- `ColumnEmail` and `ColumnUrl` render a many-valued field's array, and a field with static choices, through `ColumnText`.
 - `ColumnModelLinks` renders a many-to-many field or a reverse foreign key as comma-separated links to the related rows' read views. An unexpanded relation renders as a count, such as "3 items". [Link a To-Many Column](#link-a-to-many-column) describes it.
 
-`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value. `BooleanDisplay` renders the label of an empty value instead, when the field has one.
+`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `EmailDisplay`, `FileDisplay`, `JsonDisplay`, and `UrlDisplay` render a dash for an empty value. `BooleanDisplay` renders the label of an empty value instead, when the field has one.
 
 ## Choose Where to Override
 
@@ -97,7 +102,7 @@ storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
 A `columnComponents` entry takes one of three values:
 
 - **A function that returns a component**, such as `() => ColumnStatusBadge`. VUEDA calls it with no arguments. Use this form for your own components. The store keeps its values in reactive state and merges plain objects between layers; the function keeps the component out of both.
-- **The name of a built-in adapter** in {@api js:property:@arrai-innovations/vueda/utils/columnLookups#availableColumns}: `"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnFile"`, `"ColumnJson"`, or `"ColumnModelLink"`. Use a name to give a column a built-in adapter that its type does not map to.
+- **The name of a built-in adapter** in {@api js:property:@arrai-innovations/vueda/utils/columnLookups#availableColumns}: `"ColumnText"`, `"ColumnBoolean"`, `"ColumnDateTime"`, `"ColumnDuration"`, `"ColumnEmail"`, `"ColumnFile"`, `"ColumnJson"`, `"ColumnModelLink"`, or `"ColumnUrl"`. Use a name to give a column a built-in adapter that its type does not map to.
 - **A component object.** Use this form in the `columnComponents` prop. In model config, wrap the component in a function.
 
 The model-wide layer also applies to the list view. When both layers set `columnComponents`, the list gets the entries of both. For a column that both layers name, the `list` layer wins. `columnProps` merges each column's props across the layers, key by key.

@@ -2168,7 +2168,7 @@ describe("lib/views/ViewList.vue", () => {
         });
 
         scopedIt(
-            "shows Reset sort only when the active sort differs from the server default, and restores it on click",
+            "shows Reset sort only when the active sort differs from the server default, restores it on click, and shows it again after a change",
             async () => {
                 mockedInject.mockReturnValueOnce({});
                 modelConfig.config.sortables = ["name", "created_at"];
@@ -2186,6 +2186,13 @@ describe("lib/views/ViewList.vue", () => {
 
                 expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
                 expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+
+                // Flipping the default's direction makes the sort differ again.
+                await wrapper.get('[data-qa="sort-chip-toggle"]').trigger("click");
+                await vue.nextTick();
+
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["created_at"]);
+                expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
                 wrapper.unmount();
             },
         );
@@ -2468,6 +2475,44 @@ describe("lib/views/ViewList.vue", () => {
             expect(readout.text()).toContain("1 selected");
             wrapper.unmount();
         });
+
+        // The grid hands every `field(<col>)` slot its whole cell context. The default checkbox
+        // takes only its own props, so none of that context lands on its element as attributes.
+        for (const isTableLayout of [true, false]) {
+            scopedIt(
+                `keeps the cell context off the default checkbox in the ${isTableLayout ? "table" : "card"} layout`,
+                async () => {
+                    mockedInject.mockReturnValueOnce({});
+                    configureBulkAction();
+                    columnSlotProps.selected_ = {
+                        calculatedObj: {},
+                        columnIndex: 0,
+                        columnCount: 9,
+                        isCardLayout: !isTableLayout,
+                        isTableLayout,
+                        modelConfig: {},
+                        modelInfo: {},
+                        obj: { id: 1 },
+                        pkKey: "id",
+                        relatedObj: {},
+                        rowCount: 1,
+                        rowIndex: 0,
+                    };
+                    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                    await vue.nextTick();
+                    const checkbox = wrapper.findComponent(CheckboxStub);
+                    expect(checkbox.props()).toEqual({ id: "selected-row-1", modelValue: false, value: undefined });
+                    expect(checkbox.element.getAttributeNames().sort()).toEqual(["data-qa", "id", "name", "type"]);
+                    await checkbox.trigger("change");
+                    await vue.nextTick();
+                    expect(wrapper.vm.actions.selectedObjects).toEqual([1]);
+                    await checkbox.trigger("change");
+                    await vue.nextTick();
+                    expect(wrapper.vm.actions.selectedObjects).toEqual([]);
+                    wrapper.unmount();
+                },
+            );
+        }
     });
 
     describe("List request", () => {

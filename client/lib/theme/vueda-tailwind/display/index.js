@@ -15,6 +15,7 @@ import "./DateRangeDisplay.theme.js";
 import "./DateTimeDisplay.theme.js";
 import "./DiagnosticStrip.theme.js";
 import "./DurationDisplay.theme.js";
+import "./EmailDisplay.theme.js";
 import "./ErrorDisplay.theme.js";
 import "./FieldPickerMenuList.theme.js";
 import "./FileDisplay.theme.js";
@@ -31,6 +32,7 @@ import "./SortGroup.theme.js";
 import "./SuggestionList.theme.js";
 import "./SystemMessageCard.theme.js";
 import "./TriedUrlCallout.theme.js";
+import "./UrlDisplay.theme.js";
 import "./UserAvatar.theme.js";
 
 export default {
@@ -43,8 +45,10 @@ export default {
     // ---------- Text utilities ----------
     BooleanDisplay: {},
     ErrorDisplay: {},
+    EmailDisplay: {},
     FileDisplay: {},
     JsonDisplay: {},
+    UrlDisplay: {},
     ClickToCopyText: {},
     // ---------- Badges and keyboard hints ----------
     Badge: {},

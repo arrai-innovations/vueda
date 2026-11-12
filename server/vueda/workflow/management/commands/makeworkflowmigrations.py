@@ -55,7 +55,6 @@ from django.contrib.auth.management import create_permissions
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.management import BaseCommand
 from django.db import migrations
 from django.db.migrations import operations
@@ -1969,23 +1968,13 @@ class Command(BaseCommand):
                     }
 
             case "group_id":
+                # Name the group as each write recorded it, not by its current name. A group that was
+                # renamed or deleted since then would otherwise name a group the write never saw.
                 if change.new:
-                    try:
-                        new = {
-                            "name": history_diff.new_record.group.name,
-                        }
-                    except ObjectDoesNotExist as e:
-                        if "Group matching query does not exist" in str(e):
-                            new = {"name": history_diff.new_record.historical_group_name}
+                    new = {"name": history_diff.new_record.historical_group_name}
 
                 if change.old:
-                    try:
-                        old = {
-                            "name": history_diff.old_record.historical_group_name,
-                        }
-                    except ObjectDoesNotExist as e:
-                        if "Group matching query does not exist" in str(e):
-                            new = {"name": history_diff.old_record.historical_group_name}
+                    old = {"name": history_diff.old_record.historical_group_name}
 
             case "state_id":
                 # Because an event record carries no transaction number:

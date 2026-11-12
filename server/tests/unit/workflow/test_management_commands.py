@@ -2434,6 +2434,82 @@ class GeneratesWorkflowMigrations:
         return module
 
 
+class TestManagementCommandWorkflowStatePermissionGroupName(
+    GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand
+):
+    """A state permission's group is named as each write recorded it, whatever became of the group later."""
+
+    workflow_app_label = "workflow_added"
+    GROUP_NAME = "WorkflowAddedWorker"
+    PERMISSION_CODENAME = "can_do_something_else"
+
+    @classmethod
+    def group_names_by_change(cls, migration):
+        """Return each change to the group's state permission, with the group names that the change records.
+
+        A change names the group twice: in its ``group_id`` field and in the ``id`` block that the
+        migration uses to find the row.
+        """
+        return [
+            (
+                change["history_type"],
+                change["changes"]["group_id"],
+                change["changes"]["id"]["group_id"],
+                change["changes"]["id"]["historical_group_name"],
+            )
+            for change in migration.changed_data
+            if change["model_name"] == "statepermission"
+            and change["changes"]["id"]["historical_permission_codename"] == cls.PERMISSION_CODENAME
+        ]
+
+    @clear_info_registry_before_test()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.lean_database
+    @pytest.mark.django_db(transaction=True)
+    @pytest.mark.parametrize(
+        ("then", "expected_types"),
+        [
+            ("renamed", ["added", "changed"]),
+            ("deleted", ["added", "changed", "deleted"]),
+        ],
+    )
+    def test_group_named_as_recorded(self, settings, then, expected_types):
+        settings.MIGRATION_MODULES = {
+            "no_migrations": None,
+            "workflow_added": "tests.workflow_added",
+        }
+        append_installed_apps(settings, "tests.workflow_added")
+
+        with self.temporary_migration_module(settings, app_label="workflow_added") as migration_dir:
+            succeeded, results = self.call_command_capturing_output("migrate", "workflow_added")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            # Change the permission while the group still has its first name, so the migration
+            # also describes a change whose group comes from the row rather than from the diff.
+            state_permission = models.StatePermission.objects.get(
+                group__name=self.GROUP_NAME,
+                historical_permission_codename=self.PERMISSION_CODENAME,
+            )
+            state_permission.grant_or_deny = not state_permission.grant_or_deny
+            state_permission.save()
+
+            group = Group.objects.get(name=self.GROUP_NAME)
+            if then == "renamed":
+                group.name = f"{self.GROUP_NAME}Renamed"
+                group.save()
+            else:
+                # Deleting the group deletes its state permissions with it.
+                group.delete()
+
+            migration = self.generate_workflow_migration_or_fail(migration_dir)
+
+        recorded = {"name": self.GROUP_NAME}
+        assert self.group_names_by_change(migration) == [
+            (history_type, recorded, recorded, self.GROUP_NAME) for history_type in expected_types
+        ]
+
+
 class TestManagementCommandWorkflowReusedCodes(GeneratesWorkflowMigrations, BaseTestMigrations, BaseTestCallCommand):
     """A state and the transition that names it, removed and added again under the same code.
 

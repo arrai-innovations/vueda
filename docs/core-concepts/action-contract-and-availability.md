@@ -101,7 +101,7 @@ An action that takes input calls {@api py:function:vueda.core.exceptions.gate_wa
 
 **Model scope is broader than object scope.** A user with the model-level permission passes route admission for any object. When one object denies the action, its detail view shows no button for it. A user who opens the update route by URL sees the "Editing unavailable" notice. The server refuses a request sent anyway, and [Permission Model](./permission-model.md#why-refused-requests-fail-differently) describes which status it returns.
 
-**`routeActions` is narrower than the server's list.** The guard refuses a route for an action the server offers, with an "Action Not Found" toast. The toast does not say that the model config removed the action.
+**`routeActions` is narrower than the server's list.** The guard refuses a route for an action the server offers, with an "Action Unavailable" toast. The toast does not say that the model config removed the action.
 
 **An override of `get_allowed_extra_actions` leaves out an action the endpoint accepts.** The client hides the action's routes and buttons, and a direct request to the endpoint still runs. A rule that an override adds also needs a check in the action body. The default runs the endpoint's own permission classes, so it agrees with the endpoint for an action whose body loads its object through `get_object()`. For a detail action whose body loads its object another way, the endpoint skips the object-scope check. The default can then leave the action out of a row's `available_actions` while a direct request for that row succeeds.
 
