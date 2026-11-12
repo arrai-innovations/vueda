@@ -121,10 +121,11 @@ const props = defineProps({
         default: undefined,
     },
     /**
-     * HTTP method used for the action request. Without it, the form sends `PUT` when the action's `methodNames` in
-     * model info lists `put`, and otherwise the first write method that it lists. When `methodNames` lists no write
-     * method, the form runs no dry run, disables the confirm button, and tells the user that only viewing is
-     * permitted. Destroy actions ignore this prop and always use `DELETE`.
+     * HTTP method to use for the action request, chosen from the write methods that the action's `methodNames` in
+     * model info lists. Without it, the form sends `PUT` when `methodNames` lists `put`, and otherwise the first write
+     * method that it lists. When `methodNames` does not list the method, or lists no write method, the form runs no
+     * dry run, disables the confirm button, and tells the user that only viewing is permitted. Destroy actions ignore
+     * this prop and always use `DELETE`.
      */
     requestMethod: {
         type: String,

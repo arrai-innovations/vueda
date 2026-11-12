@@ -717,12 +717,30 @@ export const FIELD_TYPE_RECORDS = [
  * Seed the demo model metadata under a given app label so `getConfig` resolves offline.
  * Idempotent: re-seeding overwrites the same key.
  *
+ * Each demo action gets a model info entry, as a server reports an extra action. The action
+ * views send an action only with a write method that its `methodNames` lists.
+ *
  * @param {import('pinia').Pinia} pinia - The pinia instance to seed.
  * @param {string} [app] - App label to register under; defaults to the showcase app.
+ * @param {{[view: string]: object}} [viewConfigs] - Per-view model config overrides.
+ * @param {DemoModelAction[]} [actions] - Model actions to report in model info.
  * @returns {void}
  */
-export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app, viewConfigs = null) {
-    const info = app === SHOWCASE_CUSTOMER.app ? customerModelInfo : { ...customerModelInfo, appLabel: app };
+export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app, viewConfigs = null, actions = []) {
+    const actionInfos = actions.map(({ name, method = "PUT" }) => ({
+        name,
+        description: `${name} ${app}.${SHOWCASE_CUSTOMER.model}`,
+        detail: true,
+        bulk: true,
+        methodNames: [method.toLowerCase()],
+        urlPath: routePart(name),
+        parameters: ["pk"],
+    }));
+    const info = {
+        ...customerModelInfo,
+        appLabel: app,
+        actions: [...customerModelInfo.actions, ...actionInfos],
+    };
     storeModelInfo(pinia).infos[getAppModelDotName({ app, model: SHOWCASE_CUSTOMER.model })] = info;
     if (viewConfigs) {
         // The same call an integrator makes at bootstrap to narrow a view: config overrides are
@@ -765,7 +783,7 @@ export function customerScenario({
     return {
         app,
         model,
-        seed: (pinia) => seedCustomerModel(pinia, app, viewConfigs),
+        seed: (pinia) => seedCustomerModel(pinia, app, viewConfigs, actions),
         api: modelRoutes({
             app,
             model,

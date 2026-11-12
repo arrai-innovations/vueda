@@ -47,18 +47,23 @@ const writeMethodNames = new Set(["post", "put", "patch", "delete"]);
 /**
  * Chooses the HTTP method that the action views send for an action.
  *
- * The result is `"PUT"` when `methodNames` lists `put`. Otherwise, it is the first write method in `methodNames`, in
- * uppercase. The result is `null` when `methodNames` lists no write method or is missing, because the action views
- * send only a method that `methodNames` lists.
+ * The action views send only a write method that `methodNames` lists. When `preferredMethod` is given, the result is
+ * that method if `methodNames` lists it as a write method. Without `preferredMethod`, the result is `"PUT"` when
+ * `methodNames` lists `put`. Otherwise, it is the first write method in `methodNames`. The result is `null` when no
+ * method qualifies.
  *
  * @param {string[]} [methodNames] - The action's `methodNames` from model info, such as `["get", "post"]`.
+ * @param {string} [preferredMethod] - The method that the caller asks for, such as `"PATCH"`.
  * @returns {string|null} The uppercase HTTP method, such as `"POST"`. The result is `null` when there is no method
  *  to send.
  */
-export const getActionRequestMethod = (methodNames = []) => {
-    if (methodNames.includes("put")) {
+export const getActionRequestMethod = (methodNames = [], preferredMethod) => {
+    const writeMethods = methodNames.filter((methodName) => writeMethodNames.has(methodName));
+    if (preferredMethod) {
+        return writeMethods.includes(preferredMethod.toLowerCase()) ? preferredMethod.toUpperCase() : null;
+    }
+    if (writeMethods.includes("put")) {
         return "PUT";
     }
-    const writeMethod = methodNames.find((methodName) => writeMethodNames.has(methodName));
-    return writeMethod ? writeMethod.toUpperCase() : null;
+    return writeMethods[0]?.toUpperCase() ?? null;
 };

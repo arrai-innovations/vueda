@@ -78,7 +78,7 @@ describe("lib/use/useModelAction.js", () => {
             verboseName: "person",
             verboseNamePlural: "people",
             actions: [
-                { name: "archive", detail: true, bulk: true, methodNames: ["put"], urlPath: "archive" },
+                { name: "archive", detail: true, bulk: true, methodNames: ["put", "patch"], urlPath: "archive" },
                 { name: "destroy", detail: true, bulk: true, methodNames: ["delete"] },
             ],
         };
@@ -290,18 +290,37 @@ describe("lib/use/useModelAction.js", () => {
                 );
             });
 
-            scopedIt("sends the requestMethod prop instead of the reported method", async () => {
+            scopedIt("sends the requestMethod prop when methodNames lists it", async () => {
                 const modelAction = await withSetup(() =>
                     useModelAction(
-                        reactive({ app: "billing", model: "invoice", action: "send", pk: "9", requestMethod: "PUT" }),
+                        reactive({
+                            app: "billing",
+                            model: "invoice",
+                            action: "settle",
+                            pk: "9",
+                            requestMethod: "patch",
+                        }),
                     ),
                 );
 
                 await modelAction.runAction({});
 
                 expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
-                    expect.objectContaining({ urlPath: "send", requestMethod: "PUT" }),
+                    expect.objectContaining({ urlPath: "settle-up", requestMethod: "PATCH" }),
                 );
+            });
+
+            scopedIt("sends no request when methodNames does not list the requestMethod prop", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(
+                        reactive({ app: "billing", model: "invoice", action: "send", pk: "9", requestMethod: "PUT" }),
+                    ),
+                );
+
+                expect(modelAction.state.requestMethod.value).toBeNull();
+                expect(modelAction.state.viewOnly.value).toBe(true);
+                await expect(modelAction.runAction({})).rejects.toThrow();
+                expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
             });
         });
 
@@ -412,18 +431,16 @@ describe("lib/use/useModelAction.js", () => {
             expect(modelAction.state.readyToDryRun.value).toBe(true);
         });
 
-        scopedIt("sends the requestMethod prop", async () => {
+        scopedIt("stays view-only with a requestMethod prop that methodNames does not list", async () => {
             const modelAction = await withSetup(() =>
                 useModelAction(
                     reactive({ app: "app", model: "person", action: "close", pk: "9", requestMethod: "POST" }),
                 ),
             );
 
-            expect(modelAction.state.viewOnly.value).toBe(false);
-            await modelAction.runAction({});
-            expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
-                expect.objectContaining({ urlPath: "close", requestMethod: "POST" }),
-            );
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            await expect(modelAction.runAction({})).rejects.toThrow();
+            expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
         });
 
         scopedIt("runs destroy through the delete handler when model info lists it", async () => {

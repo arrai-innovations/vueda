@@ -260,7 +260,13 @@ describe("lib/views/ModelActionForm.vue", () => {
             verboseName: "Person",
             verboseNamePlural: "People",
             actions: [
-                { name: "activate", detail: true, bulk: true, methodNames: ["put"], urlPath: "activate" },
+                {
+                    name: "activate",
+                    detail: true,
+                    bulk: true,
+                    methodNames: ["post", "put", "patch"],
+                    urlPath: "activate",
+                },
                 { name: "archive", detail: true, bulk: true, methodNames: ["put"], urlPath: "archive" },
             ],
         };
@@ -570,8 +576,17 @@ describe("lib/views/ModelActionForm.vue", () => {
             });
             expect(wrapper.find('[data-qa="custom-confirm"]').exists()).toBe(false);
 
-            await wrapper.setProps({ requestMethod: "POST" });
-            expect(wrapper.find('[data-qa="custom-confirm"]').exists()).toBe(true);
+            modelConfig.info.actions = [
+                { name: "activate", detail: true, bulk: true, methodNames: ["patch"], urlPath: "activate" },
+            ];
+            const { wrapper: permitted } = mountModelActionForm({
+                slots: {
+                    "confirm-button": `<template #confirm-button="{ requestMethod, label }">
+                        <button v-if="requestMethod" data-qa="custom-confirm">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(permitted.find('[data-qa="custom-confirm"]').exists()).toBe(true);
         });
 
         scopedIt("runs a host runAction for an action that model info does not list", async () => {
@@ -589,11 +604,16 @@ describe("lib/views/ModelActionForm.vue", () => {
             expect(instanceStubs.fallbackList.executeAction).not.toHaveBeenCalled();
         });
 
-        scopedIt("runs the action when the requestMethod prop sets the method", () => {
-            const { wrapper } = mountModelActionForm({ requestMethod: "POST" });
+        scopedIt("blocks a requestMethod prop that methodNames does not list", async () => {
+            const { wrapper } = mountModelActionForm({ requestMethod: "PATCH" });
             const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
-            expect(button.attributes("disabled")).toBeUndefined();
-            expect(wrapper.find('[data-qa="action-form-view-only-message"]').exists()).toBe(false);
+            const actionForm = wrapper.findComponent(ActionFormStub);
+
+            expect(button.attributes("disabled")).toBeDefined();
+            expect(actionForm.props("readyToDryRun")).toBe(false);
+            expect(wrapper.find('[data-qa="action-form-view-only-message"]').exists()).toBe(true);
+            await expect(actionForm.props("runAction")({})).rejects.toThrow();
+            expect(instanceStubs.fallbackList.executeAction).not.toHaveBeenCalled();
         });
     });
 

@@ -39,6 +39,17 @@ describe("lib/utils/actionMap.js", () => {
             expect(getActionRequestMethod(["delete", "patch"])).toBe("DELETE");
         });
 
+        it("chooses the preferred method when the action lists it", () => {
+            expect(getActionRequestMethod(["get", "post", "patch"], "PATCH")).toBe("PATCH");
+            expect(getActionRequestMethod(["patch"], "patch")).toBe("PATCH");
+        });
+
+        it("chooses no method when the action does not list the preferred method", () => {
+            expect(getActionRequestMethod([], "PATCH")).toBeNull();
+            expect(getActionRequestMethod(["get", "post"], "PATCH")).toBeNull();
+            expect(getActionRequestMethod(["get"], "GET")).toBeNull();
+        });
+
         it("chooses no method when the action lists no write method", () => {
             expect(getActionRequestMethod(["get"])).toBeNull();
             expect(getActionRequestMethod([])).toBeNull();

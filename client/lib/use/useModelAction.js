@@ -30,8 +30,10 @@ import { useRoute, useRouter } from "vue-router";
  * @property {(options?: ModelActionRunOptions) => Promise<any>} [runAction] - Host function that sends the action
  *  request in place of the default `runAction`. When it is set, `readyToDryRun` and `viewOnly` do not require a
  *  request method.
- * @property {string} [requestMethod] - HTTP method used for non-destroy action requests. Without it, the method comes
- *  from the action's `methodNames` in model info, through {@link getActionRequestMethod}. Destroy ignores this prop.
+ * @property {string} [requestMethod] - HTTP method to use for a non-destroy action, chosen from the write methods
+ *  that the action's `methodNames` in model info lists. When `methodNames` does not list it, the action has no
+ *  request method. Without it, {@link getActionRequestMethod} chooses from `methodNames`. Destroy ignores this
+ *  prop.
  * @property {boolean} [enableDryRun] - Whether to perform dry-run validation.
  * @property {"info"|"success"|"warning"|"danger"|"neutral"} [tone] - Sentiment tone.
  * @property {string} [bannerTitle] - Optional banner title.
@@ -72,10 +74,10 @@ import { useRoute, useRouter } from "vue-router";
  *  for a consumer to key its own "already dry-ran this one" bookkeeping off of.
  *
  * Permission state.
- * @property {import('vue').ComputedRef<string|null>} requestMethod - The HTTP method that the action sends. For
- *  destroy, it comes from the action's `methodNames` in model info. For any other action, it is the `requestMethod`
- *  prop when set, and otherwise comes from `methodNames`. The value is `null` when the user may not run the action.
- *  `readyToDryRun` and `runAction` require a method.
+ * @property {import('vue').ComputedRef<string|null>} requestMethod - The HTTP method that the action sends. It is
+ *  always a write method that the action's `methodNames` in model info lists. For an action other than destroy, the
+ *  `requestMethod` prop chooses among them. The value is `null` when there is no such method, which means that the
+ *  user may not run the action. `readyToDryRun` and `runAction` require a method.
  * @property {import('vue').ComputedRef<boolean>} viewOnly - Whether model info has loaded, no host `runAction` is set,
  *  and the action has no request method to send. The user can view the records but cannot run the action.
  * @property {import('vue').ComputedRef<string>} viewOnlyMessage - The message that tells the user that only viewing is
@@ -157,10 +159,9 @@ export function useModelAction(props) {
     // Destroy always sends `DELETE` through the delete handlers, so its method comes from model info alone. The default
     // request runs only when it has a method. A host that passes `runAction` sends the request itself.
     const isDestroy = computed(() => props.action === "destroy");
-    const requestMethod = computed(() => {
-        const reportedMethod = getActionRequestMethod(actionInfo.value?.methodNames);
-        return isDestroy.value ? reportedMethod : (props.requestMethod ?? reportedMethod);
-    });
+    const requestMethod = computed(() =>
+        getActionRequestMethod(actionInfo.value?.methodNames, isDestroy.value ? undefined : props.requestMethod),
+    );
     const viewOnly = computed(() => modelConfig.loading === false && !props.runAction && !requestMethod.value);
 
     const modelVerboseName = computed(() =>
