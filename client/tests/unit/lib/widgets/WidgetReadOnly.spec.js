@@ -77,6 +77,18 @@ describe("lib/widgets/WidgetReadOnly.vue", () => {
         expect(wrapper.find('[data-qa="link-model-view"]').exists()).toBe(false);
     });
 
+    scopedIt("renders the prefix and the suffix around a text-item slot override", () => {
+        const textItemSlotName = reactive({ name: "text-item", exists: false });
+        useSlotNameResolver.mockReturnValueOnce(textItemSlotName).mockReturnValueOnce(textItemSlotName);
+        const wrapper = mount(WidgetReadOnly, {
+            props: { prefix: "<", suffix: ">" },
+            slots: { "text-item": (slotProps) => h("b", { "data-qa": "custom-item" }, slotProps.value) },
+            ...mountOptions,
+        });
+        expect(wrapper.get('[data-qa="custom-item"]').text()).toBe("val");
+        expect(wrapper.get('[data-qa="widget-read-only-value"]').text()).toBe("<val>");
+    });
+
     scopedIt("renders the label for a static choice value", () => {
         useWidget.mockReturnValueOnce({
             state: reactive({ formModelName: "fm", combinedValue: "enterprise", combinedName: "tier" }),

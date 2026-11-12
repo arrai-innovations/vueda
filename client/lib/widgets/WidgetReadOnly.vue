@@ -26,6 +26,11 @@ import { computed, effectScope, inject, reactive, shallowRef, toRef, unref, watc
  * no request. An array of primary keys resolves all its objects in one request. A key that the
  * server does not return shows as plain text. An empty array shows the same empty value as an
  * empty foreign key.
+ *
+ * Each displayed value is one item. The `link-item` slot replaces one linked label, and the
+ * `text-item` slot replaces the plain-text value. The prefix and suffix belong to the field, not to
+ * an item, so they render around the items whether or not a slot replaces them. The `default` slot
+ * replaces the whole content, including the prefix and suffix.
  */
 defineOptions({
     inheritAttrs: false,
@@ -313,21 +318,22 @@ const textItemResolvedSlotNames = useSlotNameResolver(
                         </template>
                         <span v-if="suffix" :class="theme('linkItemSuffix')">{{ suffix }}</span>
                     </template>
-                    <slot
-                        v-else
-                        :class="theme('textItem')"
-                        :field-name="widgetContext.state.combinedName"
-                        :form-model-name="widgetContext.state.formModelName"
-                        :name="textItemResolvedSlotNames.name"
-                        :raw-value="widgetContext.state.combinedValue"
-                        :value="readonlyValue"
-                    >
+                    <template v-else>
                         <span v-if="prefix" :class="theme('textItemPrefix')">{{ prefix }}</span>
-                        <span :class="theme('textItem')">
-                            {{ readonlyValue }}
-                        </span>
+                        <slot
+                            :class="theme('textItem')"
+                            :field-name="widgetContext.state.combinedName"
+                            :form-model-name="widgetContext.state.formModelName"
+                            :name="textItemResolvedSlotNames.name"
+                            :raw-value="widgetContext.state.combinedValue"
+                            :value="readonlyValue"
+                        >
+                            <span :class="theme('textItem')">
+                                {{ readonlyValue }}
+                            </span>
+                        </slot>
                         <span v-if="suffix" :class="theme('textItemSuffix')">{{ suffix }}</span>
-                    </slot>
+                    </template>
                 </slot>
             </div>
         </div>
