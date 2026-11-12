@@ -81,16 +81,16 @@ Sign in as a user with each set of permissions that you configured, then check:
 1. On a model without state rules, [model info]{@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/} omits `create` for a user without `myapp.create_widget`.
 2. Request an object for which a state or row-level rule denies `update`, with `available_actions` in `f`. Its `available_actions` omits `update`, and model info still lists it.
 3. The detail views of two such objects show different action buttons.
-4. A route for an action outside `routeActions` shows "Action Not Found" and redirects to the `actionRedirect` passed to `makeCRUDRoutes`.
-5. A permitted transition code in the URL opens the transition view, and an unpermitted code shows "Action Not Found".
+4. A route for an action outside `routeActions` shows "Action Unavailable" and redirects to the `actionRedirect` passed to `makeCRUDRoutes`.
+5. A permitted transition code in the URL opens the transition view, and an unpermitted code shows "Action Unavailable".
 
 ## Troubleshooting
 
 **Model info lists an action, but the detail view shows no button for it.** Check the object's `available_actions` in the API response. When the action is absent, the object-scope check denies it for that object. When it is present, check the `actions` key in the model config for that view.
 
-**"Action Not Found" for an action the server reports.** The model-wide `routeActions` leaves it out. A `routeActions` list that names `read` instead of `retrieve` closes every read route.
+**"Action Unavailable" for an action the server reports.** The model-wide `routeActions` leaves it out. A `routeActions` list that names `read` instead of `retrieve` closes every read route.
 
-**A transition route shows "Action Not Found".** The code is not in the user's permitted transitions. Check the user's workflow and transition permissions for that model.
+**A transition route shows "Action Unavailable".** The code is not in the user's permitted transitions. Check the user's workflow and transition permissions for that model.
 
 **A transition route shows "Permission Denied".** The server answered the permitted transitions request with `403`. [Workflow as a Permission Overlay](../core-concepts/workflow-permission-overlay.md#failure-surfaces-and-symptom-signatures) lists the causes, including a workflow with no workflow permission rows. The client keeps that denial until a different user signs in, the store resets, or the page reloads ({@term Auth-Scoped Stores}). Fix the permissions, then reload.
 

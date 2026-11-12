@@ -168,7 +168,7 @@ Three keys control actions. Name actions in each by {@term Canonical Action Name
 storeModelConfig().setConfig({ app: "myapp", model: "widget" }, { routeActions: ["list", "retrieve", "update"] });
 ```
 
-A route for a model action that `routeActions` leaves out shows an "Action Not Found" toast and redirects to the `makeCRUDRoutes` [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect}. A workflow transition code still opens, whatever `routeActions` lists. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) describes the full guard chain.
+A route for a model action that `routeActions` leaves out shows an "Action Unavailable" toast and redirects to the `makeCRUDRoutes` [`actionRedirect`]{@api js:param:@arrai-innovations/vueda/router/makeCrud#makeCRUDRoutes:params.actionRedirect}. A workflow transition code still opens, whatever `routeActions` lists. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model) describes the full guard chain.
 
 ### Limit Which Buttons Render
 
@@ -249,7 +249,7 @@ Then check each view in the browser:
 - The create and update forms render the view's `displayFields`. A create body carries only the `submitFields` values. An update body carries the `submitFields` values and the pk, and its URL names the edited object.
 - After a save, create and update go where their `redirectAfter` sends them.
 - Each view shows the action buttons that `actions` and `actionDetails` allow.
-- A route for an action outside `routeActions` shows "Action Not Found" and redirects.
+- A route for an action outside `routeActions` shows "Action Unavailable" and redirects.
 - The filter menu and sort controls match `filterables` and `sortables`.
 - After you hide a column and reload the list without query parameters, the column stays hidden.
 
@@ -264,7 +264,7 @@ Then check each view in the browser:
 3. On a read or update view, the object's `available_actions` includes a `detail` action.
 4. The action's `actionDetails` flags put it in a group the view renders. A list renders no button for a `detail` action that is not `bulk`.
 
-**A route shows "Action Not Found".** `routeActions` leaves the action out. Set `routeActions` in the model-wide override, and use `retrieve` for the `read` route.
+**A route shows "Action Unavailable".** `routeActions` leaves the action out. Set `routeActions` in the model-wide override, and use `retrieve` for the `read` route.
 
 **A create request fails validation for a required field.** `submitFields` leaves the field out, so its value never reaches the server. Add the field to `submitFields`, or give it a default on the server.
 

@@ -186,7 +186,8 @@ describe("lib/router/makeCrud.js", () => {
             await flushPromises();
 
             expect(router.currentRoute.value.name).toBe("not-found");
-            expect(toastMock.error).toHaveBeenCalledWith("Action Not Found");
+            expect(router.currentRoute.value.query.redirect).toBe("/blog/post/list/");
+            expect(toastMock.error).toHaveBeenCalledWith("Action Unavailable");
         });
 
         scopedIt("replaces the denied route rather than pushing over it", async () => {
@@ -264,7 +265,8 @@ describe("lib/router/makeCrud.js", () => {
             const failure = await router.push("/blog/comment/list/");
 
             expect(router.currentRoute.value.name).toBe("not-found");
-            expect(toastMock.error).toHaveBeenCalledWith("Action Not Found");
+            expect(router.currentRoute.value.query.redirect).toBe("/blog/comment/list/");
+            expect(toastMock.error).toHaveBeenCalledWith("Action Unavailable");
             expect(failure).toBeUndefined();
         });
 

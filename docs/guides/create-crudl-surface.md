@@ -344,7 +344,7 @@ router.addRoute(crudRoutes[0]);
 router.addRoute(crudRoutes[1]);
 ```
 
-The `actionRedirect` parameter is required. It specifies the route the guard should redirect to when a model or action is not found. If `actionRedirect` is falsy, `makeCRUDRoutes` throws at router build time; this is a hard error, not a runtime guard failure. The redirect target must not itself be gated by `requireModelInfo`, or you will produce a redirect loop.
+The `actionRedirect` parameter is required. It specifies the route the guard should redirect to when a model or action is unavailable to the user. The redirect carries the refused path as a `redirect` query value, which [Failure Modes](../core-concepts/routing-and-view-resolution-model.md#failure-modes) describes. If `actionRedirect` is falsy, `makeCRUDRoutes` throws at router build time; this is a hard error, not a runtime guard failure. The redirect target must not itself be gated by `requireModelInfo`, or you will produce a redirect loop.
 
 The `requireModelInfo` guard computes its allowlist by intersecting server-advertised actions from model-info, any `routeActions` restrictions from client model-config, and workflow transition codes. This is the {@term Route Admission} check. The guard normalizes action names through a static action-map utility. The server uses `retrieve` and `partial_update`, while the client uses `read` and `update` in route paths. This normalization is automatic; you do not need to manually translate between naming conventions when defining routes.
 
@@ -354,7 +354,7 @@ After the baseline CRUDL surface is working, view behavior can be customized thr
 
 ## Grant Permissions
 
-Model-info filters `model_actions` by the requesting user's permissions, and the client guard admits only listed actions. A user without grants sees "Action Not Found" on every route.
+Model-info filters `model_actions` by the requesting user's permissions, and the client guard admits only listed actions. A user without grants sees "Action Unavailable" on every route.
 
 Grant `myapp.list_widget`, `myapp.read_widget`, `myapp.create_widget`, `myapp.update_widget`, and `myapp.delete_widget` to a group, then add your test user to that group. Use the group management page described in [Manage Groups and Generate Group Migrations](./manage-groups), or run this in `python manage.py shell`:
 
@@ -386,7 +386,7 @@ With all pieces in place, verify the surface end-to-end:
 - Client navigation to `/:app/:model/read/:pk` renders the `read` view for a specific object.
 - Client navigation to `/:app/:model/create/` renders the `create` form. Submission redirects to the appropriate view.
 - Client navigation to `/:app/:model/update/:pk` renders the `update` form. Submission redirects to the appropriate view.
-- Navigating to an action the user lacks permission for produces an "Action Not Found" toast and redirects to the `actionRedirect` target.
+- Navigating to an action the user lacks permission for produces an "Action Unavailable" toast and redirects to the `actionRedirect` target.
 
 ## Troubleshooting
 
@@ -398,7 +398,7 @@ With all pieces in place, verify the surface end-to-end:
 
 **Choice dropdowns show no labels or endpoint returns 500.** This is typically a `formatted_name` configuration error. A system check (`vueda_info.E001`) catches the most common cause — `formatted_name = None` without an alternative — at startup, so the root cause should be visible in server output before any requests are served. If the server starts cleanly but choice labels are missing, verify that `get_formatted_name()` is a plain method (not a `@property`, which triggers `vueda_info.E003`) and that only one of `formatted_name_lookup_expression` or `get_formatted_name()` is provided (both at once triggers `vueda_info.E002`). If the serializer declares its own `formatted_name` field, check that the field reads a value, or remove the declaration so that `VuedaSerializer` builds the field from the model.
 
-**Client shows "Action Not Found" for a valid action.** The client normalizes route action names through a static action map; for example, `read` maps to `retrieve`. If `routeActions` in client model-config is configured using client-side names (like `read`) instead of canonical server names (like `retrieve`), the guard filtering may exclude actions that should be present.
+**Client shows "Action Unavailable" for a valid action.** The client normalizes route action names through a static action map; for example, `read` maps to `retrieve`. If `routeActions` in client model-config is configured using client-side names (like `read`) instead of canonical server names (like `retrieve`), the guard filtering may exclude actions that should be present.
 
 **`list` endpoint returns 400 on invalid filter queries.** `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset class. A query parameter that does not match any declared filter or recognized framework parameter (pagination, ordering, expand, fields) will produce a field-keyed 400 response listing valid filters. Verify that the filterset declares filters for all parameters the client sends.
 

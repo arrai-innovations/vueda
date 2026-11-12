@@ -76,16 +76,20 @@ Route segments and model info name one action differently: the route segment `re
 
 Both the guard and `ViewActionRouter` translate the route's action before they compare it with metadata. The built-in view registry is keyed by the untranslated route segment, so the read view is registered as `read`. A route with the segment `retrieve` passes the guard, but the registry has no `retrieve` entry. That route opens a view by the naming convention in [View Component Resolution Order](#view-component-resolution-order).
 
-`routeActions` holds canonical names, because the guard compares it with model info names before it compares the translated route action. A `routeActions` list that names `read` removes `retrieve` from the allowlist, so every `read` route for that model fails with "Action Not Found".
+`routeActions` holds canonical names, because the guard compares it with model info names before it compares the translated route action. A `routeActions` list that names `read` removes `retrieve` from the allowlist, so every `read` route for that model fails with "Action Unavailable".
 
 ## Failure Modes
 
 `requireModelInfo` redirects to `actionRedirect` in four cases:
 
-- **The action is not in the allowlist.** The user sees an "Action Not Found" toast.
+- **The action is not in the allowlist.** The user sees an "Action Unavailable" toast.
 - **Model info fails to load.** The store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfoError}, and the user sees "Model Not Found".
 - **The server answers the model info request with `403`.** The store rejects with the same `ModelInfoError`, and the user sees "Permission Denied" with the server's `detail`. The server refuses model info to a user who lacks `contenttypes.read_contenttype`.
 - **The route is a transition, and the server answers the permitted transitions request with `403`.** The workflow store rejects with {@api js:class:@arrai-innovations/vueda/stores/storeWorkflow#WorkflowPermissionDeniedError}, and the user sees "Permission Denied". The denial affects transition routes only: a CRUD route of the same model opens when model info lists its action. A workflow with no workflow permission rows returns `403` to every user; [Workflow as a Permission Overlay](./workflow-permission-overlay.md#failure-surfaces-and-symptom-signatures) describes the causes.
+
+Each of these redirects adds the refused route's full path to the destination's query as `redirect`. The {@api js:function:@arrai-innovations/vueda/router/guards#requireAuth} guard adds the same value to its sign-in redirect. A destination reads it from `route.query.redirect`. Resolving a catch-all record such as `/:pathMatch(.*)*` by name gives the path `/`, so the address bar shows `/?redirect=` followed by the refused path.
+
+{@api vue:component:ViewNotFound} describes the location in `redirect` when that value is a path. Its crest reads "Page unavailable" and names the refused path without a status code, and the page lists no suggested routes. It says that the location may not exist or that the account may not have access to it. Model info lists only the actions that the user may perform. The client therefore cannot tell an action that the user may not use from one that the model does not have. The toast names the cause when the guard knows it.
 
 The model info and workflow stores cache these failures per model, so later navigations to that model fail without a new request. {@term Auth-Scoped Stores} describes when those caches clear.
 
@@ -95,7 +99,7 @@ Other failures do not redirect:
 - **A permitted transition has no string `code`.** The guard throws `requireModelInfo: workflow transition is missing a string code` while it builds the allowlist, so every route of that model fails, whatever its action.
 - **Any other error.** A workflow error other than `403`, or any unexpected exception, propagates and aborts the navigation.
 
-A redirect loops when `actionRedirect` itself passes through `requireModelInfo` and fails, for example when `actionRedirect` is another route in the CRUD pair for the same model. The user sees repeated "Action Not Found" or "Model Not Found" toasts and no stable view.
+A redirect loops when `actionRedirect` itself passes through `requireModelInfo` and fails, for example when `actionRedirect` is another route in the CRUD pair for the same model. The user sees repeated "Action Unavailable" or "Model Not Found" toasts and no stable view.
 
 The guards report failures through `toast` from `@arrai-innovations/vue-sonner`. When no {@api vue:component:Sonner} toaster is mounted, the redirect still happens but the user sees no message. [Client Plugin Prerequisites](../guides/client-plugin-prerequisites.md#toast-notifications) describes mounting it.
 
