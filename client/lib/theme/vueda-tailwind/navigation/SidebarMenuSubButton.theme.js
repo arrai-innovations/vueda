@@ -12,7 +12,10 @@ patchTheme({
      * SidebarMenuSubButton styles interactive controls inside nested sidebar menu lists.
      */
     SidebarMenuSubButton: {
-        /** Nested sidebar control. Active state paints the sidebar rail through {@api css-token:vueda-sidebar-active-rail}. */
+        /**
+         * Nested sidebar control. Active state paints the sidebar rail through
+         * {@api css-token:vueda-sidebar-active-rail}.
+         */
         root: ({ size }) => ({
             class: [
                 // Surface and interactive states.

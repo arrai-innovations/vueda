@@ -16,7 +16,10 @@ patchTheme({
      * distinct from filter chips when both share a strip.
      */
     SortChip: {
-        /** Pill container. Neutral surface with a strong hairline so it reads against both the card and the constraints-strip tint. */
+        /**
+         * Pill container. Neutral surface with a strong hairline so it reads against both the card and the
+         * constraints-strip tint.
+         */
         root: {
             class: [
                 "inline-flex items-center rounded-full hairline hairline-border-strong bg-card text-xs font-semibold text-foreground",
@@ -27,7 +30,11 @@ patchTheme({
                 "[&.sortable-drag]:cursor-grabbing [&.sortable-drag]:hairline-primary [&.sortable-drag]:bg-primary/10 [&.sortable-drag]:text-primary-text",
             ],
         },
-        /** Label segment: field label and direction glyph. Clicking it flips direction. Stretches to full pill height so the hover target covers the pill. Carries the left pill radius when no leading ordinal is shown, and the right pill radius when no remove control is shown. */
+        /**
+         * Label segment: field label and direction glyph. Clicking it flips direction. Stretches to full pill height so
+         * the hover target covers the pill. Carries the left pill radius when no leading ordinal is shown, and the
+         * right pill radius when no remove control is shown.
+         */
         label: {
             class: ({ showOrdinal, removable }) => [
                 "inline-flex items-center self-stretch gap-1.5 py-1 pr-2 hover:bg-accent",
@@ -35,18 +42,27 @@ patchTheme({
                 !removable && "rounded-r-full",
             ],
         },
-        /** Drag handle (`.drag-handle`, grab cursor): a grip glyph plus the priority ordinal. Leftmost segment carrying the left pill radius. Shown only with more than one sort, so it is also the reorder affordance for touch (no hover needed to discover it). */
+        /**
+         * Drag handle (`.drag-handle`, grab cursor): a grip glyph plus the priority ordinal. Leftmost segment carrying
+         * the left pill radius. Shown only with more than one sort, so it is also the reorder affordance for touch (no
+         * hover needed to discover it).
+         */
         handle: {
             class: [
                 "drag-handle inline-flex items-center self-stretch gap-0.5 rounded-l-full cursor-grab select-none py-1 pl-2 pr-1",
                 "text-[length:var(--vueda-text-micro)] text-muted-foreground hover:bg-accent",
             ],
         },
-        /** Grip glyph inside the handle. The visible drag affordance; sized down to read as chrome beside the ordinal. */
+        /**
+         * Grip glyph inside the handle. The visible drag affordance; sized down to read as chrome beside the ordinal.
+         */
         grip: {
             class: ["leading-none opacity-70"],
         },
-        /** Priority ordinal. Mono and muted: it is positional read-out, and ordering priority is the one thing a sort chip carries that a filter chip does not. */
+        /**
+         * Priority ordinal. Mono and muted: it is positional read-out, and ordering priority is the one thing a sort
+         * chip carries that a filter chip does not.
+         */
         ordinal: {
             class: ["font-mono text-[length:var(--vueda-text-micro)] font-medium tabular-nums text-muted-foreground"],
         },
@@ -62,7 +78,10 @@ patchTheme({
         divider: {
             class: ["h-4 w-hairline bg-border"],
         },
-        /** Remove segment (the trailing dismiss control). Carries the right pill radius; stretches to full pill height to match the label hover target. */
+        /**
+         * Remove segment (the trailing dismiss control). Carries the right pill radius; stretches to full pill height
+         * to match the label hover target.
+         */
         remove: {
             class: [
                 "inline-flex items-center self-stretch rounded-r-full px-1.5 py-1 opacity-70 hover:bg-accent hover:opacity-100",

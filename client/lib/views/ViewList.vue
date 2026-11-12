@@ -56,7 +56,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field names to fetch. When empty, the list fetches the `displayFields` names. When those are empty too, it fetches the model config's `fetchFields`. */
+    /**
+     * Field names to fetch. When empty, the list fetches the `displayFields` names. When those are empty too, it
+     * fetches the model config's `fetchFields`.
+     */
     fetchFields: {
         type: Array,
         default: () => [],
@@ -351,6 +354,7 @@ onMounted(() => {
                     <!-- @slot [targetless-action-button, button] Replaces an individual targetless action button. -->
                     <slot :name="targetlessActionButtonSlotName.name" v-bind="themedButtonSlotProps[actionName]">
                         <link-model-view
+                            button
                             v-bind="themedButtonSlotProps[actionName]"
                             emphasis="outline"
                             :primary="actions.primaryActions.has(actionName)"

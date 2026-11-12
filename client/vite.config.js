@@ -42,6 +42,8 @@ export default () => {
             alias: {
                 "@vueda": fileURLToPath(new URL("./lib/", import.meta.url)),
                 "@tests": fileURLToPath(new URL("./tests", import.meta.url)),
+                // ViewActionRouter lists project views through `@/views`. This package has no project views.
+                "@": fileURLToPath(new URL("./src", import.meta.url)),
             },
         },
     });

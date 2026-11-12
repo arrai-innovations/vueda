@@ -15,7 +15,15 @@ patchTheme({
      * ghost-button recipe for hover.
      */
     CalendarCellTrigger: {
-        /** The pressable day button inside a {@api theme-key:CalendarCell.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonGhost.root} so day buttons share the popover-friendly hover recipe with the rest of the picker chrome. Size pins to `--vueda-cal-day` (30×30) so the button sits inside the 32px {@api theme-key:CalendarCell.root} with a 1px breathing margin. Carries the picker's full state matrix: `data-selected` paints `--primary` / `--primary-foreground`, `data-today` (when not selected) paints `--accent`, `data-disabled` and `data-outside-view` mute to `--muted-foreground`, and `data-unavailable` paints `--destructive` plus `line-through`. */
+        /**
+         * The pressable day button inside a {@api theme-key:CalendarCell.root}. Composes
+         * {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonGhost.root} so day buttons share the
+         * popover-friendly hover recipe with the rest of the picker chrome. Size pins to `--vueda-cal-day` (30×30) so
+         * the button sits inside the 32px {@api theme-key:CalendarCell.root} with a 1px breathing margin. Carries the
+         * picker's full state matrix: `data-selected` paints `--primary` / `--primary-foreground`, `data-today` (when
+         * not selected) paints `--accent`, `data-disabled` and `data-outside-view` mute to `--muted-foreground`, and
+         * `data-unavailable` paints `--destructive` plus `line-through`.
+         */
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [

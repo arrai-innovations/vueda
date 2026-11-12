@@ -14,7 +14,14 @@ patchTheme({
      * highlights with `--accent`.
      */
     DateFieldInput: {
-        /** A single editable date segment (year / month / day). Renders in `--vueda-font-mono` at `font-medium` with `font-feature-settings: 'tnum','zero'` so digit widths stay stable as values change and `0` remains visually distinct from `O`. The focused segment paints `--accent` / `--accent-foreground` (same recipe as a menu-item-highlighted row, since a focused segment is a selection); `caret-transparent` hides the text caret because segments edit via arrow keys rather than free-form typing, and `data-[placeholder]` mutes the segment to `--muted-foreground` while empty. */
+        /**
+         * A single editable date segment (year / month / day). Renders in `--vueda-font-mono` at `font-medium` with
+         * `font-feature-settings: 'tnum','zero'` so digit widths stay stable as values change and `0` remains visually
+         * distinct from `O`. The focused segment paints `--accent` / `--accent-foreground` (same recipe as a
+         * menu-item-highlighted row, since a focused segment is a selection); `caret-transparent` hides the text caret
+         * because segments edit via arrow keys rather than free-form typing, and `data-[placeholder]` mutes the segment
+         * to `--muted-foreground` while empty.
+         */
         root: {
             class: [
                 // Segment layout and type.

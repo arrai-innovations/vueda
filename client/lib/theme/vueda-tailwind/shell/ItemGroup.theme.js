@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemGroup: {
         /**
-         * The stack wrapper for related items. It opens a named group scope and leaves borders or section chrome to the caller.
+         * The stack wrapper for related items. It opens a named group scope and leaves borders or section chrome to the
+         * caller.
          */
         root: {
             class: "group/item-group flex flex-col",

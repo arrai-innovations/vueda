@@ -15,7 +15,8 @@ patchTheme({
      */
     TableCell: {
         /**
-         * The body cell slot for `<td>` elements. It applies the density tiers from {@api theme-key:Table.table}, keeps checkbox columns compact, and honors `data-numeric` or `data-mono` directly on the cell.
+         * The body cell slot for `<td>` elements. It applies the density tiers from {@api theme-key:Table.table}, keeps
+         * checkbox columns compact, and honors `data-numeric` or `data-mono` directly on the cell.
          */
         root: {
             class: [

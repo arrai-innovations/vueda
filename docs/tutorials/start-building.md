@@ -595,45 +595,11 @@ For per-family or per-component loading and the order required for project patch
 
 The scaffolded `client/src/router/index.js` already routes `sign-in` to {@api vue:component:ViewSignIn}, VUEDA's ready-made sign-in form. After sign-in, the form sends the user to the `welcome` route, which shows the scaffolded `client/src/views/ViewWelcome.vue`. Replace that view with your application's own home page when you have one. The router also has routes for the password reset, two-factor, and reauthentication pages. To build your own forms, see [Build Auth Views](../guides/build-auth-views.md).
 
-### Configure CRUDL View Resolution
+### CRUDL View Resolution
 
-The scaffolded router passes an empty `crudComponents` object to {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}, so no {@term CRUDL} route has a view yet. In `client/src/router/index.js`, replace this line:
+The scaffolded router passes an empty `crudComponents` object to {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}, so every {@term CRUDL} route uses VUEDA's default view loaders. {@api vue:component:ViewActionRouter} renders a built-in view for each action: {@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, and {@api vue:component:ViewDestroy}. These views read fields, filters, and permissions from {@term Model Info}, so a working baseline needs no per-model client code. Keep the router as it is.
 
-```javascript
-const crudComponents = {};
-```
-
-with this map:
-
-```javascript
-const crudComponents = {
-    list: async () => (await import("@vueda/views/ViewList.vue")).default,
-    create: async () => (await import("@vueda/views/ViewCreate.vue")).default,
-    read: async () => (await import("@vueda/views/ViewRead.vue")).default,
-    update: async () => (await import("@vueda/views/ViewUpdate.vue")).default,
-    destroy: async () => (await import("@vueda/views/ViewDestroy.vue")).default,
-};
-```
-
-Keep the rest of the router as it is.
-
-`crudComponents` maps each {@term CRUDL} action to a built-in view ({@api vue:component:ViewList}, {@api vue:component:ViewCreate}, {@api vue:component:ViewRead}, {@api vue:component:ViewUpdate}, {@api vue:component:ViewDestroy}). {@api vue:component:ViewActionRouter} uses this map to resolve which component to render. These views auto-discover fields, filters, and permissions from {@term Model Info}, so no per-model client code is needed for a working baseline. See [Routing and View Resolution](/core-concepts/routing-and-view-resolution-model) for the full resolution chain.
-
-::: tip Per-model view overrides
-In a real project you may want a custom view for a specific model. The common pattern is a dynamic import with a fallback:
-
-```javascript
-list: async ({ app, model }) => {
-    try {
-        return (await import(`@/views/ViewList${pascal(app)}${pascal(model)}.vue`)).default;
-    } catch {
-        return (await import("@vueda/views/ViewList.vue")).default;
-    }
-},
-```
-
-This lets you drop in a `ViewListInventoryProduct.vue` for one model while every other model keeps the default. See [Creating a CRUDL Surface](/guides/create-crudl-surface) for details.
-:::
+To replace a built-in view, add a file with that view's name to `client/src/views`. On the `inventory` app's `product` list page, the router renders `ViewListInventoryProduct.vue` when that file exists. On every list page without a model-specific file, it renders `ViewList.vue` when that file exists, and VUEDA's `ViewList` otherwise. The other built-in views follow the same pattern. A loader that you register with `setCrudComponents` replaces this lookup for its action. [Routing and View Resolution Model](/core-concepts/routing-and-view-resolution-model#view-component-resolution-order) lists every file name that the router looks for.
 
 ### Verify in the Browser
 
@@ -655,7 +621,7 @@ Open `http://localhost:5173/sign-in/` in your browser.
 3. After login you should land on `/welcome/`.
 4. Navigate to `http://localhost:5173/inventory/product/list/`. The Starter Kit product you created with curl appears here. To reach other models, the client URL pattern is `/{app_label}/{model}/list/`, where `{model}` comes from model-info and follows Django's `model_name` convention: the class name lowercased with no separators. For example, `ProductOption` becomes `productoption`, so its list URL is `/inventory/productoption/list/`. The server router registers each model under the same name (see [Router and URLs](#router-and-urls)).
 5. Use the "Create" action to add a product and verify it appears in the list.
-6. Open `http://localhost:5173/inventory/product/read/1` to see the Starter Kit read view, then try update and destroy from there. The next section links list rows to this view.
+6. Open `http://localhost:5173/inventory/product/read/1` to see the Starter Kit read view, then try update from there. To try destroy, open the product that you created in step 5 and destroy it. Keep Starter Kit, because [Add Workflow to a Model](add-workflow.md) uses it. The next section links list rows to the read view.
 
 ### Customize with Model Config
 

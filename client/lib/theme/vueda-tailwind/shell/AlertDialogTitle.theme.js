@@ -13,7 +13,8 @@ patchTheme({
      */
     AlertDialogTitle: {
         /**
-         * The primary heading for an alert dialog. It uses a compact semibold heading treatment sized for modal content, not page-level display text.
+         * The primary heading for an alert dialog. It uses a compact semibold heading treatment sized for modal
+         * content, not page-level display text.
          */
         root: {
             class: "text-lg font-semibold",

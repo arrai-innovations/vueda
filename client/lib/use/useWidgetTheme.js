@@ -1,6 +1,7 @@
 /**
  * @module use/useWidgetTheme
- * @description Resolves the active theme classes for a widget component by combining widget validation state with any additional context.
+ * @description Resolves the active theme classes for a widget component by combining widget validation state with any
+ *  additional context.
  */
 import { useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive } from "vue";
@@ -11,8 +12,10 @@ import { computed, reactive } from "vue";
  * @param {string} componentName - The theme component name (must exist in the active theme).
  * @param {import('@vueda/use/useTheme.js').ThemeProps} props - The reactive or computed component props.
  * @param {import('@vueda/use/useWidget.js').WidgetContextState} widgetContextState - The widget context state.
- * @param {{ [key: string]: unknown }} [additionalContext] - Extra reactive context entries to merge into the theme context.
- * @param {(key: string, kwargs: { [key: string]: unknown }) => string} [keyFn] - Optional function to modify a key based on kwargs.
+ * @param {{ [key: string]: unknown }} [additionalContext] - Extra reactive context entries to merge into the theme
+ *  context.
+ * @param {(key: string, kwargs: { [key: string]: unknown }) => string} [keyFn] - Optional function to modify a key
+ *  based on kwargs.
  * @returns {import('@vueda/use/useTheme.js').UseThemeReturnFunction}
  */
 export function useWidgetTheme(componentName, props, widgetContextState, additionalContext, keyFn) {

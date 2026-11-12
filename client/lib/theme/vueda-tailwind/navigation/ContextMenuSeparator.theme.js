@@ -12,7 +12,9 @@ patchTheme({
      * ContextMenuSeparator renders a divider between context menu sections.
      */
     ContextMenuSeparator: {
-        /** Context-menu divider that bleeds through menu padding. See also: {@api theme-key:DropdownMenuSeparator.root}. */
+        /**
+         * Context-menu divider that bleeds through menu padding. See also: {@api theme-key:DropdownMenuSeparator.root}.
+         */
         root: {
             class: "bg-border -mx-1 my-1 h-hairline",
         },

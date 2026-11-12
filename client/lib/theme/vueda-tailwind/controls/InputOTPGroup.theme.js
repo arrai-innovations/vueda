@@ -13,7 +13,11 @@ patchTheme({
      * code).
      */
     InputOTPGroup: {
-        /** A contiguous run of {@api theme-key:InputOTPSlot.root} cells (e.g. the three digits before and after a `-` in a 3-3 split code). Pure flex row; the visual joining comes from the slots themselves overlapping their hairlines, so a group is just a layout marker that separates one run from the next when a code is split. */
+        /**
+         * A contiguous run of {@api theme-key:InputOTPSlot.root} cells (e.g. the three digits before and after a `-` in
+         * a 3-3 split code). Pure flex row; the visual joining comes from the slots themselves overlapping their
+         * hairlines, so a group is just a layout marker that separates one run from the next when a code is split.
+         */
         root: {
             class: ["flex items-center"],
         },

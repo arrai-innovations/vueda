@@ -6,7 +6,7 @@ import { defineComponent, h, reactive } from "vue";
 // Stubs
 const BooleanDisplayStub = defineComponent({
     name: "BooleanDisplayStub",
-    props: { value: null, trueLabel: String, falseLabel: String, inline: Boolean },
+    props: { value: null, trueLabel: String, falseLabel: String, options: Array, inline: Boolean },
     setup(props) {
         return () =>
             h(
@@ -17,6 +17,7 @@ const BooleanDisplayStub = defineComponent({
                     "data-true-label": String(props.trueLabel),
                     "data-false-label": String(props.falseLabel),
                     "data-inline": String(props.inline),
+                    "data-options": JSON.stringify(props.options),
                 },
                 String(props.value),
             );
@@ -95,6 +96,13 @@ describe("lib/widgets/WidgetBooleanReadOnly.vue", () => {
         const display = wrapper.get('[data-qa="boolean-display"]');
         expect(display.attributes("data-true-label")).toBe("Enabled");
         expect(display.attributes("data-false-label")).toBe("Disabled");
+    });
+
+    scopedIt("forwards its options to BooleanDisplay", () => {
+        const options = [{ label: "Submitted", value: true }];
+        const wrapper = mount(WidgetBooleanReadOnly, { props: { options }, ...mountOptions });
+
+        expect(JSON.parse(wrapper.get('[data-qa="boolean-display"]').attributes("data-options"))).toEqual(options);
     });
 
     scopedIt("lets a consumer's own default slot replace the boolean rendering", () => {

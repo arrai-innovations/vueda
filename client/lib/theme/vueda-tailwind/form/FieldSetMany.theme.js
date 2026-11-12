@@ -52,11 +52,17 @@ patchTheme({
         row: {
             class: ["group/many-row grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1 2xs:gap-2"],
         },
-        /** Field wrapper that lets the control shrink. Repeated labels stay accessible but visually hidden under the fieldset heading; descriptions and validation messages remain in the field layout. */
+        /**
+         * Field wrapper that lets the control shrink. Repeated labels stay accessible but visually hidden under the
+         * fieldset heading; descriptions and validation messages remain in the field layout.
+         */
         component: {
             class: ["min-w-0 [&>[data-slot=field]>[data-slot=field-label]]:sr-only"],
         },
-        /** Remove-button cell aligned with the first control-height of the row, independent of messages below it. Stays available to focus and appears on row hover or focus. */
+        /**
+         * Remove-button cell aligned with the first control-height of the row, independent of messages below it. Stays
+         * available to focus and appears on row hover or focus.
+         */
         removeButton: {
             class: [
                 "flex h-vueda-control items-center justify-center",

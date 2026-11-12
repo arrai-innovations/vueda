@@ -14,7 +14,8 @@ ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
 env = TomlEnv({**load_toml(ROOT_DIR / "config.toml"), **load_toml(ROOT_DIR / "config.local.toml")})
 
 
-locals().update(get_defaults(env))
+# Websocket subscriptions are opt-in; the test project exercises them.
+locals().update(get_defaults(env, use_streams=True))
 
 # MD5 is intentionally test-only. It exercises Django's password API without paying the production Scrypt cost.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

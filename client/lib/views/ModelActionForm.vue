@@ -61,12 +61,17 @@ const props = defineProps({
         type: [String, Number, Array],
         default: undefined,
     },
-    /** Human-readable action name shown in confirmation and result messages; defaults to a title-cased version of `action`. */
+    /**
+     * Human-readable action name shown in confirmation and result messages; defaults to a title-cased version of
+     * `action`.
+     */
     actionVerboseName: {
         type: String,
         default: undefined,
     },
-    /** Toast summary shown on successful action completion; auto-generated from the action and model name if omitted. */
+    /**
+     * Toast summary shown on successful action completion; auto-generated from the action and model name if omitted.
+     */
     actionSuccessSummary: {
         type: String,
         default: undefined,
@@ -76,12 +81,19 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    /** Confirmation message shown to the user before submitting; auto-generated from the action and model name if omitted. */
+    /**
+     * Confirmation message shown to the user before submitting; auto-generated from the action and model name if
+     * omitted.
+     */
     confirmMessage: {
         type: String,
         default: undefined,
     },
-    /** Reactive fetch state object providing the list of selected objects and their data. Without it, the form looks the selected records up by primary key so its chips can show their formatted names. That lookup is for display only and never changes which records the action targets. */
+    /**
+     * Reactive fetch state object providing the list of selected objects and their data. Without it, the form looks the
+     * selected records up by primary key so its chips can show their formatted names. That lookup is for display only
+     * and never changes which records the action targets.
+     */
     fetchState: {
         type: Object,
         default: undefined,

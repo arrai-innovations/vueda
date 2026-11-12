@@ -37,6 +37,7 @@ from rest_framework import serializers
 from rest_framework import viewsets  # noqa F401
 from rest_framework.fields import _UnvalidatedField
 
+from vueda.core.formatted_name import FORMATTED_NAME
 from vueda.core.installed_apps import workflow_enabled
 from vueda.core.open_api import conditional_extend_schema_field_decorator
 from vueda.core.open_api import route_path
@@ -51,9 +52,11 @@ from vueda.core.paths import has_public_ordering_name
 from vueda.core.paths import orm_ordering_path_to_public
 from vueda.core.paths import query_path_field
 from vueda.core.permissions import check_action_permission
+from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import CompositePrimaryKeyField
 from vueda.core.serializers import VuedaExpandableFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
+from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
@@ -131,6 +134,31 @@ FIELD_TYPE_MAPPING = {
     "TimeField": "time",
     "UUIDField": "alpha",
 }
+
+
+def _get_queryset_only_relation(field, model_field):
+    """
+    Return the relation whose related model only its ``get_queryset()`` can give.
+
+    That is a DRF relation that passes no ``queryset`` and has no model relation behind it, such as a write-only
+    relation that ``create()`` handles. For a ``ManyRelatedField``, the relation is its ``child_relation``.
+
+    Returns ``None`` for any other field. ``queryset`` or ``model_field.related_model`` gives its related model.
+
+    :param field: A serializer field.
+    :type field: rest_framework.fields.Field
+    :param model_field: The model field behind ``field``. It is ``None`` when no model field is behind ``field``.
+    :type model_field: Optional[django.db.models.Field]
+    :rtype: Optional[rest_framework.relations.RelatedField]
+    """
+    relation = field.child_relation if isinstance(field, serializers.ManyRelatedField) else field
+    if (
+        isinstance(relation, serializers.RelatedField)
+        and relation.queryset is None
+        and getattr(model_field, "related_model", None) is None
+    ):
+        return relation
+    return None
 
 
 class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerializerMixin, serializers.ModelSerializer):
@@ -318,30 +346,76 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return field_type
 
     @staticmethod
-    def get_model_fields_serializer_field_type(field_name, model_field, many):
+    def _get_serializer_type_field(model_field, many):
+        """
+        Return the serializer field whose class names a field's ``type_serializer``.
+
+        That is the field itself, or the child of a list field. The result is ``None`` when ``model_field`` is.
+        """
         if model_field is None:
-            return
+            return None
 
         if hasattr(model_field, "field"):
             model_field = model_field.field
 
         child_field = model_field.child if many and hasattr(model_field, "child") else None
 
-        if isinstance(child_field, _UnvalidatedField):
-            child_field = None
+        if child_field is None or isinstance(child_field, _UnvalidatedField):
+            return model_field
+        return child_field
 
-        # Get the field type.
-        if child_field is None:
-            field_type = model_field.__class__.__name__
-        else:
-            field_type = child_field.__class__.__name__
+    @staticmethod
+    def get_model_fields_serializer_field_type(field_name, model_field, many):
+        type_field = ModelInfoSerializer._get_serializer_type_field(model_field, many)
+        if type_field is None:
+            return
 
-        # We couldn't figure out what the ReadOnlyField type was, so assume it is a CharField.
-        # This is the case for 'formatted_name', which doesn't exist on the serializer and doesn't have a model field.
-        if field_type == "ReadOnlyField":
+        field_type = type_field.__class__.__name__
+
+        # A ReadOnlyField carries no type of its own, so assume it is a CharField. A
+        # FormattedNameField, or a subclass of it, serves a string under any field name.
+        if field_type == "ReadOnlyField" or isinstance(type_field, FormattedNameField):
+            field_type = "CharField"
+
+        # formatted_name is always a string, whatever field class serves it: the built
+        # FormattedNameField, or a serializer's own declaration such as a SerializerMethodField.
+        if field_name == FORMATTED_NAME:
             field_type = "CharField"
 
         return field_type
+
+    @staticmethod
+    def get_model_fields_serializer_field_ancestors(field_name, model_field, many, field_type):
+        """
+        Return the serializer field classes that the field's ``type_serializer`` class inherits from.
+
+        The names are in method resolution order, nearest first. They include only Django REST framework
+        ``Field`` subclasses, and stop before ``Field`` itself. A client that has no mapping for
+        ``type_serializer`` tries each ancestor in turn, so a project's subclass of a stock field gets the stock
+        field's mapping.
+
+        The list is empty when ``field_type`` is not the class name of the field, such as a ``ReadOnlyField``
+        that is reported as a ``CharField``. The reported type then already names the mapping to use.
+
+        The list is also empty for a nested serializer, including the ``ListSerializer`` that ``many=True``
+        builds. The client renders a nested serializer as an inline and never looks it up in the type mappings.
+
+        Args:
+            field_name: The field's name on the serializer.
+            model_field: The serializer field.
+            many: Whether the field holds a list.
+            field_type: The ``type_serializer`` that model info reports for the field.
+        """
+        type_field = ModelInfoSerializer._get_serializer_type_field(model_field, many)
+        if type_field is None or field_type != type_field.__class__.__name__:
+            return []
+        if isinstance(type_field, serializers.BaseSerializer):
+            return []
+        return [
+            klass.__name__
+            for klass in type_field.__class__.__mro__[1:]
+            if issubclass(klass, serializers.Field) and klass is not serializers.Field
+        ]
 
     def get_model_fields_data(self, serializer, *, excluded_fields=frozenset(), context=None):
         pk_field = serializer.Meta.model._meta.pk.name
@@ -352,7 +426,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             if field_name in excluded_fields:
                 continue
 
-            many = isinstance(field, (serializers.ListField, serializers.ManyRelatedField))
+            # A MultipleChoiceField holds a list of choices without being a ListField.
+            many = isinstance(
+                field, (serializers.ListField, serializers.ManyRelatedField, serializers.MultipleChoiceField)
+            )
             if many:
                 child_field = field.child if many and hasattr(field, "child") else None
                 if isinstance(child_field, _UnvalidatedField):
@@ -371,6 +448,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             field_type_db = self.get_model_fields_db_field_type(field_name, model_field, many)
             field_type_model = self.get_model_fields_model_field_type(field_name, model_field, many)
             field_type_serializer = self.get_model_fields_serializer_field_type(field_name, field, many)
+            field_type_serializer_ancestors = self.get_model_fields_serializer_field_ancestors(
+                field_name, field, many, field_type_serializer
+            )
 
             field_data = {
                 "choices": False,
@@ -382,25 +462,31 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "type_db": field_type_db,
                 "type_model": field_type_model,
                 "type_serializer": field_type_serializer,
+                "type_serializer_ancestors": field_type_serializer_ancestors,
             }
             # Sent only when a serializer field sets it, like the optional constraint keys below.
             if "list_default" in field.style:
                 field_data["list_default"] = bool(field.style["list_default"])
             widget = getattr(field, "widget", None)
-            obj = serializer
-            if not field.read_only:
-                if hasattr(field, "queryset"):
-                    obj = field.queryset.model
-                choices, extra_data = self.get_model_field_choices(field, widget, obj)
-                field_data["choices"] = choices
-                if extra_data:
-                    field_data.update(extra_data)
-            elif isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
-                # For read-only relation fields, emit app_label + model without offering choices.
+            if field.read_only and isinstance(field, (serializers.RelatedField, serializers.ManyRelatedField)):
+                # A read-only relation field has no queryset to list, so it reports the related model
+                # without choices.
                 ro_meta = self._get_readonly_relation_meta(model_field)
                 if ro_meta is not None:
                     field_data["app_label"] = ro_meta.app_label
                     field_data["model"] = ro_meta.model_name
+            else:
+                # Static choices need no queryset, so a field reports them whether it is read-only or writable.
+                if _get_queryset_only_relation(field, model_field) is not None:
+                    # get_choices_meta calls this relation's get_queryset(), which may read
+                    # self.context["request"]. A field from get_fields() is not bound, so its context is empty
+                    # until it is bound to the serializer that holds the context. Binding also sets
+                    # field.label, so effective_label above must be read first.
+                    field.bind(field_name, serializer_instance)
+                choices, extra_data = self.get_model_field_choices(field, widget, serializer, model_field=model_field)
+                field_data["choices"] = choices
+                if extra_data:
+                    field_data.update(extra_data)
             self._apply_field_constraints(field_data, field, model_field, field_name, pk_field)
             fields[field_name] = field_data
         return fields
@@ -464,6 +550,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         action describes what a requester might do on some instance of the model, not a guarantee
         that holds for every instance; the per-object surfaces (an object's own
         ``available_actions``) decide that separately, through ``has_object_permission``.
+
+        Each extra action lists the HTTP methods that the requesting user passes, from
+        :func:`vueda.core.permissions.permitted_extra_action_methods` with no instance. With no
+        request, it lists every method that the action accepts.
+
+        The permission checks run against a viewset instance that carries the attributes that the
+        router gives every routed view: this request, empty ``args`` and ``kwargs``, and no
+        ``format_kwarg``. A permission class that reads ``view.request`` or ``view.kwargs``
+        therefore runs here as it runs on a route that has no URL kwargs.
         """
         # To do this, we'll need to have a canonical viewset for each model
         from vueda.core.viewsets import VuedaViewSet  # noqa F401
@@ -471,9 +566,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         viewset = self.canonical["viewset"]  # type: VuedaViewSet
         if viewset is None:
             return []
-        called_viewset = viewset()
 
         request = self.context.get("request", None)
+        called_viewset = viewset(request=request, args=(), kwargs={}, format_kwarg=None)
         user = request.user if request is not None else None
 
         queryset = viewset().get_queryset()
@@ -522,7 +617,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "description": f"{extra_action.url_name} {app_label}.{model_name}",
                 "detail": extra_action.detail,
                 "bulk": extra_action.bulk,
-                "method_names": list(extra_action.mapping.keys()),
+                "method_names": permitted_extra_action_methods(called_viewset, request, None, extra_action),
             }
             parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
             if parameters:
@@ -544,7 +639,9 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         # Similar to actions, we'll need to have a canonical serializer to determine what expands are available
         serializer = self.canonical["serializer"]  # type: type[serializers.ModelSerializer]
 
-        serializer_instance = serializer()
+        # self.context carries this request, which generate_expand_model_info passes on to each expand's
+        # serializer.
+        serializer_instance = serializer(context=self.context)
 
         # Registration doesn't require the canonical serializer to inherit VuedaExpandableFieldsSerializerMixin,
         # so neither hook may exist. A serializer with no concept of expandable fields simply has no expands to
@@ -1200,7 +1297,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         return related_model._meta
 
     @staticmethod
-    def get_choices_meta(field, choices):
+    def get_choices_meta(field, choices, *, model_field=None):
         """
         Get the metadata for queryset-backed choices.
 
@@ -1215,23 +1312,43 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ``model`` attribute: ``BaseFilterSet.__init__`` assigns ``model`` to *every* filter it holds, so
         that test passes for all filters on an instantiated filterset.
 
+        A DRF relation field resolves its related model from the first of these sources that is available.
+        Neither of the first two needs a request, so model info works without one even when the field overrides
+        ``get_queryset()`` to narrow its values by the request.
+
+        1. The ``queryset`` that the field passes.
+        2. The ``related_model`` of ``model_field``, the model field behind the serializer field. A relation
+           that overrides ``get_queryset()`` may pass no ``queryset``, so its ``queryset`` attribute is
+           ``None``.
+        3. The field's ``get_queryset()``, which is what DRF calls to list and validate the field's values.
+           This applies only to a relation with no ``queryset`` and no model relation behind it. An override
+           may read ``self.context["request"]``, so the caller must bind the field to a serializer that holds
+           the request.
+
         :param field: The field that the choices are attached to.
         :type field: Union[django_filters.filters.Filter, rest_framework.fields.Field]
         :param choices: The choices data or True if the choices are queryset-based or False if there are no choices.
         :type choices: Union[List, Tuple, bool]
+        :param model_field: The model field behind ``field``, from ``resolve_serializer_field_model_field``.
+            It is ``None`` when no model field is behind ``field``.
+        :type model_field: Optional[django.db.models.Field]
         :return: The metadata for the queryset-backed choices, or None if the choices are not queryset-backed.
         :rtype: Optional[django.db.models.options.Options]
         """
         meta = None
         if choices is True:
             # queryset based choices
-            if hasattr(field, "queryset"):
-                meta = field.queryset.model._meta
-            elif hasattr(field, "child_relation") and hasattr(field.child_relation, "queryset"):
-                meta = field.child_relation.queryset.model._meta
+            relation = field.child_relation if isinstance(field, serializers.ManyRelatedField) else field
+            queryset_only_relation = _get_queryset_only_relation(field, model_field)
+            if queryset_only_relation is not None:
+                meta = queryset_only_relation.get_queryset().model._meta
+            elif isinstance(relation, serializers.RelatedField) and relation.queryset is None:
+                meta = model_field.related_model._meta
+            elif hasattr(relation, "queryset"):
+                meta = relation.queryset.model._meta
         return meta
 
-    def get_model_field_choices(self, field, widget, serializer):
+    def get_model_field_choices(self, field, widget, serializer, *, model_field=None):
         """
         Get the choices for a model field.
 
@@ -1241,12 +1358,15 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         :type widget: django.forms.widgets.Widget
         :param serializer: A rest_framework serializer.
         :type serializer: rest_framework.serializers.Serializer
+        :param model_field: The model field behind ``field``. ``get_choices_meta`` reads the related model
+            from it for a relation that passes no ``queryset``.
+        :type model_field: Optional[django.db.models.Field]
         :return: Returns a tuple, with the first value being the choices list or True if the choices are model-based,
           or False if there are no choices. The second value is the metadata for the model-based choices.
         :rtype: Tuple[Union[List, Tuple, bool], Optional[django.db.models.options.Options]]
         """
         choices = self.get_choices_data(field, widget)
-        meta = self.get_choices_meta(field, choices)
+        meta = self.get_choices_meta(field, choices, model_field=model_field)
         if meta is not None:
             return True, {
                 "app_label": meta.app_label,

@@ -4,6 +4,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useWorkflowTransitions } from "@vueda/use/useWorkflowTransitions.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { getPascalCaseName } from "@vueda/utils/case.js";
+import { projectViews, warnUnmatchedProjectViews } from "@vueda/utils/projectViewOverrides.js";
 import ViewAction from "@vueda/views/ViewAction.vue";
 import ViewActionNotFound from "@vueda/views/ViewActionNotFound.vue";
 import ViewExecuteTransition from "@vueda/views/ViewExecuteTransition.vue";
@@ -11,8 +12,10 @@ import ViewLoading from "@vueda/views/ViewLoading.vue";
 import { shallowRef, toRef, watch } from "vue";
 
 /**
- * Resolves the correct view component for a given model action at runtime, delegating to CRUD
- * views, workflow transition views, or dynamically imported custom action views as appropriate.
+ * Renders the view for the route's action from the project's `src/views` files, preferring a file named for the
+ * route's model over a project-wide file. When no project file exists, it renders the VUEDA view. A loader that a
+ * project registers with {@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}
+ * replaces this lookup for a built-in action.
  */
 defineOptions({});
 
@@ -40,24 +43,46 @@ const props = defineProps({
 });
 const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 const workflow = useWorkflowTransitions(toRef(props, "app"), toRef(props, "model"));
-const getExtraActionComponent = async ({ app, model, action }, fallback) => {
-    try {
-        // by app, model and action
-        return (
-            await import(
-                `@/views/ViewAction${getPascalCaseName(app)}${getPascalCaseName(model)}${getPascalCaseName(action)}.vue`
-            )
-        ).default;
-    } catch (e) {
-        try {
-            // by action
-            return (await import(`@/views/ViewAction${getPascalCaseName(action)}.vue`)).default;
-        } catch (e) {
-            // no extra action component found
-            return fallback;
+/**
+ * Load the first name that has a project file. A name without a file moves the lookup to the next name. A file
+ * that exists and fails to load rejects, and the error reaches the application's error handling.
+ *
+ * @param {string[]} names
+ * @param {() => (object|Promise<object>)} fallback
+ * @returns {Promise<object>}
+ */
+const importProjectView = async (names, fallback) => {
+    for (const name of names) {
+        const load = projectViews[`View${name}.vue`];
+        if (load) {
+            return (await load()).default;
         }
     }
+    return fallback();
 };
+/**
+ * @param {import("@vueda/router/routerComponent.js").ViewTarget} target
+ * @returns {import("@vueda/router/routerComponent.js").ViewLoaderContext}
+ */
+const viewLoaderContext = ({ app, model }) => ({
+    findProjectView: (name, fallback) =>
+        importProjectView([`${name}${getPascalCaseName(app)}${getPascalCaseName(model)}`, name], fallback),
+});
+/**
+ * @param {import("@vueda/router/routerComponent.js").ViewTarget} target
+ * @param {string} genericName
+ * @param {object} vuedaView
+ * @returns {Promise<object>}
+ */
+const findActionView = ({ app, model, action }, genericName, vuedaView) =>
+    importProjectView(
+        [
+            `Action${getPascalCaseName(app)}${getPascalCaseName(model)}${getPascalCaseName(action)}`,
+            `Action${getPascalCaseName(action)}`,
+            genericName,
+        ],
+        () => vuedaView,
+    );
 // Resolve the component and its props together. Until both are ready, the current
 // view keeps its previous target rather than receiving a different model's props.
 const snapshotProps = () => ({ ...props, pk: Array.isArray(props.pk) ? [...props.pk] : props.pk });
@@ -83,6 +108,17 @@ watch(
         }
 
         const target = snapshotProps();
+        if (import.meta.env.DEV && modelConfig.info?.actions) {
+            // A file name is the only link between a project view and its route, so report one that matches
+            // nothing.
+            warnUnmatchedProjectViews(Object.keys(projectViews), {
+                app: target.app,
+                model: target.model,
+                actionNames: modelConfig.info.actions.map((action) => action.name),
+                transitionCodes: (workflow.transitions || []).map((transition) => transition.code),
+                registryKeys: Object.keys(crudComponents),
+            });
+        }
         const actionName = getActionName(target.action);
         const action = modelConfig.info?.actions?.find((action) => action.name === actionName);
         const transition = workflow.transitions?.find((transition) => transition.code === actionName);
@@ -91,9 +127,11 @@ watch(
             component = ViewActionNotFound;
         } else if (!transition && Object.hasOwn(crudComponents, target.action)) {
             // A transition takes precedence over a registry entry with the same name.
-            component = await crudComponents[target.action](target);
+            component = await crudComponents[target.action](target, viewLoaderContext(target));
+        } else if (transition) {
+            component = await findActionView(target, "ExecuteTransition", ViewExecuteTransition);
         } else {
-            component = await getExtraActionComponent(target, transition ? ViewExecuteTransition : ViewAction);
+            component = await findActionView(target, "Action", ViewAction);
         }
         // A later navigation or metadata refresh may have superseded this import.
         if (current) {

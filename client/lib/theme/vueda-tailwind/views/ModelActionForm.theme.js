@@ -14,15 +14,26 @@ patchTheme({
      * It carries tone-aware banner, selected-object, message, and button slots.
      */
     ModelActionForm: {
-        /** Outer wrapper. Empty so the card or bare slot owns all visible chrome; layout decisions belong to whichever inner shell the form renders. */
+        /**
+         * Outer wrapper. Empty so the card or bare slot owns all visible chrome; layout decisions belong to whichever
+         * inner shell the form renders.
+         */
         root: {
             class: [],
         },
-        /** Bare-mode wrapper used when the form is embedded in a host's own card. Renders `display: contents`, which suppresses this form's own card chrome and tone scope. */
+        /**
+         * Bare-mode wrapper used when the form is embedded in a host's own card. Renders `display: contents`, which
+         * suppresses this form's own card chrome and tone scope.
+         */
         bare: {
             class: ["contents"],
         },
-        /** Canonical confirmation card. Opens a `group/model-action-form` named scope so descendants opt into tone via `group-data-[tone=…]/model-action-form:` variants, and routes a `data-[tone=…]:` border + 8% ring (`box-shadow: 0 0 0 3px <tone>/8%`) per tone. With `page`, the same element drops the card chrome and only stacks the banner and body, because the view's gutter and the page title frame the page. */
+        /**
+         * Canonical confirmation card. Opens a `group/model-action-form` named scope so descendants opt into tone via
+         * `group-data-[tone=…]/model-action-form:` variants, and routes a `data-[tone=…]:` border + 8% ring
+         * (`box-shadow: 0 0 0 3px <tone>/8%`) per tone. With `page`, the same element drops the card chrome and only
+         * stacks the banner and body, because the view's gutter and the page title frame the page.
+         */
         card: {
             class: ({ page }) =>
                 page
@@ -48,7 +59,12 @@ patchTheme({
                           "data-[tone=danger]:shadow-[0_0_0_3px_color-mix(in_oklab,var(--destructive)_8%,transparent)]",
                       ],
         },
-        /** Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone` via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body. With `page`, the banner is an unframed row: the icon tile carries the tone, and the page supplies the spacing. */
+        /**
+         * Tone-tracked banner row at the top of the card. Background and border tint route from the card's `data-tone`
+         * via `group-data-[tone=…]/model-action-form:` variants; bottom hairline separates the banner from the body.
+         * With `page`, the banner is an unframed row: the icon tile carries the tone, and the page supplies the
+         * spacing.
+         */
         banner: ({ page }) =>
             page
                 ? { class: ["flex items-start gap-3"] }
@@ -69,7 +85,11 @@ patchTheme({
                           "group-data-[tone=danger]/model-action-form:bg-destructive/[0.06]",
                       ],
                   },
-        /** 36 px circular icon tile leading the banner. Tile fill and foreground swap with tone (info / success / warning / danger) via the `group/model-action-form` scope; matches the destructive tile recipe on {@api theme-key:ActionForm.validationIcon} so danger surfaces read as siblings. */
+        /**
+         * 36 px circular icon tile leading the banner. Tile fill and foreground swap with tone (info / success /
+         * warning / danger) via the `group/model-action-form` scope; matches the destructive tile recipe on
+         * {@api theme-key:ActionForm.validationIcon} so danger surfaces read as siblings.
+         */
         bannerIcon: {
             composes: ["_ActionBanner.bannerIcon"],
             class: [
@@ -90,7 +110,10 @@ patchTheme({
                 "group-data-[tone=danger]/model-action-form:text-destructive-foreground",
             ],
         },
-        /** Inner column beside the icon: title, description, optional meta strip. `min-w-0` lets a long title ellipsize instead of pushing the banner wider. */
+        /**
+         * Inner column beside the icon: title, description, optional meta strip. `min-w-0` lets a long title ellipsize
+         * instead of pushing the banner wider.
+         */
         bannerBody: {
             composes: ["_ActionBanner.bannerBody"],
             class: [],
@@ -100,24 +123,39 @@ patchTheme({
             composes: ["_ActionBanner.bannerTitle"],
             class: [],
         },
-        /** One-line description beneath the banner title. 12 px / muted-foreground so the headline / supporting-copy hierarchy reads at a glance. */
+        /**
+         * One-line description beneath the banner title. 12 px / muted-foreground so the headline / supporting-copy
+         * hierarchy reads at a glance.
+         */
         bannerDesc: {
             composes: ["_ActionBanner.bannerDesc"],
             class: [],
         },
-        /** Optional mono meta strip below the banner description (e.g. "action archive · scope 4 selected"). Mono with a small letter-spacing bump so machine-readable values stay legible at 11 px. */
+        /**
+         * Optional mono meta strip below the banner description (e.g. "action archive · scope 4 selected"). Mono with a
+         * small letter-spacing bump so machine-readable values stay legible at 11 px.
+         */
         bannerMeta: {
             class: ["font-mono text-[11px] font-normal leading-[1.5] tracking-[0.04em]", "text-muted-foreground"],
         },
-        /** Card body region beneath the banner. Holds the selected-objects panel, confirm prompt, and extra-fields stack with a 12 px gap between sections. With `page`, the body drops its padding and uses the view's gutter. */
+        /**
+         * Card body region beneath the banner. Holds the selected-objects panel, confirm prompt, and extra-fields stack
+         * with a 12 px gap between sections. With `page`, the body drops its padding and uses the view's gutter.
+         */
         body: {
             class: ({ page }) => (page ? ["flex flex-col gap-3"] : ["p-4 flex flex-col gap-3"]),
         },
-        /** Inner stack used by the embedded {@api theme-key:ActionForm.inner} when ModelActionForm composes ActionForm. Mirrors the ActionForm rhythm so the field column reads continuously across the two shells. */
+        /**
+         * Inner stack used by the embedded {@api theme-key:ActionForm.inner} when ModelActionForm composes ActionForm.
+         * Mirrors the ActionForm rhythm so the field column reads continuously across the two shells.
+         */
         inner: {
             class: ["flex flex-col gap-1 md:gap-2 2xl:gap-4 mt-1"],
         },
-        /** Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel destructive when this form's own `group/model-action-form` scope is at `tone="danger"`; neutral otherwise. */
+        /**
+         * Selected-objects panel: tinted-muted background, hairline, card radius. Tone routing tints the panel
+         * destructive when this form's own `group/model-action-form` scope is at `tone="danger"`; neutral otherwise.
+         */
         selectedObjects: {
             class: [
                 "rounded-vueda-card bg-muted/25 hairline hairline-border p-3",
@@ -128,11 +166,17 @@ patchTheme({
                 "group-data-[tone=danger]/model-action-form:[--vueda-hairline-color:color-mix(in_oklab,var(--destructive)_40%,transparent)]",
             ],
         },
-        /** Eyebrow head row above the chip strip: label on the left, mono count on the right. Wraps when the count grows long so the label never overflows the panel. */
+        /**
+         * Eyebrow head row above the chip strip: label on the left, mono count on the right. Wraps when the count grows
+         * long so the label never overflows the panel.
+         */
         selectedHead: {
             class: ["flex flex-row items-baseline justify-between flex-wrap gap-2"],
         },
-        /** Mono count beside the eyebrow label (e.g. `12 selected`). Mono / 11 px / `tabular-nums` so digits stay column-aligned as the count changes. */
+        /**
+         * Mono count beside the eyebrow label (e.g. `12 selected`). Mono / 11 px / `tabular-nums` so digits stay
+         * column-aligned as the count changes.
+         */
         selectedHeadCount: {
             class: ["font-mono text-[11px] font-normal leading-none tabular-nums", "text-muted-foreground"],
         },
@@ -143,7 +187,12 @@ patchTheme({
                 "text-muted-foreground leading-none",
             ],
         },
-        /** Confirm-prompt panel: tinted-muted background with a 2 px primary left rule that signals "read this before you submit". Inner `flex-col` accommodates multi-paragraph guidance without breaking the rule's visual anchor. With `page`, the prompt is plain text, so the selected-records panel stays the page's one framed block. */
+        /**
+         * Confirm-prompt panel: tinted-muted background with a 2 px primary left rule that signals "read this before
+         * you submit". Inner `flex-col` accommodates multi-paragraph guidance without breaking the rule's visual
+         * anchor. With `page`, the prompt is plain text, so the selected-records panel stays the page's one framed
+         * block.
+         */
         message: {
             class: ({ page }) =>
                 page
@@ -155,23 +204,41 @@ patchTheme({
                           "px-3 py-2.5",
                       ],
         },
-        /** Paragraph element inside the confirm-prompt panel. 13 px / foreground; resets the default `<p>` margin so consecutive paragraphs stack on the panel's own gap. */
+        /**
+         * Paragraph element inside the confirm-prompt panel. 13 px / foreground; resets the default `<p>` margin so
+         * consecutive paragraphs stack on the panel's own gap.
+         */
         messageText: {
             class: ["text-[13px] leading-[1.5] text-foreground m-0"],
         },
-        /** Extra-fields slot below the confirm prompt for action-specific inputs (reason, scope, etc.). Standard 12 px form-field stack so embedded fields line up with the surrounding field column. */
+        /**
+         * Extra-fields slot below the confirm prompt for action-specific inputs (reason, scope, etc.). Standard 12 px
+         * form-field stack so embedded fields line up with the surrounding field column.
+         */
         extraFields: {
             class: ["flex flex-col gap-3"],
         },
-        /** Internal button cluster passthrough when ModelActionForm composes its own confirm / cancel pair. The pinned actions strip recipe lives on {@api theme-key:ActionForm.buttons}; this slot lays out the buttons stacked at narrow widths and inline at `lg+`. */
+        /**
+         * Internal button cluster passthrough when ModelActionForm composes its own confirm / cancel pair. The pinned
+         * actions strip recipe lives on {@api theme-key:ActionForm.buttons}; this slot lays out the buttons stacked at
+         * narrow widths and inline at `lg+`.
+         */
         buttons: {
             class: ["flex flex-col lg:flex-row gap-1 md:gap-2 flex-wrap lg:flex-nowrap"],
         },
-        /** Chip-row container inside the selected-objects panel. Wraps so a large selection folds across multiple rows instead of overflowing the card. The `list` / `listItem` / `listItemLabel` / `listItemPk` slot family is the kit's preferred selected-object dialect; the standalone {@api theme-key:ActionForm.list} stack is the alternative for non-card consumers. */
+        /**
+         * Chip-row container inside the selected-objects panel. Wraps so a large selection folds across multiple rows
+         * instead of overflowing the card. The `list` / `listItem` / `listItemLabel` / `listItemPk` slot family is the
+         * kit's preferred selected-object dialect; the standalone {@api theme-key:ActionForm.list} stack is the
+         * alternative for non-card consumers.
+         */
         list: {
             class: ["flex flex-row flex-wrap gap-2"],
         },
-        /** One chip in the selected-objects strip: label + mono PK on a card-toned background with a hairline border. Tints destructive in this form's own danger scope; neutral otherwise. */
+        /**
+         * One chip in the selected-objects strip: label + mono PK on a card-toned background with a hairline border.
+         * Tints destructive in this form's own danger scope; neutral otherwise.
+         */
         listItem: {
             class: [
                 "inline-flex items-center gap-2 px-2 py-1 rounded-vueda-control",
@@ -181,22 +248,36 @@ patchTheme({
                 "group-data-[tone=danger]/model-action-form:bg-card",
             ],
         },
-        /** Human-readable label fragment of a chip. 12 px / 500 / foreground so the label reads as the primary token in the chip. */
+        /**
+         * Human-readable label fragment of a chip. 12 px / 500 / foreground so the label reads as the primary token in
+         * the chip.
+         */
         listItemLabel: {
             class: ["text-[12px] font-medium text-foreground leading-none"],
         },
-        /** Mono PK fragment of a chip. 11 px / mono / muted-foreground; tints destructive at 80 % strength under danger so the PK still reads as supporting copy beside the label. */
+        /**
+         * Mono PK fragment of a chip. 11 px / mono / muted-foreground; tints destructive at 80 % strength under danger
+         * so the PK still reads as supporting copy beside the label.
+         */
         listItemPk: {
             class: [
                 "text-[11px] font-normal font-mono text-muted-foreground leading-none",
                 "group-data-[tone=danger]/model-action-form:text-destructive/80",
             ],
         },
-        /** Non-field error block passthrough. Empty by default; the tone-tracked banner above and the per-field validation alert on {@api theme-key:ActionForm.validation} carry most failure feedback. */
+        /**
+         * Non-field error block passthrough. Empty by default; the tone-tracked banner above and the per-field
+         * validation alert on {@api theme-key:ActionForm.validation} carry most failure feedback.
+         */
         nonFieldErrorBlock: {
             class: "",
         },
-        /** One warned object's group inside the confirmation dialog's per-object warnings view (see {@api theme-key:ActionForm.validation} for the analogous per-field alert). A left rule in the warning tone separates each object's messages from the next, echoing {@api theme-key:ModelActionForm.message}'s primary-toned rule for the confirm prompt. */
+        /**
+         * One warned object's group inside the confirmation dialog's per-object warnings view (see
+         * {@api theme-key:ActionForm.validation} for the analogous per-field alert). A left rule in the warning tone
+         * separates each object's messages from the next, echoing {@api theme-key:ModelActionForm.message}'s
+         * primary-toned rule for the confirm prompt.
+         */
         confirmWarningGroup: {
             class: [
                 "flex flex-col gap-1",
@@ -205,7 +286,11 @@ patchTheme({
                 "px-3 py-2",
             ],
         },
-        /** Label row above a warned object's messages, rendering the object's own display link via {@api vue:component:WidgetReadOnly}. The messages themselves render via {@api vue:component:FieldWarningsList}. */
+        /**
+         * Label row above a warned object's messages, rendering the object's own display link via
+         * {@api vue:component:WidgetReadOnly}. The messages themselves render via
+         * {@api vue:component:FieldWarningsList}.
+         */
         confirmWarningLabel: {
             class: ["text-[12px] font-medium text-foreground"],
         },

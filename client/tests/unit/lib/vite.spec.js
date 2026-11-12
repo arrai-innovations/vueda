@@ -6,7 +6,54 @@ import path from "node:path";
 import { createServer } from "vite";
 
 const clientRoot = path.resolve(import.meta.dirname, "../../../");
-const routerSource = path.join(clientRoot, "lib/views/ViewActionRouter.vue");
+const overridesSource = path.join(clientRoot, "lib/utils/projectViewOverrides.js");
+
+/**
+ * @param {string} fixtureRoot
+ * @param {string|null} packagePath
+ * @param {object} extraAliases
+ * @returns {Promise<string>}
+ */
+const transformProjectViewList = async (fixtureRoot, packagePath, extraAliases = {}) => {
+    const overridesPath = packagePath
+        ? path.join(fixtureRoot, "node_modules", packagePath, "lib/utils/projectViewOverrides.js")
+        : overridesSource;
+    if (packagePath) {
+        fs.mkdirSync(path.dirname(overridesPath), { recursive: true });
+        fs.copyFileSync(overridesSource, overridesPath);
+    }
+    const vueda = vuedaViteConfig({
+        root: fixtureRoot,
+        enableDedupe: false,
+        enableRuntimeAliases: false,
+        extraAliases: { "@vueda": path.join(clientRoot, "lib"), ...extraAliases },
+    });
+    const server = await createServer({
+        root: fixtureRoot,
+        configFile: false,
+        plugins: [vue()],
+        ...vueda,
+        optimizeDeps: { noDiscovery: true },
+        server: { fs: { allow: [clientRoot] }, middlewareMode: true },
+    });
+    try {
+        return (await server.transformRequest(`/@fs${overridesPath}`)).code;
+    } finally {
+        await server.close();
+    }
+};
+
+/**
+ * @param {string} viewsDir
+ * @returns {void}
+ */
+const writeProjectView = (viewsDir) => {
+    fs.mkdirSync(viewsDir, { recursive: true });
+    fs.writeFileSync(
+        path.join(viewsDir, "ViewActionCatalogInventoryrecordReplenish.vue"),
+        "<template>Custom action</template>",
+    );
+};
 
 describe("lib/vite.js", () => {
     let fixtureRoot;
@@ -22,45 +69,24 @@ describe("lib/vite.js", () => {
         ["registry-style path", ".pnpm/@arrai-innovations+vueda@3.0.0/node_modules/@arrai-innovations/vueda"],
         ["file-style path", ".pnpm/@arrai-innovations+vueda@file+client/node_modules/@arrai-innovations/vueda"],
         ["direct checkout source", null],
-    ])("transforms action view imports from a %s", async (_, packagePath) => {
-        fixtureRoot = fs.mkdtempSync(path.join(clientRoot, ".action-router-vite-"));
-        const views = path.join(fixtureRoot, "src/views");
-        fs.mkdirSync(views, { recursive: true });
-        fs.writeFileSync(
-            path.join(views, "ViewActionCatalogInventoryrecordReplenish.vue"),
-            "<template>Custom action</template>",
-        );
+    ])("lists the project's src/views files from a %s through the default @ alias", async (_, packagePath) => {
+        fixtureRoot = fs.mkdtempSync(path.join(clientRoot, ".project-views-vite-"));
+        writeProjectView(path.join(fixtureRoot, "src/views"));
+        const code = await transformProjectViewList(fixtureRoot, packagePath);
+        expect(code).toContain('import("/src/views/ViewActionCatalogInventoryrecordReplenish.vue")');
+    });
 
-        const routerPath = packagePath
-            ? path.join(fixtureRoot, "node_modules", packagePath, "lib/views/ViewActionRouter.vue")
-            : routerSource;
-        if (packagePath) {
-            fs.mkdirSync(path.dirname(routerPath), { recursive: true });
-            fs.copyFileSync(routerSource, routerPath);
-        }
+    it("lists the project's view files from the directory that the project's @ alias names", async () => {
+        fixtureRoot = fs.mkdtempSync(path.join(clientRoot, ".project-views-vite-"));
+        writeProjectView(path.join(fixtureRoot, "main/views"));
+        const code = await transformProjectViewList(fixtureRoot, null, { "@": path.join(fixtureRoot, "main") });
+        expect(code).toContain('import("/main/views/ViewActionCatalogInventoryrecordReplenish.vue")');
+    });
 
-        const vueda = vuedaViteConfig({
-            root: fixtureRoot,
-            enableDedupe: false,
-            enableRuntimeAliases: false,
-            extraAliases: { "@": path.join(fixtureRoot, "src"), "@vueda": path.join(clientRoot, "lib") },
-        });
-        const server = await createServer({
-            root: fixtureRoot,
-            configFile: false,
-            plugins: [vue()],
-            ...vueda,
-            optimizeDeps: { noDiscovery: true },
-            server: { fs: { allow: [clientRoot] }, middlewareMode: true },
-        });
-        try {
-            const transformed = await server.transformRequest(`/@fs${routerPath}`);
-            expect(transformed.code).toContain("__variableDynamicImportRuntimeHelper");
-            expect(transformed.code).toContain("ViewActionCatalogInventoryrecordReplenish.vue");
-            expect(transformed.code).not.toContain("`@/views/");
-        } finally {
-            await server.close();
-        }
+    it("lists no files for a project without a views directory", async () => {
+        fixtureRoot = fs.mkdtempSync(path.join(clientRoot, ".project-views-vite-"));
+        const code = await transformProjectViewList(fixtureRoot, null);
+        expect(code).toContain("Object.assign({})");
     });
 
     it.each(["vue-router", "pinia"])("resolves the %s alias to the package's import entry", async (packageName) => {
@@ -82,8 +108,17 @@ describe("lib/vite.js", () => {
         }
     });
 
-    it("leaves the router excluded when the consumer has no action view alias", () => {
-        const config = vuedaViteConfig({ enableDedupe: false });
-        expect(config.build).toBeUndefined();
+    it("sets @ to the project's src directory", () => {
+        const config = vuedaViteConfig({ root: "/project", enableDedupe: false });
+        expect(config.resolve.alias["@"]).toBe(path.resolve("/project", "src"));
+    });
+
+    it("lets the project's @ alias replace the default", () => {
+        const config = vuedaViteConfig({
+            root: "/project",
+            enableDedupe: false,
+            extraAliases: { "@": "/project/main" },
+        });
+        expect(config.resolve.alias["@"]).toBe("/project/main");
     });
 });

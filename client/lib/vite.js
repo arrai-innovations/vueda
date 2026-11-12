@@ -11,8 +11,6 @@ import { searchForWorkspaceRoot } from "vite";
 
 const VUEDA_PACKAGE = "@arrai-innovations/vueda";
 const REACTIVE_HELPERS_PACKAGE = "@arrai-innovations/reactive-helpers";
-const EXCLUDE_DEPENDENCIES_EXCEPT_ACTION_ROUTER =
-    /\/node_modules\/(?!(?:.*\/)?@arrai-innovations\/vueda\/lib\/views\/ViewActionRouter\.vue$)/;
 
 const packageRoot = fileURLToPath(new URL(".", import.meta.url));
 
@@ -121,7 +119,7 @@ const collectPeerDependencies = (packageJsonPaths) => {
 
 /**
  * Returns a Vite config fragment for vueda, covering `define`, `resolve.alias`, `resolve.dedupe`, and
- * (optionally) `optimizeDeps`, `server.fs.allow`, and action-view import transforms. Spread the result into
+ * (optionally) `optimizeDeps` and `server.fs.allow`. Spread the result into
  * your Vite `defineConfig` or merge it with `mergeConfig`.
  *
  * The fragment guarantees a single copy of VUEDA, reactive-helpers, and their shared peer dependencies by
@@ -140,11 +138,14 @@ const collectPeerDependencies = (packageJsonPaths) => {
  * @param {object} [options] - Configuration options.
  * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
  * @param {boolean} [options.enableDedupe] - Whether to de-duplicate shared peer dependencies. Defaults to true.
- * @param {boolean} [options.enableRuntimeAliases] - Whether to pin vue/pinia/vue-router to their bundler builds. Defaults to true.
+ * @param {boolean} [options.enableRuntimeAliases] - Whether to pin vue/pinia/vue-router to their bundler builds.
+ *  Defaults to true.
  * @param {string[]} [options.excludeFromDedupe] - Peer dependency names to leave out of `resolve.dedupe`.
  * @param {string[]} [options.extraDedupe] - Additional package names to add to `resolve.dedupe`.
- * @param {object} [options.extraAliases] - Additional aliases to include.
- *   Pass `@` pointing to the consumer's `src` directory to discover convention-named action views.
+ * @param {object} [options.extraAliases] - Additional aliases to include. An alias here replaces the fragment's
+ *   alias of the same name. The fragment sets `@` to the project's `src` directory. `ViewActionRouter` finds the
+ *   project's view files in `@/views`, and these files replace VUEDA's views for built-in actions, custom actions,
+ *   and transitions. Pass `@` to point it at another directory.
  * @param {boolean} [options.manageLinkedOptimizeDeps] - Manage dep pre-bundling for linked packages: pre-bundle
  *   linked reactive-helpers (single instance) and keep linked VUEDA as source. Defaults to true.
  * @param {object} [options.optimizeDeps] - Vite optimizeDeps overrides (merged with the computed include/exclude).
@@ -213,6 +214,7 @@ export const vuedaViteConfig = (options = {}) => {
                   "vue-router": path.resolve(topNodeModulesPath, "vue-router"),
               }
             : {}),
+        "@": path.resolve(root, "src"),
         ...extraAliases,
     };
 
@@ -263,18 +265,6 @@ export const vuedaViteConfig = (options = {}) => {
 
     return {
         define,
-        // Vite excludes node_modules from variable-import transforms. Include only VUEDA's action router
-        // when the consumer supplies the @ alias its imports use. Without that alias, keep the default
-        // exclusion so applications using built-in views or explicit registration still build.
-        ...(Object.hasOwn(extraAliases, "@")
-            ? {
-                  build: {
-                      dynamicImportVarsOptions: {
-                          exclude: [EXCLUDE_DEPENDENCIES_EXCEPT_ACTION_ROUTER],
-                      },
-                  },
-              }
-            : {}),
         resolve: {
             alias,
             ...(dedupe.length ? { dedupe } : {}),

@@ -149,7 +149,8 @@ function selectedKeysFromQuery(value) {
  * @param {string} [params.pathPrefix=''] - The prefix to add to the path.
  * @param {string} [params.authRedirect=null] - The route to redirect to if the user is not authenticated.
  * @param {string[]} [params.groups=null] - The groups required to access the views.
- * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups. Required when `groups` names at least one group.
+ * @param {object} [params.groupsRedirect=null] - The route to redirect to if the user is not in the required groups.
+ *  Required when `groups` names at least one group.
  * @param {object} params.actionRedirect - The route to redirect if model/action not found.
  * @param {import('vue').App} params.vueApp - The Vue app instance.
  * @param {import('vue-router').Router} params.router - The Vue router instance.

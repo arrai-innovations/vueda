@@ -12,7 +12,11 @@ patchTheme({
      * Native `<optgroup>` styled to inherit the popover surface.
      */
     NativeSelectOptGroup: {
-        /** The native `<optgroup>` tinted to inherit the popover surface so the system's native dropdown reads as the same surface family as VUEDA's JS-driven pickers. The OS owns layout and the divider between groups; this slot only paints the background. */
+        /**
+         * The native `<optgroup>` tinted to inherit the popover surface so the system's native dropdown reads as the
+         * same surface family as VUEDA's JS-driven pickers. The OS owns layout and the divider between groups; this
+         * slot only paints the background.
+         */
         root: {
             class: ["bg-popover text-popover-foreground"],
         },

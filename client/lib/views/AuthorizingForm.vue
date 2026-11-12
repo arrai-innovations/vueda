@@ -6,14 +6,18 @@ import ActionForm from "@vueda/views/ActionForm.vue";
 import { onMounted, toRef } from "vue";
 
 /**
- * Authentication wrapper that monitors login state and redirects the user after a successful sign-in, rendering a header, subtitle, and delegating to ActionForm for the actual credential form.
+ * Authentication wrapper that monitors login state and redirects the user after a successful sign-in, rendering a
+ * header, subtitle, and delegating to ActionForm for the actual credential form.
  *
  * @vueda-slot-forward ActionForm
  */
 defineOptions({});
 
 const props = defineProps({
-    /** Vue Router location to push to after a successful login; falls back to `{ name: "welcome" }` or the `?redirect` query param. */
+    /**
+     * Vue Router location to push to after a successful login; falls back to `{ name: "welcome" }` or the `?redirect`
+     * query param.
+     */
     redirect: {
         type: [String, Object],
         default: undefined,
@@ -43,7 +47,9 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
-    /** When `true`, the post-login redirect only triggers if the user has also recently authenticated (re-auth guard). */
+    /**
+     * When `true`, the post-login redirect only triggers if the user has also recently authenticated (re-auth guard).
+     */
     requireRecentLogin: {
         type: Boolean,
         default: false,

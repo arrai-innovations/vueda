@@ -34,7 +34,7 @@
  * @example Wiring action buttons
  * ```html
  * <template v-for="actionName in actions.nonDetailActions" :key="actionName">
- *     <link-model-view :app="app" :model="model" :view="actionName" />
+ *     <link-model-view :app="app" :model="model" :view="actionName" button />
  * </template>
  * <template v-for="actionName in actions.detailActions" :key="actionName">
  *     <link-model-view :app="app" :model="model" :pk="pk" :view="actionName" button />
@@ -65,9 +65,11 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { useObject404 } from "@vueda/use/useObject404.js";
+import { useObjectChangeNotice } from "@vueda/use/useObjectChangeNotice.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { objectStreamsEnabled } from "@vueda/utils/objectStreams.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
@@ -79,16 +81,22 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * Required identification.
  * @property {string} app - Django app label that owns the model.
  * @property {string} model - Django model name.
- * @property {string} viewName - View identifier used to load model config and build the form ID (e.g. `"read"` or `"update"`).
+ * @property {string} viewName - View identifier used to load model config and build the form ID (e.g. `"read"` or
+ *  `"update"`).
  * @property {string} pk - Primary key of the instance to fetch.
  *
  * Optional data-fetching overrides.
- * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default when non-empty.
- * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the instance.
- * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the instance.
+ * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default when
+ *  non-empty.
+ * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the
+ *  instance.
+ * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the
+ *  instance.
  *
  * Optional form overrides.
- * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {object} [formProps] - Extra props for the FormModel component. They win over the model config's
+ *  `formProps` and lose to the form props below. The `app`, `model`, and `view` keys are ignored, because the view sets
+ *  them.
  * @property {string[]} [fields] - Field names that the form renders. Replaces the model config list.
  * @property {object} [fieldDetails] - Map of field paths to field detail overrides.
  * @property {string[]} [expand] - Relations that the form renders as inline fieldsets. Replaces the model config list.
@@ -98,33 +106,55 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {object} [fieldProps] - Map of field paths to props for each field component.
  * @property {object} [widgetProps] - Map of field paths to props for each widget component.
  * @property {string} [formModelVariant] - Theme variant that the FormModel component receives as `variant`.
- * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to `["update"]`.
+ * @property {string[]} [primaryActions] - Detail-level action names promoted to the filled hero CTA; defaults to
+ *  `["update"]`.
+ * @property {boolean} [noticeChanges] - For a view that holds unsaved edits, such as update. After
+ *  `setupObjectStreams()`, the object subscription keeps the record current, the form keeps the values that it loaded,
+ *  and the returned `changeNotice` reports the difference. `currentActionAvailable` reads the actions that the record
+ *  allowed when the form took its values, with or without live updates.
+ * @property {boolean} [subscribe] - For a view that shows no edits, such as read. After `setupObjectStreams()`, the
+ *  view fetches the record again when the server reports a change, and the form values follow it. Without live updates,
+ *  the option has no effect.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
- * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
+ * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The
+ *  `useObjectForm` result; used to suppress re-fetching during submission and to surface submit errors.
  */
 
 /**
  * @typedef {object} DetailViewInstanceGroup
  *
- * @property {boolean} validAndActive - True when the component is mounted and all required props are set and model config has loaded.
- * @property {string} titleStr - Formatted page title derived from the view name and model verbose name. Empty until the verbose name is known.
+ * @property {boolean} validAndActive - True when the component is mounted and all required props are set and model
+ *  config has loaded.
+ * @property {string} titleStr - Formatted page title derived from the view name and model verbose name. Empty until the
+ *  verbose name is known.
  * @property {boolean} pageLoading - Combined loading state (model config + instance fetch).
- * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit buttons.
- * @property {Error|null} combinedError - The first active error across prop validation, model config, instance fetch, and form submission; null when none.
+ * @property {string} formId - Stable HTML `id` for the `<form>` element; use as `:id` on the form and `:form` on submit
+ *  buttons.
+ * @property {Error|null} combinedError - The first active error across prop validation, model config, instance fetch,
+ *  and form submission; null when none.
  * @property {boolean} combinedErrored - True when `combinedError` is non-null.
- * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`; empty string when no error.
- * @property {object} combinedFormProps - Every prop for the FormModel component, from {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave undefined keeps the model config value. When the object has calculated values, they join the merged `widgetProps` map.
- * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current view's action. True (optimistic) until the object has loaded.
- * @property {string} recordName - The fetched object's `formatted_name`, which names the record in the view's header. Empty when the model has no formatted name, when the object has not loaded, or when the name is blank.
- * @property {boolean} recordNamePending - True while the model has a formatted name and the object that carries it is still loading. A view shows a skeleton in place of the name during this time.
+ * @property {string} combinedWhileText - Human-readable description of the operation that produced `combinedError`;
+ *  empty string when no error.
+ * @property {object} combinedFormProps - Every prop for the FormModel component, from
+ *  {@link module:use/useFormModelProps}. Bind it as the form's only prop source. A form prop that the options leave
+ *  undefined keeps the model config value. When the object has calculated values, they join the merged `widgetProps`
+ *  map.
+ * @property {boolean} currentActionAvailable - Whether the fetched object's `available_actions` permits the current
+ *  view's action. True (optimistic) until the object has loaded.
+ * @property {string} recordName - The fetched object's `formatted_name`, which names the record in the view's header.
+ *  Empty when the model has no formatted name, when the object has not loaded, or when the name is blank.
+ * @property {boolean} recordNamePending - True while the model has a formatted name and the object that carries it is
+ *  still loading. A view shows a skeleton in place of the name during this time.
  */
 
 /**
  * @typedef {object} DetailViewActionsGroup
  *
- * @property {string[]} nonDetailActions - Action names that appear in the page-title button area (not detail-level, not the current view).
- * @property {string[]} detailActions - Action names that appear in the sticky bar alongside the submit button (detail-level, not the current view).
+ * @property {string[]} nonDetailActions - Action names that appear in the page-title button area (not detail-level, not
+ *  the current view).
+ * @property {string[]} detailActions - Action names that appear in the sticky bar alongside the submit button
+ *  (detail-level, not the current view).
  * @property {string[]} availableTransitions - Workflow transition codes available for the current instance.
  * @property {Set<string>} primaryActions - Detail action names promoted to the filled hero CTA.
  */
@@ -132,9 +162,13 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
 /**
  * @typedef {object} DetailViewContext
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
- * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The `useObject` result; exposes `.state.object`, `.state.loading`, `.state.error`, `.state.relatedObjects`, `.state.calculatedObjects`, etc.
- * @property {import('vue').UnwrapNestedRefs<DetailViewInstanceGroup>} instance - Computed display state: title, loading, errors, and form wiring.
+ * @property {import('@arrai-innovations/reactive-helpers').ObjectInstance} instanceObject - The `useObject` result;
+ *  exposes `.state.object`, `.state.loading`, `.state.error`, `.state.relatedObjects`, `.state.calculatedObjects`, etc.
+ * @property {import('vue').UnwrapNestedRefs<DetailViewInstanceGroup>} instance - Computed display state: title,
+ *  loading, errors, and form wiring.
  * @property {import('vue').UnwrapNestedRefs<DetailViewActionsGroup>} actions - Available action and transition lists.
+ * @property {import('@vueda/use/useObjectChangeNotice.js').ObjectChangeNotice} changeNotice - Whether someone else
+ *  changed or deleted the record, and `reload`. Stays clear unless `noticeChanges` is set.
  */
 
 /**
@@ -150,7 +184,8 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * are all caller responsibilities and are not handled by this composable.
  *
  * @param {DetailViewOptions} options
- * @param {import('vue').Ref<object> | object} formInitialValue - Reactive target populated with the fetched object data on each successful load.
+ * @param {import('vue').Ref<object> | object} formInitialValue - Reactive target populated with the fetched object data
+ *  on each successful load.
  * @returns {DetailViewContext}
  */
 export function useDetailView(options, formInitialValue) {
@@ -228,31 +263,64 @@ export function useDetailView(options, formInitialValue) {
             [EXPAND_PARAM]: computed(() => formModelExpand(formModelProps.value, modelConfig.config?.expand)),
         },
         intendToRetrieve,
+        intendToSubscribe: computed(
+            () => (!!options.subscribe || !!options.noticeChanges) && objectStreamsEnabled() && validAndActive.value,
+        ),
         relatedObjectRules: toRef(options, "relatedObjectRules"),
         calculatedObjectRules: toRef(options, "calculatedObjectRules"),
     });
 
     const instanceObject = useObject({ props: instanceObjectProps });
 
+    /**
+     * The form values of a record. A formatted name fetched only for the header stays out, so the
+     * form holds just the fields that the field list asked for.
+     *
+     * @param {object} object
+     * @returns {object}
+     */
+    function formValuesOf(object) {
+        return omit(
+            cloneDeep(object),
+            "available_actions",
+            "valid_transitions",
+            ...(addsFormattedName.value ? ["formatted_name"] : []),
+        );
+    }
+
+    // The actions that the record allowed when the form took its values. A view that holds edits checks
+    // its own action against these, so a pushed change never replaces the form while the user edits it.
+    /** @type {import('vue').Ref<string[]|undefined>} */
+    const baselineAvailableActions = ref(undefined);
+
+    function assignFormInitialValue() {
+        assignReactiveObject(formInitialValue, formValuesOf(instanceObject.state.object));
+        baselineAvailableActions.value = cloneDeep(instanceObject.state.object?.available_actions);
+    }
+
     watch(
         [validAndActive, toRef(instanceObject.state, "loading")],
         ([vAA, loading]) => {
             if (vAA && loading === false) {
-                // A formatted name fetched only for the header stays out of the form values, so the
-                // form holds just the fields that the field list asked for.
-                assignReactiveObject(
-                    formInitialValue,
-                    omit(
-                        cloneDeep(instanceObject.state.object),
-                        "available_actions",
-                        "valid_transitions",
-                        ...(addsFormattedName.value ? ["formatted_name"] : []),
-                    ),
-                );
+                assignFormInitialValue();
             }
         },
         { immediate: true },
     );
+
+    if (options.subscribe && objectStreamsEnabled()) {
+        // A pushed change replaces the object in place, without a loading cycle. A deleted record
+        // keeps its last values on screen.
+        watch(
+            () => instanceObject.state.object,
+            () => {
+                if (validAndActive.value && !instanceObject.state.deleted) {
+                    assignFormInitialValue();
+                }
+            },
+            { deep: true },
+        );
+    }
 
     /** @type {import('vue').Ref<Error|null>} */
     const myError = ref(null);
@@ -310,7 +378,9 @@ export function useDetailView(options, formInitialValue) {
         if (!object) {
             return true;
         }
-        const objectAvailableActions = object.available_actions;
+        const objectAvailableActions = options.noticeChanges
+            ? baselineAvailableActions.value
+            : object.available_actions;
         if (!objectAvailableActions) {
             return true;
         }
@@ -328,7 +398,7 @@ export function useDetailView(options, formInitialValue) {
 
     // Non-detail actions (such as `create` and `list`) act on the model, not this object, so
     // they come from the model-level action list. The server omits `create` from an object's
-    // `available_actions`, so filtering through it would hide the page-title Create link.
+    // `available_actions`, so filtering through it would hide the page-title Create button.
     const nonDetailActions = computed(() =>
         (filteredActions.actions || []).filter((n) => {
             const a = modelConfig.config?.actionDetails?.[n];
@@ -347,9 +417,19 @@ export function useDetailView(options, formInitialValue) {
         return new Set(candidates.filter((name) => detailActions.value.includes(name)));
     });
 
+    const changeNotice = useObjectChangeNotice({
+        enabled: () => !!options.noticeChanges && validAndActive.value,
+        current: () => formValuesOf(instanceObject.state.object),
+        baseline: () => formInitialValue,
+        deleted: () => instanceObject.state.deleted,
+        busy: () => instanceObject.state.loading !== false || !!options.objectForm?.state?.loading,
+        reload: assignFormInitialValue,
+    });
+
     return {
         modelConfig,
         instanceObject,
+        changeNotice,
         instance: reactive({
             validAndActive,
             titleStr,

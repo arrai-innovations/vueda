@@ -39,7 +39,7 @@ const FormModelStub = defineComponent({
 });
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
-    props: ["app", "model", "view", "pk", "label", "button"],
+    props: { app: null, model: null, view: null, pk: null, label: null, button: Boolean },
     setup(props) {
         return () =>
             h("div", {
@@ -49,7 +49,7 @@ const LinkModelViewStub = defineComponent({
                 "data-view": props.view,
                 "data-pk": props.pk,
                 "data-label": props.label,
-                "data-button": String(props.button || false),
+                "data-button": String(props.button),
             });
     },
 });
@@ -216,6 +216,19 @@ describe("lib/views/DetailView.vue", () => {
         await vue.nextTick();
         const views = wrapper.findAll('[data-qa="link-model-view"]').map((n) => n.attributes("data-view"));
         expect(views.sort()).toEqual(["activate", "approve", "complete", "destroy", "read", "update"].sort());
+    });
+
+    scopedIt("renders page-title actions as buttons", async () => {
+        filteredActions.actions = ["create", "list"];
+        modelConfig.config.actionDetails = { create: { detail: false }, list: { detail: false } };
+        instanceState.object = { available_actions: [] };
+        const wrapper = mountWithContext();
+        await vue.nextTick();
+        const links = wrapper.get('[data-qa="page-actions"]').findAll('[data-qa="link-model-view"]');
+        expect(links.map((n) => [n.attributes("data-view"), n.attributes("data-button")])).toEqual([
+            ["create", "true"],
+            ["list", "true"],
+        ]);
     });
 
     describe("Submit button", () => {

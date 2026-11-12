@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * ClickToCopyText lays out copyable text with its affordance on the same baseline. It is used for compact read-only values that can be copied.
+     * ClickToCopyText lays out copyable text with its affordance on the same baseline. It is used for compact read-only
+     * values that can be copied.
      */
     ClickToCopyText: {
         /** Baseline row for a compact read-only value and its copy affordance. */

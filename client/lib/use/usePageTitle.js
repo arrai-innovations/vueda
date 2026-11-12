@@ -11,16 +11,21 @@ import { computed, getCurrentScope, inject, onScopeDispose, provide, ref, shallo
 
 /**
  * @typedef {object} PageTitleEntry
- * @property {string} [title] - The page title text. An empty title means the view has not resolved it yet, and the display shows a skeleton.
+ * @property {string} [title] - The page title text. An empty title means the view has not resolved it yet, and the
+ *  display shows a skeleton.
  * @property {boolean} [loading] - Whether the page is currently loading.
  */
 
 /**
  * @typedef {object} PageTitleContext
- * @property {import('vue').ComputedRef<PageTitleEntry>} current - The active entry (the most recently registered source), or an empty object when no view has registered one.
- * @property {import('vue').ComputedRef<HTMLElement|null>} actionTarget - The element page actions teleport into, resolved from the zone the display bound. `null` until a zone is bound.
- * @property {(source: () => PageTitleEntry) => (() => void)} register - Register a title source. Returns a cleanup function and, when called inside an effect scope, clears itself automatically on dispose.
- * @property {(zone: import('vue').Ref<HTMLElement|null>|HTMLElement|null) => void} bindActionZone - Bind the element (or element ref) the display uses to host teleported page actions.
+ * @property {import('vue').ComputedRef<PageTitleEntry>} current - The active entry (the most recently registered
+ *  source), or an empty object when no view has registered one.
+ * @property {import('vue').ComputedRef<HTMLElement|null>} actionTarget - The element page actions teleport into,
+ *  resolved from the zone the display bound. `null` until a zone is bound.
+ * @property {(source: () => PageTitleEntry) => (() => void)} register - Register a title source. Returns a cleanup
+ *  function and, when called inside an effect scope, clears itself automatically on dispose.
+ * @property {(zone: import('vue').Ref<HTMLElement|null>|HTMLElement|null) => void} bindActionZone - Bind the element
+ *  (or element ref) the display uses to host teleported page actions.
  */
 
 /**
@@ -32,8 +37,10 @@ import { computed, getCurrentScope, inject, onScopeDispose, provide, ref, shallo
  * the title and host the action zone. Calling with a source getter injects that context and
  * registers the getter as the active title source (view role).
  *
- * @param {() => PageTitleEntry} [source] - A getter returning the current view's title and loading state. Omit to take the display role.
- * @returns {PageTitleContext|(() => void)|undefined} The context (display role); a cleanup function (view role with a context present); or `undefined` (view role with no context above, e.g. a view rendered standalone).
+ * @param {() => PageTitleEntry} [source] - A getter returning the current view's title and loading state. Omit to take
+ *  the display role.
+ * @returns {PageTitleContext|(() => void)|undefined} The context (display role); a cleanup function (view role with a
+ *  context present); or `undefined` (view role with no context above, e.g. a view rendered standalone).
  */
 export function usePageTitle(source) {
     const existing = inject(PageTitleContextSymbol, null);

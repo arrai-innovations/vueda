@@ -1,6 +1,7 @@
 /**
  * @module stores/storeModelConfig
- * @description Pinia store for building, caching, and retrieving merged client-side model configurations from generic and view-specific overrides.
+ * @description Pinia store for building, caching, and retrieving merged client-side model configurations from generic
+ *  and view-specific overrides.
  */
 import { trimReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
@@ -46,9 +47,12 @@ import { defineStore } from "pinia";
  * @property {string} verboseName - the human-readable name of the model
  * @property {string} verboseNamePlural - the human-readable plural name of the model
  * @property {string[]} displayFields - field names to display by default
- * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null disables row links.
+ * @property {string|null} detailLinkField - List column to link to each row's available update or read view; null
+ *  disables row links.
  * @property {string[]} fetchFields - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body also carries the primary key. Create and update views leave out a reverse foreign key that the form's `expand` does not name, because forms show that field read-only.
+ * @property {string[]} submitFields - field paths sent in the create/update request body by default. An update body
+ *  also carries the primary key. Create and update views leave out a reverse foreign key that the form's `expand` does
+ *  not name, because forms show that field read-only.
  * @property {string[]} expand - field names to expand; empty unless the model config names some
  * @property {string[]} routeActions - actions to configure routes for
  * @property {ActionPermissionConfig} actions - actions to display by default
@@ -57,18 +61,30 @@ import { defineStore } from "pinia";
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
  * @property {string[]} sortables - field names that can be sorted in list view
  * @property {string[]} sorted - the default sort order for list view
- * @property {string[]} totalables - column names that can carry a total in list view. A list request asks for the ones that are currently visible; totals are opt-in server-side, so asking for none costs no aggregation query. Requested under `COLUMN_TOTALS_PARAM` from `@vueda/utils/constants.js`.
- * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available field details, by field name
- * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each available expand details, by expand name
- * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each available action details, by action name
- * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each available filter details, by filter name
- * @property {object} formProps - extra props to pass the form model. The view's own `formProps` prop and form props win over these keys. The `app`, `model`, and `view` keys are ignored, because the view sets them.
- * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} fieldComponents - overriding components for individual fields
+ * @property {string[]} totalables - column names that can carry a total in list view. A list request asks for the ones
+ *  that are currently visible; totals are opt-in server-side, so asking for none costs no aggregation query. Requested
+ *  under `COLUMN_TOTALS_PARAM` from `@vueda/utils/constants.js`.
+ * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} fieldDetails - each available
+ *  field details, by field name
+ * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} expandDetails - each
+ *  available expand details, by expand name
+ * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} actionDetails - each
+ *  available action details, by action name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - each
+ *  available filter details, by filter name
+ * @property {object} formProps - extra props to pass the form model. The view's own `formProps` prop and form props win
+ *  over these keys. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} fieldComponents -
+ *  overriding components for individual fields
  * @property {object} fieldProps - extra props to pass a field component in a form model
- * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents - overriding components for individual widgets
+ * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} widgetComponents -
+ *  overriding components for individual widgets
  * @property {object} widgetProps - extra props to pass a widget component in a form model
- * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} columnComponents - overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key into `availableColumns`)
- * @property {{[fieldName:string]: object}} columnProps - extra props to pass a field's list column adapter, by field name
+ * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} columnComponents -
+ *  overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key
+ *  into `availableColumns`)
+ * @property {{[fieldName:string]: object}} columnProps - extra props to pass a field's list column adapter, by field
+ *  name
  * @property {object} actionRedirects - mapping of action name to destination view
  *  when cancelling or after successful completion. The `default` key is used
  *  when no action-specific redirect exists, except that a successful destroy with no `destroy` entry
@@ -83,9 +99,11 @@ import { defineStore } from "pinia";
  * @property {string} [verboseName] - the human-readable name of the model
  * @property {string} [verboseNamePlural] - the human-readable plural name of the model
  * @property {string[]} [displayFields] - field names to display by default
- * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in text/display adapters support automatic links; custom adapters and slots retain control of navigation.
+ * @property {string|null} [detailLinkField] - List column to link to each row's available update or read view. Built-in
+ *  text/display adapters support automatic links; custom adapters and slots retain control of navigation.
  * @property {string[]} [fetchFields] - field names to fetch, and to return from create/update saves, by default
- * @property {string[]} [submitFields] - field paths sent in the create/update request body by default. An update body also carries the primary key.
+ * @property {string[]} [submitFields] - field paths sent in the create/update request body by default. An update body
+ *  also carries the primary key.
  * @property {string[]} [expand] - field names to expand by default
  * @property {string[]} [computedFields] - field names to treat as computed: read-only, rendered with `FormField`
  * @property {string[]} [routeActions] - actions to configure routes for
@@ -94,19 +112,29 @@ import { defineStore } from "pinia";
  * @property {string[]} [sortables] - field names that can be sorted in list view
  * @property {string[]} [sorted] - the default sort order for list view
  * @property {string[]} [totalables] - column names that can carry a total in list view
- * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each available field details, by field name
- * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each available expand details, by expand name
- * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each available action details, by action name
- * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each available filter details, by filter name
- * @property {object} [formProps] - extra props to pass the form model. The view's own `formProps` prop and form props win over these keys. The `app`, `model`, and `view` keys are ignored, because the view sets them.
+ * @property {{[fieldName: string]: import('@vueda/stores/storeModelInfo.js').FieldInfo}} [fieldDetails] - each
+ *  available field details, by field name
+ * @property {{[expandName: string]: import('@vueda/stores/storeModelInfo.js').ExpandInfo}} [expandDetails] - each
+ *  available expand details, by expand name
+ * @property {{[actionName: string]: import('@vueda/stores/storeModelInfo.js').ActionInfo}} [actionDetails] - each
+ *  available action details, by action name
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} [filterableDetails] - each
+ *  available filter details, by filter name
+ * @property {object} [formProps] - extra props to pass the form model. The view's own `formProps` prop and form props
+ *  win over these keys. The `app`, `model`, and `view` keys are ignored, because the view sets them.
  * @property {boolean} allowColumnHiding - whether to allow hiding columns in list view
  * @property {boolean} showTotalRecordNum - whether to show total record count in list view
- * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} [fieldComponents] - overriding components for individual fields
+ * @property {{[fieldComponentName:string]: import('@vueda/utils/formLookups.js').FieldComponent}} [fieldComponents] -
+ *  overriding components for individual fields
  * @property {object} [fieldProps] - extra props to pass a field component in a form model
- * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] - overriding components for individual widgets
+ * @property {{[widgetComponentName:string]: import('@vueda/utils/formLookups.js').WidgetComponent}} [widgetComponents] -
+ *  overriding components for individual widgets
  * @property {object} [widgetProps] - extra props to pass a widget component in a form model
- * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} [columnComponents] - overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key into `availableColumns`)
- * @property {{[fieldName:string]: object}} [columnProps] - extra props to pass a field's list column adapter, by field name
+ * @property {{[fieldName:string]: import('@vueda/utils/columnLookups.js').ColumnComponent | string}} [columnComponents] -
+ *  overriding list column adapter for individual fields, by field name (a component, `() => component`, or a string key
+ *  into `availableColumns`)
+ * @property {{[fieldName:string]: object}} [columnProps] - extra props to pass a field's list column adapter, by field
+ *  name
  * @property {object} [actionRedirects] - action-specific redirect mapping to merge with defaults.
  */
 
@@ -539,7 +567,8 @@ const flattenExpansionDetails = (
  *
  * For each key in nonSimpleProperties, perform a deep merge of the generic config and view-specific config.
  * Special handling is provided for "expandDetails": rather than a straight merge, this function should
- * flatten the expansion details (by calling flattenExpansionDetails) and then merge them into the unified field details.
+ * flatten the expansion details (by calling flattenExpansionDetails) and then merge them into the unified field
+ * details.
  *
  * @param {ModelConfig} builtConfig - The built configuration object, so far. Will be mutated in place.
  * @param {ModelConfig} defaultGenericConfig - The default (generic) configuration.
@@ -647,8 +676,8 @@ export const storeModelConfig = defineStore("modelConfig", {
          * @param {string} params.app - Django app label.
          * @param {string} params.model - Model name.
          * @param {OverridingModelConfig|null} [genericConfig=null] - Overrides applied to all views.
-         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs=null] - Per-view overrides. A `read` key
-         *  applies to the read view, the same as `retrieve`.
+         * @param {{[view: string]: OverridingModelConfig}|null} [specificConfigs=null] - Per-view overrides. A `read`
+         *  key applies to the read view, the same as `retrieve`.
          * @returns {void}
          * @example
          * ```js

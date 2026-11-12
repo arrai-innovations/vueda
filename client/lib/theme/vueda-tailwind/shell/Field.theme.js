@@ -13,7 +13,8 @@ patchTheme({
      */
     Field: {
         /**
-         * The outer field layout wrapper. It switches between vertical, horizontal, responsive, and read-only grid layouts while carrying invalid state color.
+         * The outer field layout wrapper. It switches between vertical, horizontal, responsive, and read-only grid
+         * layouts while carrying invalid state color.
          */
         root: ({ orientation }) => {
             const base = "group/field flex w-full gap-3 data-[invalid=true]:text-destructive";

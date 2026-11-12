@@ -13,7 +13,12 @@ patchTheme({
      * recipe as ComboboxGroup.heading.
      */
     SelectLabel: {
-        /** The section heading inside a {@api theme-key:SelectContent.root}. See also: {@api theme-key:ComboboxGroup.heading}; same caps-micro eyebrow on `--muted-foreground` (the rendered class list drops the leading `font-mono`, but Tailwind's default sans / mono cascade leaves the eyebrow visually identical at the micro size). */
+        /**
+         * The section heading inside a {@api theme-key:SelectContent.root}. See also:
+         * {@api theme-key:ComboboxGroup.heading}; same caps-micro eyebrow on `--muted-foreground` (the rendered class
+         * list drops the leading `font-mono`, but Tailwind's default sans / mono cascade leaves the eyebrow visually
+         * identical at the micro size).
+         */
         root: {
             class: [
                 // Layout and type.

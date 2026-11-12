@@ -142,7 +142,12 @@ import {
     SEARCH_PARAM,
 } from "@vueda/utils/constants.js";
 import { ListFilterError } from "@vueda/utils/errors.js";
-import { allPagePaginatedListCrudAdaptor, singlePagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import {
+    allPagePaginatedListCrudAdaptor,
+    singlePagePaginatedListCrudAdaptor,
+    subscriptionFilters,
+} from "@vueda/utils/listCrud.js";
+import { objectStreamsEnabled, subscribeToListChanges } from "@vueda/utils/objectStreams.js";
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
@@ -152,7 +157,7 @@ import isEmpty from "lodash-es/isEmpty.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
-import { computed, inject, markRaw, nextTick, reactive, ref, toRaw, toRef, unref, watch } from "vue";
+import { computed, inject, markRaw, nextTick, onScopeDispose, reactive, ref, toRaw, toRef, unref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 /** @type {"list"} */
@@ -166,38 +171,63 @@ const VIEW_NAME = "list";
  * @property {import('vue').Ref<string> | string} model - Django model name.
  *
  * Field configuration.
- * @property {import('vue').Ref<string[]> | string[]} [fetchFields] - Field names to fetch. When empty, the list fetches the `displayFields` names. When those are empty too, it fetches the model config's `fetchFields`.
- * @property {import('vue').Ref<string[]> | string[]} [displayFields] - Field names to show as columns, in order. When empty, the model config's `displayFields` apply.
- * @property {import('vue').Ref<{[name: string]: object}> | {[name: string]: object}} [fieldDetails] - Per-field overrides by field name. Each field's details are its model config `fieldDetails` entry with this entry laid on top. The columns and the sort controls both use these details.
- * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the display field list (e.g. the `selected_` checkbox column).
- * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence non-slot override.
- * @property {import('vue').Ref<{[name:string]: object}> | {[name:string]: object}} [columnProps] - Per-field prop overrides forwarded to the resolved column adapter.
+ * @property {import('vue').Ref<string[]> | string[]} [fetchFields] - Field names to fetch. When empty, the list fetches
+ *  the `displayFields` names. When those are empty too, it fetches the model config's `fetchFields`.
+ * @property {import('vue').Ref<string[]> | string[]} [displayFields] - Field names to show as columns, in order. When
+ *  empty, the model config's `displayFields` apply.
+ * @property {import('vue').Ref<{[name: string]: object}> | {[name: string]: object}} [fieldDetails] - Per-field
+ *  overrides by field name. Each field's details are its model config `fieldDetails` entry with this entry laid on top.
+ *  The columns and the sort controls both use these details.
+ * @property {import('vue').Ref<object[]> | object[]} [extraFieldObjects] - Synthetic field objects prepended to the
+ *  display field list (e.g. the `selected_` checkbox column).
+ * @property {import('vue').Ref<{[name:string]: any}> | {[name:string]: any}} [columnComponents] - Per-field column
+ *  adapter overrides (component, `() => component`, or a string key into `availableColumns`); highest-precedence
+ *  non-slot override.
+ * @property {import('vue').Ref<{[name:string]: object}> | {[name:string]: object}} [columnProps] - Per-field prop
+ *  overrides forwarded to the resolved column adapter.
  *
  * Data fetching.
- * @property {import('vue').Ref<object> | object} [relatedObjectsRules] - Rules for fetching related objects alongside each row.
- * @property {import('vue').Ref<object> | object} [calculatedObjectsRules] - Rules for deriving calculated objects alongside each row.
+ * @property {import('vue').Ref<object> | object} [relatedObjectsRules] - Rules for fetching related objects alongside
+ *  each row.
+ * @property {import('vue').Ref<object> | object} [calculatedObjectsRules] - Rules for deriving calculated objects
+ *  alongside each row.
  * @property {import('vue').Ref<object> | object} [params] - Extra query parameters merged into every API request.
- * @property {import('vue').Ref<{[paramsKey: string]: ViewListScopeDeclaration}> | {[paramsKey: string]: ViewListScopeDeclaration}} [scopes] - Declares which `params` keys the reader sees as scopes in the constraints band, keyed by `params` key. A declared key that names a filter in the resolved filterables owns that filter's query keys, including suffixed keys. A scope is shown while `params` carries a value for any key it owns. Undeclared `params` keys stay plain request parameters, including keys that name hidden filters.
+ * @property {import('vue').Ref<{[paramsKey: string]: ViewListScopeDeclaration}> | {[paramsKey: string]: ViewListScopeDeclaration}} [scopes] -
+ *  Declares which `params` keys the reader sees as scopes in the constraints band, keyed by `params` key. A declared
+ *  key that names a filter in the resolved filterables owns that filter's query keys, including suffixed keys. A scope
+ *  is shown while `params` carries a value for any key it owns. Undeclared `params` keys stay plain request parameters,
+ *  including keys that name hidden filters.
  *
  * Filter configuration.
- * @property {import('vue').Ref<string[]> | string[]} [filterables] - Field names to show as filters; overrides the model config's declared list when set.
- * @property {import('vue').Ref<object> | object} [filterableDetails] - Per-field filter detail overrides merged with the model config's declared details.
+ * @property {import('vue').Ref<string[]> | string[]} [filterables] - Field names to show as filters; overrides the
+ *  model config's declared list when set.
+ * @property {import('vue').Ref<object> | object} [filterableDetails] - Per-field filter detail overrides merged with
+ *  the model config's declared details.
  *
  * Pagination behaviour.
- * @property {(number|string)} [defaultPageSize] - Initial rows-per-page when no preference is stored (a number, or `"all"`). Defaults to `DEFAULT_PAGE_SIZE`.
- * @property {(number|string)[]} [pageSizeOptions] - Rows-per-page options offered by the footer; the final `"all"` entry loads every page. Defaults to `DEFAULT_PAGE_SIZE_OPTIONS`.
+ * @property {(number|string)} [defaultPageSize] - Initial rows-per-page when no preference is stored (a number, or
+ *  `"all"`). Defaults to `DEFAULT_PAGE_SIZE`.
+ * @property {(number|string)[]} [pageSizeOptions] - Rows-per-page options offered by the footer; the final `"all"`
+ *  entry loads every page. Defaults to `DEFAULT_PAGE_SIZE_OPTIONS`.
  *
  * Layout.
- * @property {import('vue').Ref<string> | string} [tableBreakpoint] - Breakpoint at which the grid switches from cards to a table, matching `ObjectsGrid`'s prop of the same name. Defaults to `"lg"`; `"xs"` is always table. Read reactively, and answers `sort.isTable` until an `ObjectsGrid` reports its own layout — so the first list request knows whether the totals footer will be rendered, without waiting for the grid to mount.
+ * @property {import('vue').Ref<string> | string} [tableBreakpoint] - Breakpoint at which the grid switches from cards
+ *  to a table, matching `ObjectsGrid`'s prop of the same name. Defaults to `"lg"`; `"xs"` is always table. Read
+ *  reactively, and answers `sort.isTable` until an `ObjectsGrid` reports its own layout — so the first list request
+ *  knows whether the totals footer will be rendered, without waiting for the grid to mount.
  *
  * Action styling.
- * @property {import('vue').Ref<string[]> | string[]} [primaryActions] - Targetless action names promoted to the filled hero CTA; defaults to `["create"]`.
+ * @property {import('vue').Ref<string[]> | string[]} [primaryActions] - Targetless action names promoted to the filled
+ *  hero CTA; defaults to `["create"]`.
  */
 
 /**
  * @typedef {object} ViewListScopeDeclaration
- * @property {string} [label] - Readable description shown on the scope chip, such as "2 selected records" or a batch name. Defaults to the filter's metadata label (or the `params` key) with its value, or with a value count when it has several.
- * @property {boolean} [clearable] - When false, the chip has no clear control and Clear scopes leaves the scope in place. Defaults to true.
+ * @property {string} [label] - Readable description shown on the scope chip, such as "2 selected records" or a batch
+ *  name. Defaults to the filter's metadata label (or the `params` key) with its value, or with a value count when it
+ *  has several.
+ * @property {boolean} [clearable] - When false, the chip has no clear control and Clear scopes leaves the scope in
+ *  place. Defaults to true.
  */
 
 /**
@@ -205,26 +235,46 @@ const VIEW_NAME = "list";
  * @property {string} name - A hidden filter's name (`source: "url"`) or a declared `params` key (`source: "params"`).
  * @property {string} label - Readable description shown on the scope chip.
  * @property {string[]} keys - The query keys (`"url"`) or `params` keys (`"params"`) the scope owns.
- * @property {"url"|"params"} source - Where the scope's values come from, which decides who clears it: `useViewList` removes a URL scope's query keys; the caller removes a params scope's keys from `params`.
- * @property {boolean} clearable - Whether the reader can clear the scope. Always true for a URL scope; a params scope's declaration can set it to false.
+ * @property {"url"|"params"} source - Where the scope's values come from, which decides who clears it: `useViewList`
+ *  removes a URL scope's query keys; the caller removes a params scope's keys from `params`.
+ * @property {boolean} clearable - Whether the reader can clear the scope. Always true for a URL scope; a params scope's
+ *  declaration can set it to false.
  */
 
 /**
  * @typedef {object} ViewListListGroup
- * @property {object} instanceList - The `useList` result; exposes `.state.objectsInOrder`, `.state.relatedObjects`, `.state.calculatedObjects`, `.state.loading`, `.state.error`, `.state.paginateInfo`, etc.
- * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState - Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See `filter.state.addedFilters` for filter state. `listState.params` also carries a server-hidden filter's URL value (e.g. the deep-link `id` filter), sourced from the URL rather than `addedFilters`, and stays present across visible-filter, sort, and search changes until the URL itself drops it (for example through `scope.clearUrlScopes`). When `params` carries any key a filter owns, visible or hidden, `params` supplies that filter's value: the URL value stays in the URL but is not sent, restored as a filter, shown as a scope, or saved to preferences.
+ * @property {object} instanceList - The `useList` result; exposes `.state.objectsInOrder`, `.state.relatedObjects`,
+ *  `.state.calculatedObjects`, `.state.loading`, `.state.error`, `.state.paginateInfo`, etc.
+ * @property {import('vue').UnwrapNestedRefs<{currentPage: number, perPage: (number|string), search: string, params: object}>} listState -
+ *  Mutable reactive list state; `currentPage` and `perPage` are the primary mutation points. See
+ *  `filter.state.addedFilters` for filter state. `listState.params` also carries a server-hidden filter's URL value
+ *  (e.g. the deep-link `id` filter), sourced from the URL rather than `addedFilters`, and stays present across
+ *  visible-filter, sort, and search changes until the URL itself drops it (for example through `scope.clearUrlScopes`).
+ *  When `params` carries any key a filter owns, visible or hidden, `params` supplies that filter's value: the URL value
+ *  stays in the URL but is not sent, restored as a filter, shown as a scope, or saved to preferences.
  * @property {string} pkKey - The primary key field name (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
- * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to exclude them from generic slot forwarding.
- * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents - Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList injects these as default `field(<col>)` slot content.
- * @property {Error[]} columnErrors - Errors from columns whose `columnComponents` override names no component. ViewList shows them and renders no cells for those columns.
- * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic consumer-slot forward loop to avoid double-rendering.
- * @property {object} columnTotals - Map of display column name to that column's total, for the totals this request asked for. Totals are opt-in: the request carries the intersection of the totals the server advertises (`modelConfig.config.totalables`) and the currently visible columns, under `COLUMN_TOTALS_PARAM`, so hiding the last totalled column stops asking for totals at all and this is `{}`. The server computes them during the same list request that returns the rows, and each response replaces this map rather than merging into it, so a total is always as fresh as the rows beside it and can never describe data that has since changed.
+ * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to
+ *  exclude them from generic slot forwarding.
+ * @property {{[name:string]: import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn}} columnComponents -
+ *  Per-display-field resolved column adapter `{ component, props }`, applying the override precedence chain. ViewList
+ *  injects these as default `field(<col>)` slot content.
+ * @property {Error[]} columnErrors - Errors from columns whose `columnComponents` override names no component. ViewList
+ *  shows them and renders no cells for those columns.
+ * @property {string[]} columnSlots - `field(<col>)` slot names for resolved columns; excluded from the generic
+ *  consumer-slot forward loop to avoid double-rendering.
+ * @property {object} columnTotals - Map of display column name to that column's total, for the totals this request
+ *  asked for. Totals are opt-in: the request carries the intersection of the totals the server advertises
+ *  (`modelConfig.config.totalables`) and the currently visible columns, under `COLUMN_TOTALS_PARAM`, so hiding the last
+ *  totalled column stops asking for totals at all and this is `{}`. The server computes them during the same list
+ *  request that returns the rows, and each response replaces this map rather than merging into it, so a total is always
+ *  as fresh as the rows beside it and can never describe data that has since changed.
  * @property {boolean} loading - Combined loading state (model config + instance list).
  * @property {boolean} errored - True when either model config or instance list has a non-filter error.
  * @property {Error|null} error - The active error, or null.
  * @property {() => void} dismissError - Clears all active errors.
- * @property {string} titleStr - Formatted page title derived from the model's verbose plural name (e.g. "List Widgets"). Empty until the verbose plural name is known.
+ * @property {string} titleStr - Formatted page title derived from the model's verbose plural name (e.g. "List
+ *  Widgets"). Empty until the verbose plural name is known.
  */
 
 /**
@@ -233,8 +283,10 @@ const VIEW_NAME = "list";
  * @property {Set<string>} targetlessActions - Action names that require no selected objects.
  * @property {Set<string>} availableTransitions - Workflow transition codes available to the current user.
  * @property {Set<string>} primaryActions - Targetless action names promoted to the filled hero CTA.
- * @property {{[actionName: string]: object}} buttonSlotProps - Ready-to-spread slot props for each action button; keyed by action name. Does not include a `class` property — shells supply their own.
- * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected primary keys (auto-unwrapped in templates).
+ * @property {{[actionName: string]: object}} buttonSlotProps - Ready-to-spread slot props for each action button; keyed
+ *  by action name. Does not include a `class` property — shells supply their own.
+ * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected primary keys (auto-unwrapped in
+ *  templates).
  * @property {(pk: string|number) => void} toggleSelectedObject - Adds or removes a primary key from the selection.
  */
 
@@ -242,46 +294,86 @@ const VIEW_NAME = "list";
  * @typedef {object} ViewListSearchGroup
  * @property {string|null} listSearch - The current search input value (auto-unwrapped ref).
  * @property {() => void} filterList - Commits `listSearch` into `listState.search`, triggering a new list fetch.
- * @property {import('vue').UnwrapNestedRefs<object>} searchSlotProps - Ready-to-spread slot props for the `search` slot; includes `listSearch`, `filterList`, `updateListSearch`, `app`, `model`, `verb`, and `label`.
+ * @property {import('vue').UnwrapNestedRefs<object>} searchSlotProps - Ready-to-spread slot props for the `search`
+ *  slot; includes `listSearch`, `filterList`, `updateListSearch`, `app`, `model`, `verb`, and `label`.
  */
 
 /**
  * @typedef {object} ViewListSortGroup
- * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting - Sorting state and updater. `state.sorted` is the sort in effect, for display: it holds `defaultSorted` while the reader has not chosen a sort. What the list request sends as its ordering param is the chosen sort alone, so an untouched default is shown without being sent.
+ * @property {{state: {sortables: import('vue').ComputedRef<string[]|undefined>, sorted: string[]}, updateSorted: (sorted: string[]) => void}} sorting -
+ *  Sorting state and updater. `state.sorted` is the sort in effect, for display: it holds `defaultSorted` while the
+ *  reader has not chosen a sort. What the list request sends as its ordering param is the chosen sort alone, so an
+ *  untouched default is shown without being sent.
  * @property {string[]} sortablesList - Flat list of sortable field names (auto-unwrapped).
- * @property {{[name: string]: object}} fieldDetails - Details for each field by name (auto-unwrapped). Each entry is the field's model config `fieldDetails` entry with the `fieldDetails` option entry laid on top. The columns use the same entries, so pass these to `SortControl` and `SortGroup` to label each field the way its column does.
- * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList` (auto-unwrapped). Shown whenever the URL carries no sort: on first load a stored preference wins over it, and after that it is what the read-out falls back to. It is a report of what the server does on its own, so it is never sent back as an ordering param, and it stays out of the URL as well. Sending it would replace the ordering the server applies, which is not always the same order: a ranked search sorts by relevance while the param is absent, and a default declared as an expression (`Lower("name")`) sorts by that expression rather than by the bare column reported here. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
- * @property {boolean} isTable - True when the grid is in table mode. Derived from the `tableBreakpoint` option until an `ObjectsGrid` reports its own layout; assigning it (via `@update:is-table`) makes that report the answer from then on.
- * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref; v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
- * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist; layout-independent).
- * @property {boolean} canShowMobileSorter - Deprecated. True when the legacy card-layout-only mobile sorter should be rendered (`!isTable && sortables exist`). Use `canShowSorter`.
+ * @property {{[name: string]: object}} fieldDetails - Details for each field by name (auto-unwrapped). Each entry is
+ *  the field's model config `fieldDetails` entry with the `fieldDetails` option entry laid on top. The columns use the
+ *  same entries, so pass these to `SortControl` and `SortGroup` to label each field the way its column does.
+ * @property {string[]} defaultSorted - The configured default sort order (from `modelConfig.config.sorted`, which is
+ *  the server's `model_ordering.default` unless a project overrode it), sanitized against `sortablesList`
+ *  (auto-unwrapped). Shown whenever the URL carries no sort: on first load a stored preference wins over it, and after
+ *  that it is what the read-out falls back to. It is a report of what the server does on its own, so it is never sent
+ *  back as an ordering param, and it stays out of the URL as well. Sending it would replace the ordering the server
+ *  applies, which is not always the same order: a ranked search sorts by relevance while the param is absent, and a
+ *  default declared as an expression (`Lower("name")`) sorts by that expression rather than by the bare column reported
+ *  here. Pass it to `SortGroup` as `defaultSorted` so its Reset sort control knows when it has something to do; the
+ *  reset itself arrives as an empty `update:sorted`, and `updateSorted` resolves it to this array.
+ * @property {boolean} isTable - True when the grid is in table mode. Derived from the `tableBreakpoint` option until an
+ *  `ObjectsGrid` reports its own layout; assigning it (via `@update:is-table`) makes that report the answer from then
+ *  on.
+ * @property {boolean} mobileSortDrawerVisible - Whether the deprecated mobile sort shell is open (auto-unwrapped ref;
+ *  v-model compatible via `v-model:visible`). Deprecated: SortControl owns its own open state.
+ * @property {boolean} canShowSorter - True when the sort control should be rendered (whenever sortable fields exist;
+ *  layout-independent).
+ * @property {boolean} canShowMobileSorter - Deprecated. True when the legacy card-layout-only mobile sorter should be
+ *  rendered (`!isTable && sortables exist`). Use `canShowSorter`.
  */
 
 /**
  * @typedef {object} ViewListColumnsGroup
  * @property {string[]} columns - Visible column field names (auto-unwrapped ref; v-model compatible).
- * @property {{label: string, value: string}[]} columnOptions - All available columns as label/value pairs for a select input.
+ * @property {{label: string, value: string}[]} columnOptions - All available columns as label/value pairs for a select
+ *  input.
  */
 
 /**
  * @typedef {object} ViewListPaginationGroup
  * @property {boolean} computedShowAllPages - True when all pages should be loaded at once.
- * @property {boolean} showingAllPages - Whether the `"all"` page-size option is active (auto-unwrapped ref; driven by `list.listState.perPage`).
- * @property {object|undefined} paginateInfo - Shortcut to `instanceList.state.paginateInfo`; exposes `.totalRecords`, `.perPage`, `.totalPages`.
+ * @property {boolean} showingAllPages - Whether the `"all"` page-size option is active (auto-unwrapped ref; driven by
+ *  `list.listState.perPage`).
+ * @property {object|undefined} paginateInfo - Shortcut to `instanceList.state.paginateInfo`; exposes `.totalRecords`,
+ *  `.perPage`, `.totalPages`.
  */
 
 /**
  * @typedef {object} ViewListFilterGroup
- * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables` option), including fields with no usable filter type or that are server-hidden.
- * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved per-field filter details.
- * @property {string[]} validFilterables - `filterables` narrowed to non-hidden fields whose filter type the client can render an editable input for: value handling plus a field component and widget (or, for a range, both boundary components), with the view config's per-field `fieldComponents`/`widgetComponents` overrides counting toward that. This is the field list a filter UI renders as addable/editable. A visible field that fails the check is left out and reported once per list visit through a console warning naming the app, model, and filter; it is not restored from the URL. A field with any query key in `params` is left out too, because `params` supplies its value. A server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters` regardless of input support, but its URL value still reaches `list.listState.params` -- see `list.listState`.
- * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state; `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`, including clearing it). Restored from the URL on load and kept in sync with query parameters, list request parameters, and saved preferences.
+ * @property {string[]} filterables - Resolved filterable field names (model config merged with the `filterables`
+ *  option), including fields with no usable filter type or that are server-hidden.
+ * @property {{[filterName: string]: import('@vueda/stores/storeModelInfo.js').FilterInfo}} filterableDetails - Resolved
+ *  per-field filter details.
+ * @property {string[]} validFilterables - `filterables` narrowed to non-hidden fields whose filter type the client can
+ *  render an editable input for: value handling plus a field component and widget (or, for a range, both boundary
+ *  components), with the view config's per-field `fieldComponents`/`widgetComponents` overrides counting toward that.
+ *  This is the field list a filter UI renders as addable/editable. A visible field that fails the check is left out and
+ *  reported once per list visit through a console warning naming the app, model, and filter; it is not restored from
+ *  the URL. A field with any query key in `params` is left out too, because `params` supplies its value. A
+ *  server-hidden field (e.g. the deep-link `id` filter) is excluded here and from `state.addedFilters` regardless of
+ *  input support, but its URL value still reaches `list.listState.params` -- see `list.listState`.
+ * @property {import('vue').UnwrapNestedRefs<{addedFilters: object[]}>} state - Mutable reactive filter state;
+ *  `addedFilters` is the rich active-filter list and the primary mutation point (`v-model` target for `FilterGroup`,
+ *  including clearing it). Restored from the URL on load and kept in sync with query parameters, list request
+ *  parameters, and saved preferences.
  */
 
 /**
  * @typedef {object} ViewListScopeGroup
- * @property {ViewListScope[]} scopes - Active scopes, empty until model metadata has loaded: one per server-hidden filter whose query keys carry a value and none of whose keys `params` carries, followed by one per declared `params` key that carries a value. A hidden filter's label is its `filterableDetails` label with its value, or with a value count when it has several; a params scope uses its declared `label`, falling back to the same form (with the key in place of a label when the key is not a filter).
- * @property {(names: string[]) => void} clearUrlScopes - Removes the named URL scopes' query keys from the route in one navigation. The list refetches without those values and resets to page 1; visible filters, sort, search, and other scopes stay in place. Params scopes are cleared by the caller, which owns `params`.
+ * @property {ViewListScope[]} scopes - Active scopes, empty until model metadata has loaded: one per server-hidden
+ *  filter whose query keys carry a value and none of whose keys `params` carries, followed by one per declared `params`
+ *  key that carries a value. A hidden filter's label is its `filterableDetails` label with its value, or with a value
+ *  count when it has several; a params scope uses its declared `label`, falling back to the same form (with the key in
+ *  place of a label when the key is not a filter).
+ * @property {(names: string[]) => void} clearUrlScopes - Removes the named URL scopes' query keys from the route in one
+ *  navigation. The list refetches without those values and resets to page 1; visible filters, sort, search, and other
+ *  scopes stay in place. Params scopes are cleared by the caller, which owns `params`.
  */
 
 /**
@@ -293,7 +385,8 @@ const VIEW_NAME = "list";
  * @property {import('vue').UnwrapNestedRefs<ViewListSortGroup>} sort - Sorting and legacy mobile sort shell state.
  * @property {import('vue').UnwrapNestedRefs<ViewListColumnsGroup>} columns - Column visibility state.
  * @property {import('vue').UnwrapNestedRefs<ViewListPaginationGroup>} pagination - Pagination display state.
- * @property {import('vue').UnwrapNestedRefs<ViewListFilterGroup>} filter - Filter state, restoration, and the resolved filterable field set.
+ * @property {import('vue').UnwrapNestedRefs<ViewListFilterGroup>} filter - Filter state, restoration, and the resolved
+ *  filterable field set.
  * @property {import('vue').UnwrapNestedRefs<ViewListScopeGroup>} scope - Active scopes and the URL scope clear control.
  */
 
@@ -860,6 +953,7 @@ export function useViewList(options) {
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
         params: toRef(listState, "params"),
         intendToList: validAndActive,
+        intendToSubscribe: computed(() => validAndActive.value && objectStreamsEnabled()),
         relatedObjectsRules: toRef(options, "relatedObjectsRules"),
         calculatedObjectsRules: toRef(options, "calculatedObjectsRules"),
     });
@@ -871,12 +965,89 @@ export function useViewList(options) {
         handlers: {
             list: (args) => {
                 const listArgs = { ...args, repeatedParams: repeatedFilterParams.value };
-                return computedShowAllPages.value
-                    ? allPagePaginatedListCrudAdaptor(listArgs)
-                    : singlePagePaginatedListCrudAdaptor(listArgs);
+                const adaptor = computedShowAllPages.value
+                    ? allPagePaginatedListCrudAdaptor
+                    : singlePagePaginatedListCrudAdaptor;
+                if (!args.refresh) {
+                    return adaptor(listArgs);
+                }
+                // A refresh keeps the rows, pagination, and totals on screen until the whole new set has
+                // arrived. It applies nothing when the list moved to other params meanwhile, or was
+                // unmounted, because the list's own load then decides what it shows.
+                const paramsKey = JSON.stringify(args.params);
+                const rows = [];
+                let paginateInfo;
+                let columnTotals;
+                const request = adaptor({
+                    ...listArgs,
+                    clearObjects: () => {
+                        rows.length = 0;
+                    },
+                    pushObjects: (objects) => {
+                        rows.push(...objects);
+                    },
+                    setPaginateInfo: (info) => {
+                        paginateInfo = info;
+                    },
+                    setColumnTotals: (totals) => {
+                        columnTotals = totals;
+                    },
+                });
+                const replaced = request.then(() => {
+                    const current = validAndActive.value && JSON.stringify(instanceListProps.params) === paramsKey;
+                    if (args.isCancelled?.value || !current) {
+                        return;
+                    }
+                    args.clearObjects({ keepPagination: true, keepColumnTotals: true });
+                    if (paginateInfo) {
+                        args.setPaginateInfo(paginateInfo);
+                    }
+                    if (columnTotals !== undefined) {
+                        args.setColumnTotals(columnTotals);
+                    }
+                    args.pushObjects(rows);
+                });
+                refreshRequest = request;
+                return Object.assign(replaced, { cancel: request.cancel?.bind(request) });
             },
+            // Live updates, after setupObjectStreams(). An event carries no rows, and only the server can
+            // place a row by the list's ordering and page, so each change refreshes the current page.
+            subscribe: ({ target, params }) =>
+                subscribeToListChanges({
+                    target,
+                    filters: subscriptionFilters(omit(params, alwaysParamsKeys), repeatedFilterParams.value),
+                    onChange: refreshList,
+                }),
         },
     });
+
+    // A change that arrives while the list loads waits for that load, which may predate the change.
+    let refreshPending = false;
+    /** @type {{ cancel?: () => any }|null} */
+    let refreshRequest = null;
+    onScopeDispose(() => {
+        refreshPending = false;
+        refreshRequest?.cancel?.();
+    });
+    function refreshList() {
+        if (!validAndActive.value) {
+            return;
+        }
+        if (instanceList.state.loading) {
+            refreshPending = true;
+            return;
+        }
+        refreshPending = false;
+        instanceList.list({ refresh: true });
+    }
+    watch(
+        () => instanceList.state.loading,
+        (loading) => {
+            if (loading === false && refreshPending) {
+                refreshList();
+            }
+        },
+    );
 
     watch(computedShowAllPages, (newVal, oldVal) => {
         if (newVal !== oldVal && validAndActive.value) {

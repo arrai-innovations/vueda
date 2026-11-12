@@ -14,7 +14,12 @@ patchTheme({
      * to the left edge of the header.
      */
     RangeCalendarPrevButton: {
-        /** The previous-month button anchored to the left edge of a {@api theme-key:RangeCalendarHeader.root}. Composes {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root}, then absolute-positions itself at `left-1` so the button does not consume row flex while the heading floats centred between the two edges. Same square 28×28 transparent plus 50%-opacity-at-rest treatment as {@api theme-key:CalendarNavButton.root}. */
+        /**
+         * The previous-month button anchored to the left edge of a {@api theme-key:RangeCalendarHeader.root}. Composes
+         * {@api theme-key:_ButtonBase.root} plus {@api theme-key:_ButtonOutline.root}, then absolute-positions itself
+         * at `left-1` so the button does not consume row flex while the heading floats centred between the two edges.
+         * Same square 28×28 transparent plus 50%-opacity-at-rest treatment as {@api theme-key:CalendarNavButton.root}.
+         */
         root: {
             composes: ["_ButtonBase.root", "_ButtonOutline.root"],
             class: ["absolute left-1 size-7 bg-transparent p-0 opacity-50 hover:opacity-100"],

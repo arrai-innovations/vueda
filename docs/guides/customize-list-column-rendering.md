@@ -20,35 +20,38 @@ To link a row to its own read or update view, use a {@term Row Link}. [Link List
 
 ## How Default Columns Are Chosen
 
-VUEDA picks each column's default adapter in {@api js:property:@arrai-innovations/vueda/utils/columnMappings#columnMappings}. It looks up the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}:
+VUEDA picks each column's default adapter in {@api js:property:@arrai-innovations/vueda/utils/columnMappings#columnMappings}. It looks up the field's [`typeSerializer`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializer}, then its [`typeModel`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeModel}. When the table has no entry for both, it tries each class in [`typeSerializerAncestors`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.typeSerializerAncestors}, nearest first, so a subclass of a serializer type below gets that type's adapter:
 
-| Serializer type          | Model type                     | Adapter                              | Default props                                              |
-| ------------------------ | ------------------------------ | ------------------------------------ | ---------------------------------------------------------- |
-| `BooleanField`           | `BooleanField`                 | {@api vue:component:ColumnBoolean}   |                                                            |
-| `NullBooleanField`       | `NullBooleanField`             | `ColumnBoolean`                      |                                                            |
-| `DateField`              | `DateField`                    | {@api vue:component:ColumnDateTime}  | `{ showTime: false }`                                      |
-| `DateTimeField`          | `DateTimeField`                | `ColumnDateTime`                     | `{ showTime: true }`                                       |
-| `TimeField`              | `TimeField`                    | `ColumnDateTime`                     | `{ format: "t", showRelative: false, showTooltip: false }` |
-| `DurationField`          | `DurationField`                | {@api vue:component:ColumnDuration}  |                                                            |
-| `DurationSecondsField`   | `DurationField`                | `ColumnDuration`                     |                                                            |
-| `FileField`              | `FileField`                    | {@api vue:component:ColumnFile}      |                                                            |
-| `ImageField`             | `ImageField`                   | `ColumnFile`                         |                                                            |
-| `JSONField`              | `JSONField`                    | {@api vue:component:ColumnJson}      |                                                            |
-| `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField` | {@api vue:component:ColumnModelLink} | `{ view: "read" }`                                         |
+| Serializer type          | Model type                       | Adapter                               | Default props                                              |
+| ------------------------ | -------------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| `BooleanField`           | `BooleanField`                   | {@api vue:component:ColumnBoolean}    |                                                            |
+| `NullBooleanField`       | `NullBooleanField`               | `ColumnBoolean`                       |                                                            |
+| `DateField`              | `DateField`                      | {@api vue:component:ColumnDateTime}   | `{ showTime: false }`                                      |
+| `DateTimeField`          | `DateTimeField`                  | `ColumnDateTime`                      | `{ showTime: true }`                                       |
+| `TimeField`              | `TimeField`                      | `ColumnDateTime`                      | `{ format: "t", showRelative: false, showTooltip: false }` |
+| `DurationField`          | `DurationField`                  | {@api vue:component:ColumnDuration}   |                                                            |
+| `DurationSecondsField`   | `DurationField`                  | `ColumnDuration`                      |                                                            |
+| `FileField`              | `FileField`                      | {@api vue:component:ColumnFile}       |                                                            |
+| `ImageField`             | `ImageField`                     | `ColumnFile`                          |                                                            |
+| `JSONField`              | `JSONField`                      | {@api vue:component:ColumnJson}       |                                                            |
+| `PrimaryKeyRelatedField` | `ForeignKey` / `OneToOneField`   | {@api vue:component:ColumnModelLink}  | `{ view: "read" }`                                         |
+| `ManyRelatedField`       | `ManyToManyField` / `ForeignKey` | {@api vue:component:ColumnModelLinks} | `{ view: "read" }`                                         |
 
-Every other type renders through {@api vue:component:ColumnText}. That includes to-many relations and `SlugRelatedField`.
+Every other type renders through {@api vue:component:ColumnText}. That includes choice fields and a single `SlugRelatedField`. A to-many `SlugRelatedField` reports the serializer type `ManyRelatedField`, so it renders through `ColumnModelLinks`. Its unexpanded value is an array of slugs, and the cell shows their count. Issue [#143](https://github.com/arrai-innovations/vueda/issues/143) tracks the default for slug columns.
 
 The adapters render as follows:
 
 - `ColumnText` renders the cell value as text. It renders nothing for `null` or `undefined`. It renders an object or array as compact `JSON`, cut at 200 characters.
-- `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No".
+- For a choice field, `ColumnText` renders the label of the stored value, as a read-only form does. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A many-valued choice field renders its labels joined with `, `. A value that matches no choice renders as stored. A field that sets its own `formatted` path renders that path's value as it is. Sorting and filtering still use the stored values.
+- `ColumnBoolean` renders {@api vue:component:BooleanDisplay}: "Yes" or "No". When the field has labels for its values, `ColumnBoolean` renders the label that matches the value instead. The labels come from the field's `displayChoices`. When the field has no `displayChoices`, they come from its `choices`, if those are a static list. A null value with a matching label renders that label in place of the dash.
 - `ColumnDateTime` renders {@api vue:component:DateTimeDisplay}.
 - `ColumnDuration` renders {@api vue:component:DurationDisplay}, which names the units.
 - `ColumnFile` renders {@api vue:component:FileDisplay}: a link to the file, labelled with the file name.
 - `ColumnJson` renders {@api vue:component:JsonDisplay}: compact `JSON` on one line, cut at `maxLength` (200 characters by default).
-- `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}.
+- `ColumnModelLink` renders a foreign key as a link to the related row's read view, through {@api vue:component:LinkModelView}. The label renders as plain text when the viewer cannot open that view.
+- `ColumnModelLinks` renders a many-to-many field or a reverse foreign key as comma-separated links to the related rows' read views. An unexpanded relation renders as a count, such as "3 items". [Link a To-Many Column](#link-a-to-many-column) describes it.
 
-`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value.
+`BooleanDisplay`, `DateTimeDisplay`, `DurationDisplay`, `FileDisplay`, and `JsonDisplay` render a dash for an empty value. `BooleanDisplay` renders the label of an empty value instead, when the field has one.
 
 ## Choose Where to Override
 
@@ -129,7 +132,8 @@ Each built-in adapter's generated page lists its props. The ones you are most li
 - `ColumnBoolean`: `trueLabel`, `falseLabel`.
 - `ColumnDuration`: `format` (default `"long"`).
 - `ColumnJson`: `maxLength`.
-- `ColumnModelLink`: `view` (default `"read"`), `app` and `model`, `label`, `button`.
+- `ColumnModelLink`: `view` (default `"read"`, or an ordered array of views), `app` and `model`, `label`, `button`.
+- `ColumnModelLinks`: `view` (default `"read"`, or an ordered array of views), `app` and `model`, `maxVisible` (default `3`).
 
 ## Link a Foreign Key Column
 
@@ -138,6 +142,19 @@ A `ForeignKey` or `OneToOneField` column renders through `ColumnModelLink` with 
 - **Related pk:** a scalar cell value is the pk. An object value uses its `id`, else its `pk`.
 - **Link text:** the `label` prop, else the cell's `formatted` value when it is text or a number. For a scalar foreign key, the text is the pk. For an expanded foreign key, the text is the related object's `formatted_name`, else its `name`, `id`, or `pk`.
 - **No link:** when no related model or no pk resolves, or the value is an array, the cell renders the text without a link.
+
+The cell links only to a view that the viewer can open. A view counts as available when the related model's info lists the view's action, or when the viewer can perform a workflow transition with that code. Model info names the `read` view's action `retrieve`. The view must also resolve to a route. Otherwise the cell renders the text without a link.
+
+- **Loading:** while the related model's info loads, the cell renders the text. It becomes a link at most once, when the info arrives. If the info fails to load, the text stays plain.
+- **Fallback views:** set `view` to an ordered array to link to the first view that the viewer can open. With `["update", "read"]`, an editor gets the update link, a viewer who can only read gets the read link, and anyone else sees plain text.
+
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: { columnProps: { category: { view: ["update", "read"] } } },
+});
+```
+
+The check is model-level. It asks whether the viewer may perform the action on some record of the related model, not on this related record. A viewer who may update some records but not this one still gets the update link, and the update view then refuses access. Per-record checks need the related record's `available_actions`, which the list does not fetch.
 
 When the field carries no related model, supply one through `columnProps`:
 
@@ -148,6 +165,30 @@ storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
 ```
 
 The link controls navigation in the UI only. When the user follows it, the target view's route guard and the server still check the user's access.
+
+## Link a To-Many Column
+
+A many-to-many field or a reverse foreign key renders through `ColumnModelLinks` with no configuration. Model info reports both with the serializer type `ManyRelatedField`. `ColumnModelLinks` reads the related model from the field's `appLabel` and `model`.
+
+The list value of a to-many relation is an array of pks unless the list expands the relation. An array of pks carries no labels, so the cell shows the count of related rows, such as "3 items". To show labels, expand the relation in the list request. Permit the expand on the viewset, and name it in the list view's `expand`. [Permit expands on `list`](./expand-and-fields-controls#permit-expands-on-list) describes both steps.
+
+```python
+class WidgetViewSet(VuedaViewSet):
+    permit_list_expands = ["tags"]
+```
+
+```js
+storeModelConfig().setConfig({ app: "myapp", model: "widget" }, null, {
+    list: { expand: ["tags"] },
+});
+```
+
+An expanded relation renders as follows:
+
+- **Link text:** each related object's `formatted_name`, else its `name`, `id`, or `pk`.
+- **Links:** each label follows the same rule as a foreign key column. It links to a view that the viewer can open, and otherwise renders as plain text.
+- **Long relations:** the cell shows the first three labels, then a "+N more" button. The button opens a popover that lists the remaining labels, with the same link rule. The popover reads the row's value, so it sends no request. Set `maxVisible` through `columnProps` to show a different number of labels.
+- **Empty relations:** the cell renders nothing.
 
 ## Replace a Column with a Slot
 
@@ -228,6 +269,6 @@ Register it through a function in model config, or pass it in the `columnCompone
 
 **A foreign key column renders text without a link.** The value is empty or an array, or no related model resolved. Check the field's `app_label` and `model` in the [model info response]{@api rest:schema:ModelInfoField}. Or supply `app` and `model` through `columnProps`.
 
-**A to-many relation renders as `[2, 1]`.** A to-many relation's list value is an array of pks, and `ColumnText` renders it as `JSON`. To render linked items, expand the relation so each item carries a label, and write an adapter for it.
+**A to-many column shows a count, such as "3 items".** The list does not expand the relation, so its value holds only pks. Expand the relation as [Link a To-Many Column](#link-a-to-many-column) describes.
 
 **Attributes you did not set appear on your adapter's root element.** Add `defineOptions({ inheritAttrs: false })`.

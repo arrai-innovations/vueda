@@ -1,5 +1,10 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { pickViewFormModelProps, useFormModelProps } from "@vueda/use/useFormModelProps.js";
+import {
+    VIEW_FORM_MODEL_PROPS,
+    VIEW_FORM_PROPS,
+    pickViewFormModelProps,
+    useFormModelProps,
+} from "@vueda/use/useFormModelProps.js";
 import { effectScope, nextTick, reactive } from "vue";
 
 let scope;
@@ -118,6 +123,30 @@ describe("lib/use/useFormModelProps.js", () => {
             expect(picked).toMatchObject({ fieldProps, variant: "compact", fields: undefined });
             expect(picked).not.toHaveProperty("pk");
             expect(picked).not.toHaveProperty("formModelVariant");
+        });
+    });
+
+    describe("VIEW_FORM_PROPS", () => {
+        scopedIt("declares every forwarded prop plus formProps and formModelVariant", () => {
+            expect(Object.keys(VIEW_FORM_PROPS).sort()).toEqual(
+                [...VIEW_FORM_MODEL_PROPS, "formProps", "formModelVariant"].sort(),
+            );
+            expect(VIEW_FORM_MODEL_PROPS).toEqual([
+                "fields",
+                "fieldDetails",
+                "expand",
+                "expandDetails",
+                "fieldComponents",
+                "widgetComponents",
+                "fieldProps",
+                "widgetProps",
+            ]);
+        });
+
+        scopedIt("defaults every prop to undefined", () => {
+            for (const declaration of Object.values(VIEW_FORM_PROPS)) {
+                expect(declaration.default).toBeUndefined();
+            }
         });
     });
 });

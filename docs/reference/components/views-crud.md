@@ -140,7 +140,7 @@ This demo is the same component against a twelve-column model with a value of ev
 
 The demo sets [`tableBreakpoint`]{@api vue:component:ViewList:prop:tableBreakpoint} to `xs` to force table mode. With the `lg` default, the grid shows cards below that breakpoint; [ObjectsGrid](./objectsgrid.md) describes both layouts.
 
-A wide table scrolls sideways inside its own card. Date, time, datetime, boolean, duration, and `JSON` fields have their own adapters ({@api vue:component:ColumnDateTime}, {@api vue:component:ColumnBoolean}, {@api vue:component:ColumnDuration}, and {@api vue:component:ColumnJson}). Range and multi-value choice fields fall back to {@api vue:component:ColumnText}, which prints an object as compact `JSON`, so a range shows its `lower` and `upper` keys.
+A wide table scrolls sideways inside its own card. Date, time, datetime, boolean, duration, and `JSON` fields have their own adapters ({@api vue:component:ColumnDateTime}, {@api vue:component:ColumnBoolean}, {@api vue:component:ColumnDuration}, and {@api vue:component:ColumnJson}). Range and multi-value choice fields fall back to {@api vue:component:ColumnText}. It prints a range as compact `JSON`, so a range shows its `lower` and `upper` keys. It prints a multi-value choice as the labels of its values.
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -159,8 +159,8 @@ A wide table scrolls sideways inside its own card. Date, time, datetime, boolean
     <span>columns: no <code>displayFields</code> override, so the default field list applies</span>
     <span>layout: <code>tableBreakpoint="xs"</code> forces table mode in the narrow demo frame</span>
     <span>overflow: the grid scrolls sideways inside its card; columns size to content and header labels stay on one line</span>
-    <span>adapters: date, time, and datetime use <code>ColumnDateTime</code>, boolean <code>ColumnBoolean</code> (Yes or No, even for a boolean with choices), duration <code>ColumnDuration</code>, and JSON <code>ColumnJson</code>; range and choice fields fall back to <code>ColumnText</code></span>
-    <span>empty values: the type adapters print a dash for a null, and <code>ColumnText</code> prints nothing. <code>ColumnJson</code> prints <code>{}</code> for an empty object, and <code>ColumnText</code> prints <code>[]</code> for an empty choice list</span>
+    <span>adapters: date, time, and datetime use <code>ColumnDateTime</code>, boolean <code>ColumnBoolean</code> (Yes or No, or the choice labels of a boolean with choices), duration <code>ColumnDuration</code>, and JSON <code>ColumnJson</code>; range and choice fields fall back to <code>ColumnText</code></span>
+    <span>empty values: the type adapters print a dash for a null. <code>ColumnText</code> prints nothing for a null or an empty choice list. <code>ColumnJson</code> prints <code>{}</code> for an empty object</span>
     <span>theme keys: {@api theme-key:ObjectsGrid} · source: <code>ViewList.vue</code></span>
   </footer>
 </VuedaDemo>

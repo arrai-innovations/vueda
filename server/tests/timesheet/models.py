@@ -15,6 +15,19 @@ class Timesheet(VuedaModel):
     supervisor = models.ForeignKey(
         "employee.Employee", on_delete=models.CASCADE, null=True, related_name="timesheet_supervisors"
     )
+    # editable=False, so neither its plain field nor its expand can write it, unless the expand's options say
+    # read_only=False. The same lock covers the expand of its reverse relation, approved_timesheets.
+    approved_by = models.ForeignKey(
+        "employee.Employee", on_delete=models.SET_NULL, null=True, editable=False, related_name="approved_timesheets"
+    )
+    # Set only by server code, like approved_by, but a many-to-many field. Its reverse relation is locked too.
+    # The query name differs from the accessor name, so a test shows that the lock finds it by its accessor.
+    reviewers = models.ManyToManyField(
+        "employee.Employee",
+        editable=False,
+        related_name="reviewed_timesheets",
+        related_query_name="reviewed_timesheet",
+    )
 
     formatted_name = None
     formatted_name_lookup_expression = "data__formatted_name"

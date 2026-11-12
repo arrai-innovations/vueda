@@ -12,7 +12,8 @@ import { readonly, ref, shallowRef, toValue, watch } from "vue";
  * @typedef {object} UseMaskaReturn
  * @property {import('vue').DeepReadonly<import('vue').Ref<string>>} masked - The current masked (formatted) value.
  * @property {import('vue').DeepReadonly<import('vue').Ref<string>>} unmasked - The current unmasked (raw) value.
- * @property {import('vue').DeepReadonly<import('vue').Ref<boolean>>} completed - Whether the mask pattern is fully satisfied.
+ * @property {import('vue').DeepReadonly<import('vue').Ref<boolean>>} completed - Whether the mask pattern is fully
+ *  satisfied.
  * @property {() => void} destroy - Destroy the current MaskInput instance early. Safe to call multiple times.
  */
 
@@ -36,8 +37,10 @@ function unrefElement(elRef) {
  * watchEffect, and manual effectScope contexts. The destroy() method is also
  * exposed for early teardown and is idempotent.
  *
- * @param {import('vue').Ref<HTMLInputElement|import('vue').ComponentPublicInstance|null|undefined>} target - A template ref pointing to an input element or component with an input `$el`.
- * @param {import('vue').MaybeRefOrGetter<import('maska').MaskInputOptions>} options - Mask configuration object. May be a ref or getter for reactive updates.
+ * @param {import('vue').Ref<HTMLInputElement|import('vue').ComponentPublicInstance|null|undefined>} target - A template
+ *  ref pointing to an input element or component with an input `$el`.
+ * @param {import('vue').MaybeRefOrGetter<import('maska').MaskInputOptions>} options - Mask configuration object. May be
+ *  a ref or getter for reactive updates.
  * @returns {UseMaskaReturn}
  */
 export function useMaska(target, options) {

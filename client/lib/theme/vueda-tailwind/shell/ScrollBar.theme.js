@@ -13,7 +13,8 @@ patchTheme({
      */
     ScrollBar: {
         /**
-         * The custom scrollbar track. It uses a 10px touch target and switches its border side and dimensions by orientation.
+         * The custom scrollbar track. It uses a 10px touch target and switches its border side and dimensions by
+         * orientation.
          */
         root: ({ orientation }) => ({
             class: [
@@ -24,7 +25,8 @@ patchTheme({
             ],
         }),
         /**
-         * The draggable scrollbar thumb. It uses the border token as a quiet neutral fill and rounds fully inside the track.
+         * The draggable scrollbar thumb. It uses the border token as a quiet neutral fill and rounds fully inside the
+         * track.
          */
         thumb: {
             class: "bg-border relative flex-1 rounded-full",

@@ -63,6 +63,7 @@ The link controls navigation in the UI only. Route guards and server permissions
 The check uses the adapter that the column resolves to, so a `columnComponents` override that names one of these adapters keeps the link. Other adapters render without a row link:
 
 - {@api vue:component:ColumnModelLink} already links to the related record and keeps that target.
+- {@api vue:component:ColumnModelLinks} already links to each related record and keeps those targets.
 - {@api vue:component:ColumnFile} already links to the stored file and keeps that target.
 - A custom adapter may contain links, buttons, or other controls, so VUEDA leaves its navigation alone. Use a field slot (next section) to link custom content.
 - A column whose override does not name a component renders no cells, and the list shows an error for that column. [Customize List Column Rendering](./customize-list-column-rendering) describes the override chain.
@@ -73,7 +74,7 @@ The link is an anchor with the row's URL in both table and card layouts. The cel
 
 ## Link a Custom Cell With `LinkModelView`
 
-Use {@api vue:component:LinkModelView} in a `field(<name>)` slot when the cell needs custom content or its own destination rule. `LinkModelView` does not check permissions, so the slot reads the row's `available_actions` itself.
+Use {@api vue:component:LinkModelView} in a `field(<name>)` slot when the cell needs custom content or its own destination rule. `LinkModelView` checks only whether the viewer may open the view on some record of the model, so the slot reads the row's `available_actions` to decide for this record.
 
 This list view applies the same update-then-read rule to custom content in the `reference` column:
 

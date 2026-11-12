@@ -46,6 +46,8 @@ class CustomerSerializer(VuedaSerializer):
 
 `type_serializer` takes a DRF field class name, such as [`CharField`]{@api ext:drf:rest_framework.fields.CharField} or [`IntegerField`]{@api ext:drf:rest_framework.fields.IntegerField}. The [DRF serializer fields reference](https://www.django-rest-framework.org/api-guide/fields/) lists them. The client picks a widget from `type_serializer`, then `type_model`; [Contract-First Dynamic UI](../core-concepts/contract-first-dynamic-ui.md) explains that lookup.
 
+When no type mapping names `type_serializer`, the client tries each name in `type_serializer_ancestors`. VUEDA lists the ancestors of the field's own class there. An override that changes `type_serializer` to a different class should also set `type_serializer_ancestors`, usually to an empty list, so that the client does not fall back to the old class's ancestors.
+
 For a real example, [`VuedaSerializer.get_field_model_info`]{@api py:function:vueda.core.serializers.VuedaSerializer.get_field_model_info} sets `type_db` and `type_model` to `CharField` for `workflow_state_code` and `workflow_state_name`. Both fields read through a `@property` on workflow models.
 
 Model info calls the hook on a serializer instance built with the model info request's context. So `self.context["view"]` is the model info endpoint's own view, whose action is `retrieve`. It is not the model's own viewset.
@@ -54,7 +56,7 @@ To correct a field inside an [expand]{@term Expand}, override `get_field_model_i
 
 ## Add Display-Only Value Labels
 
-Set `field_display_choices` when a stored value needs a read-only label but should stay an ordinary editable field. For example, a boolean can keep its toggle widget and still show domain labels in read-only views:
+Set `field_display_choices` when a stored value needs a read-only label but should stay an ordinary editable field. For example, a boolean can keep its toggle widget and still show domain labels in read views and lists:
 
 ```python
 class SubmissionSerializer(VuedaSerializer):
@@ -71,7 +73,9 @@ class SubmissionSerializer(VuedaSerializer):
         fields = ["id", "submitted"] + VuedaSerializer.Meta.fields
 ```
 
-The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels only when it shows the field read-only. They do not change serializer validation, model choices, or the editable widget.
+The field's entry gains `display_choices`, a list of `{"label": ..., "value": ...}` objects. The client uses these labels in read views and in list columns. They do not change serializer validation, model choices, or the editable widget.
+
+A field that declares its own choices, such as a model field with `choices`, needs no `field_display_choices`. Its `choices` entry already holds the labels, and the client shows them when the field is read-only. When a serializer sets `field_display_choices` for such a field, the `display_choices` labels take precedence in read-only views.
 
 If you also override `get_field_model_info`, call `super()` in it. Otherwise the base implementation does not apply the labels.
 

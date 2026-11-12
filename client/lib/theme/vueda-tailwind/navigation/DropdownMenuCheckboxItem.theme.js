@@ -12,7 +12,10 @@ patchTheme({
      * DropdownMenuCheckboxItem styles a toggleable dropdown menu choice with an indicator.
      */
     DropdownMenuCheckboxItem: {
-        /** Toggleable menu row with reserved indicator space at the leading edge. See also: {@api theme-key:DropdownMenuItem.root}. */
+        /**
+         * Toggleable menu row with reserved indicator space at the leading edge. See also:
+         * {@api theme-key:DropdownMenuItem.root}.
+         */
         root: {
             class: [
                 // Interactive states.
@@ -28,7 +31,10 @@ patchTheme({
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
             ],
         },
-        /** Absolute indicator box aligned inside the leading gutter reserved by {@api theme-key:DropdownMenuCheckboxItem.root}. */
+        /**
+         * Absolute indicator box aligned inside the leading gutter reserved by
+         * {@api theme-key:DropdownMenuCheckboxItem.root}.
+         */
         indicator: { class: "pointer-events-none absolute left-2 flex size-3.5 items-center justify-center" },
     },
 });

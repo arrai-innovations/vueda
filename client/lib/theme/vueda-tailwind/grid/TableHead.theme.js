@@ -14,7 +14,8 @@ patchTheme({
      */
     TableHead: {
         /**
-         * The header cell slot for `<th>` elements. It owns compact header typography, density heights, sticky positioning, checkbox offsets, and numeric sort-icon ordering; see {@api theme-key:Table.table}.
+         * The header cell slot for `<th>` elements. It owns compact header typography, density heights, sticky
+         * positioning, checkbox offsets, and numeric sort-icon ordering; see {@api theme-key:Table.table}.
          */
         root: {
             class: [

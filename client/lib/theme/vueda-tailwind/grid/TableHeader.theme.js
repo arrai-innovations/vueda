@@ -14,7 +14,9 @@ patchTheme({
      */
     TableHeader: {
         /**
-         * The `<thead>` section wrapper. Empty by default: header cells take their bottom divider from {@api theme-key:TableRow.root}, and because that border belongs to the cell, a sticky {@api theme-key:TableHead.root} carries it over scrolling body content.
+         * The `<thead>` section wrapper. Empty by default: header cells take their bottom divider from
+         * {@api theme-key:TableRow.root}, and because that border belongs to the cell, a sticky
+         * {@api theme-key:TableHead.root} carries it over scrolling body content.
          */
         root: {
             class: "",

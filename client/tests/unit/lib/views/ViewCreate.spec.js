@@ -81,7 +81,7 @@ const ErrorDisplayStub = defineComponent({
 });
 const LinkModelViewStub = defineComponent({
     name: "LinkModelViewStub",
-    props: ["app", "model", "view", "label"],
+    props: { app: null, model: null, view: null, label: null, button: Boolean },
     setup(props) {
         return () =>
             h(
@@ -91,6 +91,7 @@ const LinkModelViewStub = defineComponent({
                     "data-app": props.app,
                     "data-model": props.model,
                     "data-view": props.view,
+                    "data-button": String(props.button),
                 },
                 props.label,
             );
@@ -218,7 +219,7 @@ describe("lib/views/ViewCreate.vue", () => {
     });
 
     describe("Form integration", () => {
-        scopedIt("emits form events and renders non-detail actions", async () => {
+        scopedIt("emits form events and renders non-detail actions as buttons", async () => {
             mockedInject.mockReturnValueOnce({});
             mockedUseFilteredActions.mockReturnValueOnce(
                 vue.reactive({ actions: ["create", "update", "list", "read"] }),
@@ -241,8 +242,11 @@ describe("lib/views/ViewCreate.vue", () => {
             expect(vue.isReactive(formArg)).toBe(true);
 
             const links = wrapper.findAll('[data-qa="link-model-view"]');
-            const views = links.map((l) => l.attributes("data-view"));
-            expect(views).toEqual(["update", "list"]);
+            const views = links.map((l) => [l.attributes("data-view"), l.attributes("data-button")]);
+            expect(views).toEqual([
+                ["update", "true"],
+                ["list", "true"],
+            ]);
         });
 
         scopedIt("renders FormConfirmDialog bound to the objectForm confirmation controller", () => {

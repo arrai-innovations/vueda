@@ -34,7 +34,7 @@ The view an action form opens after its action succeeds or you cancel it. You se
 
 ## Action View Resolution
 
-How `ViewActionRouter` picks the view component for a route that passed {@term Route Admission}. It renders `ViewActionNotFound` when neither {@term Model Info} nor the {@term Permitted Transitions} list the action. Otherwise it tries the built-in view registry, then a project view named by convention, then a generic view for the action or transition. A transition code skips the built-in registry.
+How `ViewActionRouter` picks the view component for a route that passed {@term Route Admission}. It renders `ViewActionNotFound` when neither {@term Model Info} nor the {@term Permitted Transitions} list the action. Otherwise it tries the built-in view registry, then a project view named by convention, then the project-wide view, then the VUEDA view for the action or transition. A transition code skips the built-in registry. Each default registry entry tries a project view for the route's model, then the project-wide view, then the VUEDA view.
 
 - Names: [`ViewActionRouter`]{@api vue:component:ViewActionRouter}; [`setCrudComponents`]{@api js:function:@arrai-innovations/vueda/router/routerComponent#setCrudComponents}; [`crudComponents`]{@api js:property:@arrai-innovations/vueda/router/routerComponent#crudComponents}; [`ViewAction`]{@api vue:component:ViewAction}; [`ViewExecuteTransition`]{@api vue:component:ViewExecuteTransition}; [`ViewActionNotFound`]{@api vue:component:ViewActionNotFound}
 - Described in: [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order)
@@ -58,7 +58,7 @@ The client stores whose cached data depends on the signed-in user's permissions:
 
 The `available_actions` field on an object payload: the actions the current user may perform on that object. Each built-in action that the viewset implements, except `create`, appears when an {@term Object-Scope Check} passes; extra actions appear when `get_allowed_extra_actions` includes them. The server includes the field only when the request asks for it through {@term Sparse Fields} (`f`).
 
-- Names: [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions}; [`AvailableActionsField`]{@api py:class:vueda.core.serializers.fields.AvailableActionsField}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}
+- Names: [`available_actions`]{@api py:property:vueda.core.serializers.VuedaSerializer.available_actions}; [`AvailableActionsField`]{@api py:class:vueda.core.serializers.fields.AvailableActionsField}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.AllowedExtraActionsMixin.get_allowed_extra_actions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#object-scope-availability-metadata)
 
 ## Baseline Permission
@@ -243,7 +243,7 @@ A request option that returns a related object inline in place of its primary ke
 
 An {@term Action} that a viewset declares with VUEDA's `action` decorator, in addition to the built-in actions. It targets one object when declared `detail=True` and the model otherwise; a {@term Bulk Action} can target several objects. Model info reports it by its `url_name`.
 
-- Names: [`action`]{@api py:function:vueda.core.decorators.action}; [`detail`]{@api py:param:vueda.core.decorators.action.detail}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.VuedaViewSet.get_allowed_extra_actions}
+- Names: [`action`]{@api py:function:vueda.core.decorators.action}; [`detail`]{@api py:param:vueda.core.decorators.action.detail}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.AllowedExtraActionsMixin.get_allowed_extra_actions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#server-action-declaration-and-route-partitioning)
 - Upstream: [DRF: `action`]{@api ext:drf:rest_framework.decorators.action}
 
@@ -396,9 +396,9 @@ The metadata the server publishes for each registered model, in seven sections: 
 
 ## Model-Scope Check
 
-A permission check with no object, which asks whether the user may perform an action on the model at all. The server runs it before a request fetches any object, and it runs one for each built-in action to build {@term Model Actions}.
+A permission check with no object, which asks whether the user may perform an action on the model at all. The server runs it before a request fetches any object. It runs one for each built-in action and each {@term Extra Action} to build {@term Model Actions}. It also runs one for each extra action in an object's {@term Available Actions}.
 
-- Names: [`check_action_permission`]{@api py:function:vueda.core.permissions.check_action_permission}
+- Names: [`check_action_permission`]{@api py:function:vueda.core.permissions.check_action_permission}; [`permitted_extra_action_methods`]{@api py:function:vueda.core.permissions.permitted_extra_action_methods}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#model-scope-action-metadata)
 
 ## Model-Scope Deferral
@@ -437,7 +437,7 @@ The record that stores which workflow state one object is in. VUEDA creates it i
 
 ## Object-Scope Check
 
-A permission check against one object, including its {@term Row-Level Permissions} and {@term State Permission} rules. The server runs it on requests for that object, and it decides which built-in actions appear in the object's {@term Available Actions}.
+A permission check against one object, including its {@term Row-Level Permissions} and {@term State Permission} rules. The server runs it on requests for that object. It decides which built-in actions and which detail extra actions appear in the object's {@term Available Actions}.
 
 - Names: [`check_action_permission`]{@api py:function:vueda.core.permissions.check_action_permission}; [`ObjectPermissions`]{@api py:class:vueda.core.permissions.ObjectPermissions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#object-scope-availability-metadata)

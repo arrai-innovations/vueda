@@ -18,6 +18,7 @@ from pdoc.doc import Doc
 from pdoc.doc import Function
 from pdoc.doc import Module
 from pdoc.doc import Variable
+from pdoc.docstrings import google
 
 
 def parse_args() -> argparse.Namespace:
@@ -177,7 +178,9 @@ def _doc_to_dict(doc: Doc, kind_by_fullname: dict[str, str]) -> dict[str, Any]:
         "fullname": doc.fullname,
         "qualname": doc.qualname,
         "modulename": doc.modulename,
-        "docstring": doc.docstring,
+        # pdoc turns Google-style sections, such as Args: and Returns:, into Markdown. Its reST
+        # conversion is not applied, so :param: fields and reST roles stay as written.
+        "docstring": google(doc.docstring),
         "taken_from": {
             "modulename": doc.taken_from[0],
             "qualname": doc.taken_from[1],

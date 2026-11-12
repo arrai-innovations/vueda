@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemFooter: {
         /**
-         * The low-emphasis metadata row below item content. It uses compact mono supporting text so timestamps, counters, and machine-generated values read as metadata.
+         * The low-emphasis metadata row below item content. It uses compact mono supporting text so timestamps,
+         * counters, and machine-generated values read as metadata.
          */
         root: {
             class: [

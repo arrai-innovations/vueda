@@ -1,6 +1,7 @@
 """ViewSet base classes with atomic transactions, row-level filtering, and flex-fields."""
 
 __all__ = (
+    "AllowedExtraActionsMixin",
     "AtomicCreateModelViewSetMixin",
     "AtomicDestroyModelViewSetMixin",
     "AtomicModelViewSet",
@@ -36,6 +37,7 @@ from django.db.models import F
 from django.db.models import Prefetch
 from django.db.models import Sum
 from django.db.models.fields.reverse_related import ForeignObjectRel
+from django.db.models.fields.reverse_related import ManyToOneRel
 from django.http import Http404
 from django_filters.filters import AllValuesFilter
 from django_filters.filters import AllValuesMultipleFilter
@@ -54,19 +56,20 @@ from vueda.core.decorators import DRY_RUN_HEADER
 from vueda.core.decorators import action
 from vueda.core.exceptions import VuedaValidationError
 from vueda.core.exceptions import gate_warnings
-from vueda.core.formatted_name import FORMATTED_NAME_SELECT_RELATED
 from vueda.core.formatted_name import annotate_formatted_name
 from vueda.core.formatted_name import formatted_name_annotation_path
+from vueda.core.formatted_name import formatted_name_select_related_paths
 from vueda.core.models import ActivatableBaseModel
 from vueda.core.parsers import NestedMultipartMixin
 from vueda.core.paths import path_annotation_name
 from vueda.core.paths import query_path_field
-from vueda.core.permissions import check_action_permission
 from vueda.core.permissions import filter_rows_for_user
+from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import GenericForeignKeySerializer
 from vueda.core.serializers import PrimaryKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
+from vueda.core.utils import unwrap_expandable_field
 from vueda.history.actions import build_action_groups
 from vueda.history.queries import action_groups_for
 from vueda.history.queries import events_in_groups
@@ -645,11 +648,7 @@ def get_recursive_expands_and_fields(serializer, depth, max_depth):
                     valid_fields.add(field_name)
                     valid_expands.add(field_name)
 
-                    serializer_settings = {}
-                    if isinstance(serializer_data, tuple):  # rest_flex_fields2 only tests for tuple.
-                        child_serializer, serializer_settings = serializer_data
-                    else:
-                        child_serializer = serializer_data
+                    child_serializer, serializer_settings = unwrap_expandable_field(serializer_data)
 
                     if isinstance(child_serializer, str):
                         child_serializer = serializer._get_serializer_class_from_lazy_string(child_serializer)
@@ -701,6 +700,45 @@ def permitted_expand_depths(serializer):
     :returns: One dot count per permitted path.
     """
     return [path.count(".") for path in serializer.context.get("permitted_expands") or ()]
+
+
+def flex_param_max_depth(serializer, *submitted_names):
+    """
+    Return how deep validation walks the expand tree for the submitted ``f`` and ``e`` names.
+
+    The walk goes one level below the deepest submitted name. It also goes at least as deep as the
+    action's permit list, so an error message can list a dotted permit (see ``permitted_expand_depths``).
+
+    :param serializer: The action's serializer, whose context may hold ``permitted_expands``.
+    :param submitted_names: Each collection of submitted names, such as the ``f`` values and the ``e`` values.
+    :returns: The depth to pass to ``get_recursive_expands_and_fields``.
+    """
+    dot_counts = [name.count(".") for names in submitted_names for name in names]
+    return max(dot_counts + permitted_expand_depths(serializer)) + 1
+
+
+def invalid_expand_errors(serializer, submitted_expand_fields):
+    """
+    Map each ``e`` value that ``serializer`` cannot expand to its message, by the rules of a read.
+
+    Without a permit list, a value is valid when it names a declared expand, a dotted path that each
+    level declares, or a wildcard at a level that has expands. With a permit list, a value is valid only
+    when the list holds it, or when it is a wildcard.
+
+    ``NoExtraFieldsSerializerMixin.to_internal_value`` calls this, so a write whose view runs no check of
+    its own still gets the messages that ``validate_flex_expand_and_field_param`` gives.
+
+    :param serializer: The serializer whose expands and permit list decide validity.
+    :param submitted_expand_fields: The ``e`` values from the request.
+    :returns: A dict of invalid expand to message. It is empty when every value is valid.
+    """
+    if not submitted_expand_fields:
+        return {}
+    max_depth = flex_param_max_depth(serializer, submitted_expand_fields)
+    valid_expands, valid_wildcard_expands, _valid_fields, _valid_wildcard_fields = get_recursive_expands_and_fields(
+        serializer, 0, max_depth
+    )
+    return invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands)
 
 
 def invalid_expand_messages(submitted_expand_fields, valid_expands, valid_wildcard_expands):
@@ -797,35 +835,43 @@ def get_filterset_query_param_names(filterset_class, get_queryset):
     return names
 
 
-def _resolve_relation_segment(model, segment):
+def _relation_field(model, segment):
     """
-    Match ``segment`` against one of ``model``'s relations by the same accessor name Django uses
-    for instance attribute access, ``select_related``, and ``prefetch_related`` alike: a forward
-    relation's field name, or a reverse relation's accessor name (``get_accessor_name()``), which
-    is not the same string as the reverse field's own ``name`` (that is the query lookup name --
-    ``related_query_name()`` territory -- and can differ from the attribute/prefetch accessor
-    whenever ``related_name`` and ``related_query_name`` diverge).
+    Return the relation on ``model`` whose accessor name is ``segment``. The accessor name is the one
+    that Django uses for instance attribute access, ``select_related``, and ``prefetch_related``
+    alike: a forward relation's field name, or a reverse relation's ``get_accessor_name()``. That is
+    not the same string as the reverse field's own ``name``, which is the query lookup name and can
+    differ from the accessor whenever ``related_name`` and ``related_query_name`` diverge.
 
-    Returns ``(related_model, is_to_one)`` for a matching relation, or ``None`` when ``segment``
-    names a plain column, a Python property or method, or a ``GenericForeignKey`` (a relation with
-    no fixed ``related_model`` to plan against).
+    Returns ``None`` when ``segment`` names no relation, such as a plain column or a Python property
+    or method.
     """
     for field in model._meta.get_fields():
         if not field.is_relation:
             continue
 
         name = field.get_accessor_name() if isinstance(field, ForeignObjectRel) else field.name
-        if name != segment:
-            continue
-
-        related_model = getattr(field, "related_model", None)
-        if related_model is None:
-            return None
-
-        is_to_one = bool(getattr(field, "one_to_one", False) or getattr(field, "many_to_one", False))
-        return related_model, is_to_one
+        if name == segment:
+            return field
 
     return None
+
+
+def _resolve_relation_segment(model, segment):
+    """
+    Match ``segment`` against one of ``model``'s relations by its accessor name (see
+    :func:`_relation_field`).
+
+    Returns ``(related_model, is_to_one)`` for a matching relation. The result is ``None`` when
+    ``segment`` names a plain column, a Python property or method, or a ``GenericForeignKey`` (a
+    relation with no fixed ``related_model`` to plan against).
+    """
+    field = _relation_field(model, segment)
+    if field is None or field.related_model is None:
+        return None
+
+    is_to_one = bool(field.one_to_one or field.many_to_one)
+    return field.related_model, is_to_one
 
 
 def resolve_relation_path(model, source):
@@ -899,15 +945,15 @@ def build_prefetch_plan(serializer, model):
     ``GenericRelation`` (a reverse collection onto a fixed, known model) is a normal to-many
     relation and is planned like any other.
 
-    A to-one relation loads through ``select_related``, together with the paths that the related
-    model's ``formatted_name_select_related`` declares. The exception is a related model whose
-    ``formatted_name`` is an annotation (``formatted_name_annotation_path`` returns a path), because a
-    join loads the related model's columns but not its annotations. That relation loads through a
-    ``Prefetch`` whose queryset annotates ``formatted_name``, which costs one query for the related
-    rows. The queryset starts from the related model's ``_base_manager``, the manager that Django
-    uses to load a related object, so a default manager that filters rows cannot hide the related
-    object. When the relation's ``source`` crosses other to-one relations first, those relations load
-    through a join.
+    A to-one relation loads through ``select_related``. The paths that
+    ``formatted_name_select_related_paths`` returns for the related model join too. The exception
+    is a related model whose ``formatted_name`` is an annotation (``formatted_name_annotation_path``
+    returns a path), because a join loads the related model's columns but not its annotations.
+    That relation loads through a ``Prefetch`` whose queryset annotates ``formatted_name``, which
+    costs one query for the related rows. The queryset starts from the related model's
+    ``_base_manager``, the manager that Django uses to load a related object, so a default manager
+    that filters rows cannot hide the related object. When the relation's ``source`` crosses other
+    to-one relations first, those relations load through a join.
 
     A to-many relation always loads through a ``Prefetch`` whose queryset starts from the related
     model's default manager and annotates ``formatted_name`` and ``object_revision``.
@@ -958,7 +1004,7 @@ def build_prefetch_plan(serializer, model):
         elif formatted_name_annotation_path(related_model) is None:
             # The related model's formatted_name_select_related joins the relations its
             # get_formatted_name() reads, as annotate_formatted_name does for its own querysets.
-            name_select_related = getattr(related_model, FORMATTED_NAME_SELECT_RELATED, None) or ()
+            name_select_related = formatted_name_select_related_paths(related_model)
             select_related.append(orm_path)
             select_related.extend(f"{orm_path}__{nested}" for nested in name_select_related)
         else:
@@ -1149,6 +1195,32 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     its joins passes through such a relation. Its filters, annotations, and ordering stay as
     declared.
 
+    A prefetch through a reverse foreign key, a reverse one-to-one, or a forward one-to-one is the
+    exception. Django points each row that it loads back at the row that it was loaded for, so a
+    lookup through that back reference, such as ``cart_set__customer``, never runs. A join part
+    right after the back reference goes to the rows that the back reference points to. For example,
+    the ``user`` part of Cart's ``customer__user`` join under a ``cart_set`` prefetch becomes a
+    ``user`` join on the Customer rows:
+
+    - When ``queryset`` or a plan ``Prefetch`` loads those rows, the part joins onto that queryset.
+    - When a viewset's own ``Prefetch`` loads them, the part becomes a string lookup after it.
+    - When the rows are reached through a to-many relation that no ``Prefetch`` queryset loads, the
+      part becomes a string lookup through the back reference, such as ``cart_set__customer__user``.
+      Django follows the cached back reference and loads ``user`` with one query.
+
+    The part never replaces a bare ``select_related()`` on the queryset that loads the rows. It
+    becomes a string lookup instead, after the ``Prefetch`` that loads the rows or through the back
+    reference.
+
+    A join part deeper under the back reference, such as one under a ``Prefetch`` for
+    ``cart_set__customer__user``, stays with that deeper relation, because Django runs that
+    ``Prefetch`` on the cached rows.
+
+    A viewset's own ``Prefetch`` queryset for ``customer`` can prefetch ``cart_set`` itself, with a
+    ``Prefetch`` of its own. That queryset loads the carts while it runs, so the plan's own lookup
+    for ``customer__cart_set`` never runs. The part then joins onto the viewset's Customer queryset,
+    which loads the rows that the carts point back to, and the plan adds no lookup for it.
+
     A prefetch without a queryset, such as the string ``"customer__user"``, loads the same plain
     objects that a join loads. A join through it stays, and Django skips that prefetch for each row
     whose relation the join already cached.
@@ -1162,9 +1234,10 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     attribute, so a join on the same relation leaves it unaffected and stays.
 
     A bare ``select_related()`` with no paths follows every non-null foreign key and records no path
-    to split. When the plan adds a join, Django replaces the bare ``select_related()`` with the
-    plan's paths, so the queryset joins only those paths. Without a join in the plan, the bare
-    ``select_related()`` stays, and its joins can replace a prefetched to-one relation.
+    to split. When the plan adds a join on ``queryset``, Django replaces the bare
+    ``select_related()`` with the plan's paths, so the queryset joins only those paths. Without such
+    a join in the plan, the bare ``select_related()`` stays, and its joins can replace a prefetched
+    to-one relation.
 
     Reads ``queryset.query.select_related``, a private Django attribute: ``False``, ``True`` for a
     bare ``select_related()``, or a nested dict of relation names.
@@ -1180,6 +1253,103 @@ def apply_prefetch_plan(queryset, select_related, prefetch_related):
     """
     queryset, _ = _place_prefetch_plan(queryset, select_related, prefetch_related, frozenset())
     return queryset
+
+
+def _prefetch_back_reference(model, path):
+    """
+    Return the attribute that points from the rows that a prefetch loads back to the rows that it
+    loads them for.
+
+    ``path`` is a prefetch lookup's path on ``model``. Django caches this back reference on each
+    prefetched row when the path's last relation is one of these:
+
+    - A reverse foreign key or a reverse one-to-one. Django sets the relation's own field. For
+      example, each ``Cart`` that ``cart_set`` loads gets the ``Customer`` row that it belongs to as
+      its ``customer``. A reverse foreign key leaves a field that a join already cached as it is.
+    - A forward one-to-one. Django sets the reverse accessor. For example, each ``User`` that a
+      Customer's ``user`` loads gets that ``Customer`` as its ``customer``.
+
+    A prefetch through the back reference, such as ``cart_set__customer``, then finds every row's
+    relation already cached and does not run. A forward foreign key, a many-to-many relation, and a
+    generic relation cache no back reference.
+
+    :param model: The model that the path starts from.
+    :type model: Type[django.db.models.Model]
+    :param path: The prefetch lookup's ``__``-joined path of relation attribute names.
+    :type path: str
+    :return: The back reference's attribute name on the prefetched rows. The result is ``None`` when
+        the path's last relation caches no back reference, or when the path does not resolve.
+    :rtype: Optional[str]
+    """
+    field = None
+    for segment in path.split("__"):
+        field = _relation_field(model, segment)
+        if field is None or field.related_model is None:
+            return None
+        model = field.related_model
+    if isinstance(field, ManyToOneRel):
+        return field.field.name
+    if field.one_to_one:
+        return field.remote_field.get_accessor_name()
+    return None
+
+
+def _joins_to_one(model, owner, join):
+    """
+    Return whether ``join`` follows only to-one relations from the rows at ``owner``. Both are
+    ``__``-joined paths, and ``owner`` starts from ``model``. An empty ``owner`` means ``model``'s
+    own rows. A path that does not resolve to relations counts as not to-one.
+    """
+    if owner:
+        resolved = resolve_relation_path(model, owner.replace("__", "."))
+        if resolved is None:
+            return False
+        model = resolved[1]
+    resolved = resolve_relation_path(model, join.replace("__", "."))
+    return resolved is not None and resolved[2]
+
+
+def _parent_join_pieces(model, path, join, split_paths, keeps_bare_select_related):
+    """
+    Split a join part that follows the back reference of the prefetch at ``path`` into pieces that
+    load with the rows that the back reference points to. Those are the rows at ``path``'s parent
+    path on ``model``.
+
+    Returns ``(owner, join)`` pairs, as :func:`_split_join_at_prefetches` does. The result is
+    ``None`` when a piece cannot load as a join. A piece cannot when it crosses a to-many relation,
+    or when it would replace a bare ``select_related()`` on ``model``'s queryset, which
+    ``keeps_bare_select_related`` reports.
+    """
+    parent_join = "__".join(part for part in (path.rpartition("__")[0], join) if part)
+    pieces = _split_join_at_prefetches(parent_join, split_paths)
+    for owner, piece in pieces:
+        if not owner and keeps_bare_select_related:
+            return None
+        if not _joins_to_one(model, owner, piece):
+            return None
+    return pieces
+
+
+def _add_late_joins_to_plan_prefetches(placed_lookups, plan_prefetches, prefetch_joins):
+    """
+    Build a plan ``Prefetch`` again for each join that a back reference sent to it after it was
+    placed. A back reference sends a join to a shallower ``Prefetch``, which the placement loop has
+    already processed.
+
+    ``plan_prefetches`` maps each plan ``Prefetch`` path to ``(index, queryset, joins_under,
+    nested_paths, kept_bare)``. ``index`` is the ``Prefetch``'s position in ``placed_lookups``, and
+    the other values are what its first build used and kept. The join was split at every prefetched
+    path, so the second build hands out nothing new.
+
+    A queryset that kept a bare ``select_related()`` keeps it. Its join stays in ``prefetch_joins``
+    and becomes a string lookup after the ``Prefetch``.
+    """
+    for path, (index, plan_queryset, joins_under, nested_paths, kept_bare) in plan_prefetches.items():
+        if kept_bare or path not in prefetch_joins:
+            continue
+        late_joins = prefetch_joins.pop(path)
+        nested_queryset, _ = _place_prefetch_plan(plan_queryset, [*joins_under, *late_joins], [], nested_paths)
+        placed_lookups[index] = Prefetch(path, queryset=nested_queryset)
 
 
 def _loads_relation_through_queryset(lookup):
@@ -1235,10 +1405,16 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
             place(owner, join)
 
     changed = bool(select_related or new_lookups or prefetch_joins or outer_joins)
+    # A bare select_related() records no paths to keep, so a join on the queryset would replace it.
+    keeps_bare_select_related = existing_select_related is True and not queryset_joins
 
     # Shallower lookups come first, so a join that a Prefetch queryset hands to a relation under it
     # is placed before that relation's own Prefetch is processed.
     placed_lookups = []
+    back_reference_lookups = []
+    plan_prefetches = {}
+    # Paths that a Prefetch queryset loads while it runs, through prefetches of its own.
+    loaded_inside = set()
     for lookup, from_plan in lookups:
         if _loads_relation_through_queryset(lookup):
             path = lookup.prefetch_through
@@ -1248,18 +1424,52 @@ def _place_prefetch_plan(queryset, select_related, prefetch_related, outer_prefe
             joins_under = list(prefetch_joins.pop(path, {})) if from_plan else []
             nested_paths = frozenset(p.removeprefix(prefix) for p in split_paths if p.startswith(prefix))
             nested_queryset, handed_out = _place_prefetch_plan(lookup.queryset, joins_under, [], nested_paths)
+            loaded_inside.update(
+                f"{prefix}{key}"
+                for inner_lookup in nested_queryset._prefetch_related_lookups
+                for key in _prefetch_cache_keys(inner_lookup)
+            )
+            back_reference = _prefetch_back_reference(queryset.model, path) if handed_out else None
             for owner, joins_after in handed_out.items():
                 for join in joins_after:
-                    place(f"{prefix}{owner}", join)
+                    if owner != back_reference:
+                        place(f"{prefix}{owner}", join)
+                        continue
+                    # A shallower Prefetch queryset already loads this relation, so Django never runs
+                    # this lookup, and that queryset places the joins of its own rows.
+                    if path in loaded_inside:
+                        continue
+                    # Django points each prefetched row's back reference at the row that it was
+                    # loaded for, so the lookup through the back reference never runs. The join
+                    # loads with those parent rows instead.
+                    pieces = _parent_join_pieces(queryset.model, path, join, split_paths, keeps_bare_select_related)
+                    if pieces is None:
+                        # Django still follows a string lookup through a cached back reference, at one
+                        # query per relation.
+                        back_reference_lookups.append(f"{prefix}{owner}__{join}")
+                        continue
+                    for piece_owner, piece in pieces:
+                        place(piece_owner, piece)
+            if from_plan:
+                plan_prefetches[path] = (
+                    len(placed_lookups),
+                    lookup.queryset,
+                    joins_under,
+                    nested_paths,
+                    nested_queryset.query.select_related is True,
+                )
             if nested_queryset is not lookup.queryset:
                 lookup = Prefetch(path, queryset=nested_queryset)
                 changed = True
         placed_lookups.append(lookup)
 
+    _add_late_joins_to_plan_prefetches(placed_lookups, plan_prefetches, prefetch_joins)
+
     if not changed:
         return queryset, outer_joins
 
     placed_lookups.extend(f"{owner}__{join}" for owner, joins_under in prefetch_joins.items() for join in joins_under)
+    placed_lookups.extend(back_reference_lookups)
 
     if isinstance(existing_select_related, dict):
         queryset = queryset.select_related(None)
@@ -1358,14 +1568,7 @@ class NoExtraFieldsForViewSetMixin:
             submitted_expand_fields = frozenset(
                 serializer._get_query_param_value(settings.REST_FLEX_FIELDS2["EXPAND_PARAM"])
             )
-            max_depth = (
-                max(
-                    [field.count(".") for field in submitted_fields]
-                    + [field.count(".") for field in submitted_expand_fields]
-                    + permitted_expand_depths(serializer)
-                )
-                + 1
-            )
+            max_depth = flex_param_max_depth(serializer, submitted_fields, submitted_expand_fields)
             valid_expands, valid_wildcard_expands, valid_fields, valid_wildcard_fields = (
                 get_recursive_expands_and_fields(serializer, 0, max_depth)
             )
@@ -1380,7 +1583,7 @@ class NoExtraFieldsForViewSetMixin:
                 gfk_fields = {
                     name
                     for name, data in getattr(serializer.Meta, "expandable_fields", {}).items()
-                    if (data[0] if isinstance(data, tuple) else data) is GenericForeignKeySerializer
+                    if unwrap_expandable_field(data)[0] is GenericForeignKeySerializer
                 }
                 if gfk_fields:
                     extra_keys = frozenset(k for k in extra_keys if k.split(".")[0] not in gfk_fields)
@@ -1467,6 +1670,47 @@ class PerActionSerializerMixin:
         if hasattr(self, "action") and hasattr(self, serializer_class_key):
             return getattr(self, serializer_class_key)
         return super().get_serializer_class()
+
+
+class AllowedExtraActionsMixin:
+    """
+    A ViewSet mixin that offers each extra action only to users who pass that action's
+    permission check.
+
+    An extra action is one that the viewset declares with ``@action``. ``VuedaViewSet`` and
+    ``VuedaReadOnlyViewSet`` include this mixin. Model metadata reads
+    :meth:`get_allowed_extra_actions` to build ``model_actions``, and ``AvailableActionsField``
+    reads it to build an object's ``available_actions``.
+    """
+
+    def get_allowed_extra_actions(self, request, *, instance=None):
+        """
+        Return the URL names of the extra actions that ``request.user`` may use.
+
+        An extra action is offered when
+        :func:`vueda.core.permissions.permitted_extra_action_methods` returns at least one HTTP
+        method for it. That function runs the model-scope check. When ``instance`` is given, it
+        also runs the object-scope check for that object. Both checks run the permission classes
+        that the action's endpoint runs. The endpoint runs the object-scope check only when the
+        action body loads its object through ``get_object()``.
+
+        On ``VuedaViewSet``, ``history-list`` is a ``GET`` detail action. With the default
+        ``ObjectPermissions``, it is offered to a user who may read the object. ``history_list``
+        belongs to ``workflow_object_permission_actions``, so a matching workflow-state grant also
+        admits it.
+
+        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
+        serializer context without a request. Every extra action is offered in that case. An
+        override must handle that case before reading ``request.user``.
+
+        Override this method to change which extra actions are offered. An override can call
+        ``super()`` and filter the result further.
+        """
+        return {
+            extra_action.url_name
+            for extra_action in self.get_extra_actions()
+            if permitted_extra_action_methods(self, request, instance, extra_action)
+        }
 
 
 class DeactivateActionViewSetMixin:
@@ -1572,6 +1816,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    AllowedExtraActionsMixin,
     NestedMultipartMixin,
     WarningConfirmationMixin,
     FlexFieldsMixin,
@@ -1586,6 +1831,7 @@ class VuedaViewSet(
     - Flex-fields expansion (``FlexFieldsMixin``)
     - Query-parameter validation against filter and serializer fields (``NoExtraFieldsForViewSetMixin``)
     - Row-level and workflow-aware list filtering (``ListRowLevelViewSetMixin``)
+    - Extra actions offered only to users who pass their permission check (``AllowedExtraActionsMixin``)
     - Bulk delete with dry-run support
     - Override ``destroy_validation`` to add pre-delete business rules.
     - Override ``get_warnings_for_object`` (from ``WarningConfirmationMixin``) to gate
@@ -1768,49 +2014,6 @@ class VuedaViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_allowed_extra_actions(self, request, *, instance=None):
-        """
-        Override this function to change if a user is allowed to do a certain action.
-
-        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
-        serializer context without a request. An override must handle that case before reading
-        ``request.user``. With no request, this method offers every extra action, the same answer
-        :func:`vueda.core.permissions.check_action_permission` gives with no request.
-
-        ``history_list`` is additionally gated on read authorization here, checked the same way an
-        object's own ``retrieve`` already is (:meth:`_read_permitted`). ``history_list`` belongs to
-        ``workflow_object_permission_actions`` by default (see that attribute above), so a
-        requester whose read comes only from a matching workflow-state grant is offered
-        ``history-list`` here the same way a requester whose read comes from a model-level
-        permission already is, and both agree with what the history endpoint's own enforcement
-        answers for the same row.
-        """
-        allowed_actions = set()
-        for extra_action in self.get_extra_actions():
-            if extra_action.url_name == "history-list" and not self._read_permitted(request, instance):
-                continue
-            allowed_actions.add(extra_action.url_name)
-
-        return allowed_actions
-
-    def _read_permitted(self, request, instance):
-        """
-        Whether ``request.user`` may read ``instance`` -- or the model at large, when ``instance``
-        is ``None`` -- through this viewset's own configured permission classes.
-
-        Checked as an ordinary "retrieve" read, through
-        :func:`vueda.core.permissions.check_action_permission`, the same function an object's own
-        ``available_actions`` (:class:`vueda.core.serializers.fields.AvailableActionsField`) and model
-        metadata's own action list (:meth:`vueda.info.serializers.ModelInfoSerializer.get_model_actions`)
-        already call to check ``retrieve`` for the same row or model, on this same viewset instance, within
-        the same request. ``check_action_permission`` caches its answer per ``(action, instance)`` on that
-        viewset instance, so whichever of those two callers reaches ``retrieve`` first pays for the
-        permission pass, and this call reuses that answer instead of paying for a second one. See
-        ``check_action_permission`` for what "checked as an action" means and why ``instance=None`` takes a
-        different path than a specific object.
-        """
-        return check_action_permission(self, request, instance, "retrieve")
-
     def get_object(self):
         """
         Override this function to convert the pk kwarg to a list if the model has a composite primary key.
@@ -1877,6 +2080,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    AllowedExtraActionsMixin,
     NestedMultipartMixin,
     FlexFieldsMixin,
     NoExtraFieldsForViewSetMixin,
@@ -1885,8 +2089,8 @@ class VuedaReadOnlyViewSet(
 ):
     """
     Read-only ViewSet for VUEDA models. Provides ``list`` and ``retrieve`` only,
-    with the same flex-fields, query-parameter validation, and row-level filtering
-    as ``VuedaViewSet``.
+    with the same flex-fields, query-parameter validation, row-level filtering, and extra-action
+    permission checks as ``VuedaViewSet``.
     """
 
     detail_args = ["pk"]
@@ -1899,22 +2103,3 @@ class VuedaReadOnlyViewSet(
 
     nulls_ordering_flip: str | Iterable[str] | None = None
     """Field names in ``nulls_ordering`` whose placement flips when the field is sorted descending."""
-
-    def get_allowed_extra_actions(self, request, *, instance=None):
-        """
-        Override this function to change if a user is allowed to do a certain action.
-
-        ``request`` is ``None`` when model metadata or ``available_actions`` is built from a
-        serializer context without a request. An override must handle that case before reading
-        ``request.user``.
-
-        Unlike :meth:`VuedaViewSet.get_allowed_extra_actions`, this offers every extra action
-        unconditionally, including no read gate for ``history_list``: that action is defined only
-        on ``VuedaViewSet``, so it never appears in ``get_extra_actions()`` here, and there is
-        nothing for a read gate to filter.
-        """
-        allowed_actions = set()
-        for extra_action in self.get_extra_actions():
-            allowed_actions.add(extra_action.url_name)
-
-        return allowed_actions

@@ -11,7 +11,7 @@ This guide shows how an action form runs a workflow {@term Transition}, and how 
 
 ## How a Transition Route Reaches Its Form
 
-A transition route carries the transition's `code` as its action segment. {@term Route Admission} accepts it when the code is one of the user's {@term Permitted Transitions}. {@api vue:component:ViewActionRouter} then renders a project view named for the code. When no such view exists, it renders {@api vue:component:ViewExecuteTransition}. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) gives the full resolution order.
+A transition route carries the transition's `code` as its action segment. {@term Route Admission} accepts it when the code is one of the user's {@term Permitted Transitions}. {@api vue:component:ViewActionRouter} then renders a project view named for the code. When no such view exists, it renders the project's `src/views/ViewExecuteTransition.vue`. When that file does not exist either, it renders VUEDA's {@api vue:component:ViewExecuteTransition}. [Routing and View Resolution Model](../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) gives the full resolution order.
 
 `ViewExecuteTransition` wraps `ModelActionForm` and replaces its [`run-action`]{@api vue:component:ActionForm:prop:runAction} with a call to {@api js:method:@arrai-innovations/vueda/stores/storeWorkflow#storeWorkflow.executeTransition}. A transition therefore gets the same pre-flight, submit, cancel, and redirect behavior as any other action form. [Action & Workflow Views](../reference/components/action-workflow.md#viewexecutetransition) describes what its confirmation shows.
 

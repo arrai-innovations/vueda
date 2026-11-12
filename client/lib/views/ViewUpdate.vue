@@ -3,6 +3,7 @@ import Button from "@vueda/controls/button/Button.vue";
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
 import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vue";
 import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertActions from "@vueda/feedback/alert/AlertActions.vue";
 import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
 import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
@@ -13,6 +14,7 @@ import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
 import PageActions from "@vueda/shell/page-title/PageActions.vue";
 import StickyBar from "@vueda/shell/sticky/StickyBar.vue";
 import "@vueda/theme/vueda-tailwind/views/ViewUpdate.theme.js";
+import { VIEW_FORM_PROPS } from "@vueda/use/useFormModelProps.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewUpdate } from "@vueda/use/useViewUpdate.js";
@@ -46,7 +48,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Field paths sent in the update request body, which also carries the primary key. Falls back to the model config's submitFields when omitted or empty. */
+    /**
+     * Field paths sent in the update request body, which also carries the primary key. Falls back to the model config's
+     * submitFields when omitted or empty.
+     */
     submitFields: {
         type: Array,
         default: undefined,
@@ -63,56 +68,7 @@ const props = defineProps({
         default: () => [],
     },
     ...THEME_OVERRIDE_PROPS,
-    /** Theme variant that the inner FormModel component receives as `variant`. Wins over a `variant` in the model config's `formProps` when passed. */
-    formModelVariant: {
-        type: String,
-        default: undefined,
-    },
-    /** Field names to render in the form; overrides the model config default. */
-    fields: {
-        type: Array,
-        default: undefined,
-    },
-    /** Map of field paths to field detail overrides. */
-    fieldDetails: {
-        type: Object,
-        default: undefined,
-    },
-    /** Field names to render in expanded (inline) mode. */
-    expand: {
-        type: Array,
-        default: undefined,
-    },
-    /** Map of expand field paths to detail overrides. */
-    expandDetails: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to async functions returning an override field component. */
-    fieldComponents: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to async functions returning an override widget component. */
-    widgetComponents: {
-        type: Object,
-        default: undefined,
-    },
-    /** Extra props for the inner FormModel component. They win over the model config's `formProps` and lose to this view's own form props. The `app`, `model`, and `view` keys are ignored, because the view sets them. */
-    formProps: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to additional props passed to the field component. Replaces a `fieldProps` map in the model config's `formProps` when passed. */
-    fieldProps: {
-        type: Object,
-        default: undefined,
-    },
-    /** Map of field paths to additional props passed to the widget component. Replaces a `widgetProps` map in the model config's `formProps` when passed. */
-    widgetProps: {
-        type: Object,
-        default: undefined,
-    },
+    ...VIEW_FORM_PROPS,
     /** Rules mapping related object keys to fetch data alongside the main object. */
     relatedObjectRules: {
         type: Object,
@@ -123,7 +79,10 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** Field names to request from the API when fetching the object and in the update response; falls back to the model config's fetchFields when omitted or empty. */
+    /**
+     * Field names to request from the API when fetching the object and in the update response; falls back to the model
+     * config's fetchFields when omitted or empty.
+     */
     fetchFields: {
         type: Array,
         default: undefined,
@@ -134,7 +93,7 @@ const emit = defineEmits(["object", "loading", "related-object", "calculated-obj
 
 const slots = useSlots();
 
-const { formContext, objectForm, instanceObject, instance, actions, modelConfig } = useViewUpdate(props);
+const { formContext, objectForm, instanceObject, instance, actions, modelConfig, changeNotice } = useViewUpdate(props);
 
 // Contribute the page title and loading state to the layout's PageTitle display.
 usePageTitle(() => ({ title: instance.titleStr, loading: instance.pageLoading }));
@@ -178,6 +137,7 @@ onMounted(() => {
                 >
                     <link-model-view
                         :app="app"
+                        button
                         :label="memoizedStartCase(actionName)"
                         :model="model"
                         :view="actionName"
@@ -289,6 +249,37 @@ onMounted(() => {
                 :ignore-form-validation-errors="true"
                 :while-text="instance.combinedWhileText"
             />
+            <!-- @slot [change-notice] Override the notice shown when someone else saves or deletes the record after it loads; receives `changed`, `deleted`, `reload` (discards the form's edits and loads the saved record), `edited` (whether the user has touched a field), and `verboseName`. Appears only after `setupObjectStreams()`. -->
+            <slot
+                v-if="changeNotice.changed || changeNotice.deleted"
+                :changed="changeNotice.changed"
+                :deleted="changeNotice.deleted"
+                :edited="!!formContext.state.anyTouched"
+                name="change-notice"
+                :reload="changeNotice.reload"
+                :verbose-name="modelConfig.config?.verboseName"
+            >
+                <Alert v-if="changeNotice.deleted" data-qa="update-deleted-notice" variant="destructive">
+                    <AlertTitle>Deleted by someone else</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} was deleted after you opened it. Saving
+                        will fail.
+                    </AlertDescription>
+                </Alert>
+                <Alert v-else data-qa="update-changed-notice" variant="warning">
+                    <AlertTitle>Saved by someone else</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} changed after you opened it. Reload to
+                        see the saved values.
+                        <template v-if="formContext.state.anyTouched">Reloading discards your edits.</template>
+                    </AlertDescription>
+                    <AlertActions>
+                        <Button data-qa="update-changed-reload" type="button" @click="changeNotice.reload">
+                            Reload
+                        </Button>
+                    </AlertActions>
+                </Alert>
+            </slot>
             <!-- @slot [update-unavailable] Override the notice shown instead of the form when the object's available_actions does not permit the current action; receives `app`, `model`, `pk`, and `verboseName` (the model config's verbose name, if any). -->
             <slot
                 v-if="!instance.currentActionAvailable"
@@ -312,6 +303,7 @@ onMounted(() => {
                             'form-confirm-dialog-warnings',
                             'warning-entry',
                             'update-unavailable',
+                            'change-notice',
                             'record-name',
                         ])"
                         #[slot]="slotProps"

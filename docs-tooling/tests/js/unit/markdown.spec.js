@@ -97,6 +97,22 @@ describe("escapeText", () => {
         );
     });
 
+    it("keeps a blockquote marker and escapes the quoted text", () => {
+        expect(escapeText("> returns <a>\n> or <b>")).toBe("> returns &lt;a&gt;\n> or &lt;b&gt;");
+    });
+
+    it("keeps nested blockquote markers", () => {
+        expect(escapeText(" > > deep <a>")).toBe(" > > deep &lt;a&gt;");
+    });
+
+    it("escapes a > that does not start a line", () => {
+        expect(escapeText("a > b\n<c>")).toBe("a &gt; b\n&lt;c&gt;");
+    });
+
+    it("leaves a code span that wraps across blockquote lines verbatim", () => {
+        expect(escapeText("> see `<a>\n> <b>` here")).toBe("> see `<a>\n> <b>` here");
+    });
+
     it("does not let a code span reach past a blank line", () => {
         expect(escapeText("open ` <a>\n\n<b> ` close")).toBe("open ` &lt;a&gt;\n\n&lt;b&gt; ` close");
     });

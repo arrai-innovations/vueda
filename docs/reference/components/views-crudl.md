@@ -149,9 +149,10 @@ Two things are visible here that the narrow demo cannot show. The grid runs wide
 its frame and scrolls sideways inside its own card, rather than compressing columns to
 fit. Date, time, datetime, boolean, duration, and `JSON` fields have a column adapter of
 their own ({@api vue:component:ColumnDateTime}, {@api vue:component:ColumnBoolean},
-{@api vue:component:ColumnDuration}, and {@api vue:component:ColumnJson}); the two ranges
-and the multi-value choice fall through to {@api vue:component:ColumnText}, which prints
-the stored value, so a range reads as its raw `lower` and `upper` object.
+{@api vue:component:ColumnDuration}, and {@api vue:component:ColumnJson}). The two ranges
+and the multi-value choice fall through to {@api vue:component:ColumnText}. A range reads
+as its raw `lower` and `upper` object. The multi-value choice reads as the labels of its
+values, such as "North America, Europe".
 
 <ClientOnly>
 <VuedaDemo class="flex flex-col gap-3">
@@ -170,8 +171,8 @@ the stored value, so a range reads as its raw `lower` and `upper` object.
     <span>columns: no <code>displayFields</code> override, so the config default applies and every non-pk field gets a column</span>
     <span>layout: <code>tableBreakpoint="xs"</code> forces table mode. The demo frame is 688 px, below the <code>lg</code> default, so both list demos would otherwise render as cards</span>
     <span>overflow: {@api theme-key:ObjectsGrid} <code>root</code> is the scroll surface. Columns size to content, and the header row stays on one line rather than wrapping to keep the table narrow</span>
-    <span>adapters: date, time, and datetime resolve to <code>ColumnDateTime</code>, boolean to <code>ColumnBoolean</code>, duration to <code>ColumnDuration</code>, and JSON to <code>ColumnJson</code>, all through <code>columnMappings.js</code>; range and choice have no entry and fall back to <code>ColumnText</code>. Handling is a boolean with choices, so <code>ColumnBoolean</code> words it Yes or No rather than using its choice labels</span>
-    <span>empty values: the four type adapters print a dash for a null, while <code>ColumnText</code> prints nothing at all. An empty container keeps its own mark: <code>ColumnJson</code> prints <code>{}</code>, and the empty choice list prints <code>[]</code> through <code>ColumnText</code>. Whether a list should carry one placeholder for the absent case everywhere is open, and read views have to answer it the same way</span>
+    <span>adapters: date, time, and datetime resolve to <code>ColumnDateTime</code>, boolean to <code>ColumnBoolean</code>, duration to <code>ColumnDuration</code>, and JSON to <code>ColumnJson</code>, all through <code>columnMappings.js</code>; range and choice have no entry and fall back to <code>ColumnText</code>. Handling is a boolean with choices, so <code>ColumnBoolean</code> shows its choice labels, such as Expedited handling</span>
+    <span>empty values: the four type adapters print a dash for a null, while <code>ColumnText</code> prints nothing at all. <code>ColumnJson</code> marks an empty object with <code>{}</code>, while <code>ColumnText</code> prints nothing for the empty choice list. Whether a list should carry one placeholder for the absent case everywhere is open, and read views have to answer it the same way</span>
     <span>sorting: release date, published at, lead time, and handling carry ordering metadata; the rest are display-only</span>
   </footer>
 </VuedaDemo>

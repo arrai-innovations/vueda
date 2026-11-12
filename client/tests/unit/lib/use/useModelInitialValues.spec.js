@@ -44,6 +44,35 @@ describe("lib/use/useModelInitialValues.js", () => {
         ).toBe(false);
     });
 
+    scopedIt("getFieldInitialValue falls back to the nearest ancestor that has a value", () => {
+        const subclass = (typeSerializer, typeSerializerAncestors, typeModel) => ({
+            many: false,
+            typeSerializer,
+            typeSerializerAncestors,
+            typeModel,
+        });
+        expect(getFieldInitialValue(subclass("ActiveField", ["BooleanField"], "BooleanField"))).toBe(false);
+        expect(getFieldInitialValue(subclass("ShoutField", ["CharField"], "TextField"))).toBe("");
+        expect(getFieldInitialValue(subclass("ShoutField", ["CharField"], "UnknownField"))).toBeUndefined();
+        expect(getFieldInitialValue(subclass("ShoutField", [], "TextField"))).toBeUndefined();
+    });
+
+    scopedIt("getFieldInitialValue prefers a value mapped for the subclass's own name", async () => {
+        const { mergeModelInitialValuesMappings } = await import("@vueda/use/useModelInitialValues.js");
+        const mappings = mergeModelInitialValuesMappings({ ShoutField: { TextField: "loud" } });
+        try {
+            const field = {
+                many: false,
+                typeSerializer: "ShoutField",
+                typeSerializerAncestors: ["CharField"],
+                typeModel: "TextField",
+            };
+            expect(getFieldInitialValue(field)).toBe("loud");
+        } finally {
+            delete mappings.ShoutField;
+        }
+    });
+
     scopedIt("computes initial values for fields and reacts to changes", async () => {
         mockModelInfo.info.fields = {
             pk: { many: false, typeSerializer: "IntegerField", typeModel: "AutoField" },

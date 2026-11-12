@@ -9,6 +9,13 @@ import { computed } from "vue";
  * custom action) for a given app, model, and optional pk. Renders as a link by default, or as
  * a standard button when the `button` prop is set.
  *
+ * A link renders only when the viewer can open the linked view. The target model's `actionDetails`
+ * or its workflow transitions must include the view's action, and the view must resolve to a route. Otherwise the
+ * label renders as plain text. While the model info loads, the label is plain text, and it becomes a
+ * link at most once, when the info arrives. This check controls what the viewer sees. The server and
+ * the route guards still enforce access on the linked page. A button always renders, and it keeps
+ * its disabled state.
+ *
  * Styling resolves in two modes. In action styling mode (any of `primary`, `tone`, or
  * `emphasis` is set) the button's look comes from the two-layer action mapping (see
  * `utils/actionVariant.js`): the action's intrinsic tone (a delete/destroy action is destructive)
@@ -33,7 +40,11 @@ const props = defineProps({
         type: [String, Number, Array],
         default: undefined,
     },
-    /** Named view (or view descriptor) to navigate to, such as `"read"` or `"update"`. */
+    /**
+     * Named view to navigate to, such as `"read"` or `"update"`. An array names views in order of
+     * preference, such as `["update", "read"]`. The link targets the first view that the viewer can
+     * open.
+     */
     view: {
         type: [String, Array, Object],
         default: "read",
@@ -84,7 +95,7 @@ const linkModelView = useLinkModelView(props);
 const actionMode = computed(() => props.primary || props.tone != null || props.emphasis != null);
 const resolvedVariant = computed(() =>
     resolveActionVariant({
-        actionName: props.view,
+        actionName: linkModelView.view.value,
         actionDetail: linkModelView.actionDetail.value,
         primary: props.primary,
         tone: props.tone,
@@ -94,7 +105,12 @@ const resolvedVariant = computed(() =>
 </script>
 
 <template>
+    <span v-if="!button && !linkModelView.linkable.value">
+        {{ label }}
+        <slot />
+    </span>
     <Button
+        v-else
         :as="button ? 'button' : 'a'"
         :disabled="linkModelView.actionDisabled.value"
         :href="button ? undefined : linkModelView.href.value"

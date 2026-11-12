@@ -4,8 +4,9 @@ import { computed } from "vue";
 
 /**
  * Foreign-key list column adapter. Renders the related object as a link to its
- * detail view via {@link LinkModelView}, falling back to plain label text when
- * the link target or pk is unavailable. Collapses the hand-written FK-link
+ * detail view via {@link LinkModelView}. The label renders as plain text when
+ * the link target or pk is unavailable, or when the viewer cannot open the
+ * linked view. Collapses the hand-written FK-link
  * boilerplate (target/pk/label resolution + no-pk guard) that consuming list
  * views previously repeated per column.
  *
@@ -51,7 +52,11 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    /** Named view to link to. */
+    /**
+     * Named view to link to. An array names views in order of preference, such as
+     * `["update", "read"]`. The link targets the first view that the viewer can open, and the label
+     * renders as plain text when the viewer can open none of them.
+     */
     view: {
         type: [String, Array, Object],
         default: "read",

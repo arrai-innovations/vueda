@@ -13,7 +13,8 @@ patchTheme({
      */
     HoverCardContent: {
         /**
-         * The floating hover-card panel. It uses the popover surface recipe at a tighter width for glance-weight summaries.
+         * The floating hover-card panel. It uses the popover surface recipe at a tighter width for glance-weight
+         * summaries.
          */
         root: {
             class: [

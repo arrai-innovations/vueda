@@ -12,7 +12,10 @@ patchTheme({
      * MenubarShortcut aligns keyboard shortcut keycaps inside menubar items.
      */
     MenubarShortcut: {
-        /** Alignment wrapper for the trailing keyboard hint inside menubar content. See also: {@api theme-key:DropdownMenuShortcut.root}. */
+        /**
+         * Alignment wrapper for the trailing keyboard hint inside menubar content. See also:
+         * {@api theme-key:DropdownMenuShortcut.root}.
+         */
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },
