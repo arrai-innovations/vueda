@@ -32,15 +32,16 @@ def workflow_serializer_fields():
 
     ``WorkflowFieldsSerializerMixin`` adds them to each ``VuedaSerializer`` of a model that enables
     ``class Vueda.Workflow``, unless its ``Meta`` sets ``workflow_fields = False``. A default list
-    shows the state's name. Its code repeats that as a machine value, and the per-record transitions
-    belong on the detail view.
+    shows the state's name. Its code repeats that as a machine value. The per-record transitions
+    are metadata for the transition buttons, so their field sets ``hidden`` as ``available_actions``
+    does. No default list or form shows them, and the client's detail views request them by name.
     """
     return {
         "workflow_state_code": drf_serializers.CharField(
             source="workflow_state.code", read_only=True, style={"list_default": False}
         ),
         "workflow_state_name": drf_serializers.CharField(source="workflow_state.name", read_only=True),
-        "valid_transitions": AvailableTransitionField(style={"list_default": False}),
+        "valid_transitions": AvailableTransitionField(style={"hidden": True}),
     }
 
 

@@ -1522,8 +1522,7 @@ EXPECTED_RESULTS = [
                     "read_only": True,
                     "required": False,
                     "choices": False,
-                    "hidden": False,
-                    "list_default": False,
+                    "hidden": True,
                 },
                 "when": {
                     "label": "Date / Time",
