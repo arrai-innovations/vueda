@@ -3389,27 +3389,44 @@ class TestManagementCommandWorkflowDebugUnmatchedChanges(
 ):
     """The ``--debug`` sections that list changes no recorded write matched, in an app with two workflow models.
 
-    Each model gets its own workflow and state, and a generated migration captures both. The state
-    events are then emptied, so neither state change in that migration matches a recorded write.
-    Each model's debug output has to list only the state change that belongs to it.
+    Each model gets its own workflow and two states, and a generated migration captures them. The
+    events of one state per model are then emptied, so that state's change in the migration matches
+    no recorded write, while the other state's change still matches. Each model's debug output has
+    to list only its own states. A change that no model can claim is listed once, after every
+    model's debug output.
     """
 
     workflow_app_label = "workflow_moved_codes"
 
-    STATE_CODES: ClassVar[dict[str, str]] = {
-        "workflowmovedfrom": "from_state",
-        "workflowmovedto": "to_state",
+    # Each model's states, as the state whose events stay and the state whose events are emptied.
+    STATE_CODES: ClassVar[dict[str, tuple[str, str]]] = {
+        "workflowmovedfrom": ("from_kept", "from_cleared"),
+        "workflowmovedto": ("to_kept", "to_cleared"),
     }
 
+    DEBUG_HEADING_PREFIXES = (
+        "Changes matching history records - ",
+        "Changes not matching history records - ",
+        "Changes not belonging to a recorded model - ",
+        "Unmatched history - ",
+    )
+
     @staticmethod
-    def clear_events(workflow_model):
-        """Empty one event table, as if this database never recorded those writes."""
+    def clear_events(workflow_model, **filters):
+        """Delete the recorded events of one workflow model that match ``filters``.
+
+        The test then runs as if this database never recorded those writes.
+        """
         event_model = workflow_model.pgh_event_model
         with pgtrigger.ignore(f"{event_model._meta.label}:append_only"):
-            event_model.objects.all().delete()
+            event_model.objects.filter(**filters).delete()
 
-    def generate_migration_with_a_state_per_model(self, migration_dir):
-        for model_name, state_code in self.STATE_CODES.items():
+    def clear_one_state_per_model(self):
+        cleared_codes = tuple(cleared_code for _kept_code, cleared_code in self.STATE_CODES.values())
+        self.clear_events(models.State, code__in=cleared_codes)
+
+    def generate_migration_with_two_states_per_model(self, migration_dir):
+        for model_name, state_codes in self.STATE_CODES.items():
             content_type = ContentType.objects.get(app_label="workflow_moved_codes", model=model_name)
             workflow = models.Workflow.objects.create(
                 code=f"{model_name}_workflow",
@@ -3418,12 +3435,17 @@ class TestManagementCommandWorkflowDebugUnmatchedChanges(
                 historical_app_label="workflow_moved_codes",
                 historical_model=model_name,
             )
-            models.State.objects.create(workflow=workflow, code=state_code, name=state_code)
+            for state_code in state_codes:
+                models.State.objects.create(workflow=workflow, code=state_code, name=state_code)
 
         self.generate_workflow_migration_or_fail(migration_dir)
 
     def state_debug_sections(self):
-        """Return each debug section of the state output, keyed by its heading, as the state codes it lists."""
+        """Return the debug sections of the state output in the order they print.
+
+        Each section is a pair of its heading and the set of state codes that it lists. A line that is
+        neither indented nor a debug heading ends the current section.
+        """
         arguments = ["makeworkflowmigrations", "workflow_moved_codes", "--import-instead", "--dry-run"]
         for model_name in self.STATE_CODES:
             arguments += ["--debug", f"tests.workflow_moved_codes.{model_name}.state"]
@@ -3432,18 +3454,25 @@ class TestManagementCommandWorkflowDebugUnmatchedChanges(
         if not succeeded:
             pytest.fail("".join(results))
 
-        sections = {}
-        heading = None
+        all_state_codes = tuple(code for state_codes in self.STATE_CODES.values() for code in state_codes)
+        sections = []
+        state_codes = None
         for line in "".join(results).splitlines():
             if not line.strip():
                 continue
             if not line.startswith(" "):
                 heading = line.strip()
-                sections.setdefault(heading, set())
+                if heading.startswith(self.DEBUG_HEADING_PREFIXES):
+                    state_codes = set()
+                    sections.append((heading, state_codes))
+                else:
+                    state_codes = None
                 continue
-            for state_code in self.STATE_CODES.values():
+            if state_codes is None:
+                continue
+            for state_code in all_state_codes:
                 if f"'code': '{state_code}'" in line:
-                    sections[heading].add(state_code)
+                    state_codes.add(state_code)
 
         return sections
 
@@ -3463,22 +3492,24 @@ class TestManagementCommandWorkflowDebugUnmatchedChanges(
             if not succeeded:
                 pytest.fail("".join(results))
 
-            self.generate_migration_with_a_state_per_model(migration_dir)
-            self.clear_events(models.State)
+            self.generate_migration_with_two_states_per_model(migration_dir)
+            self.clear_one_state_per_model()
 
             sections = self.state_debug_sections()
 
-            for model_name, state_code in self.STATE_CODES.items():
-                heading = f"Changes not matching history records - tests.workflow_moved_codes.{model_name}.state"
-                assert sections.get(heading) == {state_code}, sections
-
-            assert not any(heading.startswith("Changes not belonging") for heading in sections), sections
+            prefix = "tests.workflow_moved_codes"
+            assert sections == [
+                (f"Changes matching history records - {prefix}.workflowmovedfrom.state", {"from_kept"}),
+                (f"Changes not matching history records - {prefix}.workflowmovedfrom.state", {"from_cleared"}),
+                (f"Changes matching history records - {prefix}.workflowmovedto.state", {"to_kept"}),
+                (f"Changes not matching history records - {prefix}.workflowmovedto.state", {"to_cleared"}),
+            ], sections
 
     @clear_info_registry_before_test()
     @pytest.mark.xdist_group(name="management_command_tests")
     @pytest.mark.lean_database
     @pytest.mark.django_db(transaction=True)
-    def test_unmatched_change_of_an_unrecorded_workflow_listed_under_every_model(self, settings):
+    def test_unmatched_change_of_an_unrecorded_workflow_listed_once_after_every_model(self, settings):
         settings.MIGRATION_MODULES = {
             "no_migrations": None,
             "workflow_moved_codes": "tests.workflow_moved_codes",
@@ -3490,19 +3521,21 @@ class TestManagementCommandWorkflowDebugUnmatchedChanges(
             if not succeeded:
                 pytest.fail("".join(results))
 
-            self.generate_migration_with_a_state_per_model(migration_dir)
-            # With no workflow recorded, no state change can be traced to a model.
-            self.clear_events(models.State)
-            self.clear_events(models.Workflow)
+            self.generate_migration_with_two_states_per_model(migration_dir)
+            self.clear_one_state_per_model()
+            # With the first model's workflow unrecorded, neither of its state changes can be traced to a model.
+            self.clear_events(models.Workflow, historical_model="workflowmovedfrom")
 
             sections = self.state_debug_sections()
 
-            all_state_codes = set(self.STATE_CODES.values())
-            for model_name in self.STATE_CODES:
-                heading = f"Changes not belonging to a recorded model - tests.workflow_moved_codes.{model_name}.state"
-                assert sections.get(heading) == all_state_codes, sections
-
-            assert not any(heading.startswith("Changes not matching") for heading in sections), sections
+            # The first model has no recorded history left, so it prints no section of its own. Both models are
+            # selected, but the unowned section belongs to the app, so it prints once, and last.
+            prefix = "tests.workflow_moved_codes"
+            assert sections == [
+                (f"Changes matching history records - {prefix}.workflowmovedto.state", {"to_kept"}),
+                (f"Changes not matching history records - {prefix}.workflowmovedto.state", {"to_cleared"}),
+                (f"Changes not belonging to a recorded model - {prefix}", {"from_kept", "from_cleared"}),
+            ], sections
 
 
 class TestManagementCommandUtils:
