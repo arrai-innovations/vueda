@@ -22,7 +22,7 @@ Add the `streams` extra and the Redis channel layer to `server/pyproject.toml`:
 
 ```toml
 dependencies = [
-    "vueda[redis,streams] >=3.0.0b1,<4",
+    "vueda[redis,streams] >=3.0.0b2,<4",
     "channels-redis >=4.2.0,<5",
 ]
 ```
