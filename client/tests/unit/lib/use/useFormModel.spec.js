@@ -816,6 +816,44 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.widgetProps.country.fieldApp).toBeUndefined();
         });
 
+        const manyToManyDetail = (extra = {}) => ({
+            name: "country",
+            typeSerializer: "ManyRelatedField",
+            typeModel: "ManyToManyField",
+            appLabel: "geo",
+            model: "country",
+            many: true,
+            choices: true,
+            readOnly: false,
+            ...extra,
+        });
+
+        scopedIt(
+            "renders a many-to-many relation on a read view with WidgetReadOnly and its related model",
+            async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildCountryForm("read", manyToManyDetail());
+
+                expect(state.widgetComponents.country).toBe(availableWidgets.WidgetReadOnly);
+                expect(state.widgetProps.country).toMatchObject({ app: "geo", model: "country", readOnly: true });
+            },
+        );
+
+        scopedIt(
+            "renders a many-to-many relation that the update form shows read-only with its related model",
+            async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildCountryForm("update", manyToManyDetail(), undefined, {
+                    country: { readOnly: true },
+                });
+
+                expect(state.widgetComponents.country).toBe(availableWidgets.WidgetReadOnly);
+                expect(state.widgetProps.country).toMatchObject({ app: "geo", model: "country", readOnly: true });
+            },
+        );
+
         scopedIt("passes no choices endpoint for a slug relation that the server marks read-only", async () => {
             const { availableWidgets } = await import("@vueda/utils/formLookups.js");
 

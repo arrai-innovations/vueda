@@ -112,6 +112,7 @@ A field that renders read-only shows the label of its value. A field renders rea
 
 - **A `SlugRelatedField`** renders with `WidgetModelReadOnly`, which the `SlugRelatedField` type mapping names as its read-only widget. It reads the label from the field choices endpoint, the same source as the edit options. It requests only the values that it shows, with a `value` filter such as `?value=CT&value=ON`. The related model needs no viewset, and the value can be a slug.
 - **A primary key relation**, which edits with `WidgetCombobox`, renders with `WidgetReadOnly`. It loads the related row from the related model's routes and links to it. The related model needs a registered viewset.
+- **A to-many primary key relation**, such as a many-to-many field, also renders with `WidgetReadOnly`. It shows one label for each related row, separated by commas, and each label links to its row. It loads all the related rows that the lookup context does not already hold in one request. An expanded value needs no request. An empty relation shows an empty value.
 
 A field that the server marks read-only has no `choices` in its model info, so it has no choices endpoint. The form passes such a field no related model either, so `WidgetModelReadOnly` hands it to `WidgetReadOnly`, which shows the raw value.
 

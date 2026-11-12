@@ -76,6 +76,8 @@ The context keeps each resolved object for the context's lifetime. A later reque
 
 The context logs a console warning in three cases: `cancel` runs after the context's records for that object are gone, `cancel` runs twice on one promise, or the last component cancels before the shared request has started. These warnings point to a component that cancels after its request has finished or been torn down.
 
+{@api js:function:@arrai-innovations/vueda/use/useResolvedLookupObjects#useResolvedLookupObjects} resolves several objects of one model through the lookup context. It asks the context for every pk together. The context fetches the pks that it does not already hold in one list request, as described above. When a request fails, the composable keeps the objects that resolved and maps the failed pk to `undefined`. It sets `error` to the first failure. When the pks change, the composable cancels the previous requests and ignores their results. When the app, the model, or the pk list becomes empty, it cancels the requests and sets `loading` to `false`. It also cancels its requests when its scope is disposed.
+
 {@api js:function:@arrai-innovations/vueda/use/useResolvedLookupObject#useResolvedLookupObject} resolves one object through the lookup context. It cancels its request when the app, model, or pk becomes empty, and when its scope is disposed. It logs a failed cancel as a console warning and does not throw. Issue [#385](https://github.com/arrai-innovations/vueda/issues/385) tracks two current behaviors:
 
 - When the target changes from one object to another, the composable starts a new request and does not cancel the old one. If the old request settles last, its object replaces the current one.
