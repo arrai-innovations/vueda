@@ -53,6 +53,12 @@ Use this page for changes that affect client package consumers: public Vue compo
     - Each built-in action, such as `list`, now renders the project's `@/views/View<Name><App><Model>.vue`, then `@/views/View<Name>.vue`, before VUEDA's view, and a custom action or transition without its own view renders `@/views/ViewAction.vue` or `@/views/ViewExecuteTransition.vue` first. `vuedaViteConfig` now sets the `@` alias to the project's `src` directory, and a project's own `@` in `extraAliases` replaces it. [View Component Resolution Order](../../core-concepts/routing-and-view-resolution-model.md#view-component-resolution-order) lists every file name and how a `setCrudComponents` entry replaces this lookup.
       _Rename any existing `src/views` file that matches one of these names but is not meant to replace a VUEDA view, such as `ViewList.vue` or `ViewAction.vue`._
 
+#### Setup and dependencies
+
+- **`@tiptap/extension-underline` removed from the client dependencies** ([#616](https://github.com/arrai-innovations/vueda/issues/616)):
+    - The client no longer installs `@tiptap/extension-underline`. `WidgetHtml` gets the Underline extension from `@tiptap/starter-kit`.
+      _An application that imports `@tiptap/extension-underline` directly must add it to its own dependencies._
+
 ### Features
 
 #### Lists and querying
@@ -111,9 +117,6 @@ Use this page for changes that affect client package consumers: public Vue compo
 
 - **`WidgetHtml` values match what the user did** ([#616](https://github.com/arrai-innovations/vueda/issues/616)):
     - Clearing the editor now sets the field to `""` instead of `<p></p>`, so a required field that the user clears fails the required check. A field that loaded empty and that the user clears again stays unmodified.
-- **`WidgetHtml` toolbar, editor content, and Underline extension** ([#616](https://github.com/arrai-innovations/vueda/issues/616)):
-    - Toolbar buttons are disabled while the widget is disabled, and a value that changes before the editor mounts now appears in the editor. The widget registers Underline once, so the duplicate-extension warning is gone.
-      _`@tiptap/extension-underline` is no longer a client dependency. Applications that import it directly must add it to their own dependencies._
 - **Read-only to-many fields show a linked label for each related object** ([#652](https://github.com/arrai-innovations/vueda/issues/652)):
     - `WidgetReadOnly` in lookup mode shows each related object of a many-to-many field as its `formatted_name`, separated by commas. An expanded value needs no request, and an unexpanded value loads its objects in one request. An empty relation shows the empty value.
       _A project that added a widget override or a slot only to show these labels can remove it, when the related model has a registered viewset and the view or model config makes the field read-only._
@@ -122,9 +125,12 @@ Use this page for changes that affect client package consumers: public Vue compo
 
 #### Model metadata and data loading
 
-- **`MultipleChoiceField` and serializer field subclasses render a widget** ([#650](https://github.com/arrai-innovations/vueda/issues/650)):
-    - An editable form shows a `MultipleChoiceField` with the multi-select `WidgetCombobox` and submits a list of choices, instead of failing with "No widget component found". A serializer field class without its own type mapping now uses the widget, column, props, and initial value of its nearest ancestor class that has one, through `typeSerializerAncestors`. As a result, a project's own field subclass renders instead of failing with "No widget component found", a reverse foreign key declared with a `ManyRelatedField` subclass renders read-only, lists show the email settings `preview_tag_data` field (a VUEDA `JSONField` subclass) with `ColumnJson`, and an `EmailField`, `SlugField`, `URLField`, or `IPAddressField` over a model `CharField` or `TextField` gets the text input.
-      _Upgrade the server to 3.0.0b2, whose model info reports a `MultipleChoiceField` as `many` and lists each field's serializer ancestors._
+- **`MultipleChoiceField` renders a multi-select** ([#650](https://github.com/arrai-innovations/vueda/issues/650)):
+    - An editable form shows a `MultipleChoiceField` with the multi-select `WidgetCombobox` and submits a list of choices. Before, the form failed with "No widget component found".
+      _Upgrade the server to 3.0.0b2, whose model info reports a `MultipleChoiceField` as `many`._
+- **Serializer field subclasses use their ancestor's mappings** ([#650](https://github.com/arrai-innovations/vueda/issues/650)):
+    - A project's own serializer field subclass now renders with the widget, column, props, and initial value of its nearest ancestor class that has a type mapping. Before, an editable form failed with "No widget component found" for such a field. A reverse foreign key declared with a `ManyRelatedField` subclass now renders read-only.
+      _Upgrade the server to 3.0.0b2, whose model info lists each field's serializer ancestors in `type_serializer_ancestors`._
 
 ## v3.0.0-beta.1 (2026-10-21)
 
