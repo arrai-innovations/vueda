@@ -16,6 +16,7 @@ import { useComboboxSearch } from "@vueda/use/useComboboxSearch.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
+import { choiceLabel, choiceValuesMatch, findChoice } from "@vueda/utils/choiceLabels.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import { useFilter } from "reka-ui";
 import { computed, inject } from "vue";
@@ -80,16 +81,44 @@ const isApiMode = computed(() => !!props.app && !!props.model);
 
 const comboboxSearch = useComboboxSearch(props, widgetContext);
 
+// A choices endpoint sends every option value as a string, while a record holds a relation's
+// primary key as a number. Reka matches a string option value to the bound value only by strict
+// equality, so in static mode the control gets each bound value in its matching option's form.
+const toOptionValue = (value) => {
+    if (isApiMode.value || !props.options || value == null) {
+        return value;
+    }
+    const option = findChoice(value, props.options, props.optionValue);
+    return option ? option[props.optionValue] : value;
+};
+
+// A selected value that matches a value already bound, or the field's initial value, keeps that
+// value's form. Writing the option's form over an equal value would mark the field as modified
+// when the user changed nothing.
+const toBoundValue = (value, boundValues) => {
+    if (isApiMode.value || value == null) {
+        return value;
+    }
+    const bound = boundValues.find((boundValue) => boundValue != null && choiceValuesMatch(value, boundValue));
+    return bound === undefined ? value : bound;
+};
+
 // Normalise the bound value so multiple mode always has an array.
 const effectiveValue = computed({
     get: () => {
+        const value = widgetContext.state.combinedValue;
         if (props.multiple) {
-            return widgetContext.state.combinedValue ?? [];
+            return Array.isArray(value) ? value.map(toOptionValue) : (value ?? []);
         }
-        return widgetContext.state.combinedValue;
+        return toOptionValue(value);
     },
     set: (val) => {
-        widgetContext.state.combinedValue = val;
+        const asArray = (value) => (Array.isArray(value) ? value : [value]);
+        const boundValues = asArray(widgetContext.state.combinedValue);
+        boundValues.push(...asArray(widgetContext.state.initialValue));
+        widgetContext.state.combinedValue = Array.isArray(val)
+            ? val.map((value) => toBoundValue(value, boundValues))
+            : toBoundValue(val, boundValues);
     },
 });
 
@@ -110,18 +139,23 @@ const closedStateLabel = computed(() => {
         if (!isApiMode.value && props.options) {
             const values = Array.isArray(val) ? val : [val];
             return values
-                .map((v) => {
-                    const opt = props.options.find((o) => o[props.optionValue] === v);
-                    return opt ? opt[props.optionLabel] : String(v);
-                })
+                .map((v) =>
+                    String(
+                        choiceLabel(v, props.options, {
+                            optionLabel: props.optionLabel,
+                            optionValue: props.optionValue,
+                        }),
+                    ),
+                )
                 .join(", ");
         }
         return count === 1 ? "1 item selected" : `${count} items selected`;
     }
 
     if (!isApiMode.value && props.options) {
-        const opt = props.options.find((o) => o[props.optionValue] === val);
-        return opt ? opt[props.optionLabel] : val != null ? String(val) : null;
+        return String(
+            choiceLabel(val, props.options, { optionLabel: props.optionLabel, optionValue: props.optionValue }),
+        );
     }
 
     // API single: use resolved label from composable.

@@ -177,6 +177,8 @@ export const WIDGET_EMITS = [
  * // *** Value Handling ***
  * @property {import('vue').WritableComputedRef<any>} combinedValue - The widget’s effective form value (local or
  *  contextual).
+ * @property {import('vue').ComputedRef<any>} initialValue - The field's initial value from the field context. It is
+ *  `undefined` when the widget has no field context or is contextless.
  * @property {import('vue').WritableComputedRef<any>} adaptedValue - The widget’s value adapted for UI concerns.
  * @property {import('vue').ComputedRef<ValueAdapter|null>} fieldToWidget - The value adapter for turing form
  *  values into values suitable for UI concerns.
@@ -358,6 +360,7 @@ export function useWidget(props, emit) {
                 }
             },
         }),
+        initialValue: computed(() => unref(fieldContext)?.state.initialValue),
         adaptedValue: computed({
             get: () => {
                 const f2w = unref(state.fieldToWidget);
