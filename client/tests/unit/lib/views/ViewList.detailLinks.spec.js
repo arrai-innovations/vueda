@@ -137,7 +137,7 @@ describe("lib/views/ViewList.vue", () => {
             ]);
             expect(wrapper.vm.list.computedFieldObjects.map((field) => field.name)).toEqual(["reference", "note"]);
             expect(modelConfig.config.fetchFields).toEqual(["reference", "note"]);
-            await wrapper.setProps({ listFields: ["reference", "available_actions"] });
+            await wrapper.setProps({ fetchFields: ["reference", "available_actions"] });
             expect(wrapper.vm.list.listState.params[FIELDS_PARAM]).toEqual(["id", "reference", "available_actions"]);
         });
 
