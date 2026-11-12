@@ -245,8 +245,22 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 (deepUnref(state.computedFields) || []).includes(fieldName) ||
                 readOnlyProp === true ||
                 modelConfigReadOnly === true ||
-                detailReadOnly === true);
+                detailReadOnly === true ||
+                getIsParentReadOnly(fieldName));
         return rv;
+    }
+
+    // A dotted sub-field such as `lines.note` renders in the rows of the `lines` inline. When that
+    // inline is read-only, its rows are read-only too, unless the sub-field sets `readOnly: false`.
+    function getIsParentReadOnly(fieldName) {
+        const dotIndex = fieldName.lastIndexOf(".");
+        if (dotIndex === -1) {
+            return false;
+        }
+        const parentName = fieldName.slice(0, dotIndex);
+        const parentDetailReadOnly =
+            state.fieldDetails?.[parentName]?.readOnly === true || state.expandDetails?.[parentName]?.readOnly === true;
+        return getIsReadOnly(parentName, parentDetailReadOnly);
     }
 
     function setWidgetComponent(key, detailObject, baseExpanded = false, fieldName = key) {
