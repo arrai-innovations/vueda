@@ -11,7 +11,7 @@ import { effectScope, inject, onScopeDispose, reactive, readonly, toRaw, toRef, 
 /**
  * @typedef {object} ResolvedLookupObjectsRawInstance
  * @property {{[pk:string]: object}} objects - The resolved objects, keyed by the string form of each requested pk. A pk
- * that the server does not return maps to `undefined`.
+ * that the server does not return maps to `undefined`. A pk whose request fails also maps to `undefined`.
  * @property {import('vue').EffectScope} effectScope - The effect scope for the instance.
  */
 
@@ -29,6 +29,9 @@ import { effectScope, inject, onScopeDispose, reactive, readonly, toRaw, toRef, 
  * The composable asks the lookup context for every pk together. The context combines requests for one model that arrive
  * within its wait window into one list request, so the objects arrive in one request. Objects that the context already
  * holds need no request.
+ *
+ * When a request fails, the composable keeps the objects that resolved and maps the failed pk to `undefined`. It sets
+ * `error` to the first failure.
  *
  * When the pks change, the composable cancels the previous requests and ignores their results. When the app, the
  * model, or the pk list becomes empty, it cancels the requests and clears `objects` and `loading`.
@@ -101,19 +104,20 @@ export function useResolvedLookupObjects(app, model, pks, fields, expand) {
                 inflightRequests = requests;
                 loadingError.setLoading();
                 loadingError.clearError();
-                try {
-                    const results = await Promise.all(requests);
-                    if (inflightRequests !== requests) {
-                        return;
-                    }
-                    internalState.objects = Object.fromEntries(keys.map((pk, index) => [pk, results[index]]));
-                } catch (err) {
-                    if (inflightRequests !== requests) {
-                        return;
-                    }
-                    internalState.objects = {};
-                    loadingError.setError(err);
-                    console.error("[useResolvedLookupObjects] Error resolving lookup objects:", err);
+                const results = await Promise.allSettled(requests);
+                if (inflightRequests !== requests) {
+                    return;
+                }
+                internalState.objects = Object.fromEntries(
+                    keys.map((pk, index) => [
+                        pk,
+                        results[index].status === "fulfilled" ? results[index].value : undefined,
+                    ]),
+                );
+                const failure = results.find((result) => result.status === "rejected");
+                if (failure) {
+                    loadingError.setError(failure.reason);
+                    console.error("[useResolvedLookupObjects] Error resolving lookup objects:", failure.reason);
                 }
                 inflightRequests = [];
                 loadingError.clearLoading();

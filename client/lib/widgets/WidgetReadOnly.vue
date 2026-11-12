@@ -24,8 +24,9 @@ import { computed, effectScope, inject, reactive, shallowRef, toRef, unref, watc
  *
  * An array of objects is an expanded value, and each label is the object's `formatted_name` with
  * no request. An array of primary keys resolves all its objects in one request. A key that the
- * server does not return shows as plain text. An empty array shows the same empty value as an
- * empty foreign key.
+ * server does not return shows as plain text. A key whose request fails also shows as plain text,
+ * and the other keys keep their labels. An empty array shows the same empty value as an empty
+ * foreign key.
  *
  * Each displayed value is one item. The `link-item` slot replaces one linked label, and the
  * `text-item` slot replaces the plain-text value. The prefix and suffix belong to the field, not to

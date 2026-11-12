@@ -163,7 +163,7 @@ describe("lib/use/useResolvedLookupObjects.js", () => {
         es.stop();
     });
 
-    scopedIt("sets the error and clears objects when a request fails", async () => {
+    scopedIt("sets the error and keeps the objects that resolved when one request fails", async () => {
         const error = new Error("fail");
         const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
         const lookup = {
@@ -176,7 +176,7 @@ describe("lib/use/useResolvedLookupObjects.js", () => {
 
         expect(result.errored).toBe(true);
         expect(result.error).toBe(error);
-        expect(result.objects).toEqual({});
+        expect(result.objects).toEqual({ 13: undefined, 1: { id: 1 } });
         expect(result.loading).toBe(false);
         consoleError.mockRestore();
         es.stop();
