@@ -128,7 +128,7 @@ The commands format only `changed_data` this way. They write the rest of the mig
 ### Command Options
 
 - `--dry-run` runs the same detection and prints the name of each migration it would create, without writing files.
-- `--debug <app_name>.<model>.<workflow_model>`, or `--debug all`, prints the existing migration changes that matched history, those that did not, and the history that the new migration adds. `<app_name>` is the app's `AppConfig.name`, and `<workflow_model>` is a workflow model name such as `state`. The list of changes that did not match includes that workflow model's changes for every model in the app.
+- `--debug <app_name>.<model>.<workflow_model>`, or `--debug all`, prints the existing migration changes that matched history, those that did not, and the history that the new migration adds. `<app_name>` is the app's `AppConfig.name`, and `<workflow_model>` is a workflow model name such as `state`. The list of changes that did not match includes only that model's changes to that workflow model. A change can belong to none of the app's models. This happens when this database never recorded the change's workflow, or when the workflow belongs to a model outside the app. The command lists each such change once per app, under the heading "Changes not belonging to a recorded model", after every model's debug output.
 
 ### Fake the Migration Locally
 
