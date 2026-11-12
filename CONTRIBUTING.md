@@ -292,22 +292,201 @@ label, and one that has both. It reruns when labels change. The check covers
 pull requests only, so a commit made directly to `main` adds its fragment by
 hand.
 
-### Release a package
+## Release the packages
 
-Before tagging a release, reread its fragments grouped by topic:
+A release publishes the client to npm and the server to PyPI, and then
+republishes the documentation site. The two packages can release separately.
+Usually they release together from one merge commit.
+
+The procedure has two parts. A release pull request writes the changelog
+sections and sets the new versions. After it merges, pushing tags to the merge
+commit starts CircleCI, which publishes the packages and the site.
+
+To push the tags, you need write access to this repository. To move the npm
+`latest` tag, you need an npm account that can publish
+`@arrai-innovations/vueda`. To rerun a failed CircleCI job, you need access to
+the project in CircleCI.
+
+### Versions and tags
+
+Each package keeps its version in one place, in its own registry's format. A
+tag must match its package's version exactly. CircleCI refuses to publish a tag
+that does not.
+
+| Package | Version source                              | Version format               | Tag                    |
+| ------- | ------------------------------------------- | ---------------------------- | ---------------------- |
+| client  | `version` in `client/package.json`          | npm (semver): `3.0.0-beta.2` | `client-v3.0.0-beta.2` |
+| server  | `__version__` in `server/vueda/__init__.py` | Python (PEP 440): `3.0.0b2`  | `server-v3.0.0b2`      |
+| docs    | The client version                          | npm (semver): `3.0.0-beta.2` | `docs-v3.0.0-beta.2`   |
+
+The client and server versions match only in their major version, and either
+package can release alone. A docs tag carries the client version, so only a
+release that changes the client version pushes one. A server-only release
+leaves the client version unchanged, and a docs tag with that version already
+exists. After a server-only release, publish the site with `just docs-deploy`.
+See [Publish the documentation without a tag](#publish-the-documentation-without-a-tag).
+
+The examples in this section release client 3.0.0-beta.2 and server 3.0.0b2.
+Replace those versions with the ones you release.
+
+### Prepare the release pull request
+
+1. Start a branch from the current `main`:
+
+    ```bash
+    git fetch origin
+    git switch -c build/release-beta2 --no-track origin/main
+    ```
+
+2. Edit each package's fragments into the release section that an integrator
+   reads. Print them grouped by topic:
+
+    ```bash
+    just changelog-draft-by-area client 3.0.0-beta.2
+    just changelog-draft-by-area server 3.0.0b2
+    ```
+
+    This step is an editorial pass. Each fragment's author judged it alone,
+    when the change merged. The release is the first point where someone reads
+    every change since the last published version together. Apply the
+    inclusion rule in
+    [`docs/reference/changelog/README.md`](docs/reference/changelog/README.md)
+    to each fragment again:
+    - Delete a fragment when you cannot name what an integrator would do
+      differently after reading it.
+    - Delete a fragment that fixes a defect in a change that this release also
+      ships. The integrator never saw that defect. Edit the original change's
+      fragment instead, so that it describes the final behavior.
+    - Merge fragments that describe one change from the integrator's view, even
+      when several pull requests made it.
+    - Rewrite an entry that describes the implementation, so that it names the
+      public API and the action an integrator takes.
+
+    The result should read as what an integrator needs to know to upgrade. A
+    list of every merged pull request is too long for that. Expect to delete
+    or merge fragments in most releases. Reviewers of the release pull request
+    check these edits.
+
+3. Write each release section, dated today, and stage the removal of its
+   fragments:
+
+    ```bash
+    just changelog-build client 3.0.0-beta.2
+    just changelog-build server 3.0.0b2
+    ```
+
+4. Set the new versions in `client/package.json` and
+   `server/vueda/__init__.py`.
+
+5. Raise every version floor to the new versions. A version floor is the lower
+   bound of a VUEDA dependency range, such as `>=3.0.0b1,<4` or
+   `^3.0.0-beta.1`. Floors appear in the starter templates and in the install
+   commands of the READMEs and guides. This search lists them:
+
+    ```bash
+    git grep -n -E 'vueda(\[[a-z,]+\])? *>=|vueda(@|": ")\^' -- ':!changelog.d' ':!docs/reference/changelog'
+    ```
+
+    Change only the ranges. Leave a sentence that names a past release, such as
+    "a database upgraded with server 3.0.0b1 or earlier". That sentence
+    describes the past release. Skip `scripts/check_template_parity.py`, which
+    matches the search but holds no floor.
+
+    The template parity check fails when a server template's floor differs from
+    `__version__`. It runs in the pre-push hook and in CI. Nothing checks the
+    client template floors or the floors in the docs.
+
+6. When the release moves to another channel, such as from beta to release
+   candidate, update the files that name the channel:
+    - `publishConfig.tag` in `client/package.json`;
+    - the `Development Status` classifier in `server/pyproject.toml`; and
+    - the npm badges, package links, and install commands in `README.md` and
+      `client/README.md`.
+
+7. Commit, and open a pull request titled
+   `build(release): cut client beta.2 and server b2`. Give it the `release`
+   label. Do not add `changelog:none`: the pull request removes fragments, and
+   the `Pull request metadata` check fails a pull request that has both.
+
+The changelog headings carry the date of step 3. If the pull request merges on
+a later day, change those dates to the merge date before it merges.
+
+### Publish the release
+
+After the release pull request merges, tag its merge commit and push the tags.
+Push a tag only for each package that releases. Push the docs tag only when the
+client releases.
 
 ```bash
-just changelog-draft-by-area client 3.0.0-alpha.6
+git fetch origin
+MERGE=$(gh pr view <number> --json mergeCommit --jq .mergeCommit.oid)
+git tag client-v3.0.0-beta.2 "$MERGE"
+git tag server-v3.0.0b2 "$MERGE"
+git tag docs-v3.0.0-beta.2 "$MERGE"
+git push origin client-v3.0.0-beta.2 server-v3.0.0b2 docs-v3.0.0-beta.2
 ```
 
-Edit fragments that overlap or no longer describe the release. Then write the
-release section, dated today, and stage the removal of its fragments:
+Each tag starts its own CircleCI pipeline:
+
+- A `client-v*` tag runs the client tests and checks the tag against
+  `client/package.json`. It then publishes to npm and creates a GitHub release.
+  The npm dist-tag follows the version: `alpha`, `beta`, `next` for a release
+  candidate, and `latest` for a final release.
+- A `server-v*` tag runs the server tests on each supported Python version and
+  checks the tag against `__version__`. It then builds the wheel, uploads it to
+  PyPI, and creates a GitHub release.
+- A `docs-v*` tag validates the documentation and publishes the site under
+  `/v<major>/`, such as `/v3/`. The site publishes only from a `docs-v*` tag or
+  from `just docs-deploy`, so without this tag the site's changelog pages lack
+  the release.
+
+CI moves the npm `latest` tag only for a final release. Until v3.0.0, move it
+by hand after the client publishes:
 
 ```bash
-just changelog-build client 3.0.0-alpha.6
+npm dist-tag add @arrai-innovations/vueda@3.0.0-beta.2 latest --@arrai-innovations:registry=https://registry.npmjs.org/
 ```
 
-Commit the result with the version bump.
+Then check the result:
+
+```bash
+gh release list --limit 2
+npm view @arrai-innovations/vueda dist-tags --registry=https://registry.npmjs.org/
+```
+
+The GitHub releases list both tags as prereleases. The npm dist-tags show the
+new version on `latest` and on its channel. The PyPI page for the server
+version, `https://pypi.org/project/vueda/3.0.0b2/`, exists.
+
+### When a release job fails
+
+Rerun the failed job in CircleCI when the cause is temporary, such as an
+unavailable package mirror.
+
+When the fix needs a commit, check whether the package published. npm and PyPI
+refuse a second upload of a published version. If the package did not publish,
+merge the fix, then move that package's tag to the new merge commit and push it
+again:
+
+```bash
+git push origin :refs/tags/server-v3.0.0b2
+git tag -f server-v3.0.0b2 <new merge commit>
+git push origin server-v3.0.0b2
+```
+
+If the package did publish, release the fix as a new version.
+
+### Publish the documentation without a tag
+
+`just docs-deploy` validates the documentation on `main` and publishes the
+site, with no tag. It takes the major version for the site path from
+`client/package.json`. Use it in two cases:
+
+- after a server-only release, so that the site's server changelog page shows
+  the release; and
+- for documentation fixes that land between releases.
+
+It needs a CircleCI API token, from `circleci setup` or `CIRCLECI_TOKEN`.
 
 ## Dependency audit fixes
 

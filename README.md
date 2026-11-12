@@ -161,9 +161,9 @@ Documentation annotation conventions live in the
 
 ### Releases
 
-Packages are published independently using `server-vX.Y.Z` and `client-vX.Y.Z`
-tags. When changing the server's major version, update the dependency constraints
-in both starter templates' `server/pyproject.toml.jinja` files.
+Pushing a `client-v*`, `server-v*`, or `docs-v*` tag publishes that package or
+the documentation site. [Release the packages](CONTRIBUTING.md#release-the-packages)
+describes the full procedure.
 
 **Server:** ![Tests](https://vueda.dev/artifacts/main/server-pytest.svg) ![Coverage](https://vueda.dev/artifacts/main/server-coverage.svg)
 
