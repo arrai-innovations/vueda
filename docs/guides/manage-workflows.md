@@ -173,7 +173,7 @@ Workflow migrations created on parallel branches can conflict when merged.
 
 A migration names the group of each state permission by the group's name. Two group changes affect the next migration:
 
-- After you rename a group, the migration records the group's current name for state permission rows written under its former name.
+- After you rename a group, the migration keeps naming the group by its former name in the changes that you made before the rename.
 - After a group is deleted and created again under the same name, the migration repeats every earlier permission change for that group, including changes that existing migrations already record.
 
 Review the generated `changed_data` after either change.
