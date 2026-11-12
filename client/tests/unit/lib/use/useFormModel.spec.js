@@ -718,6 +718,79 @@ describe("lib/use/useFormModel.js", () => {
             });
         }
     });
+    describe("sub-fields of a read-only inline", () => {
+        // `lines.note` keeps the `readOnly: false` that its own serializer reports, whichever
+        // setting makes the `lines` inline read-only.
+        const noteDetail = { name: "note", typeSerializer: "CharField", typeModel: "CharField", many: false };
+        const mountLines = async ({ inlineReadOnly = false, configFieldProps, formFieldProps } = {}) => {
+            const { useFormModel } = await import("@vueda/use/useFormModel.js");
+            const props = makeBaseProps({
+                view: "update",
+                fields: ["lines"],
+                expand: ["lines"],
+                fieldDetails: {
+                    lines: {
+                        name: "lines",
+                        typeSerializer: "ListSerializer",
+                        typeModel: "ForeignKey",
+                        many: true,
+                        readOnly: inlineReadOnly,
+                    },
+                },
+                expandDetails: {
+                    lines: { many: true, readOnly: inlineReadOnly, f: { note: { ...noteDetail, readOnly: false } } },
+                },
+                ...(formFieldProps ? { fieldProps: formFieldProps } : {}),
+            });
+            const state = await withSetup(() => useFormModel(props));
+            modelConfig.config.fieldDetails = props.fieldDetails;
+            modelConfig.config.expandDetails = props.expandDetails;
+            if (configFieldProps) {
+                modelConfig.config.fieldProps = configFieldProps;
+            }
+            await flushPromises();
+            return state;
+        };
+
+        const expectReadOnlyNote = async (state) => {
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            expect(state.fieldProps.lines.readOnly).toBe(true);
+            expect(state.fieldProps["lines.note"].readOnly).toBe(true);
+            expect(state.widgetProps["lines.note"].readOnly).toBe(true);
+            expect(state.widgetComponents["lines.note"]).toBe(availableWidgets.WidgetReadOnly);
+        };
+
+        scopedIt("makes a sub-field read-only when the server marks the expand read-only", async () => {
+            await expectReadOnlyNote(await mountLines({ inlineReadOnly: true }));
+        });
+
+        scopedIt("makes a sub-field read-only when the model config marks the inline read-only", async () => {
+            await expectReadOnlyNote(await mountLines({ configFieldProps: { lines: { readOnly: true } } }));
+        });
+
+        scopedIt("makes a sub-field read-only when the form's fieldProps mark the inline read-only", async () => {
+            await expectReadOnlyNote(await mountLines({ formFieldProps: { lines: { readOnly: true } } }));
+        });
+
+        scopedIt("keeps a sub-field editable when it sets readOnly: false inside a read-only inline", async () => {
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            const state = await mountLines({
+                inlineReadOnly: true,
+                configFieldProps: { "lines.note": { readOnly: false } },
+            });
+            expect(state.fieldProps.lines.readOnly).toBe(true);
+            expect(state.fieldProps["lines.note"].readOnly).toBe(false);
+            expect(state.widgetComponents["lines.note"]).not.toBe(availableWidgets.WidgetReadOnly);
+        });
+
+        scopedIt("keeps a sub-field editable when its inline is writable", async () => {
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            const state = await mountLines();
+            expect(state.fieldProps.lines.readOnly).toBe(false);
+            expect(state.fieldProps["lines.note"].readOnly).toBe(false);
+            expect(state.widgetComponents["lines.note"]).not.toBe(availableWidgets.WidgetReadOnly);
+        });
+    });
     describe("read-only widget of a slug relation", () => {
         const slugDetail = (extra = {}) => ({
             name: "country",

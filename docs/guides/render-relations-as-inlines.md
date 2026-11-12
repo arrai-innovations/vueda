@@ -112,6 +112,8 @@ A `fieldDetails` entry with a dotted key, such as `items.quantity`, does not cha
 
 Declare the relation with {@api py:class:vueda.core.serializers.VuedaReadonlySerializer} on the server. Model info then marks the expand and every one of its fields read-only. The inline shows each field as read-only, and it shows no Create button and no delete controls. [Keep a Relation Read-Only](./nested-writable-inlines.md#keep-a-relation-read-only) shows the declaration.
 
+Two other settings make an inline read-only: a `read_only` option on the relation's `expandable_fields` entry, or `readOnly: true` in the inline's `fieldProps`. The inline's fields then show as read-only too, even when their own serializer reports them as writable. To keep one field editable, set `readOnly: false` in the `fieldProps` entry for its dotted name, such as `lines.note`.
+
 The read form shows every inline as read-only, including an inline for a writable relation.
 
 ## Check What Each Save Sends

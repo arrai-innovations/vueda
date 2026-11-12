@@ -33,7 +33,10 @@ const savedRows = [
     { id: 2, name: "Second line" },
 ];
 
-async function mountInline(layout, { view = "update", fieldProps = {}, slots = {}, rows = savedRows } = {}) {
+async function mountInline(
+    layout,
+    { view = "update", fieldProps = {}, subFieldProps = {}, slots = {}, rows = savedRows } = {},
+) {
     isTable.value = layout !== "cards";
     let form;
     const formProps = reactive({ initialValues: { lines: rows } });
@@ -51,7 +54,7 @@ async function mountInline(layout, { view = "update", fieldProps = {}, slots = {
                             fieldComponents: {
                                 lines: () => (layout === "stacked" ? FieldSetStackedInline : FieldSetTabularInline),
                             },
-                            fieldProps: { lines: { hidable: false, ...fieldProps } },
+                            fieldProps: { lines: { hidable: false, ...fieldProps }, ...subFieldProps },
                         },
                         slots,
                     );
@@ -196,6 +199,46 @@ describe("lib/form/field-set/FieldSet*Inline.vue", () => {
             await flushPromises();
             expect(form.state.values.lines).toEqual(savedRows);
             expect(Object.keys(form.state.errors)).toEqual(["lines[0].name"]);
+            wrapper.unmount();
+        });
+
+        // `lines.name` reports `readOnly: false` from its own serializer. A read-only relation still
+        // makes it read-only in every row, unless the form sets `readOnly: false` on it.
+        // Row widgets load as async components, so let them resolve before reading the rows.
+        const mountRows = async (options) => {
+            const mounted = await mountInline(layout, options);
+            await vi.dynamicImportSettled();
+            await flushPromises();
+            return mounted;
+        };
+        const rowInputValues = (wrapper) =>
+            wrapper.findAll("input:not([type=hidden]), textarea").map((input) => input.element.value);
+
+        scopedIt("renders every row input read-only for a read-only relation", async () => {
+            config.fieldDetails.lines.readOnly = true;
+            const { wrapper } = await mountRows();
+            expect(wrapper.text()).toContain("First line");
+            expect(rowInputValues(wrapper)).not.toContain("First line");
+            wrapper.unmount();
+        });
+
+        scopedIt("renders every row input read-only when configured read-only", async () => {
+            const { wrapper } = await mountRows({ fieldProps: { readOnly: true } });
+            expect(wrapper.text()).toContain("First line");
+            expect(rowInputValues(wrapper)).not.toContain("First line");
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps a row input editable when it sets readOnly: false in a read-only relation", async () => {
+            config.fieldDetails.lines.readOnly = true;
+            const { wrapper } = await mountRows({ subFieldProps: { "lines.name": { readOnly: false } } });
+            expect(rowInputValues(wrapper)).toEqual(expect.arrayContaining(["First line", "Second line"]));
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps row inputs editable for a writable relation", async () => {
+            const { wrapper } = await mountRows();
+            expect(rowInputValues(wrapper)).toEqual(expect.arrayContaining(["First line", "Second line"]));
             wrapper.unmount();
         });
     });
