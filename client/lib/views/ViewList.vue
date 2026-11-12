@@ -574,7 +574,6 @@ onMounted(() => {
                         :id="`selected-row-${slotProps.pk}`"
                         :model-value="actions.selectedObjects.includes(slotProps.pk)"
                         name="selected"
-                        v-bind="slotProps"
                         @update:model-value="actions.toggleSelectedObject(slotProps.pk)"
                     />
                 </slot>
