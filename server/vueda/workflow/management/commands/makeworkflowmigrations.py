@@ -2344,6 +2344,68 @@ class Command(BaseCommand):
                 del changes[app_label]
         return changes
 
+    def print_debug_unowned_changes(self, app_name, app_data):
+        """Print the app's unmatched changes that belong to none of its models, in one section for the app.
+
+        A change belongs to the model whose content type ``_get_content_type_for_model`` returns for
+        it, which is how matching decides it. A change belongs to none of the app's models when this
+        database never recorded its workflow, or when its workflow belongs to a model outside the app.
+        Listing those under each model's heading would repeat every one of them once per model, so
+        they get a single section, printed after every model's debug output. The section lists the
+        workflow models that ``--debug`` selects for any model of the app. ``--debug all`` selects
+        every workflow model.
+        """
+        selected_workflow_model_names = None
+        if "all" not in self.debug:
+            selected_workflow_model_names = set()
+            # Every name other than "all" is "app.model.workflowmodel", because argparse allows only those choices.
+            for debug_name in self.debug:
+                debug_app_name, _model_name, workflow_model_name = debug_name.rsplit(".", 2)
+                if debug_app_name == app_name:
+                    selected_workflow_model_names.add(workflow_model_name)
+            if not selected_workflow_model_names:
+                return
+
+        app_content_type_ids = frozenset(app_data["models_to_content_type_ids"].values())
+
+        heading_printed = False
+        for migration_name, migration_data in app_data["migrations"].items():
+            for workflow_model_name, changes in migration_data["changes_by_model_name"].items():
+                if (
+                    selected_workflow_model_names is not None
+                    and workflow_model_name not in selected_workflow_model_names
+                ):
+                    continue
+
+                for change in changes:
+                    if "matches_history" in change:
+                        continue
+
+                    content_type = self._get_content_type_for_model(
+                        workflow_model_name, change["history_type"], change["changes"]
+                    )
+                    if content_type is not None and content_type.pk in app_content_type_ids:
+                        continue
+
+                    if not heading_printed:
+                        heading_printed = True
+                        self.stdout.write("")
+                        self.stdout.write(
+                            self.style.HTTP_NOT_FOUND(f"Changes not belonging to a recorded model - {app_name}")
+                        )
+                        self.stdout.write("")
+
+                    self.stdout.write(
+                        self.style.MIGRATE_HEADING(
+                            f"  {workflow_model_name} change from {migration_name} does not match history:"
+                        )
+                    )
+                    self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
+                    self.stdout.write(f"      {change}")
+
+        if heading_printed:
+            self.stdout.write("")
+
     def print_debug(self, debug_name, app_data):
         if debug_name in self.debug or "all" in self.debug:
             _app_name, model_name, workflow_model_name = debug_name.rsplit(".", 2)
@@ -2373,23 +2435,34 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.HTTP_NOT_MODIFIED("    History:"))
                         self.stdout.write(f"      {queryset.filter(pk=change['matches_history']).values()}")
 
+            # Only this model's changes. A change that belongs to no model of the app is listed once,
+            # in its own section, by print_debug_unowned_changes.
+            own_content_type_id = app_data["models_to_content_type_ids"][model_name]
             heading_printed = False
             for migration_name, migration_data in app_data["migrations"].items():
                 for change in migration_data["changes_by_model_name"].get(workflow_model_name, ()):
-                    if "matches_history" not in change:
-                        if not heading_printed:
-                            heading_printed = True
-                            self.stdout.write("")
-                            self.stdout.write(
-                                self.style.HTTP_NOT_FOUND(f"Changes not matching history records - {debug_name}")
-                            )
-                            self.stdout.write("")
+                    if "matches_history" in change:
+                        continue
 
+                    content_type = self._get_content_type_for_model(
+                        workflow_model_name, change["history_type"], change["changes"]
+                    )
+                    if content_type is None or content_type.pk != own_content_type_id:
+                        continue
+
+                    if not heading_printed:
+                        heading_printed = True
+                        self.stdout.write("")
                         self.stdout.write(
-                            self.style.MIGRATE_HEADING(f"  Change from {migration_name} does not match history:")
+                            self.style.HTTP_NOT_FOUND(f"Changes not matching history records - {debug_name}")
                         )
-                        self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
-                        self.stdout.write(f"      {change}")
+                        self.stdout.write("")
+
+                    self.stdout.write(
+                        self.style.MIGRATE_HEADING(f"  Change from {migration_name} does not match history:")
+                    )
+                    self.stdout.write(self.style.HTTP_NOT_MODIFIED("    Change:"))
+                    self.stdout.write(f"      {change}")
 
             heading_printed = False
             if unmatched.exists():
@@ -2511,6 +2584,10 @@ class Command(BaseCommand):
                                 workflow_model_field_names_to_attname,
                             )
                             changes_by_app[app_label]["changes"].append(historical_record)
+
+        # After every model's debug output, so the changes that no model claims are the last debug section.
+        for app_name, app_data in all_migrated_data.items():
+            self.print_debug_unowned_changes(app_name, app_data)
 
         changes_by_app = self.clean_changes_by_app(changes_by_app)
 
