@@ -4,6 +4,7 @@
  */
 import { useListInstance, useObjectInstance } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { getActionRequestMethod } from "@vueda/utils/actionMap.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import startCase from "lodash-es/startCase.js";
@@ -26,7 +27,13 @@ import { useRoute, useRouter } from "vue-router";
  *  List instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
  *  Omit it to use a private transport-only list.
  * @property {(values: object) => object} [transformSubmitDataFn] - Optional form-value transform.
- * @property {string} [requestMethod] - HTTP method used for non-destroy action requests.
+ * @property {(options?: ModelActionRunOptions) => Promise<any>} [runAction] - Host function that sends the action
+ *  request in place of the default `runAction`. When it is set, `readyToDryRun` and `viewOnly` do not require a
+ *  request method.
+ * @property {string} [requestMethod] - HTTP method to use for a non-destroy action, chosen from the write methods
+ *  that the action's `methodNames` in model info lists. When `methodNames` does not list it, the action has no
+ *  request method. Without it, {@link getActionRequestMethod} chooses from `methodNames`. Destroy ignores this
+ *  prop.
  * @property {boolean} [enableDryRun] - Whether to perform dry-run validation.
  * @property {"info"|"success"|"warning"|"danger"|"neutral"} [tone] - Sentiment tone.
  * @property {string} [bannerTitle] - Optional banner title.
@@ -60,10 +67,21 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('vue').ComputedRef<string>} bannerDescription - Banner description.
  * @property {import('vue').ComputedRef<string>} bannerIconName - Icon name for the current tone.
  * @property {import('vue').ComputedRef<boolean>} readyToDryRun - Whether the action can run a dry-run request right now
- *  (a target is present, dry-run is enabled, and the action instance is idle). Carries no per-target memory of its
+ *  (a target is present, dry-run is enabled, model info has loaded, and the action instance is idle). Model info gives
+ *  the action's URL segment and request method, so the dry run waits for it. Carries no per-target memory of its
  *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
  * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys,
  *  for a consumer to key its own "already dry-ran this one" bookkeeping off of.
+ *
+ * Permission state.
+ * @property {import('vue').ComputedRef<string|null>} requestMethod - The HTTP method that the action sends. It is
+ *  always a write method that the action's `methodNames` in model info lists. For an action other than destroy, the
+ *  `requestMethod` prop chooses among them. The value is `null` when there is no such method, which means that the
+ *  user may not run the action. `readyToDryRun` and `runAction` require a method.
+ * @property {import('vue').ComputedRef<boolean>} viewOnly - Whether model info has loaded, no host `runAction` is set,
+ *  and the action has no request method to send. The user can view the records but cannot run the action.
+ * @property {import('vue').ComputedRef<string>} viewOnlyMessage - The message that tells the user that only viewing is
+ *  permitted and that the action cannot be executed.
  */
 
 /**
@@ -71,7 +89,7 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
  * @property {ModelActionRawState} state - Reactive action state.
  * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
- *  crud handlers.
+ *  crud handlers. Rejects with `viewOnlyMessage` and sends no request when `requestMethod` is `null`.
  * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Goes to the route's
  *  `returnPath` query value when it has one. Otherwise it goes to the model config's `actionRedirects` entry for
  *  the action. Resolves `false` when the router reports a navigation failure, so `useActionForm` keeps the form usable.
@@ -133,6 +151,19 @@ export function useModelAction(props) {
     });
     const actionInstance = computed(() => (bulk.value ? instanceList : instanceObject));
 
+    // The action's model info entry gives the URL segment that the router serves the action at, and the HTTP methods
+    // that the action accepts. When model info reports no `urlPath`, the URL segment is the action name with dashes
+    // turned into underscores, which is the router's default segment for an extra action.
+    const actionInfo = computed(() => modelConfig.info?.actions?.find((action) => action.name === props.action));
+    const urlPath = computed(() => actionInfo.value?.urlPath ?? props.action.replace(/-/g, "_"));
+    // Destroy always sends `DELETE` through the delete handlers, so its method comes from model info alone. The default
+    // request runs only when it has a method. A host that passes `runAction` sends the request itself.
+    const isDestroy = computed(() => props.action === "destroy");
+    const requestMethod = computed(() =>
+        getActionRequestMethod(actionInfo.value?.methodNames, isDestroy.value ? undefined : props.requestMethod),
+    );
+    const viewOnly = computed(() => modelConfig.loading === false && !props.runAction && !requestMethod.value);
+
     const modelVerboseName = computed(() =>
         bulk.value
             ? modelConfig.info?.verboseNamePlural || getLowerTitle(getPluralizedTitle(props.model))
@@ -156,6 +187,12 @@ export function useModelAction(props) {
         }
         return `Failed to ${props.action} ${props.model} `;
     });
+
+    const viewOnlyMessage = computed(
+        () =>
+            `Only viewing is permitted. You cannot ${actionVerboseNameLowerCase.value} ` +
+            (bulk.value ? "these records." : "this record."),
+    );
 
     const confirmMessage = computed(() => {
         if (props.confirmMessage) {
@@ -190,7 +227,9 @@ export function useModelAction(props) {
         }
     });
 
-    // Dry-run readiness waits for both a target and an idle action instance. It carries no per-target memory of its
+    // Dry-run readiness waits for a target, loaded model info, and an idle action instance. Model info gives the
+    // action's URL segment and request method, so a dry run sent before it loads would go to the wrong URL or use the
+    // wrong method. Readiness carries no per-target memory of its
     // own -- the dry run itself toggles instance loading, so without a latch somewhere the readiness watcher would
     // retrigger for the same target. `dryRunTarget` gives a consumer (`useActionForm`'s dry-run watcher) an identity
     // to latch against instead.
@@ -216,6 +255,8 @@ export function useModelAction(props) {
                 props.model &&
                 props.action &&
                 props.enableDryRun !== false &&
+                modelConfig.loading === false &&
+                !!(props.runAction || requestMethod.value) &&
                 pks.value.length > 0 &&
                 !actionInstance.value?.state?.loading
             ),
@@ -267,10 +308,12 @@ export function useModelAction(props) {
      */
     const runAction = ({ formValues = {}, dryRun = false, acknowledgeWarnings } = {}) => {
         try {
+            if (!requestMethod.value) {
+                throw new Error(viewOnlyMessage.value);
+            }
             const instance = actionInstance.value;
             const runTarget = dryRunTarget.value;
             let cancelled = false;
-            const isDestroy = props.action === "destroy";
             const runPks = [...pks.value];
             const shared = {
                 formData: props.transformSubmitDataFn ? props.transformSubmitDataFn(formValues) : undefined,
@@ -283,18 +326,24 @@ export function useModelAction(props) {
 
             let result;
             if (bulk.value) {
-                result = isDestroy
+                result = isDestroy.value
                     ? instance.bulkDelete({ ...shared, pks: runPks, keepObjects: dryRun })
                     : instance.executeAction({
                           ...shared,
                           action: props.action,
+                          urlPath: urlPath.value,
                           pks: runPks,
-                          requestMethod: props.requestMethod,
+                          requestMethod: requestMethod.value,
                       });
             } else {
-                result = isDestroy
+                result = isDestroy.value
                     ? instance.delete({ ...shared, keepObject: dryRun })
-                    : instance.executeAction({ ...shared, action: props.action, requestMethod: props.requestMethod });
+                    : instance.executeAction({
+                          ...shared,
+                          action: props.action,
+                          urlPath: urlPath.value,
+                          requestMethod: requestMethod.value,
+                      });
             }
 
             const promise = Promise.resolve(result).then((response) => {
@@ -339,6 +388,9 @@ export function useModelAction(props) {
             bannerIconName,
             readyToDryRun,
             dryRunTarget,
+            requestMethod,
+            viewOnly,
+            viewOnlyMessage,
         },
         runAction,
         redirectTo,

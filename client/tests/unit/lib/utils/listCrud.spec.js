@@ -408,6 +408,22 @@ describe("lib/utils/listCrud.js", () => {
             expect(result).toEqual({ archived: 2 });
         });
 
+        scopedIt("builds the list action url from urlPath", async () => {
+            getListUrl.mockReturnValue("/list/settle-up/");
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                Promise.resolve(transform(new Response(null, { status: 204 }))),
+            );
+
+            await listCrud.defaultListExecuteAction({
+                target: { app: "billing", model: "invoice" },
+                pks: ["1"],
+                action: "settle",
+                urlPath: "settle-up",
+            });
+
+            expect(getListUrl).toHaveBeenCalledWith({ app: "billing", model: "invoice", action: "settle-up" });
+        });
+
         scopedIt("defaults to PUT", async () => {
             getListUrl.mockReturnValue("/list/archive/");
             let captured;

@@ -7,15 +7,19 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
+from tests.store import models as store_models
 from tests.store import serializers as store_serializers
 from tests.store import viewsets as store_viewsets
 from tests.unit.info.expected_results_model_info import EXPECTED_RESULTS
 from vueda import info
+from vueda.core.decorators import action
+from vueda.core.viewsets import VuedaViewSet
 from vueda.info.serializers import ModelInfoSerializer
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
@@ -669,6 +673,46 @@ class TestModelActionsWithoutRequester:
         names = self.model_action_names("store", "cart")
 
         assert {"list", "retrieve", "create", "update", "partial_update", "destroy"} <= set(names)
+
+
+class DistributorViewSetWithExtraActionPaths(VuedaViewSet):
+    """A distributor viewset with one extra action at its default path and one at a custom path."""
+
+    queryset = store_models.Distributor.objects.all()
+    serializer_class = store_serializers.DistributorSerializer
+
+    @action(detail=True, methods=["post"], permission_classes=())
+    def mark_paid(self, request, pk=None):
+        return Response(status=204)
+
+    @action(detail=True, methods=["post"], permission_classes=(), url_path="settle-up")
+    def settle(self, request, pk=None):
+        return Response(status=204)
+
+
+@pytest.mark.django_db
+class TestExtraActionUrlPath:
+    """``model_actions`` reports each extra action's URL segment as ``url_path``."""
+
+    @pytest.fixture
+    def actions_by_name(self):
+        info.registration.get_empty_registry()
+        info.register(store_serializers.DistributorSerializer, DistributorViewSetWithExtraActionPaths)
+        try:
+            content_type = ContentType.objects.get(app_label="store", model="distributor")
+            serializer = ModelInfoSerializer(content_type, context={})
+            yield {action["name"]: action for action in serializer.get_model_actions(content_type)}
+        finally:
+            info.registration.get_empty_registry()
+
+    def test_default_url_path_is_the_method_name(self, actions_by_name):
+        assert actions_by_name["mark-paid"]["url_path"] == "mark_paid"
+
+    def test_custom_url_path_is_reported(self, actions_by_name):
+        assert actions_by_name["settle"]["url_path"] == "settle-up"
+
+    def test_builtin_actions_have_no_url_path(self, actions_by_name):
+        assert "url_path" not in actions_by_name["update"]
 
 
 @pytest.mark.django_db

@@ -287,7 +287,9 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
  * @param {object} args - The arguments object.
  * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {string} args.pk - The primary key of the object to act on.
- * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} args.action - The action name, as model info reports it.
+ * @param {string} [args.urlPath] - The url's action segment. `useModelAction` passes the `urlPath` that model info
+ *  reports for the action. Defaults to `action`.
  * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
  * @param {object} [args.formData] - Form values submitted with the action, sent as the request body.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
@@ -299,6 +301,7 @@ export function defaultObjectExecuteAction({
     target,
     pk,
     action,
+    urlPath = action,
     requestMethod = "PUT",
     formData,
     dryRun,
@@ -306,7 +309,7 @@ export function defaultObjectExecuteAction({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model } = target;
-    const url = getDetailUrl({ app, model, pk, action });
+    const url = getDetailUrl({ app, model, pk, action: urlPath });
 
     return cancellableFetch(
         url,

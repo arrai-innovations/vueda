@@ -13,7 +13,7 @@ The server reports which [actions]{@term Action} the current user may take in tw
 
 ## Server Action Declaration and Route Partitioning
 
-A viewset offers the built-in actions it implements (`list`, `retrieve`, `create`, `update`, `partial_update`, and `destroy`) and any {@term Extra Action} it declares. VUEDA's {@api py:function:vueda.core.decorators.action} decorator declares an extra action. It accepts the arguments of [DRF's `action`]{@api ext:drf:rest_framework.decorators.action} and adds [`bulk`]{@api py:param:vueda.core.decorators.action.bulk} and [`confirm`]{@api py:param:vueda.core.decorators.action.confirm}. An extra action's name is its `url_name`.
+A viewset offers the built-in actions it implements (`list`, `retrieve`, `create`, `update`, `partial_update`, and `destroy`) and any {@term Extra Action} it declares. VUEDA's {@api py:function:vueda.core.decorators.action} decorator declares an extra action. It accepts the arguments of [DRF's `action`]{@api ext:drf:rest_framework.decorators.action} and adds [`bulk`]{@api py:param:vueda.core.decorators.action.bulk} and [`confirm`]{@api py:param:vueda.core.decorators.action.confirm}. An extra action's name is its `url_name`. The router serves the action at its `url_path`, which defaults to the method name. Model info reports both, so the client calls each action at the URL that the router serves.
 
 {@api py:class:vueda.core.routers.VuedaRouter} mounts each extra action by its [`detail`]{@api py:param:vueda.core.decorators.action.detail} and `bulk` flags:
 

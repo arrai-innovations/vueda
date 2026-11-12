@@ -106,15 +106,30 @@ const props = defineProps({
         type: Object,
         default: undefined,
     },
+    /**
+     * Function that runs the action in place of the default request to the model's action URL. It receives the same
+     * options as `ActionForm`'s `runAction`. A host that passes it sends the request itself, so the form does not
+     * require a request method from model info. `ViewExecuteTransition` uses it to send a workflow transition.
+     */
+    runAction: {
+        type: Function,
+        default: undefined,
+    },
     /** Optional function to transform form values before they are sent in the request body. */
     transformSubmitDataFn: {
         type: Function,
         default: undefined,
     },
-    /** HTTP method used for the action request (ignored for destroy actions, which always use DELETE). */
+    /**
+     * HTTP method to use for the action request, chosen from the write methods that the action's `methodNames` in
+     * model info lists. Without it, the form sends `PUT` when `methodNames` lists `put`, and otherwise the first write
+     * method that it lists. When `methodNames` does not list the method, or lists no write method, the form runs no
+     * dry run, disables the confirm button, and tells the user that only viewing is permitted. Destroy actions ignore
+     * this prop and always use `DELETE`.
+     */
     requestMethod: {
         type: String,
-        default: "PUT",
+        default: undefined,
     },
     /** When true, performs a dry-run validation request before the final submission. */
     enableDryRun: {
@@ -212,6 +227,9 @@ const {
     bannerIconName,
     readyToDryRun: dryRun,
     dryRunTarget,
+    requestMethod: actionRequestMethod,
+    viewOnly,
+    viewOnlyMessage,
 } = modelAction.state;
 const redirectTo = modelAction.redirectTo;
 // A host that fetches the selected records passes them as `fetchState`. Without one, look the
@@ -252,6 +270,9 @@ watch(dryRunTarget, () => {
 });
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
 const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
+const confirmBlocked = computed(
+    () => typedConfirmGateBlocking.value || (!props.runAction && !actionRequestMethod.value),
+);
 
 /**
  * Normalizes the confirmation dialog's raw warnings mapping into one display group per warned
@@ -291,7 +312,7 @@ const resolveWarningGroups = (warnings, bulk) => {
     <action-form
         :fetch-state="fetchState"
         :redirect-to="redirectTo"
-        :run-action="defaultRunAction"
+        :run-action="runAction ?? defaultRunAction"
         :ready-to-dry-run="dryRun"
         :dry-run-target="dryRunTarget"
         v-bind="$attrs"
@@ -312,17 +333,23 @@ const resolveWarningGroups = (warnings, bulk) => {
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
         <template #confirm-button="slotProps">
+            <!-- @slot [confirm-button] Override the confirm button. Receives `ActionForm`'s `confirm-button` slot props, with `label` set to the action's name and `disabled` also true while the typed confirmation does not match or the action cannot run. `requestMethod` is the HTTP method that the default request sends, and it is `null` when the user may not run the action, so a host can hide the button instead of disabling it. With the `runAction` prop, the host decides whether the action can run. -->
             <slot
                 v-if="$slots['confirm-button']"
                 name="confirm-button"
-                v-bind="{ ...slotProps, label: confirmLabel, disabled: slotProps.disabled || typedConfirmGateBlocking }"
+                v-bind="{
+                    ...slotProps,
+                    label: confirmLabel,
+                    disabled: slotProps.disabled || confirmBlocked,
+                    requestMethod: actionRequestMethod,
+                }"
             />
             <Button
                 v-else
                 type="submit"
                 :form="slotProps.form"
                 :tone="tone === 'danger' ? 'destructive' : 'primary'"
-                :disabled="slotProps.loading || slotProps.disabled || typedConfirmGateBlocking"
+                :disabled="slotProps.loading || slotProps.disabled || confirmBlocked"
             >
                 <LoadingSpinnerInline v-if="slotProps.loading" />
                 {{ confirmLabel }}
@@ -432,8 +459,14 @@ const resolveWarningGroups = (warnings, bulk) => {
                         </slot>
                     </div>
                     <div :class="theme('message')" data-qa="action-form-message">
+                        <!-- @slot [view-only-message] Override the message shown in place of the confirmation prompt when the action cannot be executed. Receives `message`, the default text. -->
+                        <slot v-if="viewOnly" name="view-only-message" :message="viewOnlyMessage">
+                            <p :class="theme('messageText')" data-qa="action-form-view-only-message">
+                                {{ viewOnlyMessage }}
+                            </p>
+                        </slot>
                         <!-- @slot [confirm-message] Override the confirmation prompt shown before submitting. -->
-                        <slot name="confirm-message">
+                        <slot v-else name="confirm-message">
                             <p :class="theme('messageText')">{{ computedConfirmMessage }}</p>
                         </slot>
                     </div>

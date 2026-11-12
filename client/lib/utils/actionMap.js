@@ -1,7 +1,7 @@
 /**
  * @module utils/actionMap
  * @description Maps view names, which are the action segments of client routes, to their corresponding DRF action
- * names and back.
+ * names and back. Also chooses the HTTP method that the action views send for an action.
  */
 
 export const viewToActionNameMap = {
@@ -35,4 +35,35 @@ export const unroutedActionNames = new Set(["partial_update"]);
  */
 export const getViewName = (actionName) => {
     return actionToViewNameMap[actionName] || actionName;
+};
+
+/**
+ * The HTTP methods that write data, in lowercase as model info reports them.
+ *
+ * @type {Set<string>}
+ */
+const writeMethodNames = new Set(["post", "put", "patch", "delete"]);
+
+/**
+ * Chooses the HTTP method that the action views send for an action.
+ *
+ * The action views send only a write method that `methodNames` lists. When `preferredMethod` is given, the result is
+ * that method if `methodNames` lists it as a write method. Without `preferredMethod`, the result is `"PUT"` when
+ * `methodNames` lists `put`. Otherwise, it is the first write method in `methodNames`. The result is `null` when no
+ * method qualifies.
+ *
+ * @param {string[]} [methodNames] - The action's `methodNames` from model info, such as `["get", "post"]`.
+ * @param {string} [preferredMethod] - The method that the caller asks for, such as `"PATCH"`.
+ * @returns {string|null} The uppercase HTTP method, such as `"POST"`. The result is `null` when there is no method
+ *  to send.
+ */
+export const getActionRequestMethod = (methodNames = [], preferredMethod) => {
+    const writeMethods = methodNames.filter((methodName) => writeMethodNames.has(methodName));
+    if (preferredMethod) {
+        return writeMethods.includes(preferredMethod.toLowerCase()) ? preferredMethod.toUpperCase() : null;
+    }
+    if (writeMethods.includes("put")) {
+        return "PUT";
+    }
+    return writeMethods[0]?.toUpperCase() ?? null;
 };

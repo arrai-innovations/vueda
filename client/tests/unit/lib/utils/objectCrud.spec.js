@@ -674,6 +674,27 @@ describe("lib/utils/objectCrud.js", () => {
             expect(result).toEqual({ archived: true });
         });
 
+        it("builds the detail action url from urlPath", async () => {
+            getDetailUrl.mockReturnValue("detail-action-url");
+            cancellableFetch.mockImplementation((url, options, transform) =>
+                Promise.resolve(transform(new Response(null, { status: 204 }))),
+            );
+
+            await objectCrud.defaultObjectExecuteAction({
+                target: { app: "billing", model: "invoice" },
+                pk: "3",
+                action: "settle",
+                urlPath: "settle-up",
+            });
+
+            expect(getDetailUrl).toHaveBeenCalledWith({
+                app: "billing",
+                model: "invoice",
+                pk: "3",
+                action: "settle-up",
+            });
+        });
+
         it("defaults to PUT and sends no body without form data", async () => {
             getDetailUrl.mockReturnValue("detail-action-url");
             let captured;

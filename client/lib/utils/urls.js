@@ -3,7 +3,7 @@
  * @description Provides URL templates and builder functions for all VUEDA API endpoints.
  */
 import { unwrapNested } from "@arrai-innovations/reactive-helpers";
-import { getServerActionName, getServerRoutePart } from "@vueda/utils/case.js";
+import { getServerRoutePart } from "@vueda/utils/case.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
 
 const defaultUrls = {
@@ -79,9 +79,13 @@ export const resetCustomUrls = () => {
 /**
  * Get a VUEDA list or list action URL.
  *
+ * A list action URL comes from the `modelAction` template. The action's URL segment replaces the template's
+ * `:action_name` placeholder.
+ *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
- * @param {string} [action] - The action name, if any.
+ * @param {string} [action] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
+ *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
@@ -89,7 +93,7 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelAction" : "modelList");
     let url = urlTemplate.replace(":app", app.toLowerCase()).replace(":model", getServerRoutePart(model));
     if (action) {
-        url = url.replace(":action_name", getServerActionName(action));
+        url = url.replace(":action_name", unwrapNested(action));
     }
     return `${httpOrHttpsHostname}${url}${query}`;
 };
@@ -97,10 +101,14 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
 /**
  * Get a VUEDA detail or detail action URL.
  *
+ * A detail action URL comes from the `modelDetailAction` template. The action's URL segment replaces the template's
+ * `:action_name` placeholder.
+ *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
  * @param {string} pk - The primary key.
- * @param {string} [action] - The action name, if any.
+ * @param {string} [action] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
+ *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
  * @returns {string} - The URL.
  */
@@ -109,7 +117,7 @@ export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {
     const appStr = app.toLowerCase();
     const modelStr = getServerRoutePart(model);
     const pkStr = unwrapNested(pk);
-    const actionStr = getServerActionName(action);
+    const actionStr = unwrapNested(action);
     let url = urlTemplate.replace(":app", appStr).replace(":model", modelStr).replace(":pk", pkStr);
     if (actionStr) {
         url = url.replace(":action_name", actionStr);
