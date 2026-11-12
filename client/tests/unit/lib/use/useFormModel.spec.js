@@ -722,7 +722,12 @@ describe("lib/use/useFormModel.js", () => {
         // `lines.note` keeps the `readOnly: false` that its own serializer reports, whichever
         // setting makes the `lines` inline read-only.
         const noteDetail = { name: "note", typeSerializer: "CharField", typeModel: "CharField", many: false };
-        const mountLines = async ({ inlineReadOnly = false, configFieldProps, formFieldProps } = {}) => {
+        const mountLines = async ({
+            inlineReadOnly = false,
+            expandReadOnly = inlineReadOnly,
+            configFieldProps,
+            formFieldProps,
+        } = {}) => {
             const { useFormModel } = await import("@vueda/use/useFormModel.js");
             const props = makeBaseProps({
                 view: "update",
@@ -738,7 +743,7 @@ describe("lib/use/useFormModel.js", () => {
                     },
                 },
                 expandDetails: {
-                    lines: { many: true, readOnly: inlineReadOnly, f: { note: { ...noteDetail, readOnly: false } } },
+                    lines: { many: true, readOnly: expandReadOnly, f: { note: { ...noteDetail, readOnly: false } } },
                 },
                 ...(formFieldProps ? { fieldProps: formFieldProps } : {}),
             });
@@ -762,6 +767,15 @@ describe("lib/use/useFormModel.js", () => {
 
         scopedIt("makes a sub-field read-only when the server marks the expand read-only", async () => {
             await expectReadOnlyNote(await mountLines({ inlineReadOnly: true }));
+        });
+
+        scopedIt("makes a sub-field read-only when only the expand details mark the inline read-only", async () => {
+            // The `lines` field itself stays writable; only its expand reports `read_only`.
+            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+            const state = await mountLines({ expandReadOnly: true });
+            expect(state.fieldProps["lines.note"].readOnly).toBe(true);
+            expect(state.widgetProps["lines.note"].readOnly).toBe(true);
+            expect(state.widgetComponents["lines.note"]).toBe(availableWidgets.WidgetReadOnly);
         });
 
         scopedIt("makes a sub-field read-only when the model config marks the inline read-only", async () => {
