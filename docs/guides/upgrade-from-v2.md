@@ -22,11 +22,11 @@ Upgrade the server and the client together. A v3 client cannot read the metadata
 
 Server v2 recorded history in django-simple-history tables. VUEDA's nine workflow models wrote `vueda_workflow_historical*` tables. Your models wrote a `Historical*` table when they subclassed `VuedaHistoryBaseModel`, `SimpleHistoryModelMixin`, or `AbstractVUEDAUserWithHistory`, or when they declared `HistoricalRecords`.
 
-Server v3 records history with django-pghistory event models. Starting with the next release after server 3.0.0b1, the `vueda_workflow` migration `0009` copies the rows of the nine workflow history tables into the workflow event models, and then deletes those tables. Workflow history carries over, including each object's workflow state history. `makeworkflowmigrations` relies on it, because it finds the states, permissions, and transitions of a workflow through their events.
+Server v3 records history with django-pghistory event models. Starting with the next release after server 3.0.0b1, the `vueda_workflow` migration `0009` copies the rows of the nine workflow history tables into the workflow event models, and then deletes those tables. Workflow history carries over, including each object's workflow state history. `makevuedamigrations` relies on it, because it finds the states, permissions, and transitions of a workflow through their events.
 
 A database that applied `0009` with server 3.0.0b1 or earlier has no copied workflow history, and upgrading again does not copy it.
 
-Each copied row keeps the time that v2 recorded it, the acting user, and the change reason. A row that a v2-generated workflow migration wrote counts as a migration write, so `makeworkflowmigrations` does not export it again.
+Each copied row keeps the time that v2 recorded it, the acting user, and the change reason. A row that a v2-generated workflow migration wrote counts as a migration write, so `makevuedamigrations` does not export it again.
 
 VUEDA does not copy your own `Historical*` tables, and nothing in v3 reads them. When you run `makemigrations`, Django generates `DeleteModel` operations for them. After the upgrade, the history lists of your models start empty, and v3 records every change from then on.
 
@@ -94,7 +94,7 @@ These dependencies changed:
 Object states carried over from v2 follow the same rules as v3 object states when a current v3-generated workflow migration runs, because `vueda_workflow` migration `0009` copies their v2 history. [How Object States Are Updated](manage-workflows.md#how-object-states-are-updated) describes the rules and how to refresh older v3-generated files.
 
 ::: warning
-Upgrade VUEDA before running `makeworkflowmigrations` on the upgraded database. Older v3 versions reset object states with no events even when the command reports no workflow changes. Before applying an older v3-generated workflow migration, refresh its embedded functions with `updateworkflowmigrations`, review the changes, and commit them. A package upgrade alone does not change those copies. Migrations generated with `--import-instead` receive the fix through the package upgrade. The fix does not restore states that were already reset.
+Upgrade VUEDA before running `makevuedamigrations` on the upgraded database. Older v3 versions reset object states with no events even when the command reports no workflow changes. Before applying an older v3-generated workflow migration, refresh its embedded functions with `updateworkflowmigrations`, review the changes, and commit them. A package upgrade alone does not change those copies. Migrations generated with `--import-instead` receive the fix through the package upgrade. The fix does not restore states that were already reset.
 :::
 
 ::: warning

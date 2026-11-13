@@ -9,7 +9,7 @@
 -   **Coverage**: `just coverage-server` (accepts extra pytest args). Example: `just coverage-server --cov-report=html`
 -   **Django**: `uv run --no-sync python manage.py test`, `uv run --no-sync python manage.py makemigrations`, `uv run --no-sync python manage.py migrate`
 -   **API docs**: `uv run --no-sync python manage.py spectacular --color --file schema.yml`
--   **Workflow migrations**: `uv run --no-sync python manage.py makeworkflowmigrations` (after workflow changes)
+-   **Group and workflow migrations**: `uv run --no-sync python manage.py makevuedamigrations` (after group or workflow changes)
 
 ## Architecture
 

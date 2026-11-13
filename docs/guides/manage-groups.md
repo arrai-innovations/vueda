@@ -7,7 +7,7 @@ status: draft
 
 # Manage Groups and Generate Group Migrations
 
-Use the {@term Group Management Page} to add groups to permissions, rename groups, and remove permissions from groups. VUEDA records each change. Then run [`makegroupmigrations`]{@api py:class:vueda.user.management.commands.makegroupmigrations.Command} to write a {@term Group Permission Migration}, which applies the same changes in your other environments.
+Use the {@term Group Management Page} to add groups to permissions, rename groups, and remove permissions from groups. VUEDA records each change. Then run [`makevuedamigrations`]{@api py:class:vueda.user.management.commands.makevuedamigrations.Command} to write a {@term Group Permission Migration}, which applies the same changes in your other environments. The same command writes {@term Workflow Migration}s, in the order that you made the group and workflow changes.
 
 A group's permissions feed each member's {@term Baseline Permission}. To audit which groups hold each permission without editing anything, use the {@term Permissions and Workflow Overview}, described in [Use the Permissions and Workflow Overview](./permissions-workflow-overview.md).
 
@@ -67,39 +67,45 @@ The group management page has no action that deletes a group; [#423](https://git
 
 ## Generating Group Migrations
 
-1. Write the migration:
+1. Write the migrations:
 
     ```console
-    python manage.py makegroupmigrations
+    python manage.py makevuedamigrations
     ```
 
-    The command writes the migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations_2026_04_21`. When there is nothing new to write, it prints `No group changes detected.`
+    The command writes each group migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations`. When you also changed workflows, it writes their workflow migrations in the same run. When there is nothing new to write, it prints `No changes detected.`
 
-2. Fake the migration in your own database, which already has the changes. The command prints a note that tells you to fake it.
+2. Fake the new migrations in your own database, which already has the changes. The command prints a note that tells you to fake them.
 
     ```console
-    python manage.py migrate myapp 0005_group_permission_migrations_2026_04_21 --fake
+    python manage.py migrate myapp 0005_group_permission_migrations --fake
     ```
 
-3. Ship the migration with your code. Other environments apply it with `python manage.py migrate`.
+    When the run wrote several migrations, faking the last one fakes the ones that it depends on too.
 
-To preview the migration name without writing a file, add `--dry-run`. The command passes `--dry-run` to Django's `makemigrations`, and still prints the note to fake the migration.
+3. Ship the migrations with your code. Other environments apply them with `python manage.py migrate`.
+
+To preview the migrations without writing a file, add `--dry-run`. The command prints the name of each migration that it would write.
 
 ```console
-python manage.py makegroupmigrations --dry-run
+python manage.py makevuedamigrations --dry-run
 ```
+
+### Group and Workflow Changes in One Run
+
+A workflow migration can name a group that a group migration creates or renames. `makevuedamigrations` therefore writes the changes in the order that you made them. It starts a new migration each time your changes switch between group changes and workflow changes. Each migration depends on the ones before it. [Group Changes and Workflow Migrations](manage-workflows.md#group-changes-and-workflow-migrations) in the workflow guide shows an example.
 
 ### Which Changes a Migration Includes
 
-VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makegroupmigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them.
+VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makevuedamigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them.
 
 A change names its group by name and its permission by codename, app label, and model name. It holds no primary keys, because keys differ between databases.
 
-When a group migration runs forward, it adds a `GroupChange` row for each of its changes that has none. A later `makegroupmigrations` run in that environment then skips those changes.
+When a group migration runs forward, it adds a `GroupChange` row for each of its changes that has none. A later `makevuedamigrations` run in that environment then skips those changes.
 
 ### Change Types
 
-Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.management.commands.makegroupmigrations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
+Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.migration_generation.group_operations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
 
 | Type           | Recorded when                                                | Forward                                                    | Backward                                                   |
 | -------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------- |
@@ -115,15 +121,15 @@ Each group migration carries its own copy of the code that applies these changes
 
 ### What the Migration File Contains
 
-A group migration is a standard Django migration. `makegroupmigrations` adds:
+A group migration is a standard Django migration. `makevuedamigrations` adds:
 
 - `changed_data`, the list of changes that the migration applies. [How `changed_data` Is Formatted](#how-changed-data-is-formatted) describes its layout.
-- Copies of [`migrate_step`]{@api py:function:vueda.user.management.commands.makegroupmigrations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.management.commands.makegroupmigrations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
-- A comment near the top that marks the file as a group migration. VUEDA's group migration commands find group migrations by this comment, so keep it.
+- Copies of [`migrate_step`]{@api py:function:vueda.user.migration_generation.group_operations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.group_operations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.group_operations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.migration_generation.group_operations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
+- A comment near the top that marks the file as a group migration. VUEDA's commands find group migrations by this comment, so keep it. The comment names `makevuedamigrations`. VUEDA still recognizes the comment that `makegroupmigrations` wrote in older migrations.
 
 ### How `changed_data` Is Formatted
 
-`makegroupmigrations` formats `changed_data` with the Python formatter that your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. Projects usually install these as development dependencies. `makeworkflowmigrations` and `updateworkflowmigrations` format their `changed_data` the same way, as [How `changed_data` Is Formatted](manage-workflows.md#how-changed-data-is-formatted) in the workflow guide describes.
+`makevuedamigrations` formats the `changed_data` of a group migration with the Python formatter that your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. Projects usually install these as development dependencies. It formats a workflow migration's `changed_data` the same way, and so does `updateworkflowmigrations`, as [How `changed_data` Is Formatted](manage-workflows.md#how-changed-data-is-formatted) in the workflow guide describes.
 
 The command uses the first formatter in this list that applies:
 
