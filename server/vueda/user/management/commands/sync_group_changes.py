@@ -10,6 +10,7 @@ from django.core.management import BaseCommand
 
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.management.commands.utils import get_matching_record
+from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 
 
@@ -38,13 +39,8 @@ class Command(BaseCommand):
             for migration_file in sorted(migrations_path.glob("*.py")):
                 if migration_file.name == "__init__.py":
                     continue
-                with open(migration_file, encoding="utf-8") as f:
-                    for line_no, line in enumerate(f):
-                        if line_no > 20:  # noqa: PLR2004
-                            break
-                        if line.startswith(tuple(marker.strip() for marker in MIGRATION_MODIFIED_COMMENTS)):
-                            yield migration_file
-                            break
+                if is_generated_migration(migration_file, MIGRATION_MODIFIED_COMMENTS):
+                    yield migration_file
 
     @staticmethod
     def _load_migration_module(migration_file):

@@ -55,7 +55,7 @@ class TestDeployWindow(BaseTestUserMixin):
     def test_the_backfill_gives_them_the_initial_state_and_clears_the_check(self, created_by_the_previous_release):
         output = backfill("store.CustomerOrder")
 
-        assert "store.CustomerOrder: created 2 object state(s)." in output
+        assert "store.CustomerOrder: created 2 object state(s), " in output
         for order in created_by_the_previous_release:
             order.refresh_from_db()
             assert order.workflow_state.code == "new"
@@ -64,7 +64,7 @@ class TestDeployWindow(BaseTestUserMixin):
     def test_running_it_again_changes_nothing(self, created_by_the_previous_release):
         backfill("store.CustomerOrder")
 
-        assert "store.CustomerOrder: created 0 object state(s)." in backfill("store.CustomerOrder")
+        assert "store.CustomerOrder: created 0 object state(s), " in backfill("store.CustomerOrder")
 
     def test_an_existing_state_is_kept(self, orders, created_by_the_previous_release):
         packed = orders[0]
@@ -92,7 +92,7 @@ class TestSelection:
         with pytest.raises(CommandError, match=r"model\(s\) could not be backfilled"):
             call_command("backfillworkflowstates", "erring", "store", stdout=stdout, stderr=stderr)
 
-        assert "store.CustomerOrder: created 0 object state(s)." in stdout.getvalue()
+        assert "store.CustomerOrder: created 0 object state(s), " in stdout.getvalue()
         assert f"{erring_models.EnabledWithoutWorkflow._meta.label} enables class Vueda.Workflow" in stderr.getvalue()
 
     def test_an_app_without_workflow_models_selects_nothing(self):

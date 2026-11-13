@@ -81,6 +81,8 @@ class TestObjectStateSync:
         events = ObjectStateEvent.objects.filter(workflow_id=workflow.pk, object_id=untouched.pk).order_by("pgh_id")
         assert [event.pgh_label for event in events] == ["insert", "update", "update"]
         assert all(event.pgh_context.metadata["initial_state_sync"] for event in events[1:])
+        # With no action open, the sync opens one, and gives it the system kind as audited_action would.
+        assert all(event.pgh_context.metadata["kind"] == "system" for event in events[1:])
 
     def test_a_move_made_after_the_sync_in_the_same_transaction_still_counts_as_someone_moving_it(
         self, workflow, review
@@ -119,10 +121,14 @@ class TestObjectStateSync:
 
         call_command("backfillworkflowstates", "erring.EnabledWithWorkflow", stdout=output, stderr=StringIO())
 
-        assert "erring.EnabledWithWorkflow: created 1 object state(s)." in output.getvalue()
+        assert (
+            "erring.EnabledWithWorkflow: created 1 object state(s), moved 1 to the initial state." in output.getvalue()
+        )
         assert ObjectState.objects.get(workflow=workflow, object_id=missing.pk).state.code == "review"
         assert ObjectState.objects.get(workflow=workflow, object_id=untouched.pk).state.code == "review"
 
         again = StringIO()
         call_command("backfillworkflowstates", "erring.EnabledWithWorkflow", stdout=again, stderr=StringIO())
-        assert "erring.EnabledWithWorkflow: created 0 object state(s)." in again.getvalue()
+        assert (
+            "erring.EnabledWithWorkflow: created 0 object state(s), moved 0 to the initial state." in again.getvalue()
+        )

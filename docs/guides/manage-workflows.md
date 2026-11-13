@@ -100,7 +100,7 @@ The check records its own moves with `initial_state_sync` in their pghistory con
 
 An object state with no events also stays where it is, even when the initial state changes, because its history cannot show whether it moved. An object state carried over from v2 has events when `vueda_workflow` migration `0009` copied its v2 history. A database upgraded with server 3.0.0b1 or earlier has no copied history, so its v2 object states have no events.
 
-`makevuedamigrations` performs the same checks on the local database, even when it detects no workflow changes. Its `--dry-run` leaves object states unchanged. It skips a model whose `class Vueda.Workflow` no longer enables workflow.
+`makevuedamigrations` performs the same checks on the local database, even when it detects no workflow changes. Its `--dry-run` leaves object states unchanged. Like a migration, it covers a model whose `class Vueda.Workflow` no longer enables workflow.
 
 Older v3-generated migration files can still reset states with no events because they contain copies of the functions. After upgrading VUEDA, run `python manage.py updateworkflowmigrations myapp` for the apps that own those files, review the changes, and commit them before applying the migrations to an upgraded database. [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations) describes the dependency checks and files that the command skips. Migrations generated with `--import-instead` use VUEDA's current functions when they run and receive the fix through the package upgrade.
 

@@ -24,6 +24,7 @@ from django.db.migrations import operations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.models import Q
 
+from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
@@ -318,16 +319,17 @@ class WorkflowChangeTool(MigrationTool):
     def finish(self, *, dry_run):
         """Give local objects the states that the new migrations would give them, unless this is a dry run.
 
-        The developer fakes the new migrations locally, so their state sync never runs here. A model whose
-        workflow is turned off gets no states.
+        The developer fakes the new migrations locally, so their state sync never runs here. Like that sync, this
+        covers every workflow, including one whose model no longer enables workflow.
         """
         if dry_run:
             return
 
-        for workflow in models.Workflow.objects.all():
-            model_class = workflow.content_type.model_class()
-            if model_class is not None and workflow_enabled(model_class):
-                manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
+        with audited_action("makevuedamigrations", kind="command"):
+            for workflow in models.Workflow.objects.all():
+                model_class = workflow.content_type.model_class()
+                if model_class is not None:
+                    manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
 
     def _get_apps_with_workflow(self, selected_apps=()):
         apps_with_workflow = {}

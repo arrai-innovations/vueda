@@ -750,7 +750,8 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
     as a migration's, the tag joins that action, and other writes in it carry the tag too. A state with no events
     stays where it is, because it may predate the event triggers.
 
-    ``reversing`` deletes every object state of the workflow instead. The workflow, model, and object state
+    Returns the number of object states that moved. ``reversing`` deletes every object state of the workflow
+    instead. The workflow, model, and object state
     classes are passed in, so the function works with a migration's models and with the current models.
     Generated workflow migrations copy this function, and ``backfillworkflowstates`` calls it.
     """
@@ -774,8 +775,10 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
     )
 
     created = object_state_event_class.objects.filter(pgh_obj_id=OuterRef("pk"), pgh_label="insert")
+    # Match on the workflow and object rather than the row, so a move recorded on a row that an earlier
+    # reversal deleted still counts.
     moved_by_someone = (
-        object_state_event_class.objects.filter(pgh_obj_id=OuterRef("pk"))
+        object_state_event_class.objects.filter(workflow_id=OuterRef("workflow_id"), object_id=OuterRef("object_id"))
         .exclude(pgh_label="insert")
         .filter(Q(pgh_context__isnull=True) | ~Q(pgh_context__metadata__contains={"initial_state_sync": True}))
     )
@@ -786,7 +789,7 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
         .exclude(Exists(moved_by_someone))
     )
     with tagged_writes(initial_state_sync=True):
-        untouched.update(state_id=initial_state.state_id)
+        return untouched.update(state_id=initial_state.state_id)
 
 
 def handle_state_objects(apps, *, reversing=False):

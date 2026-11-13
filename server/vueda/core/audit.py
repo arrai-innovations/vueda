@@ -55,11 +55,14 @@ def tagged_writes(**metadata):
     Unlike ``audited_action``, this names no action and no kind. Inside an open action, the metadata joins that
     action and keeps its name and kind. The action keeps the metadata until it ends, so writes made later in it
     carry the metadata too. Outside one, the block opens an action that holds only the metadata, and clears it
-    when the block ends, so a later write in the same transaction carries no metadata.
+    when the block ends, so a later write in the same transaction carries no metadata. An action that the block
+    opens has the ``system`` kind, as ``audited_action`` gives an action that names none.
     """
     owns_action = not action_is_open()
 
-    with pghistory.context(**metadata):
+    with pghistory.context(**metadata) as current:
+        if owns_action:
+            current.metadata.setdefault("kind", "system")
         try:
             yield
         finally:

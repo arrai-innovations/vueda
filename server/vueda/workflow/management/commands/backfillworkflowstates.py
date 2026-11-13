@@ -44,12 +44,14 @@ class Command(BaseCommand):
             for model in models:
                 # One model that cannot be backfilled does not stop the others.
                 try:
-                    created = self._backfill(model)
+                    created, moved = self._backfill(model)
                 except CommandError as exc:
                     failures.append(str(exc))
                     self.stderr.write(str(exc))
                     continue
-                self.stdout.write(f"{model._meta.label}: created {created} object state(s).")
+                self.stdout.write(
+                    f"{model._meta.label}: created {created} object state(s), moved {moved} to the initial state."
+                )
         if failures:
             raise CommandError(f"{len(failures)} model(s) could not be backfilled.")
 
@@ -90,5 +92,5 @@ class Command(BaseCommand):
         object_states = ObjectState.objects.filter(workflow=workflow)
         with transaction.atomic():
             before = object_states.count()
-            manage_state_objects(workflow, model, ObjectState, ObjectStateEvent)
-            return object_states.count() - before
+            moved = manage_state_objects(workflow, model, ObjectState, ObjectStateEvent)
+            return object_states.count() - before, moved
