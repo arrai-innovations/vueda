@@ -146,7 +146,9 @@ def _write_migration(command, tool, planned, dependencies, *, dry_run):
             command.stderr.write(f"{NEWLINE}Deleted {file_name}, because it could not be filled in.")
             raise
 
-    command.stdout.write(
-        command.style.SUCCESS(f"{NEWLINE}Modified migration '{name}' to migrate {tool.key} changes for {app_label}.")
-    )
+    if dry_run:
+        message = f"{NEWLINE}Would write migration '{name}' for {tool.key} changes in {app_label}."
+    else:
+        message = f"{NEWLINE}Modified migration '{name}' to migrate {tool.key} changes for {app_label}."
+    command.stdout.write(command.style.SUCCESS(message))
     return app_label, name

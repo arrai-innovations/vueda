@@ -6,6 +6,7 @@ migrations go into the app of AUTH_USER_MODEL (``employee``), and the workflow m
 tests never write into the source tree.
 """
 
+import argparse
 import importlib
 import io
 import json
@@ -17,14 +18,21 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import BaseCommand
+from django.core.management import CommandError
 from django.core.management import call_command
 from django.test import RequestFactory
 
 from tests.erring.models import EnabledWithoutWorkflow
 from tests.utils import BaseTestMigrations
+from vueda.user.management.commands.makevuedamigrations import _PrefixedArgumentGroup
+from vueda.user.migration_generation import group_operations
+from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.groups import GroupChangeTool
+from vueda.user.models import GroupChange
 from vueda.user.views import PermissionSaveView
+from vueda.workflow.migration_generation import operations as workflow_operations
 from vueda.workflow.migration_generation.tool import WorkflowChangeTool
 from vueda.workflow.models import InitialState
 from vueda.workflow.models import State
@@ -169,3 +177,116 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 
             call_command("migrate", "erring", second_workflow, verbosity=0)
             assert permission_snapshot(group_names, "interleaved") == after_changes
+
+
+@pytest.mark.xdist_group(name="management_command_tests")
+@pytest.mark.django_db
+class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
+    def test_no_pending_changes_writes_nothing(self, settings):
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() == set()
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            output = io.StringIO()
+
+            call_command("makevuedamigrations", stdout=output)
+
+            assert "No changes detected." in output.getvalue()
+            assert new_migration_names(employee_dir, employee_before) == []
+            assert new_migration_names(erring_dir, erring_before) == []
+
+    def test_a_dry_run_names_the_migrations_without_writing_them(self, settings):
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        Workflow.objects.create(code="dry_run", name="Dry Run", content_type=content_type)
+
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert apps_with_pending_changes() == {"erring"}
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            output = io.StringIO()
+
+            call_command("makevuedamigrations", "--dry-run", stdout=output)
+
+            assert "Would write migration '" in output.getvalue()
+            assert "for workflow changes in erring." in output.getvalue()
+            assert new_migration_names(erring_dir, erring_before) == []
+
+    def test_a_migration_that_cannot_be_filled_in_is_deleted_and_earlier_steps_are_kept(self, settings, monkeypatch):
+        """A group change, then a workflow change. Filling in the workflow migration fails.
+
+        The empty workflow migration still holds its placeholder operations, so it is deleted. The finished group
+        migration stays, because its change matches on the next run.
+        """
+        GroupChange.objects.create(
+            group_name="Kept Group",
+            change_type=GroupChange.ADDED,
+            historical_permission_codename="read_group",
+            historical_permission_content_type_app_label="auth",
+            historical_permission_content_type_model_name="group",
+        )
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        Workflow.objects.create(code="unfilled", name="Unfilled", content_type=content_type)
+
+        def fail_to_build_content(self, app_label, migration_name, changed_data):
+            raise RuntimeError("content could not be built")
+
+        monkeypatch.setattr(WorkflowChangeTool, "migration_content", fail_to_build_content)
+
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() == {"employee", "erring"}
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            errors = io.StringIO()
+
+            with pytest.raises(RuntimeError, match="content could not be built"):
+                call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO(), stderr=errors)
+
+            (kept,) = new_migration_names(employee_dir, employee_before)
+            assert kept.endswith("_group_permission_migrations")
+            assert new_migration_names(erring_dir, erring_before) == []
+            assert f"Kept the migrations already written: employee.{kept}." in errors.getvalue()
+            assert "because it could not be filled in." in errors.getvalue()
+
+    def test_workflow_debug_without_a_name_lists_the_names_it_accepts(self):
+        output = io.StringIO()
+
+        call_command("makevuedamigrations", "--workflow-debug", stdout=output)
+
+        lines = output.getvalue().splitlines()
+        assert lines[0] == "Names that --workflow-debug accepts:"
+        assert "  all" in lines
+        assert "  tests.erring.enabledwithworkflow.statepermission" in lines
+
+    def test_workflow_debug_refuses_an_unknown_name(self):
+        with pytest.raises(CommandError, match=r"Unknown --workflow-debug name\(s\): nope\.model\.state\."):
+            call_command("makevuedamigrations", "--dry-run", "--workflow-debug", "nope.model.state")
+
+
+def test_a_tool_option_must_start_with_the_tool_key():
+    parser = argparse.ArgumentParser()
+    group = _PrefixedArgumentGroup(parser.add_argument_group("group changes"), "group")
+
+    group.add_argument("--group-verbose", action="store_true")
+    with pytest.raises(ImproperlyConfigured, match="must start with '--group-'"):
+        group.add_argument("--verbose", action="store_true")
+
+
+def test_the_new_and_the_old_marker_comments_identify_a_generated_migration(tmp_path):
+    for name, first_lines in (
+        ("current", (group_operations.MIGRATION_MODIFIED_COMMENT,)),
+        ("legacy", (group_operations.LEGACY_MIGRATION_MODIFIED_COMMENT,)),
+        ("unmarked", ("# A hand-written migration.\n",)),
+    ):
+        (tmp_path / f"{name}.py").write_text("# Generated by Django 6.1 on 2026-11-13 09:00\n" + "".join(first_lines))
+
+    assert is_generated_migration(tmp_path / "current.py", group_operations.MIGRATION_MODIFIED_COMMENTS)
+    assert is_generated_migration(tmp_path / "legacy.py", group_operations.MIGRATION_MODIFIED_COMMENTS)
+    assert not is_generated_migration(tmp_path / "unmarked.py", group_operations.MIGRATION_MODIFIED_COMMENTS)
+    # A workflow marker does not mark a group migration.
+    (tmp_path / "workflow.py").write_text(workflow_operations.MIGRATION_MODIFIED_COMMENT)
+    assert not is_generated_migration(tmp_path / "workflow.py", group_operations.MIGRATION_MODIFIED_COMMENTS)
