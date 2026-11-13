@@ -756,7 +756,7 @@ class WorkflowChangeTool(MigrationTool):
 
         return all_migrated_data
 
-    def _get_vueda_generated_migration_data_per_app(self, selected_apps=()):
+    def _get_vueda_generated_migration_data_per_app(self, selected_apps=(), existing_changed_data=None):
         migrations_by_app = {}
 
         for app_label, model_data in self._get_apps_with_workflow(selected_apps).items():
@@ -772,7 +772,12 @@ class WorkflowChangeTool(MigrationTool):
                 "models_to_content_type_ids": model_data["model_to_content_type_ids"],
             }
 
-            for migration in generated_migrations(app_label, MIGRATION_MODIFIED_COMMENTS):
+            if existing_changed_data is None:
+                existing = generated_migrations(app_label, MIGRATION_MODIFIED_COMMENTS)
+            else:
+                existing = existing_changed_data.get(app_label, ())
+
+            for migration in existing:
                 migration_data["history_change_reasons"].append(f"Workflow Migration - {migration.name}")
 
                 # Break the changes up by model here, so we don't need to do it later.
@@ -1241,11 +1246,15 @@ class WorkflowChangeTool(MigrationTool):
 
             self.stdout.write("")
 
-    def pending_changes(self, selected_apps=()):
+    def pending_changes(self, selected_apps=(), existing_changed_data=None):
         """Return the workflow changes that no generated workflow migration holds, as pending changes.
 
         ``selected_apps`` narrows the search to those app labels. The command always searches every app, so its
         migrations stay in the order that the changes were made. Tests narrow it to the app that they check.
+
+        ``existing_changed_data`` maps an app label to the ``GeneratedMigration`` records of its earlier
+        migrations, in the order applied. Tests pass it so they need no migration files. When it is ``None``,
+        the earlier migrations are read from each app's migration files.
         """
         workflow_model_field_names_to_attname = get_attr_names_for_workflow_models()
         workflow_model_field_names_to_attname = self.add_renamed_fields_and_models_to_attr_names(
@@ -1264,7 +1273,7 @@ class WorkflowChangeTool(MigrationTool):
         # new migration.
         self.matched_history_records = {}
 
-        all_migrated_data = self._get_vueda_generated_migration_data_per_app(selected_apps)
+        all_migrated_data = self._get_vueda_generated_migration_data_per_app(selected_apps, existing_changed_data)
         all_migrated_data = self._get_history_compared_to_existing_changes(
             all_migrated_data, workflow_model_field_names_to_attname
         )
