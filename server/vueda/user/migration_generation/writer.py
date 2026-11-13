@@ -148,13 +148,17 @@ def _write_migration(command, tool, planned, dependencies, *, dry_run):
 
     migrations_dir = Path(get_migrations_path(django_apps.get_app_config(app_label)))
     files_before = set(migrations_dir.glob("*.py"))
-    file_name = create_empty_migration(command, app_label, tool.migration_name)
-    if file_name is None:
-        # The file still holds placeholder operations, which would fail when applied.
+    try:
+        file_name = create_empty_migration(command, app_label, tool.migration_name)
+        if file_name is None:
+            raise RuntimeError(f"Unable to find the name of the migration created in {app_label}.")
+    except BaseException:
+        # makemigrations may have written a file with placeholder operations, which would fail when applied. That
+        # includes the SystemExit that call_management_command raises when makemigrations writes to stderr.
         for unnamed in set(migrations_dir.glob("*.py")) - files_before:
             unnamed.unlink()
-            command.stderr.write(f"{NEWLINE}Deleted {unnamed.name}, because its name could not be read.")
-        raise RuntimeError(f"Unable to find the name of the migration created in {app_label}.")
+            command.stderr.write(f"{NEWLINE}Deleted {unnamed.name}, because it could not be filled in.")
+        raise
 
     name = Path(file_name).stem
     if not dry_run:

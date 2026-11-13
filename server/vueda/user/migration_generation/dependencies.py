@@ -4,12 +4,14 @@ __all__ = (
     "INSTALLED_PACKAGE_DIRECTORIES",
     "latest_migration_names",
     "project_app_labels",
+    "user_app_label",
 )
 
 import importlib
 from pathlib import Path
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.db.migrations.loader import MigrationLoader
 
 
@@ -28,6 +30,11 @@ def project_app_labels():
         for app_config in django_apps.get_app_configs()
         if not INSTALLED_PACKAGE_DIRECTORIES & set(Path(app_config.path).parts)
     )
+
+
+def user_app_label():
+    """Return the label of the app of ``AUTH_USER_MODEL``, which holds every group migration."""
+    return django_apps.get_model(settings.AUTH_USER_MODEL)._meta.app_label
 
 
 def latest_migration_names(app_labels):

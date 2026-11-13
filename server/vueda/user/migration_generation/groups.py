@@ -2,12 +2,11 @@
 
 __all__ = ("GroupChangeTool",)
 
-from django.apps import apps as django_apps
-from django.conf import settings
 from django.contrib.auth import models as auth_models
 
 from vueda.user import models as vueda_models
 from vueda.user.management.commands.utils import get_matching_record
+from vueda.user.migration_generation.dependencies import user_app_label
 from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.user.migration_generation.group_operations import get_group_migration_imports
@@ -44,11 +43,6 @@ class GroupChangeTool(MigrationTool):
     def configure(self, options):
         self.import_instead = options["import_instead"]
 
-    @staticmethod
-    def user_app_label():
-        """Return the label of the app of ``AUTH_USER_MODEL``, which holds every group migration."""
-        return django_apps.get_model(settings.AUTH_USER_MODEL)._meta.app_label
-
     def dependency_app_labels(self):
         # A group migration reads groups and permissions, and records GroupChange rows.
         return ("auth", "vueda_user")
@@ -56,8 +50,7 @@ class GroupChangeTool(MigrationTool):
     def existing_changed_data(self):
         """Return the ``changed_data`` of every generated group migration, in the order that they apply."""
         return tuple(
-            migration.changed_data
-            for migration in generated_migrations(self.user_app_label(), MIGRATION_MODIFIED_COMMENTS)
+            migration.changed_data for migration in generated_migrations(user_app_label(), MIGRATION_MODIFIED_COMMENTS)
         )
 
     def pending_changes(self):
@@ -82,7 +75,7 @@ class GroupChangeTool(MigrationTool):
         )
         permission_names = self._permission_names(rows)
 
-        app_label = self.user_app_label()
+        app_label = user_app_label()
         pending = []
         for row in rows:
             pk = row.pop("pk")

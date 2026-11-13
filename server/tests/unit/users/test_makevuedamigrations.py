@@ -28,6 +28,7 @@ from tests.erring.models import EnabledWithoutWorkflow
 from tests.utils import BaseTestMigrations
 from vueda.user.management.commands.makevuedamigrations import _PrefixedArgumentGroup
 from vueda.user.migration_generation import group_operations
+from vueda.user.migration_generation import writer
 from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.groups import GroupChangeTool
 from vueda.user.models import GroupChange
@@ -157,6 +158,10 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             assert [name.split("_", 1)[1] for name in erring_new] == ["workflow_migrations", "workflow_migrations"]
             first_group, second_group = employee_new
             first_workflow, second_workflow = erring_new
+            # Migration names carry no date, so the action that a workflow migration opens names its app too.
+            assert f'history_change_reason = "Workflow Migration - erring.{first_workflow}"' in (
+                (Path(erring_dir) / f"{first_workflow}.py").read_text()
+            )
 
             assert ("employee", first_group) in migration_dependencies(erring_dir, first_workflow)
             assert ("erring", first_workflow) in migration_dependencies(employee_dir, second_group)
@@ -336,6 +341,32 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
             assert new_migration_names(erring_dir, erring_before) == []
             assert f"Kept the migrations already written: employee.{kept}." in errors.getvalue()
             assert "because it could not be filled in." in errors.getvalue()
+
+    def test_a_migration_left_by_a_failing_makemigrations_is_deleted(self, settings, monkeypatch):
+        """makemigrations can write its file and then fail, for example by writing to stderr."""
+        GroupChange.objects.create(
+            group_name="Interrupted Group",
+            change_type=GroupChange.ADDED,
+            historical_permission_codename="read_group",
+            historical_permission_content_type_app_label="auth",
+            historical_permission_content_type_model_name="group",
+        )
+        real_create_empty_migration = writer.create_empty_migration
+
+        def create_then_fail(command, app_label, migration_name):
+            real_create_empty_migration(command, app_label, migration_name)
+            raise SystemExit(2)
+
+        monkeypatch.setattr(writer, "create_empty_migration", create_then_fail)
+
+        with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
+            assert apps_with_pending_changes() == {"employee"}
+            employee_before = set(Path(employee_dir).glob("*.py"))
+
+            with pytest.raises(SystemExit):
+                call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO(), stderr=io.StringIO())
+
+            assert new_migration_names(employee_dir, employee_before) == []
 
     def test_workflow_debug_without_a_name_lists_the_names_it_accepts(self):
         output = io.StringIO()

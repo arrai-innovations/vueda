@@ -70,7 +70,7 @@ class Command(BaseCommand):
             tool.add_arguments(_PrefixedArgumentGroup(group, tool.key))
 
     def _warn_about_unapplied_migrations(self, dependency_labels):
-        """Warn when an app that a new migration depends on has migrations that this database has not applied.
+        """Warn when an app that a new migration goes into or depends on has migrations not applied here.
 
         The new migrations depend on the latest migration of every project app and of the apps that the tools
         name, such as ``vueda_user``. Faking a new migration marks every migration that it depends on as applied,
@@ -114,7 +114,10 @@ class Command(BaseCommand):
         steps = plan_migrations(tool_changes, project_labels)
 
         if steps:
-            self._warn_about_unapplied_migrations({label for step in steps for label in step.dependency_app_labels})
+            self._warn_about_unapplied_migrations(
+                {label for step in steps for label in step.dependency_app_labels}
+                | {planned.app_label for step in steps for planned in step.migrations}
+            )
             write_plan(self, steps, {tool.key: tool for tool in self.tools}, dry_run=self.dry_run)
 
         for tool in self.tools:

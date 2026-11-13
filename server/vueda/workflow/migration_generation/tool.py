@@ -15,7 +15,6 @@ import copy
 import importlib
 
 from django.apps import apps as django_apps
-from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
@@ -28,6 +27,7 @@ from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
+from vueda.user.migration_generation.dependencies import user_app_label
 from vueda.user.migration_generation.existing import app_migration_names
 from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.tools import MigrationContent
@@ -296,13 +296,14 @@ class WorkflowChangeTool(MigrationTool):
     def dependency_app_labels(self):
         # A workflow migration writes workflow rows, names groups and permissions, and attributes its writes to
         # the system user.
-        return ("auth", "vueda_user", "vueda_workflow", django_apps.get_model(settings.AUTH_USER_MODEL)._meta.app_label)
+        return ("auth", "vueda_user", "vueda_workflow", user_app_label())
 
     def migration_content(self, app_label, migration_name, changed_data):
         return MigrationContent(
             imports=tuple(get_migration_imports(self.import_instead)),
             preamble=(
-                f'history_change_reason = "Workflow Migration - {migration_name}"{NEWLINE}',
+                # The app label keeps the action name unique, because migration names no longer carry a date.
+                f'history_change_reason = "Workflow Migration - {app_label}.{migration_name}"{NEWLINE}',
                 f'migration_app_label = "{app_label}"{NEWLINE}',
             ),
             sources=tuple(get_migration_sources(self.import_instead)),
@@ -322,7 +323,7 @@ class WorkflowChangeTool(MigrationTool):
             return
 
         with audited_action("makevuedamigrations", kind="command"):
-            for workflow in models.Workflow.objects.all():
+            for workflow in models.Workflow.objects.select_related("content_type", "initial_state"):
                 model_class = workflow.content_type.model_class()
                 if model_class is not None:
                     manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
@@ -662,6 +663,7 @@ class WorkflowChangeTool(MigrationTool):
         # Because of the potential that the history dates may not match, we need to parse the
         # changes we find against the changes that we have in existing workflow migrations.
         for app_migrated_data in all_migrated_data.values():
+            app_label = app_migrated_data["app_label"]
             history_by_model_name = app_migrated_data["history_by_model_name"]
             migrations = app_migrated_data["migrations"]
             models_to_content_type_ids = app_migrated_data["models_to_content_type_ids"]
@@ -714,7 +716,13 @@ class WorkflowChangeTool(MigrationTool):
                         # edit, which is what the author of a migration does.
                         candidate_queryset = historical_queryset
                         first_ran_at = (
-                            recorded.filter(pgh_context__metadata__action=f"Workflow Migration - {migration_name}")
+                            # Migrations generated before makevuedamigrations name their action without the app.
+                            recorded.filter(
+                                pgh_context__metadata__action__in=(
+                                    f"Workflow Migration - {app_label}.{migration_name}",
+                                    f"Workflow Migration - {migration_name}",
+                                )
+                            )
                             .order_by("pgh_created_at", "pgh_id")
                             .values_list("pgh_created_at", flat=True)
                             .first()
