@@ -97,7 +97,7 @@ A workflow migration can name a group that a group migration creates or renames.
 
 ### Which Changes a Migration Includes
 
-VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makevuedamigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them.
+VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makevuedamigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them. VUEDA takes each change's time from the database's clock, as it does for workflow changes, so the command can order group and workflow changes against each other.
 
 A change names its group by name and its permission by codename, app label, and model name. It holds no primary keys, because keys differ between databases.
 

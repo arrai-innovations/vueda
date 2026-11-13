@@ -10,6 +10,7 @@ import io
 
 import pytest
 from django.core.management import BaseCommand
+from django.db import connection
 
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.migration_generation.groups import GroupChangeTool
@@ -138,6 +139,25 @@ class TestGroupChangeTool:
         create_group_change(teammates_changes[0], GroupChange)
 
         assert pending_changes_for({"Teammate Group"}, existing_changed_data=(teammates_changes,)) == ()
+
+    def test_a_change_is_recorded_at_the_database_clock(self, monkeypatch):
+        """Workflow events take the database's clock, so group changes must too for the two to sort together."""
+        long_ago = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+        monkeypatch.setattr("django.utils.timezone.now", lambda: long_ago)
+
+        change = GroupChange.objects.create(
+            group_name="Clocked Group",
+            change_type=GroupChange.ADDED,
+            historical_permission_codename="read_group",
+            historical_permission_content_type_app_label="auth",
+            historical_permission_content_type_model_name="group",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT statement_timestamp()")
+            database_now = cursor.fetchone()[0]
+
+        assert change.when != long_ago
+        assert abs(database_now - change.when) < MINUTE
 
     def test_changes_are_ordered_by_when_they_were_recorded(self):
         record_group_change("Ordered Group", GroupChange.ASSOCIATED, START + MINUTE)
