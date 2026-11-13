@@ -4,6 +4,8 @@ __all__ = ("Command",)
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import BaseCommand
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 from django.db.transaction import atomic
 
 from vueda.user.management.commands.utils import NEWLINE
@@ -67,6 +69,28 @@ class Command(BaseCommand):
             group = parser.add_argument_group(f"{tool.key} changes")
             tool.add_arguments(_PrefixedArgumentGroup(group, tool.key))
 
+    def _warn_about_unapplied_migrations(self, project_labels):
+        """Warn when a project app has migrations that this database has not applied.
+
+        The first new migration depends on the latest migration of every project app. Faking a new migration marks
+        every migration that it depends on as applied, so an unapplied schema migration would never run here.
+        """
+        executor = MigrationExecutor(connection)
+        labels = frozenset(project_labels)
+        unapplied = [
+            f"{migration.app_label}.{migration.name}"
+            for migration, _backwards in executor.migration_plan(executor.loader.graph.leaf_nodes())
+            if migration.app_label in labels
+        ]
+        if unapplied:
+            self.stderr.write(
+                self.style.WARNING(
+                    f"These migrations are not applied yet: {', '.join(unapplied)}. Run migrate before you fake the "
+                    "new migrations. Faking a new migration also marks every migration that it depends on as "
+                    "applied, so those would never run."
+                )
+            )
+
     @atomic
     def handle(self, **options):
         self.dry_run = options["dry_run"]
@@ -85,9 +109,11 @@ class Command(BaseCommand):
             )
             for tool in self.tools
         )
-        steps = plan_migrations(tool_changes, project_app_labels())
+        project_labels = project_app_labels()
+        steps = plan_migrations(tool_changes, project_labels)
 
         if steps:
+            self._warn_about_unapplied_migrations(project_labels)
             write_plan(self, steps, {tool.key: tool for tool in self.tools}, dry_run=self.dry_run)
 
         for tool in self.tools:

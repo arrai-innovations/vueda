@@ -1,6 +1,7 @@
 """Find the migrations that a generated migration depends on."""
 
 __all__ = (
+    "INSTALLED_PACKAGE_DIRECTORIES",
     "latest_migration_names",
     "project_app_labels",
 )
@@ -12,15 +13,20 @@ from django.apps import apps as django_apps
 from django.db.migrations.loader import MigrationLoader
 
 
+# The directory names that Python installs third-party packages into.
+INSTALLED_PACKAGE_DIRECTORIES = frozenset(("site-packages", "dist-packages"))
+
+
 def project_app_labels():
     """Return the labels of the installed apps that belong to the project, in installed order.
 
-    An app installed under ``site-packages`` is a third-party package, so it is left out.
+    An app installed under ``site-packages``, or ``dist-packages`` on Debian's system Python, is a third-party
+    package, so it is left out.
     """
     return tuple(
         app_config.label
         for app_config in django_apps.get_app_configs()
-        if "site-packages" not in Path(app_config.path).parts
+        if not INSTALLED_PACKAGE_DIRECTORIES & set(Path(app_config.path).parts)
     )
 
 

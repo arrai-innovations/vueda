@@ -9,12 +9,14 @@ from django.contrib.auth import models as auth_models
 from vueda.user import models as vueda_models
 from vueda.user.management.commands.utils import get_matching_record
 from vueda.user.migration_generation.existing import generated_migrations
+from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENT
 from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.user.migration_generation.group_operations import get_group_migration_imports
 from vueda.user.migration_generation.group_operations import get_group_migration_sources
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
+from vueda.user.migration_generation.tools import import_lines_without
 
 
 # The GroupChange fields that a migration's changed_data holds, in the order that it holds them.
@@ -75,33 +77,50 @@ class GroupChangeTool(MigrationTool):
                 if pk is not None:
                     matched_pks.add(pk)
 
-        rows = (
+        rows = tuple(
             vueda_models.GroupChange.objects.exclude(pk__in=matched_pks)
             .order_by("when", "pk")
             .values("pk", *CHANGE_FIELDS)
         )
+        permission_names = self._permission_names(rows)
 
         app_label = self.user_app_label()
         pending = []
         for row in rows:
             pk = row.pop("pk")
-            permission = (
-                auth_models.Permission.objects.filter(
-                    codename=row["historical_permission_codename"],
-                    content_type__app_label=row["historical_permission_content_type_app_label"],
-                    content_type__model=row["historical_permission_content_type_model_name"],
-                )
-                .values("name")
-                .first()
+            key = (
+                row["historical_permission_content_type_app_label"],
+                row["historical_permission_content_type_model_name"],
+                row["historical_permission_codename"],
             )
-            row["historical_permission_name"] = permission["name"]
+            if key not in permission_names:
+                # The permission's model may be gone. The migration can still name it, and replaying it fails
+                # only where the permission is missing too (#524).
+                self.stderr.write(
+                    f"The permission {'.'.join(key)} of the {row['change_type']} change to group "
+                    f"{row['group_name']!r} no longer exists. Its migration names it without a permission name."
+                )
+            row["historical_permission_name"] = permission_names.get(key, "")
             pending.append(PendingChange(recorded_at=row["when"], tiebreak=(pk,), app_label=app_label, data=row))
 
         return tuple(pending)
 
+    @staticmethod
+    def _permission_names(rows):
+        """Return the names of the permissions that ``rows`` name, keyed by app label, model, and codename."""
+        codenames = {row["historical_permission_codename"] for row in rows}
+        permissions = auth_models.Permission.objects.filter(codename__in=codenames).values_list(
+            "content_type__app_label", "content_type__model", "codename", "name"
+        )
+        return {(app_label, model, codename): name for app_label, model, codename, name in permissions}
+
     def migration_content(self, app_label, migration_name, changed_data):
         return MigrationContent(
-            imports=tuple(get_group_migration_imports(self.import_instead)),
+            # A group migration no longer depends on AUTH_USER_MODEL by setting, so it needs no settings import.
+            imports=(
+                MIGRATION_MODIFIED_COMMENT,
+                *import_lines_without(get_group_migration_imports(self.import_instead, as_mapping=True), "settings"),
+            ),
             preamble=(),
             sources=tuple(get_group_migration_sources(self.import_instead)),
             permissions_forwards="make_sure_permissions_exist",

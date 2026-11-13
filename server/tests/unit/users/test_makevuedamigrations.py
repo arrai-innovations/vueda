@@ -30,6 +30,7 @@ from vueda.user.management.commands.makevuedamigrations import _PrefixedArgument
 from vueda.user.migration_generation import group_operations
 from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.groups import GroupChangeTool
+from vueda.user.migration_generation.tools import import_lines_without
 from vueda.user.models import GroupChange
 from vueda.user.views import PermissionSaveView
 from vueda.workflow.migration_generation import operations as workflow_operations
@@ -167,6 +168,9 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
                 (erring_dir, second_workflow),
             ):
                 assert not any("__first__" in str(dependency) for dependency in migration_dependencies(directory, name))
+                # No dependency names AUTH_USER_MODEL by setting, so a migration that imports its functions needs
+                # no settings import, which a project's linter would report as unused.
+                assert "from django.conf import settings" not in (Path(directory) / f"{name}.py").read_text()
 
             # The developer's database already has the changes, so the new migrations are faked here.
             call_command("migrate", "erring", second_workflow, fake=True, verbosity=0)
@@ -216,6 +220,8 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
                 assert entry_point in source
                 assert "migration_generation" not in source
                 assert "noqa: F821" not in source
+            group_source = (Path(employee_dir) / f"{group_migration}.py").read_text()
+            assert "from django.conf import settings" not in group_source
 
             call_command("migrate", "erring", workflow_migration, fake=True, verbosity=0)
             call_command("migrate", "erring", erring_last_before, verbosity=0)
@@ -337,3 +343,18 @@ def test_the_new_and_the_old_marker_comments_identify_a_generated_migration(tmp_
     # A workflow marker does not mark a group migration.
     (tmp_path / "workflow.py").write_text(workflow_operations.MIGRATION_MODIFIED_COMMENT)
     assert not is_generated_migration(tmp_path / "workflow.py", group_operations.MIGRATION_MODIFIED_COMMENTS)
+
+
+def test_import_lines_without_moves_a_dropped_group_opening_to_the_next_line():
+    mapping = {
+        ("copy",): "import copy\n",
+        ("settings",): "\nfrom django.conf import settings\n",
+        ("migrations",): "from django.db import migrations\n",
+        ("forwards",): "\nfrom vueda.example import forwards\n",
+    }
+
+    assert import_lines_without(mapping, "settings") == (
+        "import copy\n",
+        "\nfrom django.db import migrations\n",
+        "\nfrom vueda.example import forwards\n",
+    )

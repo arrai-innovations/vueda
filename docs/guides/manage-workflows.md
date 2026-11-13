@@ -140,7 +140,7 @@ Your local database already has the changes, so mark the migration as applied wi
 python manage.py migrate myapp 0005_workflow_migrations --fake
 ```
 
-When the run wrote several migrations, faking the last one fakes the ones that it depends on too. Other environments run the migration normally.
+When the run wrote several migrations, faking the last one fakes the ones that it depends on too. Apply your other migrations before you fake, because a new migration depends on the latest migration of every app in your project. Faking it would also mark an unapplied migration of another app as applied, and that migration would never run. The command warns when your database has such a migration. Other environments run the migration normally.
 
 `makevuedamigrations` treats a faked migration differently from a migration that ran. A faked migration wrote nothing, so the command matches its changes against your hand edits. A migration that ran also recorded its own writes. The command matches its changes only against edits made before it first ran in that environment. So you can roll a faked migration back and apply it again, and an edit made after a migration ran is never mistaken for one of its changes.
 

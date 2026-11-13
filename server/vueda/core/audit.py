@@ -34,18 +34,8 @@ def audited_action(action, kind=None, **metadata):
     action keeps that metadata until it exits. Only the outermost block clears the action when it
     ends, because an inner one leaving must not take the action its caller is still writing under.
     """
-    owns_action = not action_is_open()
-
-    with pghistory.context(action=action, **metadata) as current:
-        if kind is not None:
-            current.metadata["kind"] = kind
-        else:
-            current.metadata.setdefault("kind", "system")
-        try:
-            yield
-        finally:
-            if owns_action:
-                _clear_action()
+    with _open_or_join_action({"action": action, **metadata}, kind):
+        yield
 
 
 @contextlib.contextmanager
@@ -58,11 +48,24 @@ def tagged_writes(**metadata):
     when the block ends, so a later write in the same transaction carries no metadata. An action that the block
     opens has the ``system`` kind, as ``audited_action`` gives an action that names none.
     """
+    with _open_or_join_action(metadata, None):
+        yield
+
+
+@contextlib.contextmanager
+def _open_or_join_action(metadata, kind):
+    """Record the block's writes under an action that holds ``metadata``, joining the open action if there is one.
+
+    ``kind`` replaces the action's kind. Without one, the action keeps the kind that it has, and an action with
+    none gets ``system``. Only the block that opened the action clears it when it ends.
+    """
     owns_action = not action_is_open()
 
     with pghistory.context(**metadata) as current:
-        if owns_action:
-            current.metadata.setdefault("kind", "system")
+        if kind is not None:
+            current.metadata["kind"] = kind
+        elif "kind" not in current.metadata:
+            current.metadata["kind"] = "system"
         try:
             yield
         finally:

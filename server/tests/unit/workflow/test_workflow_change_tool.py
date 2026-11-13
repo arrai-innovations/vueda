@@ -10,6 +10,7 @@ import copy
 import io
 from pathlib import Path
 
+import pgtrigger
 import pytest
 from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
@@ -20,6 +21,7 @@ from django.db import connection
 from django.db import transaction
 
 from tests.erring.models import EnabledWithoutWorkflow
+from tests.erring.models import NotEnabledWithoutWorkflow
 from vueda.user.migration_generation.existing import GeneratedMigration
 from vueda.user.migration_generation.existing import generated_migrations
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
@@ -246,3 +248,145 @@ class TestWorkflowChangeTool:
         assert "tests.erring.enabledwithworkflow.state" in names
         assert "tests.erring.notenabledwithworkflow.state" in names
         assert not any(".notenabledwithoutworkflow." in name for name in names)
+
+    def test_a_transition_added_after_its_workflow_was_renamed_matches_once_written(self):
+        """The transition's target state was last written under the old workflow code.
+
+        Matching reads the state's workflow as it stood when the transition was recorded, so once a migration
+        holds the rename and the transition, nothing is pending.
+        """
+        started_at = database_now()
+        workflow = Workflow.objects.create(
+            code="before_rename",
+            name="Before Rename",
+            content_type=ContentType.objects.get_for_model(EnabledWithoutWorkflow),
+        )
+        state = State.objects.create(workflow=workflow, code="state_1", name="State 1")
+        earlier = migration_holding("0906_workflow_migrations", pending_changes_since(started_at))
+
+        workflow.code = "after_rename"
+        workflow.save()
+        Transition.objects.create(workflow=workflow, target=state, code="go", name="Go")
+
+        pending = pending_changes_since(started_at, earlier)
+        assert change_kinds(pending) == (
+            ("workflow", WorkflowChangeTypes.CHANGED.value),
+            ("transition", WorkflowChangeTypes.ADDED.value),
+        )
+        assert pending[0].data["changes"]["code"] == ("before_rename", "after_rename")
+
+        second = migration_holding("0907_workflow_migrations", pending)
+        assert pending_changes_since(started_at, earlier, second) == ()
+
+
+# The debug headings that the workflow tool prints, which each open a section of listed changes.
+DEBUG_HEADING_PREFIXES = (
+    "Changes matching history records - ",
+    "Changes not matching history records - ",
+    "Changes not belonging to a recorded model - ",
+    "Unmatched history - ",
+)
+
+# Each model's states, as the state whose events stay and the state whose events are cleared.
+DEBUG_STATE_CODES = {
+    EnabledWithoutWorkflow: ("from_kept", "from_cleared"),
+    NotEnabledWithoutWorkflow: ("to_kept", "to_cleared"),
+}
+
+
+def clear_events(workflow_model, **filters):
+    """Delete the recorded events of one workflow model that match ``filters``, as if they were never recorded."""
+    event_model = workflow_model.pgh_event_model
+    with pgtrigger.ignore(f"{event_model._meta.label}:append_only"):
+        event_model.objects.filter(**filters).delete()
+
+
+def state_debug_sections(earlier_migration):
+    """Run the workflow tool with --workflow-debug for both models' states, and return the printed sections.
+
+    Each section is its heading and the set of the test's state codes that it lists, in printed order.
+    """
+    output = io.StringIO()
+    # Without no_color, Django colors the headings whenever the test runs in a terminal.
+    tool = WorkflowChangeTool(BaseCommand(stdout=output, no_color=True))
+    tool.configure(
+        {
+            "dry_run": True,
+            "import_instead": False,
+            "workflow_debug": [f"tests.erring.{model._meta.model_name}.state" for model in DEBUG_STATE_CODES],
+        }
+    )
+    existing = (*generated_migrations("erring", MIGRATION_MODIFIED_COMMENTS), earlier_migration)
+    tool.pending_changes(selected_apps=("erring",), existing_changed_data={"erring": existing})
+
+    all_state_codes = tuple(code for codes in DEBUG_STATE_CODES.values() for code in codes)
+    sections = []
+    state_codes = None
+    for line in output.getvalue().splitlines():
+        if not line.strip():
+            continue
+        if not line.startswith(" "):
+            heading = line.strip()
+            state_codes = set() if heading.startswith(DEBUG_HEADING_PREFIXES) else None
+            if state_codes is not None:
+                sections.append((heading, state_codes))
+            continue
+        if state_codes is None:
+            continue
+        for state_code in all_state_codes:
+            if f"'code': '{state_code}'" in line:
+                state_codes.add(state_code)
+
+    return sections
+
+
+@pytest.mark.django_db
+class TestWorkflowDebugOutput:
+    """The --workflow-debug sections that list changes no recorded write matched, in an app with two models.
+
+    Each model gets a workflow with two states, and an earlier migration holds them. The events of one state per
+    model are then cleared, so that state's change matches no recorded write, while the other state's change
+    still matches. Each model's output lists only its own states. A change that no model can claim is listed once,
+    after every model's output.
+    """
+
+    @pytest.fixture
+    def earlier_migration(self):
+        started_at = database_now()
+        for model, state_codes in DEBUG_STATE_CODES.items():
+            workflow = Workflow.objects.create(
+                code=f"{model._meta.model_name}_debug",
+                name=f"{model._meta.model_name} debug",
+                content_type=ContentType.objects.get_for_model(model),
+            )
+            for state_code in state_codes:
+                State.objects.create(workflow=workflow, code=state_code, name=state_code)
+        earlier = migration_holding("0950_workflow_migrations", pending_changes_since(started_at))
+        clear_events(State, code__in=("from_cleared", "to_cleared"))
+        return earlier
+
+    def test_an_unmatched_change_is_listed_only_under_its_own_model(self, earlier_migration):
+        sections = state_debug_sections(earlier_migration)
+
+        prefix = "tests.erring"
+        assert sections == [
+            (f"Changes matching history records - {prefix}.enabledwithoutworkflow.state", {"from_kept"}),
+            (f"Changes not matching history records - {prefix}.enabledwithoutworkflow.state", {"from_cleared"}),
+            (f"Changes matching history records - {prefix}.notenabledwithoutworkflow.state", {"to_kept"}),
+            (f"Changes not matching history records - {prefix}.notenabledwithoutworkflow.state", {"to_cleared"}),
+        ], sections
+
+    def test_a_change_of_an_unrecorded_workflow_is_listed_once_after_every_model(self, earlier_migration):
+        # With the first model's workflow unrecorded, neither of its state changes can be traced to a model.
+        clear_events(Workflow, historical_model="enabledwithoutworkflow")
+
+        sections = state_debug_sections(earlier_migration)
+
+        # The first model has no recorded history left, so it prints no section of its own. The unowned section
+        # belongs to the app, so it prints once, and last.
+        prefix = "tests.erring"
+        assert sections == [
+            (f"Changes matching history records - {prefix}.notenabledwithoutworkflow.state", {"to_kept"}),
+            (f"Changes not matching history records - {prefix}.notenabledwithoutworkflow.state", {"to_cleared"}),
+            (f"Changes not belonging to a recorded model - {prefix}", {"from_kept", "from_cleared"}),
+        ], sections

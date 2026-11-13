@@ -130,13 +130,19 @@ def _write_migration(command, tool, planned, dependencies, *, dry_run):
     app_label = planned.app_label
     command.stdout.write(f"{NEWLINE}Creating empty migration for {tool.key} changes in {app_label}.")
 
+    migrations_dir = Path(get_migrations_path(django_apps.get_app_config(app_label)))
+    files_before = set(migrations_dir.glob("*.py"))
     file_name = create_empty_migration(command, app_label, tool.migration_name)
     if file_name is None:
+        # The file still holds placeholder operations, which would fail when applied.
+        for unnamed in set(migrations_dir.glob("*.py")) - files_before:
+            unnamed.unlink()
+            command.stderr.write(f"{NEWLINE}Deleted {unnamed.name}, because its name could not be read.")
         raise RuntimeError(f"Unable to find the name of the migration created in {app_label}.")
 
     name = Path(file_name).stem
     if not dry_run:
-        migration_path = Path(get_migrations_path(django_apps.get_app_config(app_label))) / file_name
+        migration_path = migrations_dir / file_name
         changed_data = [change.data for change in planned.changes]
         try:
             content = tool.migration_content(app_label, name, changed_data)

@@ -179,3 +179,25 @@ class TestGroupChangeTool:
             GroupChange.UNASSOCIATED,
             GroupChange.ASSOCIATED,
         )
+
+    def test_a_change_to_a_permission_that_no_longer_exists_is_kept_with_a_warning(self):
+        """The permission's model may be gone. The change still reaches a migration, without a permission name."""
+        GroupChange.objects.create(
+            group_name="Orphaned Group",
+            change_type=GroupChange.ADDED,
+            historical_permission_codename="read_vanished",
+            historical_permission_content_type_app_label="auth",
+            historical_permission_content_type_model_name="group",
+        )
+        errors = io.StringIO()
+        tool = GroupChangeTool(BaseCommand(stdout=io.StringIO(), stderr=errors))
+        tool.configure({"import_instead": False})
+
+        (pending,) = (
+            change for change in tool.pending_changes_given(()) if change.data["group_name"] == "Orphaned Group"
+        )
+
+        assert pending.data["historical_permission_name"] == ""
+        assert "The permission auth.group.read_vanished of the added change to group 'Orphaned Group'" in (
+            errors.getvalue()
+        )

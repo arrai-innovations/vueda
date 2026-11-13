@@ -172,8 +172,8 @@ class GroupChange(models.Model):
             (DELETED, DELETED),
         ),
     )
-    # The database's clock, like the pghistory events of workflow changes, so makevuedamigrations orders group
-    # and workflow changes by one clock. The app server's clock can drift from the database's.
+    # The database's clock (the statement's time), as pghistory stamps workflow events with clock_timestamp(), so
+    # makevuedamigrations orders group and workflow changes by one clock. The app server's clock can drift from it.
     when = models.DateTimeField(db_default=Now(), editable=False)
     historical_permission_codename = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)

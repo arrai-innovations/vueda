@@ -11,6 +11,7 @@ __all__ = (
     "MigrationTool",
     "PendingChange",
     "get_migration_tools",
+    "import_lines_without",
 )
 
 import dataclasses
@@ -119,6 +120,27 @@ class MigrationTool:
 
     def finish(self, *, dry_run):
         """Run after every migration has been written. A dry run writes nothing, so a tool writes nothing then."""
+
+
+def import_lines_without(import_mapping, *names):
+    """Return the import lines of ``import_mapping`` without the imports that bind ``names``, in order.
+
+    ``import_mapping`` maps a tuple of names to its import line, as the builders' ``as_mapping`` form returns.
+    A line that opens an import group starts with a blank line. When such a line is left out, the next line
+    opens the group instead, so the imports stay sorted the way isort sorts them.
+    """
+    lines = []
+    carried_blank_line = False
+    for key, line in import_mapping.items():
+        if set(key) & set(names):
+            carried_blank_line = carried_blank_line or line.startswith("\n")
+            continue
+        if carried_blank_line and not line.startswith("\n"):
+            line = f"\n{line}"
+        carried_blank_line = False
+        lines.append(line)
+
+    return tuple(lines)
 
 
 def get_migration_tools(command):

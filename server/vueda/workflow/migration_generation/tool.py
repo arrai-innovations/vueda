@@ -33,8 +33,10 @@ from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
+from vueda.user.migration_generation.tools import import_lines_without
 from vueda.workflow import models
 from vueda.workflow.migration_generation.operations import MIGRATION_ACTION_KIND
+from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENT
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_dict
@@ -85,9 +87,6 @@ from vueda.workflow.migration_generation.operations import manage_state_objects
 # 2. Have Person A make their changes, create the workflow migration, commit things, and then
 # have Person B pull them and run migrations before making any workflow changes of their own.
 # The only downside here is that you may have to wait for Person A to get their stuff pushed.
-
-
-INDENT8 = "        "
 
 
 # The fields whose value in a change names a workflow row by code, and the event model recording it.
@@ -263,7 +262,6 @@ class WorkflowChangeTool(MigrationTool):
         )
 
     def configure(self, options):
-        self.dry_run = options["dry_run"]
         self.import_instead = options["import_instead"]
         self.debug = options["workflow_debug"]
 
@@ -304,7 +302,7 @@ class WorkflowChangeTool(MigrationTool):
 
     def migration_content(self, app_label, migration_name, changed_data):
         return MigrationContent(
-            imports=tuple(get_migration_imports(self.import_instead)),
+            imports=self._imports(),
             preamble=(
                 f'history_change_reason = "Workflow Migration - {migration_name}"{NEWLINE}',
                 f'migration_app_label = "{app_label}"{NEWLINE}',
@@ -315,6 +313,18 @@ class WorkflowChangeTool(MigrationTool):
             forwards="forwards_migrate_workflow_through_imports",
             backwards="backwards_migrate_workflow_through_imports",
         )
+
+    def _imports(self):
+        """Return the import lines of a new workflow migration, starting with the marker comment.
+
+        Copied code reads settings.AUTH_USER_MODEL. A migration that imports its functions instead does not, and
+        no longer depends on AUTH_USER_MODEL by setting, so it needs no settings import.
+        """
+        if not self.import_instead:
+            return tuple(get_migration_imports(self.import_instead))
+
+        mapping = get_migration_imports(self.import_instead, as_mapping=True)
+        return (MIGRATION_MODIFIED_COMMENT, *import_lines_without(mapping, "settings"))
 
     def finish(self, *, dry_run):
         """Give local objects the states that the new migrations would give them, unless this is a dry run.
@@ -768,7 +778,6 @@ class WorkflowChangeTool(MigrationTool):
                 "app_label": app_label,
                 "app_name": app_name,
                 "history_by_model_name": {},
-                "history_change_reasons": [],
                 "migrations": {},
                 "migrations_path": model_data["migrations_path"],
                 "models_to_content_type_ids": model_data["model_to_content_type_ids"],
@@ -780,8 +789,6 @@ class WorkflowChangeTool(MigrationTool):
                 existing = existing_changed_data.get(app_label, ())
 
             for migration in existing:
-                migration_data["history_change_reasons"].append(f"Workflow Migration - {migration.name}")
-
                 # Break the changes up by model here, so we don't need to do it later.
                 changes_by_model_name = {}
                 for changed_item in migration.changed_data:
@@ -1285,7 +1292,9 @@ class WorkflowChangeTool(MigrationTool):
         for app_name, app_data in all_migrated_data.items():
             app_label = app_data["app_label"]
 
-            for model_name, model_data in app_data["history_by_model_name"].items():
+            # Changes recorded at one moment keep the order that the old command wrote them in: by model, then by
+            # workflow model, then by event.
+            for model_index, (model_name, model_data) in enumerate(app_data["history_by_model_name"].items()):
                 for workflow_model_index, (workflow_model_name, model_history) in enumerate(model_data.items()):
                     self.print_debug(f"{app_name}.{model_name}.{workflow_model_name}", app_data)
 
@@ -1341,7 +1350,7 @@ class WorkflowChangeTool(MigrationTool):
                             pending.append(
                                 PendingChange(
                                     recorded_at=history_date,
-                                    tiebreak=(workflow_model_index, pgh_id),
+                                    tiebreak=(model_index, workflow_model_index, pgh_id),
                                     app_label=app_label,
                                     data=historical_record,
                                 )

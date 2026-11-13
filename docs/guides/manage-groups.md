@@ -67,7 +67,9 @@ The group management page has no action that deletes a group; [#423](https://git
 
 ## Generating Group Migrations
 
-1. Write the migrations:
+1. Apply your other migrations with `python manage.py migrate`, so that none is left unapplied. Step 3 explains why.
+
+2. Write the migrations:
 
     ```console
     python manage.py makevuedamigrations
@@ -75,15 +77,15 @@ The group management page has no action that deletes a group; [#423](https://git
 
     The command writes each group migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations`. When you also changed workflows, it writes their workflow migrations in the same run. When there is nothing new to write, it prints `No changes detected.`
 
-2. Fake the new migrations in your own database, which already has the changes. The command prints a note that tells you to fake them.
+3. Fake the new migrations in your own database, which already has the changes. The command prints a note that tells you to fake them.
 
     ```console
     python manage.py migrate myapp 0005_group_permission_migrations --fake
     ```
 
-    When the run wrote several migrations, faking the last one fakes the ones that it depends on too.
+    When the run wrote several migrations, faking the last one fakes the ones that it depends on too. A new migration depends on the latest migration of every app in your project, so faking it would also mark an unapplied migration of another app as applied, and that migration would never run. The command warns when your database has such a migration.
 
-3. Ship the migrations with your code. Other environments apply them with `python manage.py migrate`.
+4. Ship the migrations with your code. Other environments apply them with `python manage.py migrate`.
 
 To preview the migrations without writing a file, add `--dry-run`. The command prints the name of each migration that it would write.
 
