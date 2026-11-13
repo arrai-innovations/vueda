@@ -41,8 +41,12 @@ from django.conf import settings
 from django.contrib.auth.management import create_permissions
 from django.db.migrations.state import ModelState
 from django.db.migrations.state import ProjectState
+from django.db.models import Exists
+from django.db.models import OuterRef
+from django.db.models import Q
 
 from vueda.core.audit import audited_action
+from vueda.core.audit import tagged_writes
 from vueda.user.management.commands.utils import NEWLINE
 
 
@@ -733,19 +737,22 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
 
 
 def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, *, reversing=False):
-    """Create missing object states and move states with only a recorded creation to the initial state.
+    """Create missing object states and move untouched object states to the workflow's initial state.
 
-    An object state with only its creation recorded against it is still wherever it was put, so a
-    changed initial state moves it. One that carries any later event was moved by someone, and the
-    state they moved it to is theirs to keep. A state with no events also stays where it is: it may
-    predate the event triggers, so missing history does not prove that it has never moved.
+    Every object of ``obj_class`` without an object state gets one in the initial state. Objects are read through
+    the model's base manager, so a default manager that hides rows does not hide them here. The states are created
+    in bulk, and a state that a save creates meanwhile is kept.
 
-    TODO: An earlier run of this counts as someone, because its update is an event like any other.
-      A workflow whose initial state changes twice therefore moves its objects only the first time.
-      Telling the two apart needs the sync's own writes to be identifiable, which the action context
-      cannot currently do here: pghistory sets its context as a transaction-local, so an action
-      opened around these writes is still attributed to everything else written in the same
-      transaction.
+    An object state that nobody has moved since it was created moves to the current initial state, so a changed
+    initial state reaches it. That includes changing the initial state back after a mistake. Someone moved a state
+    when it has an event other than its creation that this function did not write. This function's own moves are
+    tagged with ``initial_state_sync`` through ``tagged_writes``, so they do not count. Inside an open action, such
+    as a migration's, the tag joins that action, and other writes in it carry the tag too. A state with no events
+    stays where it is, because it may predate the event triggers.
+
+    ``reversing`` deletes every object state of the workflow instead. The workflow, model, and object state
+    classes are passed in, so the function works with a migration's models and with the current models.
+    Generated workflow migrations copy this function, and ``backfillworkflowstates`` calls it.
     """
     if reversing:
         # Delete all object states
@@ -757,23 +764,29 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
         # A workflow part-way through its own migration has no initial state to give anything.
         return
 
-    for obj in obj_class.objects.all():
-        obj_state = workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).first()
+    with_state = workflow_obj_state_class.objects.filter(workflow=workflow).values("object_id")
+    missing = obj_class._base_manager.exclude(pk__in=with_state).values_list("pk", flat=True)
+    workflow_obj_state_class.objects.bulk_create(
+        [workflow_obj_state_class(workflow=workflow, object_id=pk, state_id=initial_state.state_id) for pk in missing],
+        batch_size=1000,
+        # A save that created its own object state while this ran keeps it.
+        ignore_conflicts=True,
+    )
 
-        if obj_state is None:
-            workflow_obj_state_class.objects.create(
-                workflow=workflow,
-                object_id=obj.id,
-                state=initial_state.state,
-            )
-            continue
-
-        if obj_state.state_id == initial_state.state_id:
-            continue
-
-        events = object_state_event_class.objects.filter(pgh_obj_id=obj_state.pk)
-        if events.filter(pgh_label="insert").exists() and not events.exclude(pgh_label="insert").exists():
-            workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
+    created = object_state_event_class.objects.filter(pgh_obj_id=OuterRef("pk"), pgh_label="insert")
+    moved_by_someone = (
+        object_state_event_class.objects.filter(pgh_obj_id=OuterRef("pk"))
+        .exclude(pgh_label="insert")
+        .filter(Q(pgh_context__isnull=True) | ~Q(pgh_context__metadata__contains={"initial_state_sync": True}))
+    )
+    untouched = (
+        workflow_obj_state_class.objects.filter(workflow=workflow)
+        .exclude(state_id=initial_state.state_id)
+        .filter(Exists(created))
+        .exclude(Exists(moved_by_someone))
+    )
+    with tagged_writes(initial_state_sync=True):
+        untouched.update(state_id=initial_state.state_id)
 
 
 def handle_state_objects(apps, *, reversing=False):
@@ -1062,8 +1075,12 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
         )
     else:
         result_mapping[("Count",)] = f"from django.db.models import Count{NEWLINE}"
+        result_mapping[("Exists",)] = f"from django.db.models import Exists{NEWLINE}"
+        result_mapping[("OuterRef",)] = f"from django.db.models import OuterRef{NEWLINE}"
+        result_mapping[("Q",)] = f"from django.db.models import Q{NEWLINE}"
         result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
         result_mapping[("audited_action",)] = f"{NEWLINE}from vueda.core.audit import audited_action{NEWLINE}"
+        result_mapping[("tagged_writes",)] = f"from vueda.core.audit import tagged_writes{NEWLINE}"
 
     if as_mapping:
         return result_mapping

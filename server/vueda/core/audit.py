@@ -4,6 +4,7 @@ __all__ = (
     "action_is_open",
     "audited_action",
     "current_action_metadata",
+    "tagged_writes",
 )
 
 import contextlib
@@ -40,6 +41,25 @@ def audited_action(action, kind=None, **metadata):
             current.metadata["kind"] = kind
         else:
             current.metadata.setdefault("kind", "system")
+        try:
+            yield
+        finally:
+            if owns_action:
+                _clear_action()
+
+
+@contextlib.contextmanager
+def tagged_writes(**metadata):
+    """Add ``metadata`` to the action that the writes made in this block are recorded under.
+
+    Unlike ``audited_action``, this names no action and no kind. Inside an open action, the metadata joins that
+    action and keeps its name and kind. The action keeps the metadata until it ends, so writes made later in it
+    carry the metadata too. Outside one, the block opens an action that holds only the metadata, and clears it
+    when the block ends, so a later write in the same transaction carries no metadata.
+    """
+    owns_action = not action_is_open()
+
+    with pghistory.context(**metadata):
         try:
             yield
         finally:

@@ -178,6 +178,53 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             call_command("migrate", "erring", second_workflow, verbosity=0)
             assert permission_snapshot(group_names, "interleaved") == after_changes
 
+    def test_migrations_with_copied_code_round_trip(self, settings):
+        """Projects get migrations that copy the functions they run, rather than import them from VUEDA."""
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        read = Permission.objects.get(content_type=content_type, codename="read_enabledwithoutworkflow")
+        admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
+        group_names = ("Copied Readers",)
+
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() <= {"employee", "erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            employee_last_before = max(path.stem for path in employee_before if path.stem[0].isdigit())
+            erring_last_before = max(path.stem for path in erring_before if path.stem[0].isdigit())
+            before_changes = permission_snapshot(group_names, "copied")
+
+            save_group_permission(admin, read, "Copied Readers")
+            workflow = Workflow.objects.create(code="copied", name="Copied", content_type=content_type)
+            draft = State.objects.create(workflow=workflow, code="draft", name="Draft")
+            InitialState.objects.create(workflow=workflow, state=draft)
+            after_changes = permission_snapshot(group_names, "copied")
+
+            call_command("makevuedamigrations", stdout=io.StringIO())
+
+            (group_migration,) = new_migration_names(employee_dir, employee_before)
+            (workflow_migration,) = new_migration_names(erring_dir, erring_before)
+            for directory, name, entry_point in (
+                (employee_dir, group_migration, "def forwards_migrate_groups("),
+                (erring_dir, workflow_migration, "def forwards_migrate_workflow("),
+            ):
+                source = (Path(directory) / f"{name}.py").read_text()
+                assert entry_point in source
+                assert "migration_generation" not in source
+                assert "noqa: F821" not in source
+
+            call_command("migrate", "erring", workflow_migration, fake=True, verbosity=0)
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            call_command("migrate", "employee", employee_last_before, verbosity=0)
+            assert permission_snapshot(group_names, "copied") == before_changes
+
+            call_command("migrate", "erring", workflow_migration, verbosity=0)
+            assert permission_snapshot(group_names, "copied") == after_changes
+
 
 @pytest.mark.xdist_group(name="management_command_tests")
 @pytest.mark.django_db

@@ -3,7 +3,6 @@
 __all__ = ("Command",)
 
 from django.apps import apps
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
 from django.db import transaction
@@ -11,17 +10,19 @@ from django.db import transaction
 from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.workflow.exceptions import WorkflowNotConfiguredError
+from vueda.workflow.migration_generation.operations import manage_state_objects
 from vueda.workflow.models import ObjectState
+from vueda.workflow.models import ObjectStateEvent
 from vueda.workflow.models import get_workflow_for_model
-from vueda.workflow.models import objects_without_object_state
 
 
 class Command(BaseCommand):
     help = (
         "Create the missing object state of every object of a workflow-enabled model, in its workflow's "
-        "initial state. Existing object states are left as they are, so running it again changes nothing. "
-        "Run it after a deploy that enables workflow, for objects the previous release created while the "
-        "migrations ran."
+        "initial state. Also move each object state that nobody has moved since it was created to the current "
+        "initial state. A state that someone moved stays where it is, so running it again changes nothing. Run "
+        "it after a deploy that enables workflow, for objects the previous release created while the migrations "
+        "ran."
     )
 
     def add_arguments(self, parser):
@@ -82,19 +83,12 @@ class Command(BaseCommand):
             workflow = get_workflow_for_model(model)
         except WorkflowNotConfiguredError as exc:
             raise CommandError(str(exc)) from exc
-        try:
-            initial_state = workflow.initial_state.state
-        except ObjectDoesNotExist as exc:
-            raise CommandError(f"The workflow of {model._meta.label} has no initial state.") from exc
+        # A missing related row raises an AttributeError subclass, which getattr turns into None.
+        if getattr(workflow, "initial_state", None) is None:
+            raise CommandError(f"The workflow of {model._meta.label} has no initial state.")
 
         object_states = ObjectState.objects.filter(workflow=workflow)
         with transaction.atomic():
             before = object_states.count()
-            missing = objects_without_object_state(model, workflow).values_list("pk", flat=True)
-            ObjectState.objects.bulk_create(
-                [ObjectState(workflow=workflow, object_id=pk, state=initial_state) for pk in missing],
-                batch_size=1000,
-                # A save that created its own object state while this ran keeps it.
-                ignore_conflicts=True,
-            )
+            manage_state_objects(workflow, model, ObjectState, ObjectStateEvent)
             return object_states.count() - before
