@@ -19,9 +19,9 @@ from tests.utils import BaseTestMigrations
 from tests.utils import append_installed_apps
 from tests.utils import clear_info_registry_before_test
 from tests.utils import find_one_migration_generated_today_or_fail
-from vueda.user.management.commands.makegroupmigrations import migrate_step
 from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import update_operation_function_names
+from vueda.user.migration_generation.group_operations import migrate_step
 from vueda.user.models import GroupChange
 
 

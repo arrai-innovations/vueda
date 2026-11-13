@@ -26,7 +26,7 @@ from vueda import workflow as workflow_module
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.workflow import models
 from vueda.workflow.management.commands import makeworkflowmigrations
-from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_ACTION_KIND
+from vueda.workflow.migration_generation.operations import MIGRATION_ACTION_KIND
 from vueda.workflow.models import WorkflowEvent
 
 
@@ -2166,15 +2166,15 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
             # Unchanged
             assert (
-                "from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow"
+                "from vueda.workflow.migration_generation.operations import backwards_migrate_workflow"
                 in migration_content
             )
             assert (
-                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow"
+                "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow"
                 in migration_content
             )
             assert (
-                "from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist"
+                "from vueda.workflow.migration_generation.operations import make_sure_permissions_exist"
                 in migration_content
             )
 
@@ -2199,15 +2199,15 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
 
             # Unchanged
             assert (
-                "from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow"
+                "from vueda.workflow.migration_generation.operations import backwards_migrate_workflow"
                 in migration_content
             )
             assert (
-                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow"
+                "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow"
                 in migration_content
             )
             assert (
-                "from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist"
+                "from vueda.workflow.migration_generation.operations import make_sure_permissions_exist"
                 in migration_content
             )
 

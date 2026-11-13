@@ -12,6 +12,7 @@ from django.apps import apps as django_apps
 from django.core.management import BaseCommand
 from django.db.migrations.loader import MigrationLoader
 
+from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import NoRenamesError
 from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_migrations_path
@@ -19,16 +20,15 @@ from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
-from vueda.workflow.management.commands.makeworkflowmigrations import MIGRATION_MODIFIED_COMMENT
-from vueda.workflow.management.commands.makeworkflowmigrations import NEWLINE
-from vueda.workflow.management.commands.makeworkflowmigrations import WorkflowChangeTypes
-from vueda.workflow.management.commands.makeworkflowmigrations import get_id_values_from_item
-from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_imports
-from vueda.workflow.management.commands.makeworkflowmigrations import get_migration_sources
+from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENT
+from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
+from vueda.workflow.migration_generation.operations import get_id_values_from_item
+from vueda.workflow.migration_generation.operations import get_migration_imports
+from vueda.workflow.migration_generation.operations import get_migration_sources
 
 
 WORKFLOW_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
-IMPORT_INSTEAD_MARKER = "from vueda.workflow.management.commands.makeworkflowmigrations import"
+IMPORT_INSTEAD_MARKER = "from vueda.workflow.migration_generation.operations import"
 
 # The copied functions read ObjectStateEvent and write through the workflow event triggers.
 # Keep this requirement in step with the schema used by get_migration_sources.

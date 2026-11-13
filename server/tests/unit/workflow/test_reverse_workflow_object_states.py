@@ -18,7 +18,7 @@ from django.core.management import call_command
 from tests.conftest import BaseTestUserMixin
 from tests.erring import models as erring_models
 from tests.store import models as store_models
-from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow
+from vueda.workflow.migration_generation.operations import backwards_migrate_workflow
 from vueda.workflow.models import InitialState
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import ObjectStateEvent

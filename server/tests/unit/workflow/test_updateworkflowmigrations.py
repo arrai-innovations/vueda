@@ -38,7 +38,7 @@ def read_migration(path):
 def write_workflow_migration(path, dependencies, *, import_instead=False, changed_data=()):
     imports = ""
     if import_instead:
-        imports = "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
+        imports = "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow\n"
     path.write_text(
         "# Modified using VUEDA makeworkflowmigrations command.  Please do not delete this comment.\n"
         "import datetime\n"

@@ -8,9 +8,9 @@ from pathlib import Path
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
 
-from vueda.user.management.commands.makegroupmigrations import MIGRATION_MODIFIED_COMMENT
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.management.commands.utils import get_matching_record
+from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENT
 
 
 class Command(BaseCommand):
