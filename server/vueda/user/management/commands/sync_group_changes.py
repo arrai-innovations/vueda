@@ -10,11 +10,11 @@ from django.core.management import BaseCommand
 
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.management.commands.utils import get_matching_record
-from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENT
+from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 
 
 class Command(BaseCommand):
-    help = "Sync GroupChange records from migrations created by makegroupmigrations."
+    help = "Sync GroupChange records from the group migrations that makevuedamigrations or makegroupmigrations wrote."
 
     def handle(self, **options):
         from vueda.user.models import GroupChange
@@ -42,7 +42,7 @@ class Command(BaseCommand):
                     for line_no, line in enumerate(f):
                         if line_no > 20:  # noqa: PLR2004
                             break
-                        if line.startswith(MIGRATION_MODIFIED_COMMENT.strip()):
+                        if line.startswith(tuple(marker.strip() for marker in MIGRATION_MODIFIED_COMMENTS)):
                             yield migration_file
                             break
 

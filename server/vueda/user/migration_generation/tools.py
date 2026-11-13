@@ -76,11 +76,27 @@ class MigrationTool:
     def __init__(self, command):
         self.command = command
 
+    @property
+    def stdout(self):
+        return self.command.stdout
+
+    @property
+    def stderr(self):
+        return self.command.stderr
+
+    @property
+    def style(self):
+        return self.command.style
+
     def add_arguments(self, parser):
         """Add this tool's own options to ``parser``, an argument group. Each option starts with ``--<key>-``."""
 
     def configure(self, options):
-        """Read this tool's own options, and any shared ones, from the parsed ``options``."""
+        """Read this tool's own options, and any shared ones, from the parsed ``options``.
+
+        Return True when an option asks only for output, such as a list of names, so the run stops there.
+        """
+        return False
 
     def dependency_app_labels(self):
         """Return the apps whose latest migration every migration of this tool depends on.

@@ -5,15 +5,45 @@ from pathlib import Path
 
 import pgtrigger
 import pytest
+from django.core.management import BaseCommand
 from django.core.management import call_command
 
 from tests.erring.models import EnabledWithWorkflow
 from tests.utils import BaseTestMigrations
+from vueda.user.migration_generation.dependencies import project_app_labels
+from vueda.user.migration_generation.planner import ToolChanges
+from vueda.user.migration_generation.planner import plan_migrations
+from vueda.user.migration_generation.writer import write_plan
+from vueda.workflow.migration_generation.tool import WorkflowChangeTool
 from vueda.workflow.models import InitialState
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import ObjectStateEvent
 from vueda.workflow.models import State
 from vueda.workflow.models import Workflow
+
+
+def workflow_tool(output, *, dry_run=False, import_instead=False):
+    """Return a configured workflow tool that writes its output to ``output``."""
+    command = BaseCommand(stdout=output, stderr=output)
+    command.dry_run = dry_run
+    tool = WorkflowChangeTool(command)
+    tool.configure({"dry_run": dry_run, "import_instead": import_instead, "workflow_debug": []})
+    return tool
+
+
+def write_workflow_migrations_for_app(app_label, output, *, import_instead):
+    """Write the workflow migrations that makevuedamigrations would write for one app, and sync object states.
+
+    The search is narrowed to the one app, so pending changes in other apps of the test database stay out.
+    """
+    tool = workflow_tool(output, import_instead=import_instead)
+    pending = tool.pending_changes(selected_apps=(app_label,))
+    plan = plan_migrations(
+        (ToolChanges(tool_key=tool.key, changes=pending, dependency_app_labels=tool.dependency_app_labels()),),
+        project_app_labels(),
+    )
+    write_plan(tool.command, plan, {tool.key: tool}, dry_run=False)
+    tool.finish(dry_run=False)
 
 
 def state_for(obj):
@@ -53,9 +83,7 @@ class TestForwardWorkflowObjectStates(BaseTestMigrations):
                 InitialState.objects.filter(workflow=workflow).update(state=replacement)
             existing = set(Path(directory).glob("*.py"))
             output = io.StringIO()
-            call_command(
-                "makeworkflowmigrations", app_label, import_instead=migration_kind == "imported", stdout=output
-            )
+            write_workflow_migrations_for_app(app_label, output, import_instead=migration_kind == "imported")
             [migration] = set(Path(directory).glob("*.py")) - existing
             if migration_kind == "updated":
                 # An older embedded implementation must be replaced before this migration runs.
@@ -99,8 +127,9 @@ class TestForwardWorkflowObjectStates(BaseTestMigrations):
     @pytest.mark.parametrize("dry_run", [False, True], ids=["normal", "dry-run"])
     def test_generation_without_workflow_changes_preserves_states(self, dry_run):
         carried_over = create_carried_over_states()
-        output = io.StringIO()
-        call_command("makeworkflowmigrations", "employee", dry_run=dry_run, stdout=output)
+        tool = workflow_tool(io.StringIO(), dry_run=dry_run)
 
-        assert "No workflow changes detected." in output.getvalue()
+        assert tool.pending_changes(selected_apps=("employee",)) == ()
+        tool.finish(dry_run=dry_run)
+
         assert_carried_over_states_unchanged(carried_over)

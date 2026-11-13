@@ -1,11 +1,9 @@
-"""Management command for generating workflow state and transition migrations from change history."""
+"""The ``makevuedamigrations`` tool for workflow changes."""
 
 __all__ = (
-    "INDENT8",
-    "NEWLINE",
-    "Command",
     "RecordChange",
     "RecordDelta",
+    "WorkflowChangeTool",
     "compare_records",
     "get_attr_names_for_workflow_models",
     "get_history_diff",
@@ -14,35 +12,29 @@ __all__ = (
 )
 
 import copy
-import datetime
 import importlib
-import os
-import sys
-from pathlib import Path
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
-from django.core.management import BaseCommand
-from django.db import migrations
+from django.core.management import CommandError
 from django.db.migrations import operations
 from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
 from django.db.models import Q
-from django.db.transaction import atomic
 
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
-from vueda.user.management.commands.utils import call_management_command
-from vueda.user.management.commands.utils import format_changed_data
-from vueda.user.management.commands.utils import get_migration_names_from_show_migrations
 from vueda.user.management.commands.utils import get_migrations_path
-from vueda.user.management.commands.utils import locate_empty_migration_slots
-from vueda.user.management.commands.utils import parse_date_from_django_comment
-from vueda.user.management.commands.utils import parse_migrations_from_show_migrations
+from vueda.user.migration_generation.existing import app_migration_names
+from vueda.user.migration_generation.existing import generated_migrations
+from vueda.user.migration_generation.tools import MigrationContent
+from vueda.user.migration_generation.tools import MigrationTool
+from vueda.user.migration_generation.tools import PendingChange
 from vueda.workflow import models
 from vueda.workflow.migration_generation.operations import MIGRATION_ACTION_KIND
-from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENT
+from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_dict
 from vueda.workflow.migration_generation.operations import get_id_values_from_item
@@ -229,87 +221,113 @@ def get_history_diff(old_history_record, new_history_record):
         return WorkflowChangeTypes.CHANGED.value, compare_records(old_history_record, new_history_record)
 
 
-class Command(BaseCommand):
-    help = (
-        "Write a migration for each app that has workflow changes that no workflow migration has recorded yet. "
-        "The command reads the pghistory events of the workflow models. It skips writes that a workflow migration "
-        "made. It also skips edits that match a change in an existing workflow migration. For each app with "
-        "changes left, it runs makemigrations --empty. It then fills that migration with the changes in the order "
-        "that they happened, and with functions that apply them forwards and backwards. Except in a --dry-run, it "
-        "also gives local objects the states that the migration would set. Fake the new migration locally, because "
-        "the local database already has the changes."
-    )
+# The workflow models whose events a workflow migration replays, by the model name that a change records.
+WORKFLOW_MODEL_NAMES = (
+    "workflow",
+    "workflowpermission",
+    "state",
+    "statepermission",
+    "initialstate",
+    "transition",
+    "transitionpermission",
+    "transitionsource",
+)
+
+
+class WorkflowChangeTool(MigrationTool):
+    """Write the workflow changes that pghistory recorded for every app that has, or had, a workflow.
+
+    A change is pending when a person made it and no generated workflow migration holds a matching change. The
+    writes that a workflow migration makes are recorded under its own action, so they are never pending. Each
+    app's changes go into that app's migration.
+    """
+
+    key = "workflow"
+    migration_name = "workflow_migrations"
+    tie_order = 10
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "args",
-            metavar="app_label",
-            nargs="*",
-            help="Specify the app label(s) to create workflow migrations for.",
-        )
-        parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Just show what migrations would be made; don't actually write them.",
-        )
-        parser.add_argument(
-            "--import-instead",
-            action="store_true",
+            "--workflow-debug",
+            action="append",
+            nargs="?",
+            const=None,
+            default=[],
+            metavar="APP.MODEL.WORKFLOWMODEL",
             help=(
-                "This causes created migrations to not copy functions from the management command "
-                "into the migration.  Imports are added instead.  This is used by tests, so the "
-                "coverage report will reflect actual code usage."
+                "Print how the recorded workflow changes of a model matched the existing workflow migrations. "
+                "Name a model's workflow model as app.model.workflowmodel, or pass all. Give no name to list the "
+                "names. Repeat the option to name several."
             ),
         )
 
-        choices = ["all"]
-        workflow_names = (
-            "workflow",
-            "workflowpermission",
-            "state",
-            "statepermission",
-            "initialstate",
-            "transition",
-            "transitionpermission",
-            "transitionsource",
-        )
+    def configure(self, options):
+        self.dry_run = options["dry_run"]
+        self.import_instead = options["import_instead"]
+        self.debug = options["workflow_debug"]
 
+        if not self.debug:
+            return False
+
+        debug_names = self.debug_names()
+        if None in self.debug:
+            self.stdout.write("Names that --workflow-debug accepts:")
+            for debug_name in debug_names:
+                self.stdout.write(f"  {debug_name}")
+            return True
+
+        unknown = sorted(set(self.debug) - set(debug_names))
+        if unknown:
+            raise CommandError(
+                f"Unknown --workflow-debug name(s): {', '.join(unknown)}. "
+                "Pass --workflow-debug with no name to list the names that it accepts."
+            )
+
+        return False
+
+    def debug_names(self):
+        """Return every name that ``--workflow-debug`` accepts: ``all``, then ``app.model.workflowmodel`` names."""
+        names = ["all"]
         for app_data in self._get_apps_with_workflow().values():
             app_name = app_data["app_name"]
             for model_name in app_data["model_to_content_type_ids"]:
-                for workflow_name in workflow_names:
-                    choices.append(f"{app_name}.{model_name}.{workflow_name}")
+                for workflow_model_name in WORKFLOW_MODEL_NAMES:
+                    names.append(f"{app_name}.{model_name}.{workflow_model_name}")
 
-        parser.add_argument(
-            "--debug",
-            action="append",
-            choices=choices,
-            default=[],
-            help=("Print debug information about an apps model and specified workflow model."),
+        return tuple(names)
+
+    def dependency_app_labels(self):
+        # A workflow migration writes workflow rows, names groups and permissions, and attributes its writes to
+        # the system user.
+        return ("auth", "vueda_user", "vueda_workflow", django_apps.get_model(settings.AUTH_USER_MODEL)._meta.app_label)
+
+    def migration_content(self, app_label, migration_name, changed_data):
+        return MigrationContent(
+            imports=tuple(get_migration_imports(self.import_instead)),
+            preamble=(
+                f'history_change_reason = "Workflow Migration - {migration_name}"{NEWLINE}',
+                f'migration_app_label = "{app_label}"{NEWLINE}',
+            ),
+            sources=tuple(get_migration_sources(self.import_instead)),
+            permissions_forwards="make_sure_permissions_exist_through_imports",
+            permissions_backwards="migrations.RunPython.noop",
+            forwards="forwards_migrate_workflow_through_imports",
+            backwards="backwards_migrate_workflow_through_imports",
         )
 
-    def _get_generated_date_for_vueda_generated_migration(self, migration_path):
-        # Return the date created in the django comment.
-        django_comment = None
+    def finish(self, *, dry_run):
+        """Give local objects the states that the new migrations would give them, unless this is a dry run.
 
-        with open(migration_path, encoding="utf-8") as f:
-            is_modified_by_us = False
-            # Did we modify this migration?  Check the first 20 lines for our modified comment.
-            for migration_line_no, migration_line in enumerate(f.readlines()):
-                if migration_line.startswith("# Generated by Django"):
-                    django_comment = migration_line
+        The developer fakes the new migrations locally, so their state sync never runs here. A model whose
+        workflow is turned off gets no states.
+        """
+        if dry_run:
+            return
 
-                # Changed to startswith and strip, so crossing an OS should work.
-                if migration_line.startswith(MIGRATION_MODIFIED_COMMENT.strip()):
-                    is_modified_by_us = True
-
-                if migration_line_no > 20:  # noqa: PLR2004
-                    break
-
-        if is_modified_by_us:
-            return parse_date_from_django_comment(django_comment)
-
-        return False
+        for workflow in models.Workflow.objects.all():
+            model_class = workflow.content_type.model_class()
+            if model_class is not None and workflow_enabled(model_class):
+                manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
 
     def _get_apps_with_workflow(self, selected_apps=()):
         apps_with_workflow = {}
@@ -347,7 +365,8 @@ class Command(BaseCommand):
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
-                            "model_to_content_type_ids": [],
+                            "migrations_path": get_migrations_path(django_apps.get_app_config(app_label)),
+                            "model_to_content_type_ids": {},
                         }
                     apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
 
@@ -623,7 +642,7 @@ class Command(BaseCommand):
         return historical_obj
 
     def add_renamed_fields_and_models_to_attr_names(self, workflow_model_field_names_to_attname):
-        for migration_name in get_migration_names_from_show_migrations(self, "vueda_workflow"):
+        for migration_name in app_migration_names("vueda_workflow"):
             module_name = f"vueda.workflow.{MIGRATIONS_MODULE_NAME}.{migration_name}"
 
             try:
@@ -742,13 +761,6 @@ class Command(BaseCommand):
 
         for app_label, model_data in self._get_apps_with_workflow(selected_apps).items():
             app_name = model_data["app_name"]
-            migrations_path = model_data["migrations_path"]
-
-            show_migration_results = call_management_command(self, "showmigrations", app_label)
-            if not show_migration_results:  # Erred.  The reason will be printed to the console via the command.
-                return None
-
-            migration_names = parse_migrations_from_show_migrations(show_migration_results)
 
             migration_data = {
                 "app_label": app_label,
@@ -756,34 +768,26 @@ class Command(BaseCommand):
                 "history_by_model_name": {},
                 "history_change_reasons": [],
                 "migrations": {},
-                "migrations_path": migrations_path,
+                "migrations_path": model_data["migrations_path"],
                 "models_to_content_type_ids": model_data["model_to_content_type_ids"],
             }
 
-            for migration_name in migration_names:
-                migration_path = os.path.join(migrations_path, f"{migration_name}.py")
-                django_date = self._get_generated_date_for_vueda_generated_migration(migration_path)
-                if django_date:
-                    migration_data["history_change_reasons"].append(f"Workflow Migration - {migration_name}")
+            for migration in generated_migrations(app_label, MIGRATION_MODIFIED_COMMENTS):
+                migration_data["history_change_reasons"].append(f"Workflow Migration - {migration.name}")
 
-                    if migration_name not in migration_data["migrations"]:
-                        migration_data["migrations"][migration_name] = {
-                            "changes_by_model_name": {},
-                            "migration_path": migration_path,
-                        }
+                # Break the changes up by model here, so we don't need to do it later.
+                changes_by_model_name = {}
+                for changed_item in migration.changed_data:
+                    model_name = changed_item["model_name"]
+                    if model_name not in changes_by_model_name:
+                        changes_by_model_name[model_name] = []
 
-                    spec = importlib.util.spec_from_file_location("migration", migration_path)
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
+                    changes_by_model_name[model_name].append(changed_item)
 
-                    # Break the changes up by model here, so we don't need to do it later.
-                    changes_by_model_name = migration_data["migrations"][migration_name]["changes_by_model_name"]
-                    for changed_item in module.changed_data:
-                        model_name = changed_item["model_name"]
-                        if model_name not in changes_by_model_name:
-                            changes_by_model_name[model_name] = []
-
-                        changes_by_model_name[model_name].append(changed_item)
+                migration_data["migrations"][migration.name] = {
+                    "changes_by_model_name": changes_by_model_name,
+                    "migration_path": migration.path,
+                }
 
             migrations_by_app[app_name] = migration_data
 
@@ -1103,135 +1107,6 @@ class Command(BaseCommand):
 
         return results
 
-    def _create_and_get_empty_migration(self, app_label):
-        self.stdout.write(f"{NEWLINE}Creating empty migration for workflow changes.")
-
-        # Force the migration to have a RunPython operation that we can easily find/replace.
-        migrations.Migration.operations = [
-            migrations.RunPython(
-                code=dict,
-                reverse_code=type,
-            ),
-            migrations.RunPython(
-                code=str,
-                reverse_code=int,
-            ),
-        ]
-
-        date_string = datetime.datetime.now().date().isoformat().replace("-", "_")
-        try:
-            results = call_management_command(
-                self, "makemigrations", app_label, "--empty", f"--name=workflow_migrations_{date_string}", "--noinput"
-            )
-        finally:
-            # Reset the operations in the class, even when makemigrations raises. Every Migration subclass
-            # that doesn't set its own operations would otherwise inherit these placeholders.
-            migrations.Migration.operations = []
-
-        if not results:  # Erred.
-            return False
-
-        return_value = None
-        capture = False
-        for result in results:
-            self.stdout.write(result)
-            result = result.strip()
-            if result == f"Migrations for '{app_label}':":
-                capture = True
-            if capture and result.endswith(".py"):
-                return_value = Path(result).name
-                break  # make sure we don't keep looping, in case there are other apps and py files listed.
-
-        return return_value
-
-    def _rewrite_migration(self, migration_file, changed_data, app_label, migration_name, dependencies):
-        with open(migration_file, "r+", encoding="utf-8") as f:
-            lines = f.readlines()
-
-            # Use ast to locate the lines we need to change, rather than scanning text, so the
-            # substitutions below can't accidentally match unrelated code that happens to contain the
-            # same text (e.g. a hand-added `dependencies = [...]` list elsewhere in the file).
-            slots = locate_empty_migration_slots(lines)
-
-            # We write lines starting from the bottom to the top, so our line numbers are correct through the process.
-            lines[slots["reverse_index"]] = lines[slots["reverse_index"]].replace(
-                "int", "backwards_migrate_workflow_through_imports"
-            )
-            lines[slots["forwards_index"]] = lines[slots["forwards_index"]].replace(
-                "str", "forwards_migrate_workflow_through_imports"
-            )
-            lines[slots["p_reverse_index"]] = lines[slots["p_reverse_index"]].replace(
-                "type", "migrations.RunPython.noop"
-            )
-            lines[slots["p_forwards_index"]] = lines[slots["p_forwards_index"]].replace(
-                "dict", "make_sure_permissions_exist_through_imports"
-            )
-
-            # Add Dependencies
-            dependency_data = [
-                f"{INDENT8}migrations.swappable_dependency(settings.AUTH_USER_MODEL),{NEWLINE}",
-            ]
-            for app_name, app_migration_name in dependencies.items():
-                dependency_data.append(f'{INDENT8}("{app_name}", "{app_migration_name}"),{NEWLINE}')
-
-            lines[slots["dependencies_index"] + 1 : slots["dependencies_index"] + 1] = dependency_data
-
-            # Changed data and forwards/reverse functions.
-            copied_code = [
-                f'''{NEWLINE}history_change_reason = "Workflow Migration - {migration_name.replace(".py", "")}"''',
-                f'{NEWLINE}migration_app_label = "{app_label}"',
-                f"{NEWLINE}{format_changed_data(changed_data, migration_file, stderr=self.stderr)}",
-                *get_migration_sources(self.import_instead),
-            ]
-            lines[slots["class_index"] - 1 : slots["class_index"]] = copied_code
-
-            # Migration Modified Comment - Used to find the latest migration we modified using this management command.
-            # Replace Django's generated import rather than inserting alongside it, so we control the order.
-            lines[slots["import_start"] : slots["import_end"] + 1] = get_migration_imports(self.import_instead)
-
-            f.seek(0)
-            f.writelines(lines)
-
-    def _create_migration_per_app(self, changes_by_app):
-        for app_label, app_data in changes_by_app.items():
-            migrations_path = Path(app_data["migrations_path"])
-
-            migration_name = self._create_and_get_empty_migration(app_label)
-            if migration_name is None:
-                raise RuntimeError("Unable to find the name of the newly created migration.")
-
-            if not migration_name:  # Erred.
-                return
-
-            migration_file = migrations_path.joinpath(migration_name)
-
-            changes = sorted(app_data["changes"], key=lambda x: x["history_date"])
-
-            if not self.dry_run:
-                # Get the last vueda workflow migration name, for dependencies.
-                dependency_names = get_migration_names_from_show_migrations(self, "vueda_workflow")
-                dependencies = {"vueda_workflow": dependency_names[-1]}
-                self._rewrite_migration(migration_file, changes, app_label, migration_name, dependencies)
-
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"{NEWLINE}Modified migration '{migration_name}' to migrate workflow for {app_label}."
-                )
-            )
-            self.stdout.write(
-                self.style.NOTICE(
-                    f"{NEWLINE}NOTE: You will need to fake this migration, "
-                    f"because you already have the changes.{NEWLINE}"
-                )
-            )
-
-    def clean_changes_by_app(self, changes):
-        for app_label in tuple(changes):
-            app_data = changes[app_label]
-            if not app_data["changes"]:
-                del changes[app_label]
-        return changes
-
     def print_debug_unowned_changes(self, app_name, app_data):
         """Print the app's unmatched changes that belong to none of its models, in one section for the app.
 
@@ -1366,24 +1241,12 @@ class Command(BaseCommand):
 
             self.stdout.write("")
 
-    @atomic
-    def handle(self, *app_labels, **options):
-        self.dry_run = options["dry_run"]
-        self.import_instead = options["import_instead"]
-        self.debug = options["debug"]
+    def pending_changes(self, selected_apps=()):
+        """Return the workflow changes that no generated workflow migration holds, as pending changes.
 
-        # If you pass in a specific app, validate that it exists.
-        app_labels = set(app_labels)
-        has_bad_labels = False
-        for app_label in app_labels:
-            try:
-                django_apps.get_app_config(app_label)
-            except LookupError as err:
-                self.stderr.write(str(err))
-                has_bad_labels = True
-        if has_bad_labels:
-            sys.exit(2)
-
+        ``selected_apps`` narrows the search to those app labels. The command always searches every app, so its
+        migrations stay in the order that the changes were made. Tests narrow it to the app that they check.
+        """
         workflow_model_field_names_to_attname = get_attr_names_for_workflow_models()
         workflow_model_field_names_to_attname = self.add_renamed_fields_and_models_to_attr_names(
             workflow_model_field_names_to_attname
@@ -1401,25 +1264,18 @@ class Command(BaseCommand):
         # new migration.
         self.matched_history_records = {}
 
-        all_migrated_data = self._get_vueda_generated_migration_data_per_app(app_labels)
+        all_migrated_data = self._get_vueda_generated_migration_data_per_app(selected_apps)
         all_migrated_data = self._get_history_compared_to_existing_changes(
             all_migrated_data, workflow_model_field_names_to_attname
         )
 
-        changes_by_app = {}
+        pending = []
 
         for app_name, app_data in all_migrated_data.items():
             app_label = app_data["app_label"]
 
-            changes_by_app[app_label] = {
-                "app_name": app_name,
-                "app_label": app_label,
-                "migrations_path": None,
-                "changes": [],
-            }
-
             for model_name, model_data in app_data["history_by_model_name"].items():
-                for workflow_model_name, model_history in model_data.items():
+                for workflow_model_index, (workflow_model_name, model_history) in enumerate(model_data.items()):
                     self.print_debug(f"{app_name}.{model_name}.{workflow_model_name}", app_data)
 
                     queryset = model_history["queryset"]
@@ -1427,9 +1283,9 @@ class Command(BaseCommand):
 
                     if unmatched.exists():
                         content_type_id = app_data["models_to_content_type_ids"][model_name]
-                        changes_by_app[app_label]["migrations_path"] = app_data["migrations_path"]
 
                         for new_record in unmatched:
+                            pgh_id = new_record.pgh_id
                             match new_record.pgh_label:
                                 case "insert":
                                     old_record = None
@@ -1471,25 +1327,17 @@ class Command(BaseCommand):
                                 workflow_model_name,
                                 workflow_model_field_names_to_attname,
                             )
-                            changes_by_app[app_label]["changes"].append(historical_record)
+                            pending.append(
+                                PendingChange(
+                                    recorded_at=history_date,
+                                    tiebreak=(workflow_model_index, pgh_id),
+                                    app_label=app_label,
+                                    data=historical_record,
+                                )
+                            )
 
         # After every model's debug output, so the changes that no model claims are the last debug section.
         for app_name, app_data in all_migrated_data.items():
             self.print_debug_unowned_changes(app_name, app_data)
 
-        changes_by_app = self.clean_changes_by_app(changes_by_app)
-
-        # The developer fakes the new migration locally, so its state sync never runs here. The
-        # command gives the local objects the states the migration would, unless this is a dry run,
-        # which writes nothing.
-        if not self.dry_run:
-            for workflow in models.Workflow.objects.all():
-                model_class = workflow.content_type.model_class()
-                if model_class is not None:
-                    manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
-
-        if not changes_by_app:
-            self.stdout.write(self.style.SUCCESS("No workflow changes detected."))
-            return
-
-        self._create_migration_per_app(changes_by_app)
+        return tuple(pending)

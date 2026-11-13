@@ -1,0 +1,111 @@
+"""The ``makevuedamigrations`` tool for group permission changes."""
+
+__all__ = ("GroupChangeTool",)
+
+from django.apps import apps as django_apps
+from django.conf import settings
+from django.contrib.auth import models as auth_models
+
+from vueda.user import models as vueda_models
+from vueda.user.management.commands.utils import get_matching_record
+from vueda.user.migration_generation.existing import generated_migrations
+from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
+from vueda.user.migration_generation.group_operations import get_group_migration_imports
+from vueda.user.migration_generation.group_operations import get_group_migration_sources
+from vueda.user.migration_generation.tools import MigrationContent
+from vueda.user.migration_generation.tools import MigrationTool
+from vueda.user.migration_generation.tools import PendingChange
+
+
+# The GroupChange fields that a migration's changed_data holds, in the order that it holds them.
+CHANGE_FIELDS = (
+    "group_name",
+    "group_name_old",
+    "change_type",
+    "when",
+    "historical_permission_codename",
+    "historical_permission_content_type_app_label",
+    "historical_permission_content_type_model_name",
+)
+
+
+class GroupChangeTool(MigrationTool):
+    """Write the group permission changes that the Group Management Page recorded as ``GroupChange`` rows.
+
+    Every group migration goes into the app of ``AUTH_USER_MODEL``. A row is pending when no generated group
+    migration holds a matching change.
+    """
+
+    key = "group"
+    migration_name = "group_permission_migrations"
+    # Workflow changes can name a group, so a group change goes first when both were recorded at once.
+    tie_order = 0
+
+    def configure(self, options):
+        self.import_instead = options["import_instead"]
+
+    @staticmethod
+    def user_app_label():
+        """Return the label of the app of ``AUTH_USER_MODEL``, which holds every group migration."""
+        return django_apps.get_model(settings.AUTH_USER_MODEL)._meta.app_label
+
+    def dependency_app_labels(self):
+        # A group migration reads groups and permissions, and records GroupChange rows.
+        return ("auth", "vueda_user")
+
+    def existing_changed_data(self):
+        """Return the ``changed_data`` of every generated group migration, in the order that they apply."""
+        return tuple(
+            migration.changed_data
+            for migration in generated_migrations(self.user_app_label(), MIGRATION_MODIFIED_COMMENTS)
+        )
+
+    def pending_changes(self):
+        return self.pending_changes_given(self.existing_changed_data())
+
+    def pending_changes_given(self, existing_changed_data):
+        """Return the ``GroupChange`` rows that no list in ``existing_changed_data`` holds, as pending changes.
+
+        They are ordered by when they were recorded, then by primary key.
+        """
+        matched_pks = set()
+        for changed_data in existing_changed_data:
+            for change in changed_data:
+                pk = get_matching_record(change, vueda_models.GroupChange)
+                if pk is not None:
+                    matched_pks.add(pk)
+
+        rows = (
+            vueda_models.GroupChange.objects.exclude(pk__in=matched_pks)
+            .order_by("when", "pk")
+            .values("pk", *CHANGE_FIELDS)
+        )
+
+        app_label = self.user_app_label()
+        pending = []
+        for row in rows:
+            pk = row.pop("pk")
+            permission = (
+                auth_models.Permission.objects.filter(
+                    codename=row["historical_permission_codename"],
+                    content_type__app_label=row["historical_permission_content_type_app_label"],
+                    content_type__model=row["historical_permission_content_type_model_name"],
+                )
+                .values("name")
+                .first()
+            )
+            row["historical_permission_name"] = permission["name"]
+            pending.append(PendingChange(recorded_at=row["when"], tiebreak=(pk,), app_label=app_label, data=row))
+
+        return tuple(pending)
+
+    def migration_content(self, app_label, migration_name, changed_data):
+        return MigrationContent(
+            imports=tuple(get_group_migration_imports(self.import_instead)),
+            preamble=(),
+            sources=tuple(get_group_migration_sources(self.import_instead)),
+            permissions_forwards="make_sure_permissions_exist",
+            permissions_backwards="migrations.RunPython.noop",
+            forwards="forwards_migrate_groups_through_imports",
+            backwards="backwards_migrate_groups_through_imports",
+        )

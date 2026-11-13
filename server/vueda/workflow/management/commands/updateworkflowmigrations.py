@@ -20,14 +20,14 @@ from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
-from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENT
+from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_item
 from vueda.workflow.migration_generation.operations import get_migration_imports
 from vueda.workflow.migration_generation.operations import get_migration_sources
 
 
-WORKFLOW_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
+WORKFLOW_MIGRATION_COMMENT_MARKER = tuple(marker.strip() for marker in MIGRATION_MODIFIED_COMMENTS)
 IMPORT_INSTEAD_MARKER = "from vueda.workflow.migration_generation.operations import"
 
 # The copied functions read ObjectStateEvent and write through the workflow event triggers.
@@ -137,7 +137,7 @@ def workflow_identity_of(changes):
 
     A change that recorded neither column names a workflow whose columns are blank: replaying the
     change creates the row through a migration-state model, which has none of the ``save()`` that
-    fills those columns in, so blank is what the row ends up holding. ``makeworkflowmigrations``
+    fills those columns in, so blank is what the row ends up holding. ``makevuedamigrations``
     writes the workflow's own id the same way, so a reference has to agree with it to match.
     """
     return {key: changes.get(key, "") for key in WORKFLOW_IDENTITY_KEYS}
@@ -274,8 +274,9 @@ OPERATION_FUNCTION_RENAMES = {
 class Command(BaseCommand):
     help = (
         "Scan the named apps, or every app when none is named, for workflow migrations created by "
-        "makeworkflowmigrations and rewrite their import and function sections with the current implementations "
-        "from makeworkflowmigrations.py. Apps installed as packages are never updated, though their migrations "
+        "makevuedamigrations or makeworkflowmigrations and rewrite their import and function sections with the "
+        "current implementations from vueda/workflow/migration_generation/operations.py. Apps installed as "
+        "packages are never updated, though their migrations "
         "are read for the workflows they record and for dependency checks. "
         "The history_change_reason and migration_app_label variables are preserved unchanged, and changed_data "
         "keeps every change it records, gaining only the app and model naming each workflow it refers to by code. "
@@ -370,7 +371,7 @@ class Command(BaseCommand):
             )
 
     def _replace_changed_data(self, lines_string, changed_data, filepath):
-        """Write the changes back in the form makeworkflowmigrations writes them."""
+        """Write the changes back in the form makevuedamigrations writes them."""
         tree = ast.parse(lines_string)
 
         for node in tree.body:
