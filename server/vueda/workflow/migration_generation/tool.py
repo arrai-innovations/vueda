@@ -27,6 +27,7 @@ from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
+from vueda.user.migration_generation.dependencies import is_installed_package_app
 from vueda.user.migration_generation.dependencies import user_app_label
 from vueda.user.migration_generation.existing import app_migration_names
 from vueda.user.migration_generation.existing import generated_migrations
@@ -1354,4 +1355,20 @@ class WorkflowChangeTool(MigrationTool):
         for app_name, app_data in all_migrated_data.items():
             self.print_debug_unowned_changes(app_name, app_data)
 
-        return tuple(pending)
+        return self._without_installed_packages(pending)
+
+    def _without_installed_packages(self, pending):
+        """Leave out the changes in apps installed as packages, and warn about each such app.
+
+        A project cannot commit a migration written into a package, and a reinstall puts the package's own files
+        back.
+        """
+        packaged = sorted({change.app_label for change in pending if is_installed_package_app(change.app_label)})
+        for app_label in packaged:
+            count = sum(1 for change in pending if change.app_label == app_label)
+            self.stderr.write(
+                f"Left out {count} workflow change(s) in {app_label}, because the app is installed as a package. "
+                "A project cannot commit a migration into a package."
+            )
+
+        return tuple(change for change in pending if change.app_label not in packaged)

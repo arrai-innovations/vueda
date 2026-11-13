@@ -268,6 +268,33 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             call_command("migrate", "erring", initial_changed, verbosity=0)
             assert ObjectState.objects.get(workflow__code="round_trip", object_id=untouched.pk).state.code == "second"
 
+    def test_a_migration_that_vueda_ships_depends_only_on_what_every_project_has(self, settings):
+        """In VUEDA's own repository, vueda_vdq's workflow migrations ship in the package.
+
+        Such a migration must not depend on this repository's test apps or its test user app. It depends on the
+        user model through the swappable setting, and on VUEDA's own apps.
+        """
+        workflow = Workflow.objects.filter(content_type__app_label="vueda_vdq").first()
+
+        with self.temporary_migration_module(settings, app_label="vueda_vdq") as vdq_dir:
+            assert apps_with_pending_changes() == set()
+            vdq_before = set(Path(vdq_dir).glob("*.py"))
+            State.objects.create(workflow=workflow, code="shipped_state", name="Shipped State")
+
+            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+
+            (shipped,) = new_migration_names(vdq_dir, vdq_before)
+            source = (Path(vdq_dir) / f"{shipped}.py").read_text()
+            assert "migrations.swappable_dependency(settings.AUTH_USER_MODEL)" in source
+            assert "from django.conf import settings" in source
+            dependencies = migration_dependencies(vdq_dir, shipped)
+            # The swappable dependency resolves to the user app's first migration, never its latest one.
+            assert ("employee", "__first__") in dependencies
+            assert all(
+                dependency[0] == "auth" or dependency[0].startswith("vueda_") or dependency == ("employee", "__first__")
+                for dependency in dependencies
+            ), dependencies
+
 
 @pytest.mark.xdist_group(name="management_command_tests")
 @pytest.mark.django_db
@@ -340,7 +367,38 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
             assert kept.endswith("_group_permission_migrations")
             assert new_migration_names(erring_dir, erring_before) == []
             assert f"Kept the migrations already written: employee.{kept}." in errors.getvalue()
-            assert "because it could not be filled in." in errors.getvalue()
+            assert "An error occurred while writing the migration for workflow changes in erring" in errors.getvalue()
+            assert "run it with --keep-failed-migration" in errors.getvalue()
+
+    def test_keep_failed_migration_keeps_the_unfinished_migration_for_debugging(self, settings, monkeypatch):
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        Workflow.objects.create(code="kept_unfinished", name="Kept Unfinished", content_type=content_type)
+
+        def fail_to_build_content(self, app_label, migration_name, changed_data):
+            raise RuntimeError("content could not be built")
+
+        monkeypatch.setattr(WorkflowChangeTool, "migration_content", fail_to_build_content)
+
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert apps_with_pending_changes() == {"erring"}
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            errors = io.StringIO()
+
+            with pytest.raises(RuntimeError, match="content could not be built"):
+                call_command(
+                    "makevuedamigrations",
+                    "--import-instead",
+                    "--keep-failed-migration",
+                    stdout=io.StringIO(),
+                    stderr=errors,
+                )
+
+            (unfinished,) = new_migration_names(erring_dir, erring_before)
+            unfinished_path = Path(erring_dir) / f"{unfinished}.py"
+            # The kept file still holds the placeholder operations that the writer fills in.
+            assert "code=str" in unfinished_path.read_text()
+            assert f"Kept the unfinished migration at {unfinished_path} for debugging." in errors.getvalue()
+            assert "delete it before you run migrate." in errors.getvalue()
 
     def test_a_migration_left_by_a_failing_makemigrations_is_deleted(self, settings, monkeypatch):
         """makemigrations can write its file and then fail, for example by writing to stderr."""

@@ -84,10 +84,9 @@ of those commands must not write into the source tree. `BaseTestMigrations` and 
    the copy. It returns the copy's path, so the test can read the files that a command writes. It
    deletes the directory when the block exits.
 
-`test_no_app_label_specified` in `unit/workflow/test_management_commands.py` follows all three
-steps. To find a generated migration by name, use `find_one_migration_generated_today_or_fail`.
-The commands put the date in the file name, and the helper accepts yesterday's date for a test that
-runs past midnight.
+`TestMakeVuedaMigrations` in `unit/users/test_makevuedamigrations.py` follows steps 1 and 3. To find
+the migrations that a command wrote, list the migration directory before and after it runs, as its
+`new_migration_names` helper does. Never build a name from today's date.
 
 ## Tests that must not run in parallel
 

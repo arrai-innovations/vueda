@@ -70,7 +70,7 @@ Django `Permission` rows have no change history. `Group` rows have history only 
 
 ## Generating Workflow Migrations
 
-After you change workflows locally, run `makevuedamigrations`. It writes one migration for each app with workflow changes that no workflow migration records yet. It always checks every app.
+After you change workflows locally, run `makevuedamigrations`. It writes the workflow changes that no workflow migration records yet into the app of each workflow model. A new migration starts each time your changes switch to another app or to group changes, so one app can get several. It always checks every app. It leaves out an app installed as a package, such as VUEDA's own `vueda_vdq`, and names it in a warning, because a project cannot commit a migration into a package.
 
 ```console
 python manage.py makevuedamigrations
@@ -130,6 +130,7 @@ The commands format only `changed_data` this way. They write the rest of the mig
 ### Command Options
 
 - `--dry-run` runs the same detection and prints the name of each migration it would create, without writing files. A dry run writes no files, so when two migrations would go into one app, both show the same number.
+- `--keep-failed-migration` keeps a migration that the command could not fill in, instead of deleting it. Without it, the command deletes the unfinished file, because its placeholder operations would fail when applied, and asks you to run the command again. Read the kept file to find the problem, or attach it to a bug report after you replace any private values. Keep codes such as state and transition codes where you can, because they help find the problem. Delete the file before you run `migrate`.
 - `--workflow-debug <app_name>.<model>.<workflow_model>`, or `--workflow-debug all`, prints the existing migration changes that matched history, those that did not, and the history that the new migration adds. `<app_name>` is the app's `AppConfig.name`, and `<workflow_model>` is a workflow model name such as `state`. The list of changes that did not match includes only that model's changes to that workflow model. A change can belong to none of the app's models. This happens when this database never recorded the change's workflow, or when the workflow belongs to a model outside the app. The command lists each such change once per app, under the heading "Changes not belonging to a recorded model", after every model's debug output. Give `--workflow-debug` with no name to list the names that it accepts. Repeat the option to name several.
 
 ### Fake the Migration Locally

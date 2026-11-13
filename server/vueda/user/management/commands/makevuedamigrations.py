@@ -64,6 +64,15 @@ class Command(BaseCommand):
             ),
         )
 
+        parser.add_argument(
+            "--keep-failed-migration",
+            action="store_true",
+            help=(
+                "When a migration cannot be filled in, keep the unfinished file instead of deleting it, so you can "
+                "read it or attach it to a bug report. Delete it before you run migrate."
+            ),
+        )
+
         self.tools = get_migration_tools(self)
         for tool in self.tools:
             group = parser.add_argument_group(f"{tool.key} changes")
@@ -118,7 +127,13 @@ class Command(BaseCommand):
                 {label for step in steps for label in step.dependency_app_labels}
                 | {planned.app_label for step in steps for planned in step.migrations}
             )
-            write_plan(self, steps, {tool.key: tool for tool in self.tools}, dry_run=self.dry_run)
+            write_plan(
+                self,
+                steps,
+                {tool.key: tool for tool in self.tools},
+                dry_run=self.dry_run,
+                keep_failed_migration=options["keep_failed_migration"],
+            )
 
         for tool in self.tools:
             tool.finish(dry_run=self.dry_run)

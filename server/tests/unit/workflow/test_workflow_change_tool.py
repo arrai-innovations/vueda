@@ -239,6 +239,22 @@ class TestWorkflowChangeTool:
 
         assert change_kinds(pending) == (("workflow", WorkflowChangeTypes.CHANGED.value),)
 
+    def test_changes_in_an_app_installed_as_a_package_are_left_out_with_a_warning(self, monkeypatch):
+        """A project cannot commit a migration into a package, such as VUEDA's own vueda_vdq."""
+        started_at = database_now()
+        build_workflow("packaged")
+        monkeypatch.setattr(
+            "vueda.workflow.migration_generation.tool.is_installed_package_app", lambda app_label: app_label == "erring"
+        )
+        errors = io.StringIO()
+        tool = WorkflowChangeTool(BaseCommand(stdout=io.StringIO(), stderr=errors))
+        tool.configure({"dry_run": True, "import_instead": False, "workflow_debug": []})
+
+        pending = tool.pending_changes(selected_apps=("erring",))
+
+        assert [change for change in pending if change.recorded_at >= started_at] == []
+        assert "workflow change(s) in erring, because the app is installed as a package." in errors.getvalue()
+
     def test_debug_names_list_models_with_recorded_workflows_and_skip_models_without(self):
         tool = WorkflowChangeTool(BaseCommand(stdout=io.StringIO()))
 
