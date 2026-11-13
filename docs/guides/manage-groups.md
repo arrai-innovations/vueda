@@ -95,7 +95,7 @@ python manage.py makevuedamigrations --dry-run
 
 ### Group and Workflow Changes in One Run
 
-A workflow migration can name a group that a group migration creates or renames. `makevuedamigrations` therefore writes the changes in the order that you made them. It starts a new migration each time your changes switch between group changes and workflow changes. Each migration depends on the ones before it. [Group Changes and Workflow Migrations](manage-workflows.md#group-changes-and-workflow-migrations) in the workflow guide shows an example.
+A workflow migration can name a group that a group migration creates or renames. `makevuedamigrations` therefore writes the changes in the order that you made them. It starts a new migration each time your changes switch between group changes and workflow changes, or from one app's workflow to another app's. Each migration depends on the ones before it. [Group Changes and Workflow Migrations](manage-workflows.md#group-changes-and-workflow-migrations) in the workflow guide shows an example.
 
 ### Which Changes a Migration Includes
 

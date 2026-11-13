@@ -69,14 +69,15 @@ class Command(BaseCommand):
             group = parser.add_argument_group(f"{tool.key} changes")
             tool.add_arguments(_PrefixedArgumentGroup(group, tool.key))
 
-    def _warn_about_unapplied_migrations(self, project_labels):
-        """Warn when a project app has migrations that this database has not applied.
+    def _warn_about_unapplied_migrations(self, dependency_labels):
+        """Warn when an app that a new migration depends on has migrations that this database has not applied.
 
-        The first new migration depends on the latest migration of every project app. Faking a new migration marks
-        every migration that it depends on as applied, so an unapplied schema migration would never run here.
+        The new migrations depend on the latest migration of every project app and of the apps that the tools
+        name, such as ``vueda_user``. Faking a new migration marks every migration that it depends on as applied,
+        so an unapplied migration of those apps would never run here.
         """
         executor = MigrationExecutor(connection)
-        labels = frozenset(project_labels)
+        labels = frozenset(dependency_labels)
         unapplied = [
             f"{migration.app_label}.{migration.name}"
             for migration, _backwards in executor.migration_plan(executor.loader.graph.leaf_nodes())
@@ -113,7 +114,7 @@ class Command(BaseCommand):
         steps = plan_migrations(tool_changes, project_labels)
 
         if steps:
-            self._warn_about_unapplied_migrations(project_labels)
+            self._warn_about_unapplied_migrations({label for step in steps for label in step.dependency_app_labels})
             write_plan(self, steps, {tool.key: tool for tool in self.tools}, dry_run=self.dry_run)
 
         for tool in self.tools:

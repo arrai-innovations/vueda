@@ -256,8 +256,7 @@ def get_group_migration_imports(import_instead=False, direct_runpython_import=Fa
         result_mapping = {
             ("copy",): f"import copy{NEWLINE}",
             ("datetime",): f"import datetime{NEWLINE}",
-            ("settings",): f"{NEWLINE}from django.conf import settings{NEWLINE}",
-            ("migrations",): f"from django.db import migrations{NEWLINE}",
+            ("migrations",): f"{NEWLINE}from django.db import migrations{NEWLINE}",
         }
         if direct_runpython_import:
             result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
@@ -277,7 +276,6 @@ def get_group_migration_imports(import_instead=False, direct_runpython_import=Fa
             ("datetime",): f"import datetime{NEWLINE}",
             ("enum",): f"import enum{NEWLINE}",
             ("django_apps",): f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}",
-            ("settings",): f"from django.conf import settings{NEWLINE}",
             ("create_permissions",): f"from django.contrib.auth.management import create_permissions{NEWLINE}",
             ("migrations",): f"from django.db import migrations{NEWLINE}",
         }

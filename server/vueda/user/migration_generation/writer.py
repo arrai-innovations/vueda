@@ -10,6 +10,7 @@ __all__ = (
 from pathlib import Path
 
 from django.apps import apps as django_apps
+from django.core.management import CommandError
 from django.db import migrations
 
 from vueda.user.management.commands.utils import NEWLINE
@@ -107,6 +108,8 @@ def write_plan(command, steps, tools_by_key, *, dry_run):
     when applied. The migrations of earlier steps are kept. Their changes match on the next run, so that run
     writes only what is left. A dry run writes no files.
     """
+    _check_migration_directories(steps)
+
     written = []
     try:
         for step in steps:
@@ -124,6 +127,19 @@ def write_plan(command, steps, tools_by_key, *, dry_run):
         raise
 
     return tuple(written)
+
+
+def _check_migration_directories(steps):
+    """Raise ``CommandError`` for an app that a step writes into but that has no migrations directory.
+
+    This runs before anything is written, so a run that cannot finish leaves no migration behind.
+    """
+    for app_label in sorted({planned.app_label for step in steps for planned in step.migrations}):
+        if get_migrations_path(django_apps.get_app_config(app_label)) is None:
+            raise CommandError(
+                f"The app {app_label!r} has pending changes but no migrations directory to write them into. "
+                "Its MIGRATION_MODULES entry may be None, or its migrations may be a single module."
+            )
 
 
 def _write_migration(command, tool, planned, dependencies, *, dry_run):

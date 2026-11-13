@@ -9,14 +9,12 @@ from django.contrib.auth import models as auth_models
 from vueda.user import models as vueda_models
 from vueda.user.management.commands.utils import get_matching_record
 from vueda.user.migration_generation.existing import generated_migrations
-from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENT
 from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.user.migration_generation.group_operations import get_group_migration_imports
 from vueda.user.migration_generation.group_operations import get_group_migration_sources
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
-from vueda.user.migration_generation.tools import import_lines_without
 
 
 # The GroupChange fields that a migration's changed_data holds, in the order that it holds them.
@@ -116,11 +114,7 @@ class GroupChangeTool(MigrationTool):
 
     def migration_content(self, app_label, migration_name, changed_data):
         return MigrationContent(
-            # A group migration no longer depends on AUTH_USER_MODEL by setting, so it needs no settings import.
-            imports=(
-                MIGRATION_MODIFIED_COMMENT,
-                *import_lines_without(get_group_migration_imports(self.import_instead, as_mapping=True), "settings"),
-            ),
+            imports=tuple(get_group_migration_imports(self.import_instead)),
             preamble=(),
             sources=tuple(get_group_migration_sources(self.import_instead)),
             permissions_forwards="make_sure_permissions_exist",

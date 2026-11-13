@@ -33,10 +33,8 @@ from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
-from vueda.user.migration_generation.tools import import_lines_without
 from vueda.workflow import models
 from vueda.workflow.migration_generation.operations import MIGRATION_ACTION_KIND
-from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENT
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_dict
@@ -302,7 +300,7 @@ class WorkflowChangeTool(MigrationTool):
 
     def migration_content(self, app_label, migration_name, changed_data):
         return MigrationContent(
-            imports=self._imports(),
+            imports=tuple(get_migration_imports(self.import_instead)),
             preamble=(
                 f'history_change_reason = "Workflow Migration - {migration_name}"{NEWLINE}',
                 f'migration_app_label = "{app_label}"{NEWLINE}',
@@ -313,18 +311,6 @@ class WorkflowChangeTool(MigrationTool):
             forwards="forwards_migrate_workflow_through_imports",
             backwards="backwards_migrate_workflow_through_imports",
         )
-
-    def _imports(self):
-        """Return the import lines of a new workflow migration, starting with the marker comment.
-
-        Copied code reads settings.AUTH_USER_MODEL. A migration that imports its functions instead does not, and
-        no longer depends on AUTH_USER_MODEL by setting, so it needs no settings import.
-        """
-        if not self.import_instead:
-            return tuple(get_migration_imports(self.import_instead))
-
-        mapping = get_migration_imports(self.import_instead, as_mapping=True)
-        return (MIGRATION_MODIFIED_COMMENT, *import_lines_without(mapping, "settings"))
 
     def finish(self, *, dry_run):
         """Give local objects the states that the new migrations would give them, unless this is a dry run.

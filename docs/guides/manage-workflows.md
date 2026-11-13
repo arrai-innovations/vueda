@@ -173,7 +173,7 @@ Workflow migrations created on parallel branches can conflict when merged.
 
 ### Group Changes and Workflow Migrations
 
-A migration names the group of each state permission by the name that the group had when you made the change. Group migrations create and rename those groups, so `makevuedamigrations` writes group and workflow changes in the order that you made them. Each time your changes switch between the two kinds, it starts a new migration that depends on the migrations before it. For example, suppose you make these changes in this order:
+A migration names the group of each state permission by the name that the group had when you made the change. Group migrations create and rename those groups, so `makevuedamigrations` writes group and workflow changes in the order that you made them. Each time your changes switch between the two kinds, or from one app's workflow to another app's, it starts a new migration that depends on the migrations before it. The switch between apps matters because a workflow code is unique across apps. When one app gives up a code and another app takes it, the first must run before the second. For example, suppose you make these changes in this order:
 
 1. Create group A on the {@term Group Management Page}.
 2. Give group A a state permission.

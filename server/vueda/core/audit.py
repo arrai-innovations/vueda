@@ -43,10 +43,12 @@ def tagged_writes(**metadata):
     """Add ``metadata`` to the action that the writes made in this block are recorded under.
 
     Unlike ``audited_action``, this names no action and no kind. Inside an open action, the metadata joins that
-    action and keeps its name and kind. The action keeps the metadata until it ends, so writes made later in it
-    carry the metadata too. Outside one, the block opens an action that holds only the metadata, and clears it
-    when the block ends, so a later write in the same transaction carries no metadata. An action that the block
-    opens has the ``system`` kind, as ``audited_action`` gives an action that names none.
+    action and keeps its name and kind. Every write in the action shares one context row, so every write in it,
+    including the writes made before this block, carries the metadata.
+
+    Outside an action, the block opens one that holds only the metadata, and clears it when the block ends, so a
+    later write in the same transaction carries no metadata. An action that the block opens has the ``system``
+    kind, as ``audited_action`` gives an action that names none.
     """
     with _open_or_join_action(metadata, None):
         yield

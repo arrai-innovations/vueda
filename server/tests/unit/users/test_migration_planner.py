@@ -94,30 +94,34 @@ def test_interleaved_changes_become_one_step_per_switch_between_tools():
     )
 
 
-def test_a_step_that_writes_several_apps_makes_the_next_step_depend_on_all_of_them():
-    store_workflow = PendingChange(recorded_at=START, tiebreak=(1,), app_label="store", data={"workflow": "orders"})
-    billing_workflow = PendingChange(
-        recorded_at=START + MINUTE, tiebreak=(2,), app_label="billing", data={"workflow": "invoices"}
-    )
-    group_added = PendingChange(recorded_at=START + 2 * MINUTE, tiebreak=(1,), app_label="accounts", data={"name": "A"})
+def test_changes_of_one_tool_in_two_apps_become_one_step_per_switch_between_apps():
+    """A workflow code that one app gives up and another app takes must be given up first on an empty database."""
+    code_given_up = PendingChange(recorded_at=START, tiebreak=(1,), app_label="store", data={"deleted": "X"})
+    code_taken = PendingChange(recorded_at=START + MINUTE, tiebreak=(2,), app_label="billing", data={"added": "X"})
+    store_edit = PendingChange(recorded_at=START + 2 * MINUTE, tiebreak=(3,), app_label="store", data={"edit": 1})
 
     plan = plan_migrations(
-        (
-            ToolChanges(tool_key="group", changes=(group_added,)),
-            ToolChanges(tool_key="workflow", changes=(store_workflow, billing_workflow)),
-        ),
-        project_app_labels=("accounts", "billing", "store"),
+        (ToolChanges(tool_key="workflow", changes=(code_given_up, code_taken, store_edit)),),
+        project_app_labels=("billing", "store"),
     )
 
-    assert plan[0] == PlannedStep(
-        tool_key="workflow",
-        migrations=(
-            PlannedMigration(tool_key="workflow", app_label="store", changes=(store_workflow,)),
-            PlannedMigration(tool_key="workflow", app_label="billing", changes=(billing_workflow,)),
+    assert plan == (
+        PlannedStep(
+            tool_key="workflow",
+            migrations=(PlannedMigration(tool_key="workflow", app_label="store", changes=(code_given_up,)),),
+            dependency_app_labels=("billing", "store"),
         ),
-        dependency_app_labels=("accounts", "billing", "store"),
+        PlannedStep(
+            tool_key="workflow",
+            migrations=(PlannedMigration(tool_key="workflow", app_label="billing", changes=(code_taken,)),),
+            dependency_app_labels=("store",),
+        ),
+        PlannedStep(
+            tool_key="workflow",
+            migrations=(PlannedMigration(tool_key="workflow", app_label="store", changes=(store_edit,)),),
+            dependency_app_labels=("billing",),
+        ),
     )
-    assert plan[1].dependency_app_labels == ("billing", "store")
 
 
 def test_changes_recorded_at_the_same_moment_follow_the_tool_order():
@@ -176,4 +180,13 @@ def test_every_pending_change_is_planned_exactly_once():
         (*group_changes, *workflow_changes), key=lambda change: change.recorded_at
     )
     assert len(planned) == len(group_changes) + len(workflow_changes)
-    assert tuple(step.tool_key for step in plan) == ("group", "workflow", "group", "workflow", "group")
+    assert tuple((step.tool_key, step.migrations[0].app_label) for step in plan) == (
+        ("group", "accounts"),
+        ("workflow", "billing"),
+        ("workflow", "store"),
+        ("group", "accounts"),
+        ("workflow", "billing"),
+        ("workflow", "store"),
+        ("workflow", "billing"),
+        ("group", "accounts"),
+    )

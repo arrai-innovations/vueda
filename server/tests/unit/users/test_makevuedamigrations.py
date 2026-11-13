@@ -30,12 +30,12 @@ from vueda.user.management.commands.makevuedamigrations import _PrefixedArgument
 from vueda.user.migration_generation import group_operations
 from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.groups import GroupChangeTool
-from vueda.user.migration_generation.tools import import_lines_without
 from vueda.user.models import GroupChange
 from vueda.user.views import PermissionSaveView
 from vueda.workflow.migration_generation import operations as workflow_operations
 from vueda.workflow.migration_generation.tool import WorkflowChangeTool
 from vueda.workflow.models import InitialState
+from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Workflow
@@ -231,6 +231,38 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             call_command("migrate", "erring", workflow_migration, verbosity=0)
             assert permission_snapshot(group_names, "copied") == after_changes
 
+    def test_a_new_initial_state_reaches_untouched_objects_again_after_a_round_trip(self, settings):
+        """A migration adds a state and makes it the initial state. Reversing it moves objects back, and
+        applying it again moves them forward again: the reversal's own move does not count as someone's."""
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert apps_with_pending_changes() <= {"erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            workflow = Workflow.objects.create(code="round_trip", name="Round Trip", content_type=content_type)
+            first = State.objects.create(workflow=workflow, code="first", name="First")
+            InitialState.objects.create(workflow=workflow, state=first)
+            untouched = EnabledWithoutWorkflow.objects.create(name="untouched")
+            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+            (workflow_created,) = new_migration_names(erring_dir, erring_before)
+            call_command("migrate", "erring", workflow_created, fake=True, verbosity=0)
+            after_first_run = set(Path(erring_dir).glob("*.py"))
+
+            second = State.objects.create(workflow=workflow, code="second", name="Second")
+            InitialState.objects.filter(workflow=workflow).update(state=second)
+            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+            (initial_changed,) = new_migration_names(erring_dir, after_first_run)
+            call_command("migrate", "erring", initial_changed, fake=True, verbosity=0)
+            assert ObjectState.objects.get(workflow=workflow, object_id=untouched.pk).state.code == "second"
+
+            call_command("migrate", "erring", workflow_created, verbosity=0)
+            assert ObjectState.objects.get(workflow__code="round_trip", object_id=untouched.pk).state.code == "first"
+
+            call_command("migrate", "erring", initial_changed, verbosity=0)
+            assert ObjectState.objects.get(workflow__code="round_trip", object_id=untouched.pk).state.code == "second"
+
 
 @pytest.mark.xdist_group(name="management_command_tests")
 @pytest.mark.django_db
@@ -343,18 +375,3 @@ def test_the_new_and_the_old_marker_comments_identify_a_generated_migration(tmp_
     # A workflow marker does not mark a group migration.
     (tmp_path / "workflow.py").write_text(workflow_operations.MIGRATION_MODIFIED_COMMENT)
     assert not is_generated_migration(tmp_path / "workflow.py", group_operations.MIGRATION_MODIFIED_COMMENTS)
-
-
-def test_import_lines_without_moves_a_dropped_group_opening_to_the_next_line():
-    mapping = {
-        ("copy",): "import copy\n",
-        ("settings",): "\nfrom django.conf import settings\n",
-        ("migrations",): "from django.db import migrations\n",
-        ("forwards",): "\nfrom vueda.example import forwards\n",
-    }
-
-    assert import_lines_without(mapping, "settings") == (
-        "import copy\n",
-        "\nfrom django.db import migrations\n",
-        "\nfrom vueda.example import forwards\n",
-    )

@@ -745,14 +745,15 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
 
     An object state that nobody has moved since it was created moves to the current initial state, so a changed
     initial state reaches it. That includes changing the initial state back after a mistake. Someone moved a state
-    when it has an event other than its creation that this function did not write. This function's own moves are
-    tagged with ``initial_state_sync`` through ``tagged_writes``, so they do not count. Inside an open action, such
-    as a migration's, the tag joins that action, and other writes in it carry the tag too. A state with no events
-    stays where it is, because it may predate the event triggers.
+    when an event other than its creation records a move that neither this function nor a migration made. This
+    function's own moves are tagged with ``initial_state_sync`` through ``tagged_writes``. A migration's writes are
+    recorded under an action of the ``migration`` kind, such as a reversal that moves objects out of a state that
+    it removes. Neither counts as someone's move. A state with no events stays where it is, because it may predate
+    the event triggers.
 
     Returns the number of object states that moved. ``reversing`` deletes every object state of the workflow
-    instead. The workflow, model, and object state
-    classes are passed in, so the function works with a migration's models and with the current models.
+    instead. The workflow, model, and object state classes are passed in, so the function works with a migration's
+    models and with the current models.
     Generated workflow migrations copy this function, and ``backfillworkflowstates`` calls it.
     """
     if reversing:
@@ -780,7 +781,15 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
     moved_by_someone = (
         object_state_event_class.objects.filter(workflow_id=OuterRef("workflow_id"), object_id=OuterRef("object_id"))
         .exclude(pgh_label="insert")
-        .filter(Q(pgh_context__isnull=True) | ~Q(pgh_context__metadata__contains={"initial_state_sync": True}))
+        .filter(
+            Q(pgh_context__isnull=True)
+            | ~(
+                Q(pgh_context__metadata__contains={"initial_state_sync": True})
+                # Written out rather than named, because this source is copied into migrations. It matches
+                # MIGRATION_ACTION_KIND.
+                | Q(pgh_context__metadata__contains={"kind": "migration"})
+            )
+        )
     )
     untouched = (
         workflow_obj_state_class.objects.filter(workflow=workflow)
@@ -1048,16 +1057,16 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
     if not import_instead:
         result_mapping[("enum",)] = f"import enum{NEWLINE}"
 
-    if import_instead:
-        result_mapping[("settings",)] = f"{NEWLINE}from django.conf import settings{NEWLINE}"
-    else:
+    if not import_instead:
         result_mapping[("django_apps",)] = f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}"
         result_mapping[("settings",)] = f"from django.conf import settings{NEWLINE}"
         result_mapping[("create_permissions",)] = (
             f"from django.contrib.auth.management import create_permissions{NEWLINE}"
         )
 
-    result_mapping[("migrations",)] = f"from django.db import migrations{NEWLINE}"
+    # In the import form, migrations opens the third-party group, because nothing from django comes before it.
+    migrations_line = f"from django.db import migrations{NEWLINE}"
+    result_mapping[("migrations",)] = f"{NEWLINE}{migrations_line}" if import_instead else migrations_line
 
     if direct_runpython_import:
         result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"

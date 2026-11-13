@@ -37,7 +37,7 @@ class PlannedMigration:
 
 @dataclasses.dataclass(frozen=True)
 class PlannedStep:
-    """A run of consecutive changes from one tool, written as one migration per app.
+    """A run of consecutive changes from one tool to one app, written as one migration.
 
     Each migration of the step depends on the latest migration of each app in ``dependency_app_labels``. The
     writer reads those latest migrations just before it writes the step. The steps are written in order, so for
@@ -54,7 +54,9 @@ def plan_migrations(tool_changes, project_app_labels):
 
     ``tool_changes`` is a sequence of ``ToolChanges``, in the order that breaks a tie between two tools. The
     changes are sorted by ``recorded_at``, then by that tool order, then by each change's own ``tiebreak``. A new
-    step starts each time the sorted changes switch from one tool to another.
+    step starts each time the sorted changes switch to another tool or another app. A change in one app can depend
+    on a change in another, such as a workflow code that one app gives up and another app takes, so the steps
+    keep that order too.
 
     The first step depends on every app in ``project_app_labels``. Each later step depends on the apps that the
     step before it wrote into. Every step also depends on its own tool's ``dependency_app_labels``.
@@ -72,7 +74,7 @@ def plan_migrations(tool_changes, project_app_labels):
 
     runs = []
     for tool_key, change in ordered:
-        if runs and runs[-1][0] == tool_key:
+        if runs and runs[-1][0] == tool_key and runs[-1][1][-1].app_label == change.app_label:
             runs[-1][1].append(change)
         else:
             runs.append((tool_key, [change]))
