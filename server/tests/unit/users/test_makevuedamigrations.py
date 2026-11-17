@@ -588,6 +588,82 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             call_command("migrate", "erring", second_workflows[-1], verbosity=0)
             assert (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited")) == after_second
 
+    def test_rows_moved_to_another_state_transition_permission_or_group_round_trip(self, settings):
+        """Rows that point at a state, transition, permission, or group are moved to another one.
+
+        A moved row's change names it by its old and new targets. Replaying the change finds the row by the
+        target that it has at that moment: the old one going forwards, the new one in reverse. Reversing the
+        second migration puts every row back, and applying it again moves them again.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        read, update, delete = (
+            Permission.objects.get(content_type=content_type, codename=f"{action}_enabledwithoutworkflow")
+            for action in ("read", "update", "delete")
+        )
+        admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
+        group_names = ("Moving Reviewers", "Moving Approvers")
+
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() <= {"employee", "erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            employee_last_before = max(path.stem for path in Path(employee_dir).glob("0*.py"))
+            erring_last_before = max(path.stem for path in Path(erring_dir).glob("0*.py"))
+            before_changes = (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving"))
+
+            reviewers = save_group_permission(admin, read, "Moving Reviewers")
+            approvers = save_group_permission(admin, read, "Moving Approvers")
+            workflow = Workflow.objects.create(code="moving", name="Moving", content_type=content_type)
+            draft = State.objects.create(workflow=workflow, code="draft", name="Draft")
+            approved = State.objects.create(workflow=workflow, code="approved", name="Approved")
+            review = State.objects.create(workflow=workflow, code="review", name="Review")
+            InitialState.objects.create(workflow=workflow, state=draft)
+            state_permission = StatePermission.objects.create(
+                state=draft, permission=update, group=reviewers, grant_or_deny=True
+            )
+            approve = Transition.objects.create(workflow=workflow, code="approve", name="Approve", target=approved)
+            reject = Transition.objects.create(workflow=workflow, code="reject", name="Reject", target=draft)
+            transition_permission = TransitionPermission.objects.create(transition=approve, permission=update)
+            transition_source = TransitionSource.objects.create(transition=approve, source=draft)
+            TransitionSource.objects.create(transition=reject, source=approved)
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            assert len(new_migration_names(employee_dir, employee_before)) == 1
+            (first_workflow,) = new_migration_names(erring_dir, erring_before)
+            call_command("migrate", "erring", first_workflow, fake=True, verbosity=0)
+            after_first = (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving"))
+            erring_after_first = set(Path(erring_dir).glob("*.py"))
+
+            state_permission.state = approved
+            state_permission.permission = delete
+            state_permission.group = approvers
+            state_permission.save()
+            transition_permission.transition = reject
+            transition_permission.save()
+            transition_source.transition = reject
+            transition_source.source = review
+            transition_source.save()
+            after_second = (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving"))
+            assert after_second != after_first
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            second_workflows = new_migration_names(erring_dir, erring_after_first)
+            assert second_workflows, "The moves wrote no migration."
+            call_command("migrate", "erring", second_workflows[-1], fake=True, verbosity=0)
+            assert apps_with_pending_changes() == set()
+
+            call_command("migrate", "erring", first_workflow, verbosity=0)
+            assert (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving")) == after_first
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            call_command("migrate", "employee", employee_last_before, verbosity=0)
+            assert (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving")) == before_changes
+
+            call_command("migrate", "erring", second_workflows[-1], verbosity=0)
+            assert (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving")) == after_second
+
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.
 

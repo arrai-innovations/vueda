@@ -408,6 +408,8 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
             model_state_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
+            # A state permission moved to another state holds an (old, new) pair here too.
+            data["id"]["state_id"] = get_id_values_from_item(data["id"]["state_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
@@ -437,6 +439,16 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
                     group = model_group.objects.get(**group_id)
                     new_group_ids.append(group.pk)
                 data["group_id"] = tuple(new_group_ids)
+
+            # If the value is changed, it is a tuple.  We need to get the ids for each item.
+            if type(data["state_id"]) is tuple:
+                state_ids = []
+                for state_data in data["state_id"]:
+                    workflow = model_workflow.objects.get(**state_data["workflow_id"])
+                    state_data["workflow_id"] = workflow.pk
+                    state = model_state.objects.get(**state_data)
+                    state_ids.append(state.pk)
+                data["state_id"] = tuple(state_ids)
 
             apply_and_save_changes(state_permission, data, reversing=reversing)
 
@@ -605,6 +617,8 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
             model_transition_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
+            # A transition permission moved to another transition holds an (old, new) pair here.
+            data["id"]["transition_id"] = get_id_values_from_item(data["id"]["transition_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
 
@@ -689,6 +703,8 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
             state = model_state.objects.get(**data["id"]["source_id"])
             data["id"]["source_id"] = state.pk
 
+            # A source moved to another transition holds an (old, new) pair here, as source_id does above.
+            data["id"]["transition_id"] = get_id_values_from_item(data["id"]["transition_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
             transition = model_transition.objects.get(**data["id"]["transition_id"])
