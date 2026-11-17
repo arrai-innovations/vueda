@@ -20,7 +20,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import CommandError
 from django.db.migrations import operations
-from django.db.migrations.loader import MIGRATIONS_MODULE_NAME
+from django.db.migrations.loader import MigrationLoader
 from django.db.models import Q
 
 from vueda.core.audit import audited_action
@@ -648,13 +648,20 @@ class WorkflowChangeTool(MigrationTool):
         return historical_obj
 
     def add_renamed_fields_and_models_to_attr_names(self, workflow_model_field_names_to_attname):
-        for migration_name in app_migration_names("vueda_workflow"):
-            module_name = f"vueda.workflow.{MIGRATIONS_MODULE_NAME}.{migration_name}"
+        """Map each renamed field of a workflow model from its old name to its new one, and return the mapping.
 
+        The renames come from vueda_workflow's own migrations, read from the module that ``MIGRATION_MODULES``
+        names for it. Without such a module, the mapping is returned unchanged.
+        """
+        migrations_module, _explicit = MigrationLoader.migrations_module("vueda_workflow")
+        if migrations_module is None:
+            return workflow_model_field_names_to_attname
+
+        for migration_name in app_migration_names("vueda_workflow"):
             try:
-                module = importlib.import_module(module_name)
+                module = importlib.import_module(f"{migrations_module}.{migration_name}")
             except ModuleNotFoundError:
-                return None
+                continue
 
             for operation in module.Migration.operations:
                 model_name = getattr(operation, "model_name", None)
@@ -707,8 +714,6 @@ class WorkflowChangeTool(MigrationTool):
                     history_pks = tuple(historical_queryset.values_list("pk", flat=True))
                     existing_history_pks = set()
 
-                    modified_historical_queryset = historical_queryset
-
                     for migration_name, migration_data in migrations.items():
                         changed_data = migration_data["changes_by_model_name"].get(workflow_model_name, ())
 
@@ -754,12 +759,12 @@ class WorkflowChangeTool(MigrationTool):
                                 existing_history_pks.add(history_obj.pk)
                                 changed_item["matches_history"] = history_obj.pk
 
-                        modified_historical_queryset = historical_queryset
-                        remove_from_history_queryset = frozenset(history_pks) & existing_history_pks
-                        if remove_from_history_queryset:
-                            modified_historical_queryset = modified_historical_queryset.exclude(
-                                pk__in=remove_from_history_queryset
-                            )
+                    modified_historical_queryset = historical_queryset
+                    remove_from_history_queryset = frozenset(history_pks) & existing_history_pks
+                    if remove_from_history_queryset:
+                        modified_historical_queryset = modified_historical_queryset.exclude(
+                            pk__in=remove_from_history_queryset
+                        )
 
                     history_by_model_name[model_name][workflow_model_name] = {
                         # Every write, which is what a change is diffed against.
