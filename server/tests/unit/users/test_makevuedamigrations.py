@@ -664,6 +664,49 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             call_command("migrate", "erring", second_workflows[-1], verbosity=0)
             assert (permission_snapshot(group_names, "moving"), workflow_rows_snapshot("moving")) == after_second
 
+    def test_group_migrations_create_their_groups_and_change_records_in_another_environment(self, settings):
+        """Another environment has neither the groups nor the GroupChange rows that the developer's database has.
+
+        Applying the group migrations there creates the group, renames it, grants its permissions, and records
+        each change, so that environment has nothing pending either.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        read, list_ = (
+            Permission.objects.get(content_type=content_type, codename=f"{action}_enabledwithoutworkflow")
+            for action in ("read", "list")
+        )
+        admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
+        group_names = ("Fresh Readers", "Fresh Listers")
+
+        with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
+            assert apps_with_pending_changes() <= {"employee"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            employee_last_before = max(path.stem for path in employee_before if path.stem[0].isdigit())
+            readers = save_group_permission(admin, read, "Fresh Readers")
+            save_group_permission(admin, list_, "Fresh Listers", group=readers)
+            after_changes = permission_snapshot(group_names, "")
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (group_migration,) = new_migration_names(employee_dir, employee_before)
+            call_command("migrate", "employee", group_migration, fake=True, verbosity=0)
+
+            # Reversing keeps the group, so remove it and its change records as another environment would lack them.
+            call_command("migrate", "employee", employee_last_before, verbosity=0)
+            Group.objects.filter(name__in=group_names).delete()
+            GroupChange.objects.filter(group_name__in=group_names).delete()
+
+            call_command("migrate", "employee", group_migration, verbosity=0)
+
+            assert permission_snapshot(group_names, "") == after_changes
+            assert sorted(
+                GroupChange.objects.filter(group_name__in=group_names).values_list("change_type", flat=True)
+            ) == [
+                GroupChange.ADDED,
+                GroupChange.CHANGED,
+            ]
+            assert apps_with_pending_changes() == set()
+
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.
 
