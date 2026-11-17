@@ -69,7 +69,7 @@ template when the session ends. `suffix_each_test` fails a marked test that is n
 
 ## Tests that generate or apply migrations
 
-Commands such as `makegroupmigrations` and `makeworkflowmigrations` write migration files. A test
+Commands such as `makevuedamigrations` write migration files. A test
 of those commands must not write into the source tree. `BaseTestMigrations` and the helpers in
 `tests/utils.py` handle this:
 
@@ -87,6 +87,25 @@ of those commands must not write into the source tree. `BaseTestMigrations` and 
 `TestMakeVuedaMigrations` in `unit/users/test_makevuedamigrations.py` follows steps 1 and 3. To find
 the migrations that a command wrote, list the migration directory before and after it runs, as its
 `new_migration_names` helper does. Never build a name from today's date.
+
+### Migrations that the tests write import their functions
+
+A project's generated migrations copy in the functions that they run, so they keep working when
+VUEDA changes those functions. Copied code does not count toward the coverage report. So the
+session fixture `import_instead_of_copying` in `conftest.py` sets
+`makevuedamigrations.Command._import_instead` to `True` once, before any test runs. Every migration
+that a test writes with `makevuedamigrations` then imports its functions from VUEDA. Projects get
+no option for this.
+
+A test that needs the copied functions sets the attribute back to `False` for itself only:
+
+```python
+def test_...(self, settings, monkeypatch):
+    monkeypatch.setattr(MakeVuedaMigrationsCommand, "_import_instead", False)
+```
+
+`monkeypatch` restores `True` after the test. `test_migrations_with_copied_code_round_trip` in
+`unit/users/test_makevuedamigrations.py` is an example.
 
 ## Tests that must not run in parallel
 
