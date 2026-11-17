@@ -2,6 +2,7 @@ import datetime
 import io
 import os
 import re
+from pathlib import Path
 from pprint import pformat
 
 import pytest
@@ -409,6 +410,44 @@ class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand
                 "historical_permission_content_type_app_label": "auth",
                 "historical_permission_content_type_model_name": "permission",
             }
+
+    @clear_info_registry_before_test()
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db
+    def test_group_changes_syncing_reads_the_migrations_module_that_settings_name(self, settings):
+        """The command reads the migrations where MIGRATION_MODULES puts them, not the app's own migrations folder."""
+        settings.MIGRATION_MODULES = {
+            "group_changes_syncing": "tests.group_changes_syncing",
+            "no_migrations": None,
+        }
+        settings.AUTH_USER_MODEL = "group_changes_syncing.GroupChangesSyncingUser"
+        append_installed_apps(settings, "tests.group_changes_syncing")
+
+        with self.temporary_migration_module(settings, app_label="group_changes_syncing") as migrations_dir:
+            # Only the copy that MIGRATION_MODULES names holds this change, so reading the app's own
+            # migrations folder would miss it.
+            (migration_path,) = Path(migrations_dir).glob("0002_*.py")
+            source = migration_path.read_text()
+            only_in_the_copy = """changed_data = [
+    {
+        "change_type": "added",
+        "group_name": "Copy Readers",
+        "group_name_old": "",
+        "historical_permission_codename": "read_contenttype",
+        "historical_permission_content_type_app_label": "contenttypes",
+        "historical_permission_content_type_model_name": "contenttype",
+        "historical_permission_name": "Can read content type",
+        "when": datetime.datetime(2026, 6, 30, 9, 0, tzinfo=datetime.timezone.utc),
+    },
+"""
+            assert source.count("changed_data = [\n") == 1
+            migration_path.write_text(source.replace("changed_data = [\n", only_in_the_copy))
+
+            succeeded, results = self.call_command_capturing_output("sync_group_changes")
+            if not succeeded:
+                pytest.fail("".join(results))
+
+            assert GroupChange.objects.filter(group_name="Copy Readers").exists(), GroupChange.objects.values()
 
 
 class TestManagementCommandUtils:
