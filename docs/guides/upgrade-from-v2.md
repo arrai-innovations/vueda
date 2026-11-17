@@ -94,7 +94,7 @@ These dependencies changed:
 Object states carried over from v2 follow the same rules as v3 object states when a current v3-generated workflow migration runs, because `vueda_workflow` migration `0009` copies their v2 history. [How Object States Are Updated](manage-workflows.md#how-object-states-are-updated) describes the rules and how to refresh older v3-generated files.
 
 ::: warning
-Upgrade VUEDA before running `makevuedamigrations` on the upgraded database. Older v3 versions reset object states with no events even when the command reports no workflow changes. Before applying an older v3-generated workflow migration, refresh its embedded functions with `updateworkflowmigrations`, review the changes, and commit them. A package upgrade alone does not change those copies. Migrations generated with the `--import-instead` option of earlier versions receive the fix through the package upgrade. The fix does not restore states that were already reset.
+Upgrade VUEDA before running `makevuedamigrations` on the upgraded database. Older v3 versions reset object states with no events even when the command reports no workflow changes. Before applying an older v3-generated workflow migration, refresh its embedded functions with `updateworkflowmigrations`, review the changes, and commit them. A package upgrade alone does not change those copies. A migration generated with the `--import-instead` option of earlier versions gets the fix through the package upgrade once its imports name the new module, as [How Object States Are Updated](manage-workflows.md#how-object-states-are-updated) describes. The fix does not restore states that were already reset.
 :::
 
 ::: warning
