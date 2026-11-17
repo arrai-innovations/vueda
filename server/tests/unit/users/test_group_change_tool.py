@@ -11,6 +11,7 @@ import io
 import pytest
 from django.core.management import BaseCommand
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.migration_generation.groups import GroupChangeTool
@@ -53,6 +54,33 @@ def pending_changes_for(group_names, existing_changed_data):
     tool.configure({"import_instead": False})
     pending = tool.pending_changes_given(existing_changed_data)
     return tuple(change for change in pending if change.data["group_name"] in group_names)
+
+
+@pytest.mark.django_db
+def test_create_group_change_writes_when_rather_than_the_database_default():
+    """vueda_user 0005 runs sync_group_changes with the current model before 0007 gives `when` a database default.
+
+    An INSERT that left `when` to that default would then write NULL, so it must always carry the value.
+    """
+    change = {
+        "group_name": "Inserted With When",
+        "group_name_old": "",
+        "change_type": GroupChange.ADDED,
+        "when": START,
+        "historical_permission_codename": "read_group",
+        "historical_permission_content_type_app_label": "auth",
+        "historical_permission_content_type_model_name": "group",
+    }
+
+    with CaptureQueriesContext(connection) as queries:
+        pk = create_group_change(change, GroupChange)
+
+    insert = next(query["sql"] for query in queries if query["sql"].startswith("INSERT"))
+    columns, values = insert.split("VALUES", 1)
+    # Left to the database default, the column is still named, but its value is the DEFAULT keyword.
+    assert '"when"' in columns, insert
+    assert "DEFAULT" not in values, insert
+    assert GroupChange.objects.get(pk=pk).when == START
 
 
 @pytest.mark.django_db

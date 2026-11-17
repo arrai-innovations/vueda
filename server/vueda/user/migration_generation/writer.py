@@ -217,7 +217,8 @@ def write_plan(command, steps, tools_by_key, *, dry_run, keep_failed_migration=F
             kept = ", ".join(f"{app_label}.{name}" for app_label, name in written)
             command.stderr.write(
                 f"{NEWLINE}Kept the migrations already written: {kept}. Fake them, because your database already "
-                "has their changes. The next run writes the rest."
+                "has their changes. The next run writes the rest, and then gives local objects their workflow "
+                "states. If you do not run it again, run backfillworkflowstates for the workflow models instead."
             )
         raise
 

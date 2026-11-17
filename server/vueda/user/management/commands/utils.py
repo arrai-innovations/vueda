@@ -237,9 +237,12 @@ def create_group_change(change, group_change_model):
         historical_permission_codename=change["historical_permission_codename"],
         historical_permission_content_type_app_label=change["historical_permission_content_type_app_label"],
         historical_permission_content_type_model_name=change["historical_permission_content_type_model_name"],
+        # Passed explicitly, so the INSERT always names the column. vueda_user 0005 runs sync_group_changes with
+        # the current model, whose `when` has a database default, before 0007 gives the column that default.
+        when=change["when"],
     )
-    # Set `when` after creating the row. In the model state of a migration made before vueda_user 0007, `when`
-    # is auto_now_add, which ignores a value passed to create(). This keeps the original timestamp either way.
+    # Set `when` again after creating the row. In the model state of a migration made before vueda_user 0007,
+    # `when` is auto_now_add, which ignores a value passed to create(). This keeps the original timestamp either way.
     obj.when = change["when"]
     obj.save()
     return obj.pk

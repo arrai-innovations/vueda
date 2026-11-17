@@ -111,7 +111,7 @@ def workflow_snapshot(workflow_code):
 
     return {
         "model": f"{workflow.content_type.app_label}.{workflow.content_type.model}",
-        "states": sorted(State.objects.filter(workflow=workflow).values_list("code", flat=True)),
+        "states": sorted(State.objects.filter(workflow=workflow).values_list("code", "name")),
         "initial_state": InitialState.objects.get(workflow=workflow).state.code,
         "transitions": sorted(
             (source.transition.code, source.source.code, source.transition.target.code)
@@ -405,6 +405,56 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 
             call_command("migrate", "erring", third_workflow, verbosity=0)
             assert (permission_snapshot(group_names, "formats"), workflow_snapshot("formats")) == after_changes
+
+    def test_a_workflow_that_changes_after_its_first_migration_round_trips(self, settings):
+        """A state is renamed, a transition and its target state are removed, and both come back with their codes.
+
+        The second migration replays those writes in the order made, across the state and transition models.
+        Reversing it restores the workflow that the first migration wrote, and applying it again restores the
+        changed one.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert apps_with_pending_changes() <= {"erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            erring_last_before = max(path.stem for path in erring_before if path.stem[0].isdigit())
+            workflow = Workflow.objects.create(code="changing", name="Changing", content_type=content_type)
+            draft = State.objects.create(workflow=workflow, code="draft", name="Draft")
+            approved = State.objects.create(workflow=workflow, code="approved", name="Approved")
+            InitialState.objects.create(workflow=workflow, state=draft)
+            approve = Transition.objects.create(workflow=workflow, code="approve", name="Approve", target=approved)
+            TransitionSource.objects.create(transition=approve, source=draft)
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (first,) = new_migration_names(erring_dir, erring_before)
+            call_command("migrate", "erring", first, fake=True, verbosity=0)
+            after_first = workflow_snapshot("changing")
+            after_first_run = set(Path(erring_dir).glob("*.py"))
+
+            State.objects.filter(workflow=workflow, code="draft").update(name="Draft Renamed")
+            draft = State.objects.get(workflow=workflow, code="draft")
+            draft.name = "Draft Renamed Again"
+            draft.save()
+            # A transition's sources protect it, and the transition protects its target, as in the workflow screens.
+            TransitionSource.objects.filter(transition=approve).delete()
+            approve.delete()
+            approved.delete()
+            approved = State.objects.create(workflow=workflow, code="approved", name="Approved Again")
+            approve = Transition.objects.create(workflow=workflow, code="approve", name="Approve", target=approved)
+            TransitionSource.objects.create(transition=approve, source=draft)
+            after_second = workflow_snapshot("changing")
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (second,) = new_migration_names(erring_dir, after_first_run)
+            call_command("migrate", "erring", second, fake=True, verbosity=0)
+
+            call_command("migrate", "erring", first, verbosity=0)
+            assert workflow_snapshot("changing") == after_first
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            assert workflow_snapshot("changing") is None
+            call_command("migrate", "erring", second, verbosity=0)
+            assert workflow_snapshot("changing") == after_second
 
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.
