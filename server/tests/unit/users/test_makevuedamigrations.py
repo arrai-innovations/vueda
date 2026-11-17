@@ -36,6 +36,7 @@ from vueda.user.migration_generation import writer
 from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.groups import GroupChangeTool
 from vueda.user.models import GroupChange
+from vueda.user.views import PermissionDeleteView
 from vueda.user.views import PermissionSaveView
 from vueda.workflow.migration_generation import operations as workflow_operations
 from vueda.workflow.migration_generation.tool import WorkflowChangeTool
@@ -44,8 +45,10 @@ from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
 from vueda.workflow.models import Transition
+from vueda.workflow.models import TransitionPermission
 from vueda.workflow.models import TransitionSource
 from vueda.workflow.models import Workflow
+from vueda.workflow.models import WorkflowPermission
 
 
 def apps_with_pending_changes():
@@ -98,6 +101,50 @@ def permission_snapshot(group_names, workflow_code):
     )
     workflow = Workflow.objects.filter(code=workflow_code).values("code", "name").first()
     return {"groups": groups, "workflow": workflow, "state_permissions": state_permissions}
+
+
+def remove_group_permission(user, permission, group):
+    """Remove ``permission`` from ``group`` the way the Group Management Page does.
+
+    The page's URLs exist only with DEBUG on, so the view is called directly.
+    """
+    request = RequestFactory().delete("/")
+    request.user = user
+    response = PermissionDeleteView.as_view()(request, permission_id=permission.pk, group_id=group.pk)
+    assert response.status_code == 200, response.content  # noqa: PLR2004
+
+
+def workflow_rows_snapshot(workflow_code):
+    """Return every workflow row that hangs off the workflow ``workflow_code``, named so that no pk shows.
+
+    It covers the rows that ``workflow_snapshot`` leaves out: workflow permissions, state permissions,
+    transition permissions, and each transition's name, target, and sources.
+    """
+    return {
+        "workflow_permissions": sorted(
+            WorkflowPermission.objects.filter(workflow__code=workflow_code).values_list(
+                "permission__codename", flat=True
+            )
+        ),
+        "state_permissions": sorted(
+            StatePermission.objects.filter(state__workflow__code=workflow_code).values_list(
+                "state__code", "permission__codename", "group__name", "historical_group_name", "grant_or_deny"
+            )
+        ),
+        "transitions": sorted(
+            Transition.objects.filter(workflow__code=workflow_code).values_list("code", "name", "target__code")
+        ),
+        "transition_permissions": sorted(
+            TransitionPermission.objects.filter(transition__workflow__code=workflow_code).values_list(
+                "transition__code", "permission__codename"
+            )
+        ),
+        "transition_sources": sorted(
+            TransitionSource.objects.filter(transition__workflow__code=workflow_code).values_list(
+                "transition__code", "source__code", "ignored"
+            )
+        ),
+    }
 
 
 def workflow_snapshot(workflow_code):
@@ -455,6 +502,91 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             assert workflow_snapshot("changing") is None
             call_command("migrate", "erring", second, verbosity=0)
             assert workflow_snapshot("changing") == after_second
+
+    def test_edits_to_every_kind_of_workflow_row_and_group_permission_round_trip(self, settings):
+        """Each kind of workflow row is edited after its first migration, and a group loses a permission.
+
+        The second pair of migrations replays a changed workflow permission, state permission (its grant and its
+        group's new name), transition (name and target), transition permission, and transition source. Reversing
+        it restores every row that the first pair wrote, and applying it again restores the edits.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        read, update, list_, delete = (
+            Permission.objects.get(content_type=content_type, codename=f"{action}_enabledwithoutworkflow")
+            for action in ("read", "update", "list", "delete")
+        )
+        admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
+        group_names = ("Edited Reviewers", "Edited Approvers")
+
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() <= {"employee", "erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            employee_last_before = max(path.stem for path in Path(employee_dir).glob("0*.py"))
+            erring_last_before = max(path.stem for path in Path(erring_dir).glob("0*.py"))
+            before_changes = (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited"))
+
+            reviewers = save_group_permission(admin, read, "Edited Reviewers")
+            save_group_permission(admin, list_, "Edited Reviewers")
+            workflow = Workflow.objects.create(code="edited", name="Edited", content_type=content_type)
+            workflow_permission = WorkflowPermission.objects.create(workflow=workflow, permission=read)
+            draft = State.objects.create(workflow=workflow, code="draft", name="Draft")
+            approved = State.objects.create(workflow=workflow, code="approved", name="Approved")
+            InitialState.objects.create(workflow=workflow, state=draft)
+            state_permission = StatePermission.objects.create(
+                state=draft, permission=update, group=reviewers, grant_or_deny=True
+            )
+            approve = Transition.objects.create(workflow=workflow, code="approve", name="Approve", target=approved)
+            transition_permission = TransitionPermission.objects.create(transition=approve, permission=update)
+            transition_source = TransitionSource.objects.create(transition=approve, source=draft)
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (first_group,) = new_migration_names(employee_dir, employee_before)
+            (first_workflow,) = new_migration_names(erring_dir, erring_before)
+            call_command("migrate", "erring", first_workflow, fake=True, verbosity=0)
+            after_first = (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited"))
+            employee_after_first = set(Path(employee_dir).glob("*.py"))
+            erring_after_first = set(Path(erring_dir).glob("*.py"))
+
+            # The group is renamed before the state permission that names it changes, so the replay needs both
+            # names in the order made.
+            approvers = save_group_permission(admin, read, "Edited Approvers", group=reviewers)
+            remove_group_permission(admin, list_, approvers)
+            workflow_permission.permission = list_
+            workflow_permission.save()
+            state_permission.refresh_from_db()
+            state_permission.grant_or_deny = False
+            state_permission.save()
+            review = State.objects.create(workflow=workflow, code="review", name="Review")
+            approve.name = "Approve It"
+            approve.target = review
+            approve.save()
+            transition_permission.permission = delete
+            transition_permission.save()
+            transition_source.ignored = True
+            transition_source.save()
+            after_second = (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited"))
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            assert new_migration_names(employee_dir, employee_after_first), "The group edits wrote no migration."
+            second_workflows = new_migration_names(erring_dir, erring_after_first)
+            assert second_workflows, "The workflow edits wrote no migration."
+            call_command("migrate", "erring", second_workflows[-1], fake=True, verbosity=0)
+            assert apps_with_pending_changes() == set()
+
+            # The second workflow migration depends on the second group migration, not the other way round.
+            call_command("migrate", "erring", first_workflow, verbosity=0)
+            call_command("migrate", "employee", first_group, verbosity=0)
+            assert (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited")) == after_first
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            call_command("migrate", "employee", employee_last_before, verbosity=0)
+            assert (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited")) == before_changes
+
+            call_command("migrate", "erring", second_workflows[-1], verbosity=0)
+            assert (permission_snapshot(group_names, "edited"), workflow_rows_snapshot("edited")) == after_second
 
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.
