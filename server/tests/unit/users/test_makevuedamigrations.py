@@ -26,6 +26,7 @@ from django.test import RequestFactory
 
 from tests.erring.models import EnabledWithoutWorkflow
 from tests.utils import BaseTestMigrations
+from vueda.user.management.commands.makevuedamigrations import Command as MakeVuedaMigrationsCommand
 from vueda.user.management.commands.makevuedamigrations import _PrefixedArgumentGroup
 from vueda.user.migration_generation import group_operations
 from vueda.user.migration_generation import writer
@@ -147,7 +148,7 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             StatePermission.objects.create(state=approved, permission=update, group=group_b, grant_or_deny=True)
             after_changes = permission_snapshot(group_names, "interleaved")
 
-            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+            call_command("makevuedamigrations", stdout=io.StringIO())
 
             employee_new = new_migration_names(employee_dir, employee_before)
             erring_new = new_migration_names(erring_dir, erring_before)
@@ -187,8 +188,9 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             call_command("migrate", "erring", second_workflow, verbosity=0)
             assert permission_snapshot(group_names, "interleaved") == after_changes
 
-    def test_migrations_with_copied_code_round_trip(self, settings):
+    def test_migrations_with_copied_code_round_trip(self, settings, monkeypatch):
         """Projects get migrations that copy the functions they run, rather than import them from VUEDA."""
+        monkeypatch.setattr(MakeVuedaMigrationsCommand, "_import_instead", False)
         content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
         read = Permission.objects.get(content_type=content_type, codename="read_enabledwithoutworkflow")
         admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
@@ -250,14 +252,14 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             first = State.objects.create(workflow=workflow, code="first", name="First")
             InitialState.objects.create(workflow=workflow, state=first)
             untouched = EnabledWithoutWorkflow.objects.create(name="untouched")
-            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+            call_command("makevuedamigrations", stdout=io.StringIO())
             (workflow_created,) = new_migration_names(erring_dir, erring_before)
             call_command("migrate", "erring", workflow_created, fake=True, verbosity=0)
             after_first_run = set(Path(erring_dir).glob("*.py"))
 
             second = State.objects.create(workflow=workflow, code="second", name="Second")
             InitialState.objects.filter(workflow=workflow).update(state=second)
-            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+            call_command("makevuedamigrations", stdout=io.StringIO())
             (initial_changed,) = new_migration_names(erring_dir, after_first_run)
             call_command("migrate", "erring", initial_changed, fake=True, verbosity=0)
             assert ObjectState.objects.get(workflow=workflow, object_id=untouched.pk).state.code == "second"
@@ -281,7 +283,7 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             vdq_before = set(Path(vdq_dir).glob("*.py"))
             State.objects.create(workflow=workflow, code="shipped_state", name="Shipped State")
 
-            call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+            call_command("makevuedamigrations", stdout=io.StringIO())
 
             (shipped,) = new_migration_names(vdq_dir, vdq_before)
             source = (Path(vdq_dir) / f"{shipped}.py").read_text()
@@ -361,7 +363,7 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
             errors = io.StringIO()
 
             with pytest.raises(RuntimeError, match="content could not be built"):
-                call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO(), stderr=errors)
+                call_command("makevuedamigrations", stdout=io.StringIO(), stderr=errors)
 
             (kept,) = new_migration_names(employee_dir, employee_before)
             assert kept.endswith("_group_permission_migrations")
@@ -387,7 +389,6 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
             with pytest.raises(RuntimeError, match="content could not be built"):
                 call_command(
                     "makevuedamigrations",
-                    "--import-instead",
                     "--keep-failed-migration",
                     stdout=io.StringIO(),
                     stderr=errors,
@@ -422,7 +423,7 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
             employee_before = set(Path(employee_dir).glob("*.py"))
 
             with pytest.raises(SystemExit):
-                call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO(), stderr=io.StringIO())
+                call_command("makevuedamigrations", stdout=io.StringIO(), stderr=io.StringIO())
 
             assert new_migration_names(employee_dir, employee_before) == []
 

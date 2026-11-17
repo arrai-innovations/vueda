@@ -49,21 +49,17 @@ class Command(BaseCommand):
         "database already has the changes."
     )
 
+    # VUEDA's test suite sets this to True, so the migrations that the tests write import the functions that they
+    # run instead of copying them in, and the coverage report counts that code. It is not an option, because a
+    # project's migrations must keep working when VUEDA changes or renames those functions.
+    _import_instead = False
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Show which migrations would be written, without writing them.",
         )
-        parser.add_argument(
-            "--import-instead",
-            action="store_true",
-            help=(
-                "Import the functions that a migration runs instead of copying them into it. Tests use this, so "
-                "the coverage report counts the code that runs."
-            ),
-        )
-
         parser.add_argument(
             "--keep-failed-migration",
             action="store_true",
@@ -104,6 +100,7 @@ class Command(BaseCommand):
     @atomic
     def handle(self, **options):
         self.dry_run = options["dry_run"]
+        options["import_instead"] = self._import_instead
 
         output_only = False
         for tool in self.tools:
