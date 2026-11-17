@@ -7,6 +7,7 @@ __all__ = (
     "write_plan",
 )
 
+import ast
 from pathlib import Path
 
 from django.apps import apps as django_apps
@@ -126,25 +127,50 @@ def _with_settings_import(imports):
     return tuple(result)
 
 
-def _shipped_dependencies(command, planned, dependencies, previous_app_labels):
+def _shipped_dependencies(dependencies):
     """Return the dependencies of a migration that VUEDA ships, which every project must be able to apply.
 
     It keeps the dependencies on VUEDA's own apps and on ``auth``, and leaves out the project's apps, which the
     projects that install VUEDA do not have. The user app becomes a swappable dependency, so the migration needs
-    only that the project's user model exists. A step before it in a project app cannot be depended on, so the
-    command warns: generate VUEDA's own migrations with no other changes pending.
+    only that the project's user model exists. A migration that the step before it wrote into a project app gets a
+    ``run_before`` on it instead, through ``_add_run_before``.
     """
-    for app_label in sorted(previous_app_labels):
-        if not is_vueda_app(app_label):
-            command.stderr.write(
-                f"{NEWLINE}The migration for {planned.tool_key} changes in {planned.app_label} ships with VUEDA, so "
-                f"it cannot depend on the migration written into {app_label} before it. Generate VUEDA's own "
-                "migrations with no other changes pending."
-            )
-
     return tuple(
         (app_label, name) for app_label, name in dependencies if app_label == "auth" or is_vueda_app(app_label)
     )
+
+
+def _add_run_before(migration_path, target):
+    """Add ``target``, an ``(app_label, migration_name)`` pair, to the ``run_before`` of the migration file.
+
+    Django then makes ``target`` depend on this migration. A migration that VUEDA ships cannot depend on a project
+    app's migration, because the projects that install VUEDA do not have that app, so the order is kept from the
+    project side. The migration was written in this run, so it has no ``run_before`` yet.
+    """
+    migration_path = Path(migration_path)
+    source = migration_path.read_text(encoding="utf-8")
+    migration_class = next(
+        node for node in ast.parse(source).body if isinstance(node, ast.ClassDef) and node.name == "Migration"
+    )
+    assignments = {
+        target_node.id: node
+        for node in migration_class.body
+        if isinstance(node, ast.Assign)
+        for target_node in node.targets
+        if isinstance(target_node, ast.Name)
+    }
+    if "run_before" in assignments:
+        raise CommandError(f"{migration_path.name} already has a run_before list, so it was not written in this run.")
+
+    lines = source.splitlines(keepends=True)
+    app_label, name = target
+    lines[assignments["dependencies"].end_lineno : assignments["dependencies"].end_lineno] = [
+        NEWLINE,
+        f"    run_before = [{NEWLINE}",
+        f'{INDENT8}("{app_label}", "{name}"),{NEWLINE}',
+        f"    ]{NEWLINE}",
+    ]
+    migration_path.write_text("".join(lines), encoding="utf-8")
 
 
 def write_plan(command, steps, tools_by_key, *, dry_run, keep_failed_migration=False):
@@ -161,7 +187,7 @@ def write_plan(command, steps, tools_by_key, *, dry_run, keep_failed_migration=F
     _check_migration_directories(steps)
 
     written = []
-    previous_app_labels = frozenset()
+    previous_step_written = ()
     try:
         for step in steps:
             latest = latest_migration_names(step.dependency_app_labels)
@@ -172,19 +198,20 @@ def write_plan(command, steps, tools_by_key, *, dry_run, keep_failed_migration=F
                 )
                 swappable_user = is_vueda_app(planned.app_label)
                 if swappable_user:
-                    dependencies = _shipped_dependencies(command, planned, dependencies, previous_app_labels)
-                written.append(
-                    _write_migration(
-                        command,
-                        tool,
-                        planned,
-                        dependencies,
-                        dry_run=dry_run,
-                        swappable_user=swappable_user,
-                        keep_failed_migration=keep_failed_migration,
-                    )
+                    dependencies = _shipped_dependencies(dependencies)
+                written_migration = _write_migration(
+                    command,
+                    tool,
+                    planned,
+                    dependencies,
+                    dry_run=dry_run,
+                    swappable_user=swappable_user,
+                    keep_failed_migration=keep_failed_migration,
                 )
-            previous_app_labels = frozenset(planned.app_label for planned in step.migrations)
+                written.append(written_migration)
+                if swappable_user:
+                    _order_project_migrations_before(command, previous_step_written, written_migration, dry_run=dry_run)
+            previous_step_written = tuple(written[-len(step.migrations) :])
     except BaseException:
         if written and not dry_run:
             kept = ", ".join(f"{app_label}.{name}" for app_label, name in written)
@@ -195,6 +222,27 @@ def write_plan(command, steps, tools_by_key, *, dry_run, keep_failed_migration=F
         raise
 
     return tuple(written)
+
+
+def _order_project_migrations_before(command, previous_step_written, shipped, *, dry_run):
+    """Make each project-app migration that the step before ``shipped`` wrote run before it, with ``run_before``.
+
+    ``shipped`` is the ``(app_label, migration_name)`` of a migration that VUEDA ships. Only VUEDA's own repository
+    writes one, and there the step before it can be a test app's migration.
+    """
+    for app_label, name in previous_step_written:
+        if is_vueda_app(app_label):
+            continue
+        if dry_run:
+            message = f"{NEWLINE}Would make {app_label}.{name} run before {shipped[0]}.{shipped[1]}."
+        else:
+            migrations_dir = Path(get_migrations_path(django_apps.get_app_config(app_label)))
+            _add_run_before(migrations_dir / f"{name}.py", shipped)
+            message = (
+                f"{NEWLINE}Made {app_label}.{name} run before {shipped[0]}.{shipped[1]}, which ships with VUEDA and "
+                f"so cannot depend on it."
+            )
+        command.stdout.write(message)
 
 
 def _check_migration_directories(steps):

@@ -24,6 +24,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management import BaseCommand
 from django.core.management import CommandError
 from django.core.management import call_command
+from django.db.migrations.loader import MigrationLoader
 from django.test import RequestFactory
 
 from tests.erring.models import EnabledWithoutWorkflow
@@ -540,6 +541,39 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 
             call_command("migrate", "erring", initial_changed, verbosity=0)
             assert ObjectState.objects.get(workflow__code="round_trip", object_id=untouched.pk).state.code == "second"
+
+    def test_a_project_migration_written_before_a_migration_that_vueda_ships_runs_before_it(self, settings):
+        """In VUEDA's own repository, a test app's change made before a vueda_vdq change is written first.
+
+        The vueda_vdq migration ships in the package, so it cannot depend on the test app's migration. The test
+        app's migration gets a run_before on it instead, so Django still applies the two in the order made.
+        """
+        erring_content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        shipped_workflow = Workflow.objects.filter(content_type__app_label="vueda_vdq").first()
+
+        with (
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+            self.temporary_migration_module(settings, app_label="vueda_vdq") as vdq_dir,
+        ):
+            assert apps_with_pending_changes() == set()
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            vdq_before = set(Path(vdq_dir).glob("*.py"))
+            Workflow.objects.create(code="project_first", name="Project First", content_type=erring_content_type)
+            State.objects.create(workflow=shipped_workflow, code="shipped_second", name="Shipped Second")
+
+            output = io.StringIO()
+            call_command("makevuedamigrations", stdout=output)
+
+            (project,) = new_migration_names(erring_dir, erring_before)
+            (shipped,) = new_migration_names(vdq_dir, vdq_before)
+            assert not any(dependency[0] == "erring" for dependency in migration_dependencies(vdq_dir, shipped))
+            module_name = f"{Path(erring_dir).parent.name}.migrations.{project}"
+            sys.modules.pop(module_name, None)
+            importlib.invalidate_caches()
+            assert importlib.import_module(module_name).Migration.run_before == [("vueda_vdq", shipped)]
+            assert f"Made erring.{project} run before vueda_vdq.{shipped}" in output.getvalue()
+            plan = MigrationLoader(None, ignore_no_migrations=True).graph.forwards_plan(("vueda_vdq", shipped))
+            assert ("erring", project) in plan, plan
 
     def test_a_migration_that_vueda_ships_depends_only_on_what_every_project_has(self, settings):
         """In VUEDA's own repository, vueda_vdq's workflow migrations ship in the package.
