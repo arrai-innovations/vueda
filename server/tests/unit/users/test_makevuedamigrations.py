@@ -10,6 +10,7 @@ import argparse
 import importlib
 import io
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -180,7 +181,13 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
                 "group_permission_migrations",
                 "group_permission_migrations",
             ]
-            assert [name.split("_", 1)[1] for name in erring_new] == ["workflow_migrations", "workflow_migrations"]
+            # A workflow migration's name ends in a random suffix of 8 hex characters.
+            assert [
+                re.fullmatch(r"\d{4}_workflow_migrations_[0-9a-f]{8}", name) is not None for name in erring_new
+            ] == [
+                True,
+                True,
+            ], erring_new
             first_group, second_group = employee_new
             first_workflow, second_workflow = erring_new
             # Migration names carry no date, so the action that a workflow migration opens names its app too.
@@ -211,6 +218,44 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 
             call_command("migrate", "erring", second_workflow, verbosity=0)
             assert permission_snapshot(group_names, "interleaved") == after_changes
+
+    def test_a_migration_generated_again_after_its_file_was_deleted_leaves_nothing_pending(self, settings):
+        """A developer generates a migration, runs it back and forth, deletes it, edits more, and generates again.
+
+        The new migration gets the deleted one's number. Its name must still differ, because the tool finds when a
+        migration first ran by its name. With the deleted file's run, the edit made after that run would stay
+        pending, and the next run would write it again.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert apps_with_pending_changes() <= {"erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            erring_last_before = max(path.stem for path in erring_before if path.stem[0].isdigit())
+            workflow = Workflow.objects.create(
+                code="generated_again", name="Generated Again", content_type=content_type
+            )
+            first = State.objects.create(workflow=workflow, code="first", name="First")
+            InitialState.objects.create(workflow=workflow, state=first)
+
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (deleted,) = new_migration_names(erring_dir, erring_before)
+            call_command("migrate", "erring", deleted, fake=True, verbosity=0)
+            # Running it back and forth records its writes under its own action.
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            call_command("migrate", "erring", deleted, verbosity=0)
+            call_command("migrate", "erring", erring_last_before, fake=True, verbosity=0)
+            (Path(erring_dir) / f"{deleted}.py").unlink()
+
+            State.objects.create(workflow=Workflow.objects.get(code="generated_again"), code="second", name="Second")
+            call_command("makevuedamigrations", stdout=io.StringIO())
+
+            (generated_again,) = new_migration_names(erring_dir, erring_before)
+            assert generated_again.split("_", 1)[0] == deleted.split("_", 1)[0]
+            assert generated_again != deleted
+            assert apps_with_pending_changes() == set()
 
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.

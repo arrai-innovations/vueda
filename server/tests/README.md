@@ -85,7 +85,8 @@ of those commands must not write into the source tree. `BaseTestMigrations` and 
 
 `TestMakeVuedaMigrations` in `unit/users/test_makevuedamigrations.py` follows steps 1 and 3. To find
 the migrations that a command wrote, list the migration directory before and after it runs, as its
-`new_migration_names` helper does. Never build a name from today's date.
+`new_migration_names` helper does. Never build a name yourself: a workflow migration's name ends in a
+random suffix.
 
 ### Migrations that the tests write import their functions
 

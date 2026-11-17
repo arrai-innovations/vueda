@@ -243,7 +243,7 @@ def _write_migration(command, tool, planned, dependencies, *, dry_run, swappable
     migrations_dir = Path(get_migrations_path(django_apps.get_app_config(app_label)))
     files_before = set(migrations_dir.glob("*.py"))
     try:
-        file_name = create_empty_migration(command, app_label, tool.migration_name)
+        file_name = create_empty_migration(command, app_label, tool.new_migration_name())
         if file_name is None:
             raise RuntimeError(f"Unable to find the name of the migration created in {app_label}.")
     except BaseException:

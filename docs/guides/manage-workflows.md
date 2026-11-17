@@ -141,8 +141,10 @@ The commands format only `changed_data` this way. They write the rest of the mig
 Your local database already has the changes, so mark the migration as applied without running it:
 
 ```console
-python manage.py migrate myapp 0005_workflow_migrations --fake
+python manage.py migrate myapp 0005_workflow_migrations_3f9a2c71 --fake
 ```
+
+Each workflow migration's name ends in a random suffix of 8 hex characters. A migration that you delete and generate again gets the same number but a new name, so the command never mistakes the deleted migration's run for the new one's.
 
 When the run wrote several migrations, faking the last one fakes the ones that it depends on too. Apply your other migrations before you fake, because a new migration depends on the latest migration of every app in your project. Faking it would also mark an unapplied migration of another app as applied, and that migration would never run. The command warns when your database has such a migration. Other environments run the migration normally.
 

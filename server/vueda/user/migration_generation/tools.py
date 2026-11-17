@@ -65,8 +65,9 @@ class MigrationTool:
 
     A subclass sets ``key``, ``migration_name``, and ``tie_order``, and implements ``pending_changes`` and
     ``migration_content``. ``key`` names the tool in output and prefixes its own options. ``migration_name`` is
-    the name that each of its migrations gets after Django's number. ``tie_order`` breaks a tie between the
-    changes of two tools that were recorded at the same moment. The lower number goes first.
+    the name that each of its migrations gets after Django's number, unless ``new_migration_name`` adds to it.
+    ``tie_order`` breaks a tie between the changes of two tools that were recorded at the same moment. The lower
+    number goes first.
     """
 
     key = ""
@@ -75,6 +76,10 @@ class MigrationTool:
 
     def __init__(self, command):
         self.command = command
+
+    def new_migration_name(self):
+        """Return the name for the next migration that this tool writes, without Django's number."""
+        return self.migration_name
 
     @property
     def stdout(self):
