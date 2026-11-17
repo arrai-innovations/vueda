@@ -119,12 +119,13 @@ class Command(BaseCommand):
         project_labels = project_app_labels()
         steps = plan_migrations(tool_changes, project_labels)
 
+        written = ()
         if steps:
             self._warn_about_unapplied_migrations(
                 {label for step in steps for label in step.dependency_app_labels}
                 | {planned.app_label for step in steps for planned in step.migrations}
             )
-            write_plan(
+            written = write_plan(
                 self,
                 steps,
                 {tool.key: tool for tool in self.tools},
@@ -132,8 +133,20 @@ class Command(BaseCommand):
                 keep_failed_migration=options["keep_failed_migration"],
             )
 
-        for tool in self.tools:
-            tool.finish(dry_run=self.dry_run)
+        try:
+            for tool in self.tools:
+                tool.finish(dry_run=self.dry_run)
+        except BaseException:
+            # The database work rolls back, but the migration files are already on disk.
+            if written and not self.dry_run:
+                kept = ", ".join(f"{app_label}.{name}" for app_label, name in written)
+                self.stderr.write(
+                    f"{NEWLINE}The migrations were written, but giving local objects their workflow states failed: "
+                    f"{kept}. Fake them, because your database already has their changes. Then fix the error and "
+                    "run backfillworkflowstates for the workflow models, so local objects get the states that the "
+                    "migrations give them elsewhere."
+                )
+            raise
 
         if not steps:
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No changes detected."))

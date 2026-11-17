@@ -541,6 +541,29 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
             assert "An error occurred while writing the migration for workflow changes in erring" in errors.getvalue()
             assert "run it with --keep-failed-migration" in errors.getvalue()
 
+    def test_migrations_written_before_the_local_state_sync_fails_are_reported(self, settings, monkeypatch):
+        """The local object-state sync runs after the migrations are written. When it fails, the database work
+        rolls back, but the files stay, so the command names them and says what to do."""
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        Workflow.objects.create(code="unsynced", name="Unsynced", content_type=content_type)
+
+        def fail_to_sync(self, *, dry_run):
+            raise RuntimeError("local states could not be synced")
+
+        monkeypatch.setattr(WorkflowChangeTool, "finish", fail_to_sync)
+
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert apps_with_pending_changes() == {"erring"}
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            errors = io.StringIO()
+
+            with pytest.raises(RuntimeError, match="local states could not be synced"):
+                call_command("makevuedamigrations", stdout=io.StringIO(), stderr=errors)
+
+            (kept,) = new_migration_names(erring_dir, erring_before)
+            assert f"giving local objects their workflow states failed: erring.{kept}." in errors.getvalue()
+            assert "run backfillworkflowstates" in errors.getvalue()
+
     def test_keep_failed_migration_keeps_the_unfinished_migration_for_debugging(self, settings, monkeypatch):
         content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
         Workflow.objects.create(code="kept_unfinished", name="Kept Unfinished", content_type=content_type)

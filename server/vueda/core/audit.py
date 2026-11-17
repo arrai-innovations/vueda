@@ -34,8 +34,6 @@ def audited_action(action, kind=None, **metadata):
     action keeps that metadata until it exits. Only the outermost block clears the action when it
     ends, because an inner one leaving must not take the action its caller is still writing under.
     """
-    if "action" in metadata:
-        raise TypeError("audited_action() got multiple values for argument 'action'")
     with _open_or_join_action({"action": action, **metadata}, kind):
         yield
 
@@ -51,7 +49,13 @@ def tagged_writes(**metadata):
     Outside an action, the block opens one that holds only the metadata, and clears it when the block ends, so a
     later write in the same transaction carries no metadata. An action that the block opens has the ``system``
     kind, as ``audited_action`` gives an action that names none.
+
+    The ``action`` and ``kind`` keys raise ``TypeError``, because they would rename or re-kind the open action.
+    Name an action with ``audited_action`` instead.
     """
+    reserved = sorted({"action", "kind"} & set(metadata))
+    if reserved:
+        raise TypeError(f"tagged_writes() does not accept {', '.join(reserved)}; use audited_action() to name one.")
     with _open_or_join_action(metadata, None):
         yield
 

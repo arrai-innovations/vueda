@@ -1130,13 +1130,13 @@ class WorkflowChangeTool(MigrationTool):
         database never recorded its workflow, or when its workflow belongs to a model outside the app.
         Listing those under each model's heading would repeat every one of them once per model, so
         they get a single section, printed after every model's debug output. The section lists the
-        workflow models that ``--debug`` selects for any model of the app. ``--debug all`` selects
-        every workflow model.
+        workflow models that ``--workflow-debug`` selects for any model of the app. ``--workflow-debug all``
+        selects every workflow model.
         """
         selected_workflow_model_names = None
         if "all" not in self.debug:
             selected_workflow_model_names = set()
-            # Every name other than "all" is "app.model.workflowmodel", because argparse allows only those choices.
+            # Every name other than "all" is "app.model.workflowmodel", because configure() refuses any other name.
             for debug_name in self.debug:
                 debug_app_name, _model_name, workflow_model_name = debug_name.rsplit(".", 2)
                 if debug_app_name == app_name:
