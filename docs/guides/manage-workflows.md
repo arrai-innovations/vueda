@@ -192,6 +192,12 @@ After a group is deleted and created again under the same name, the next workflo
 
 Migrations that `makegroupmigrations` and `makeworkflowmigrations` generated in earlier releases keep their dependencies. On an empty database, one of their workflow migrations can still run before the group migration that creates a group it names.
 
+### Squashing Generated Migrations
+
+Django's `squashmigrations` does not keep the `changed_data` of a generated workflow migration. After a squash replaces the generated migrations, `makevuedamigrations` no longer reads their changes, so it treats them as pending and writes them again. `updateworkflowmigrations` cannot find them either.
+
+Until VUEDA squashes generated migrations itself, end each squash range before the app's first generated migration. [#734](https://github.com/arrai-innovations/vueda/issues/734) plans that work: a command that suggests which apps to squash, in what order and over which ranges, and a squash that combines generated migrations.
+
 ## Enabling Workflow on a Model with Existing Rows
 
 A model that enables `class Vueda.Workflow` needs its workflow before the release that enables it serves traffic. Without one, saving an object and every workflow request fail with `WorkflowNotConfiguredError`. The migration that sets the initial state assigns it to the objects present when it runs, so the order is:

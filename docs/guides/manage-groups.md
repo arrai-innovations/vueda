@@ -158,6 +158,12 @@ The command formats only `changed_data` this way. It writes the rest of the migr
 python manage.py sync_group_changes
 ```
 
+### Squashing Generated Migrations
+
+Django's `squashmigrations` does not keep the `changed_data` of a generated group migration. After a squash replaces the generated migrations, `makevuedamigrations` no longer reads their changes, so it treats them as pending and writes them again. `sync_group_changes` and `updategroupmigrations` cannot find them either.
+
+Until VUEDA squashes generated migrations itself, end each squash range before the first generated migration in the user app. [#734](https://github.com/arrai-innovations/vueda/issues/734) plans that work: a command that suggests which apps to squash, in what order and over which ranges, and a squash that combines generated migrations.
+
 ## Updating Existing Group Migrations
 
 A group migration runs without updates, because it carries its own copy of the code. Run [`updategroupmigrations`]{@api py:class:vueda.user.management.commands.updategroupmigrations.Command} when a VUEDA release changes that code and you want existing group migrations to use the new version.
