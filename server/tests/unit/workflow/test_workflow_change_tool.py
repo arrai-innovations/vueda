@@ -188,6 +188,41 @@ class TestWorkflowChangeTool:
         assert change_kinds(pending) == (("state", WorkflowChangeTypes.ADDED.value),)
         assert pending[0].data["changes"]["code"] == "archived"
 
+    def test_identical_inserts_and_deletes_are_claimed_one_each_and_earliest_first(self):
+        """A state code is added and removed twice, an earlier migration holds that, then it happens twice more.
+
+        Each held change claims one history row, so the earlier migration leaves exactly the later rows pending,
+        in the order that they were recorded.
+        """
+        started_at = database_now()
+        workflow = build_workflow("cycled")
+        for _ in range(2):
+            State.objects.create(workflow=workflow, code="archived", name="Archived").delete()
+        held = pending_changes_since(started_at)
+        earlier = migration_holding("0908_workflow_migrations", held)
+        assert change_kinds(held)[-4:] == (
+            ("state", WorkflowChangeTypes.ADDED.value),
+            ("state", WorkflowChangeTypes.DELETED.value),
+            ("state", WorkflowChangeTypes.ADDED.value),
+            ("state", WorkflowChangeTypes.DELETED.value),
+        )
+
+        held_until = database_now()
+        for _ in range(2):
+            State.objects.create(workflow=workflow, code="archived", name="Archived").delete()
+        State.objects.create(workflow=workflow, code="archived", name="Archived")
+
+        pending = pending_changes_since(started_at, earlier)
+
+        assert change_kinds(pending) == (
+            ("state", WorkflowChangeTypes.ADDED.value),
+            ("state", WorkflowChangeTypes.DELETED.value),
+            ("state", WorkflowChangeTypes.ADDED.value),
+            ("state", WorkflowChangeTypes.DELETED.value),
+            ("state", WorkflowChangeTypes.ADDED.value),
+        )
+        assert all(change.recorded_at >= held_until for change in pending), [change.recorded_at for change in pending]
+
     def test_writes_that_a_migration_makes_here_are_not_pending(self):
         started_at = database_now()
         with workflow_migration_action(django_apps, "Workflow Migration - 0904_workflow_migrations"):

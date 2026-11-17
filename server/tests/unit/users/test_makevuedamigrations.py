@@ -7,6 +7,7 @@ tests never write into the source tree.
 """
 
 import argparse
+import ast
 import importlib
 import io
 import json
@@ -256,6 +257,51 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
             assert generated_again.split("_", 1)[0] == deleted.split("_", 1)[0]
             assert generated_again != deleted
             assert apps_with_pending_changes() == set()
+
+    def test_changed_data_follows_the_formatter_settings_of_each_migrations_directory(self, settings):
+        """The formatter reads the settings that apply to each migration's own path.
+
+        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
+        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
+        single quotes show that it read the migration's settings, since neither ruff nor black defaults to them.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        read = Permission.objects.get(content_type=content_type, codename="read_enabledwithoutworkflow")
+        admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
+
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() <= {"employee", "erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            for directory in (employee_dir, erring_dir):
+                (Path(directory).parent / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            save_group_permission(admin, read, "Formatted Readers")
+            workflow = Workflow.objects.create(code="formatted", name="Formatted", content_type=content_type)
+            draft = State.objects.create(workflow=workflow, code="draft", name="Draft")
+            InitialState.objects.create(workflow=workflow, state=draft)
+
+            call_command("makevuedamigrations", stdout=io.StringIO())
+
+            (group_migration,) = new_migration_names(employee_dir, employee_before)
+            (workflow_migration,) = new_migration_names(erring_dir, erring_before)
+            for directory, name, quoted_key in (
+                (employee_dir, group_migration, "'group_name'"),
+                (erring_dir, workflow_migration, "'code'"),
+            ):
+                source = (Path(directory) / f"{name}.py").read_text(encoding="utf-8")
+                assignment = next(
+                    node
+                    for node in ast.parse(source).body
+                    if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+                )
+                changed_data_source = ast.get_source_segment(source, assignment)
+                assert re.search(r",\s*\]$", changed_data_source), (name, changed_data_source)
+                assert quoted_key in changed_data_source, (name, changed_data_source)
 
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.
