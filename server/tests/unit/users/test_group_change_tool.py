@@ -9,11 +9,16 @@ import datetime
 import io
 
 import pytest
+from django.apps import apps as django_apps
+from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 from django.core.management import BaseCommand
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
 from vueda.user.management.commands.utils import create_group_change
+from vueda.user.migration_generation.group_operations import backwards_migrate_groups
+from vueda.user.migration_generation.group_operations import forwards_migrate_groups
 from vueda.user.migration_generation.groups import GroupChangeTool
 from vueda.user.models import GroupChange
 
@@ -81,6 +86,33 @@ def test_create_group_change_writes_when_rather_than_the_database_default():
     assert '"when"' in columns, insert
     assert "DEFAULT" not in values, insert
     assert GroupChange.objects.get(pk=pk).when == START
+
+
+@pytest.mark.django_db
+def test_a_deleted_change_from_an_older_migration_reverses_into_granting_the_permission_again():
+    """Older migrations recorded `deleted` when a group lost its last permission.
+
+    Going forwards it removes the permission and keeps the group. Reversing it grants the permission again.
+    """
+    read_group = Permission.objects.get(content_type__app_label="auth", codename="read_group")
+    group = Group.objects.create(name="Older Deleted Group")
+    group.permissions.add(read_group)
+    deleted = {
+        "group_name": "Older Deleted Group",
+        "group_name_old": "",
+        "change_type": GroupChange.DELETED,
+        "when": START,
+        "historical_permission_codename": "read_group",
+        "historical_permission_content_type_app_label": "auth",
+        "historical_permission_content_type_model_name": "group",
+        "historical_permission_name": read_group.name,
+    }
+
+    forwards_migrate_groups(django_apps, [dict(deleted)])
+    assert list(Group.objects.get(name="Older Deleted Group").permissions.all()) == []
+
+    backwards_migrate_groups(django_apps, [dict(deleted)])
+    assert list(Group.objects.get(name="Older Deleted Group").permissions.all()) == [read_group]
 
 
 @pytest.mark.django_db
