@@ -11,6 +11,7 @@ from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.workflow.exceptions import WorkflowNotConfiguredError
 from vueda.workflow.migration_generation.operations import manage_state_objects
+from vueda.workflow.models import InitialStateEvent
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import ObjectStateEvent
 from vueda.workflow.models import get_workflow_for_model
@@ -19,8 +20,9 @@ from vueda.workflow.models import get_workflow_for_model
 class Command(BaseCommand):
     help = (
         "Create the missing object state of every object of a workflow-enabled model, in its workflow's "
-        "initial state. Also move each object state that nobody has moved since it was created to the current "
-        "initial state. A state that someone moved stays where it is, so running it again changes nothing. Run "
+        "initial state. Also move each untouched object state to the current initial state. An object state is "
+        "untouched when it was created in the initial state of that moment and nobody has moved it since. Any "
+        "other state stays where it is, so running it again changes nothing. Run "
         "it after a deploy that enables workflow, for objects the previous release created while the migrations "
         "ran."
     )
@@ -92,5 +94,5 @@ class Command(BaseCommand):
         object_states = ObjectState.objects.filter(workflow=workflow)
         with transaction.atomic():
             before = object_states.count()
-            moved = manage_state_objects(workflow, model, ObjectState, ObjectStateEvent)
+            moved = manage_state_objects(workflow, model, ObjectState, ObjectStateEvent, InitialStateEvent)
             return object_states.count() - before, moved

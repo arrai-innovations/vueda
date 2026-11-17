@@ -120,10 +120,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 not in migration_content
             )
             assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
-            assert (
-                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
-                "*, reversing=False):" not in migration_content
-            )
+            assert "def manage_state_objects(" not in migration_content
             assert "code=make_sure_permissions_exist_through_imports," not in migration_content
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," not in migration_content
@@ -207,10 +204,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 in migration_content
             )
             assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
-            assert (
-                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
-                "*, reversing=False):" in migration_content
-            )
+            assert "def manage_state_objects(" in migration_content
             assert "code=make_sure_permissions_exist_through_imports," in migration_content
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content
@@ -348,10 +342,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 not in migration_content
             )
             assert "def handle_state_objects(apps, *, reversing=False):" not in migration_content
-            assert (
-                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
-                "*, reversing=False):" not in migration_content
-            )
+            assert "def manage_state_objects(" not in migration_content
             assert "code=make_sure_permissions_exist_through_imports," not in migration_content
             assert "code=forwards_migrate_workflow_through_imports," not in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," not in migration_content
@@ -437,10 +428,7 @@ class TestManagementCommandWorkflowUpdating(BaseTestMigrations, BaseTestCallComm
                 in migration_content
             )
             assert "def handle_state_objects(apps, *, reversing=False):" in migration_content
-            assert (
-                "def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, "
-                "*, reversing=False):" in migration_content
-            )
+            assert "def manage_state_objects(" in migration_content
             assert "code=make_sure_permissions_exist_through_imports," in migration_content
             assert "code=forwards_migrate_workflow_through_imports," in migration_content
             assert "reverse_code=backwards_migrate_workflow_through_imports," in migration_content

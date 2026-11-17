@@ -44,6 +44,7 @@ from django.db.migrations.state import ProjectState
 from django.db.models import Exists
 from django.db.models import OuterRef
 from django.db.models import Q
+from django.db.models import Subquery
 
 from vueda.core.audit import audited_action
 from vueda.core.audit import tagged_writes
@@ -736,24 +737,38 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
             transition_source.delete()
 
 
-def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, *, reversing=False):
+def manage_state_objects(
+    workflow,
+    obj_class,
+    workflow_obj_state_class,
+    object_state_event_class,
+    initial_state_event_class,
+    *,
+    reversing=False,
+):
     """Create missing object states and move untouched object states to the workflow's initial state.
 
     Every object of ``obj_class`` without an object state gets one in the initial state. Objects are read through
     the model's base manager, so a default manager that hides rows does not hide them here. The states are created
     in bulk, and a state that a save creates meanwhile is kept.
 
-    An object state that nobody has moved since it was created moves to the current initial state, so a changed
-    initial state reaches it. That includes changing the initial state back after a mistake. Someone moved a state
-    when an event other than its creation records a move that neither this function nor a migration made. This
-    function's own moves are tagged with ``initial_state_sync`` through ``tagged_writes``. A migration's writes are
-    recorded under an action of the ``migration`` kind, such as a reversal that moves objects out of a state that
-    it removes. Neither counts as someone's move. A state with no events stays where it is, because it may predate
-    the event triggers.
+    An untouched object state moves to the current initial state, so a changed initial state reaches it. That
+    includes changing the initial state back after a mistake. An object state is untouched when both of these hold:
+
+    - It was created in the workflow's initial state as it stood at that moment. That initial state is the one that
+      the latest initial state event at or before the creation records. A state that was created somewhere else,
+      such as an imported object placed in a later state, stays where it is.
+    - No event after its creation records a move that someone made. This function's own moves are tagged with
+      ``initial_state_sync`` through ``tagged_writes``. A migration's writes are recorded under an action of the
+      ``migration`` kind, such as a reversal that moves objects out of a state that it removes. Neither counts as
+      someone's move.
+
+    A state with no events stays where it is, because it may predate the event triggers. So does a state that was
+    created before the workflow's first recorded initial state event.
 
     Returns the number of object states that moved. ``reversing`` deletes every object state of the workflow
-    instead. The workflow, model, and object state classes are passed in, so the function works with a migration's
-    models and with the current models.
+    instead. The workflow, model, object state, and event classes are passed in, so the function works with a
+    migration's models and with the current models.
     Generated workflow migrations copy this function, and ``backfillworkflowstates`` calls it.
     """
     if reversing:
@@ -775,7 +790,17 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
         ignore_conflicts=True,
     )
 
-    created = object_state_event_class.objects.filter(pgh_obj_id=OuterRef("pk"), pgh_label="insert")
+    # Event timestamps come from clock_timestamp(), so they order the writes even inside one transaction.
+    initial_state_at_creation = (
+        initial_state_event_class.objects.filter(
+            workflow_id=OuterRef("workflow_id"), pgh_created_at__lte=OuterRef("pgh_created_at")
+        )
+        .order_by("-pgh_created_at", "-pgh_id")
+        .values("state_id")[:1]
+    )
+    created_in_the_initial_state = object_state_event_class.objects.filter(
+        pgh_obj_id=OuterRef("pk"), pgh_label="insert", state_id=Subquery(initial_state_at_creation)
+    )
     # Match on the workflow and object rather than the row, so a move recorded on a row that an earlier
     # reversal deleted still counts.
     moved_by_someone = (
@@ -794,7 +819,7 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
     untouched = (
         workflow_obj_state_class.objects.filter(workflow=workflow)
         .exclude(state_id=initial_state.state_id)
-        .filter(Exists(created))
+        .filter(Exists(created_in_the_initial_state))
         .exclude(Exists(moved_by_someone))
     )
     with tagged_writes(initial_state_sync=True):
@@ -807,13 +832,21 @@ def handle_state_objects(apps, *, reversing=False):
     ``reversing`` deletes all object states instead. Generated workflow migrations copy this function
     and reach it through ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
+    model_initial_state_event = apps.get_model("vueda_workflow", "InitialStateEvent")
     model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
     for workflow in model_workflow.objects.all():
         model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
-        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event, reversing=reversing)
+        manage_state_objects(
+            workflow,
+            model_obj,
+            model_object_state,
+            model_object_state_event,
+            model_initial_state_event,
+            reversing=reversing,
+        )
 
 
 def _released_record(released, workflow):
@@ -928,6 +961,7 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
     function and reach it through ``backwards_migrate_workflow``.
     """
     model_initial_state = apps.get_model("vueda_workflow", "InitialState")
+    model_initial_state_event = apps.get_model("vueda_workflow", "InitialStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -951,7 +985,9 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
             continue
         before = model_object_state.objects.filter(workflow=workflow).count()
         model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
-        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event)
+        manage_state_objects(
+            workflow, model_obj, model_object_state, model_object_state_event, model_initial_state_event
+        )
         _released_record(released, workflow)["created"] += (
             model_object_state.objects.filter(workflow=workflow).count() - before
         )
@@ -1090,6 +1126,7 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
         result_mapping[("Exists",)] = f"from django.db.models import Exists{NEWLINE}"
         result_mapping[("OuterRef",)] = f"from django.db.models import OuterRef{NEWLINE}"
         result_mapping[("Q",)] = f"from django.db.models import Q{NEWLINE}"
+        result_mapping[("Subquery",)] = f"from django.db.models import Subquery{NEWLINE}"
         result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
         result_mapping[("audited_action",)] = f"{NEWLINE}from vueda.core.audit import audited_action{NEWLINE}"
         result_mapping[("tagged_writes",)] = f"from vueda.core.audit import tagged_writes{NEWLINE}"

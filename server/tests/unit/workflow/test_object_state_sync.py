@@ -13,6 +13,7 @@ from django.db import models
 from tests.erring.models import EnabledWithWorkflow
 from vueda.workflow.migration_generation.operations import manage_state_objects
 from vueda.workflow.models import InitialState
+from vueda.workflow.models import InitialStateEvent
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import ObjectStateEvent
 from vueda.workflow.models import State
@@ -45,7 +46,7 @@ class TestObjectStateSync:
         monkeypatch.setattr(EnabledWithWorkflow, "objects", hiding)
         monkeypatch.setitem(EnabledWithWorkflow._meta.__dict__, "default_manager", hiding)
 
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
 
         assert ObjectState.objects.get(workflow=workflow, object_id=shown.pk).state.code == "unapproved"
         assert ObjectState.objects.get(workflow=workflow, object_id=hidden.pk).state.code == "unapproved"
@@ -59,10 +60,23 @@ class TestObjectStateSync:
         InitialState.objects.filter(workflow=workflow).update(state=review)
         workflow.refresh_from_db()
 
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
 
         assert ObjectState.objects.get(workflow=workflow, object_id=untouched.pk).state.code == "review"
         assert ObjectState.objects.get(workflow=workflow, object_id=moved.pk).state.code == "approved"
+
+    def test_a_state_created_outside_the_initial_state_stays_when_the_initial_state_changes(self, workflow, review):
+        """An import can place an object in a later state. Its creation is its only event, and the sync leaves it."""
+        imported = EnabledWithWorkflow.objects.create(name="imported")
+        ObjectState.objects.filter(workflow=workflow, object_id=imported.pk).delete()
+        approved = State.objects.get(workflow=workflow, code="approved")
+        ObjectState.objects.create(workflow=workflow, object_id=imported.pk, state=approved)
+        InitialState.objects.filter(workflow=workflow).update(state=review)
+        workflow.refresh_from_db()
+
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
+
+        assert ObjectState.objects.get(workflow=workflow, object_id=imported.pk).state == approved
 
     def test_changing_the_initial_state_back_moves_untouched_states_back(self, workflow, review):
         """The sync's own move does not count as someone moving the state, so a second change moves it again."""
@@ -70,12 +84,12 @@ class TestObjectStateSync:
         unapproved = workflow.initial_state.state
         InitialState.objects.filter(workflow=workflow).update(state=review)
         workflow.refresh_from_db()
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
         assert ObjectState.objects.get(workflow=workflow, object_id=untouched.pk).state.code == "review"
 
         InitialState.objects.filter(workflow=workflow).update(state=unapproved)
         workflow.refresh_from_db()
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
 
         assert ObjectState.objects.get(workflow=workflow, object_id=untouched.pk).state.code == "unapproved"
         events = ObjectStateEvent.objects.filter(workflow_id=workflow.pk, object_id=untouched.pk).order_by("pgh_id")
@@ -89,14 +103,14 @@ class TestObjectStateSync:
     ):
         """pghistory keeps a context for the rest of its transaction, so the sync clears the tag that it set."""
         moved = EnabledWithWorkflow.objects.create(name="moved after the sync")
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
         ObjectState.objects.filter(workflow=workflow, object_id=moved.pk).update(
             state=State.objects.get(workflow=workflow, code="approved")
         )
         InitialState.objects.filter(workflow=workflow).update(state=review)
         workflow.refresh_from_db()
 
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
 
         assert ObjectState.objects.get(workflow=workflow, object_id=moved.pk).state.code == "approved"
 
@@ -108,7 +122,7 @@ class TestObjectStateSync:
         InitialState.objects.filter(workflow=workflow).update(state=review)
         workflow.refresh_from_db()
 
-        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent)
+        manage_state_objects(workflow, EnabledWithWorkflow, ObjectState, ObjectStateEvent, InitialStateEvent)
 
         assert ObjectState.objects.get(workflow=workflow, object_id=carried_over.pk).state.code == "unapproved"
 

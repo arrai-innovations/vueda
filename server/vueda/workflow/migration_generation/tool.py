@@ -327,7 +327,13 @@ class WorkflowChangeTool(MigrationTool):
             for workflow in models.Workflow.objects.select_related("content_type", "initial_state"):
                 model_class = workflow.content_type.model_class()
                 if model_class is not None:
-                    manage_state_objects(workflow, model_class, models.ObjectState, models.ObjectStateEvent)
+                    manage_state_objects(
+                        workflow,
+                        model_class,
+                        models.ObjectState,
+                        models.ObjectStateEvent,
+                        models.InitialStateEvent,
+                    )
 
     def _get_apps_with_workflow(self, selected_apps=()):
         apps_with_workflow = {}

@@ -94,9 +94,12 @@ The generated file is a standard Django migration with these additions:
 
 ### How Object States Are Updated
 
-After applying its recorded changes, a workflow migration checks the objects of every workflow. It reads the objects through the model's base manager, so a default manager that hides rows does not hide them. An object without an object state gets its workflow's initial state. An existing object state moves to the current initial state when nobody has moved it since its creation. That holds each time the initial state changes, including a change back. A state that someone moved stays where it is.
+After applying its recorded changes, a workflow migration checks the objects of every workflow. It reads the objects through the model's base manager, so a default manager that hides rows does not hide them. An object without an object state gets its workflow's initial state. An existing object state moves to the current initial state when it is untouched. That holds each time the initial state changes, including a change back. An object state is untouched when both of these statements hold:
 
-The check records its own moves with `initial_state_sync` in their pghistory context, so a later check does not count them as someone's move. A state that has an `insert` event, and no other event apart from those moves, counts as never moved.
+- It was created in the workflow's initial state as it stood at that moment. For example, an import that places an object directly in a later state creates it outside the initial state, so the object stays in that later state.
+- Nobody has moved it since its creation.
+
+The check records its own moves with `initial_state_sync` in their pghistory context, so a later check does not count them as someone's move. A migration's own writes don't count either. The check reads the initial state at the object state's creation from the workflow's initial state history. An object state created before that history begins stays where it is.
 
 An object state with no events also stays where it is, even when the initial state changes, because its history cannot show whether it moved. An object state carried over from v2 has events when `vueda_workflow` migration `0009` copied its v2 history. A database upgraded with server 3.0.0b1 or earlier has no copied history, so its v2 object states have no events.
 
@@ -199,7 +202,7 @@ A model that enables `class Vueda.Workflow` needs its workflow before the releas
     python manage.py backfillworkflowstates <app_label>.<ModelName>
     ```
 
-The previous release does not know that the model has workflow. Objects that it creates between the migration and cutover have no object state. They show a null state, drop out of `workflow_state` filters and state grants, and fail on transitions. The backfill gives each of them the initial state, which the new release would have given them. It also moves each object state that nobody has moved since its creation to the current initial state, as [How Object States Are Updated](#how-object-states-are-updated) describes. Running it again changes nothing.
+The previous release does not know that the model has workflow. Objects that it creates between the migration and cutover have no object state. They show a null state, drop out of `workflow_state` filters and state grants, and fail on transitions. The backfill gives each of them the initial state, which the new release would have given them. It also moves each untouched object state to the current initial state, as [How Object States Are Updated](#how-object-states-are-updated) describes. Running it again changes nothing.
 
 `python manage.py check --database default` reports `vueda_workflow.W002` while any object of an enabled model has no object state. The warning names the model and the command that fixes it.
 
