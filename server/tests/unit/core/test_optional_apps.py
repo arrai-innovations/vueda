@@ -301,6 +301,7 @@ def test_makevuedamigrations_writes_group_migrations_without_workflow():
         """
         import datetime
         import io
+        import re
         import sys
         import tempfile
         from pathlib import Path
@@ -348,8 +349,9 @@ def test_makevuedamigrations_writes_group_migrations_without_workflow():
         call_command("makevuedamigrations", stdout=io.StringIO())
 
         names = sorted(path.name for path in migrations_dir.glob("0*.py"))
-        assert names == ["0001_initial.py", "0002_group_permission_migrations.py"], names
-        source = (migrations_dir / "0002_group_permission_migrations.py").read_text()
+        assert len(names) == 2 and names[0] == "0001_initial.py", names
+        assert re.fullmatch(r"0002_group_permission_migrations_[0-9a-f]{8}[.]py", names[1]), names
+        source = (migrations_dir / names[1]).read_text()
         assert "makevuedamigrations command (group changes)" in source
         assert "Ticket Readers" in source
         assert "vueda_workflow" not in source

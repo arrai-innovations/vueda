@@ -178,11 +178,11 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 
             employee_new = new_migration_names(employee_dir, employee_before)
             erring_new = new_migration_names(erring_dir, erring_before)
-            assert [name.split("_", 1)[1] for name in employee_new] == [
-                "group_permission_migrations",
-                "group_permission_migrations",
-            ]
-            # A workflow migration's name ends in a random suffix of 8 hex characters.
+            # A generated migration's name ends in a random suffix of 8 hex characters.
+            assert [
+                re.fullmatch(r"\d{4}_group_permission_migrations_[0-9a-f]{8}", name) is not None
+                for name in employee_new
+            ] == [True, True], employee_new
             assert [
                 re.fullmatch(r"\d{4}_workflow_migrations_[0-9a-f]{8}", name) is not None for name in erring_new
             ] == [
@@ -535,7 +535,7 @@ class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
                 call_command("makevuedamigrations", stdout=io.StringIO(), stderr=errors)
 
             (kept,) = new_migration_names(employee_dir, employee_before)
-            assert kept.endswith("_group_permission_migrations")
+            assert re.fullmatch(r"\d{4}_group_permission_migrations_[0-9a-f]{8}", kept), kept
             assert new_migration_names(erring_dir, erring_before) == []
             assert f"Kept the migrations already written: employee.{kept}." in errors.getvalue()
             assert "An error occurred while writing the migration for workflow changes in erring" in errors.getvalue()

@@ -13,7 +13,6 @@ __all__ = (
 
 import copy
 import importlib
-import secrets
 
 from django.apps import apps as django_apps
 from django.contrib.auth.models import Group
@@ -245,17 +244,6 @@ class WorkflowChangeTool(MigrationTool):
     key = "workflow"
     migration_name = "workflow_migrations"
     tie_order = 10
-
-    def new_migration_name(self):
-        """Return ``workflow_migrations`` followed by a random suffix of 8 hex characters.
-
-        A workflow migration records its writes under an action that names the migration, and the tool finds when
-        a migration first ran by that name. A migration that is deleted and generated again gets the same number.
-        Without the suffix, it would also get the same name, and the tool would match it against the run of the
-        deleted file. The suffix is random rather than taken from the content, because the same changes generated
-        again must still get a new name.
-        """
-        return f"{self.migration_name}_{secrets.token_hex(4)}"
 
     def add_arguments(self, parser):
         parser.add_argument(

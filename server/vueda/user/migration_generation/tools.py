@@ -15,6 +15,7 @@ __all__ = (
 
 import dataclasses
 import datetime
+import secrets
 
 from django.apps import apps as django_apps
 from django.utils.module_loading import import_string
@@ -65,7 +66,7 @@ class MigrationTool:
 
     A subclass sets ``key``, ``migration_name``, and ``tie_order``, and implements ``pending_changes`` and
     ``migration_content``. ``key`` names the tool in output and prefixes its own options. ``migration_name`` is
-    the name that each of its migrations gets after Django's number, unless ``new_migration_name`` adds to it.
+    the start of the name that each of its migrations gets after Django's number.
     ``tie_order`` breaks a tie between the changes of two tools that were recorded at the same moment. The lower
     number goes first.
     """
@@ -78,8 +79,16 @@ class MigrationTool:
         self.command = command
 
     def new_migration_name(self):
-        """Return the name for the next migration that this tool writes, without Django's number."""
-        return self.migration_name
+        """Return ``migration_name`` followed by a random suffix of 8 hex characters, for the next migration.
+
+        A migration that is deleted and generated again gets the same number, so the suffix gives it a new name.
+        Otherwise Django would treat it as applied wherever the deleted migration was applied, and never run or fake
+        it there. A workflow migration also records its writes under an action that names the migration, and the
+        workflow tool finds when a migration first ran by that name, so a reused name would match the deleted
+        file's run. The suffix is random rather than taken from the content, because adding and removing the same
+        things gives the same content again.
+        """
+        return f"{self.migration_name}_{secrets.token_hex(4)}"
 
     @property
     def stdout(self):
