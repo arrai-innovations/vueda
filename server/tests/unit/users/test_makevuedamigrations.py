@@ -40,6 +40,8 @@ from vueda.workflow.models import InitialState
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
+from vueda.workflow.models import Transition
+from vueda.workflow.models import TransitionSource
 from vueda.workflow.models import Workflow
 
 
@@ -93,6 +95,28 @@ def permission_snapshot(group_names, workflow_code):
     )
     workflow = Workflow.objects.filter(code=workflow_code).values("code", "name").first()
     return {"groups": groups, "workflow": workflow, "state_permissions": state_permissions}
+
+
+def workflow_snapshot(workflow_code):
+    """Return the model, states, initial state and transitions of the workflow ``workflow_code``, named by code.
+
+    The result is ``None`` when no workflow has that code.
+    """
+    workflow = Workflow.objects.filter(code=workflow_code).select_related("content_type").first()
+    if workflow is None:
+        return None
+
+    return {
+        "model": f"{workflow.content_type.app_label}.{workflow.content_type.model}",
+        "states": sorted(State.objects.filter(workflow=workflow).values_list("code", flat=True)),
+        "initial_state": InitialState.objects.get(workflow=workflow).state.code,
+        "transitions": sorted(
+            (source.transition.code, source.source.code, source.transition.target.code)
+            for source in TransitionSource.objects.filter(transition__workflow=workflow).select_related(
+                "transition__target", "source"
+            )
+        ),
+    }
 
 
 def new_migration_names(migration_dir, before):
@@ -187,6 +211,60 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 
             call_command("migrate", "erring", second_workflow, verbosity=0)
             assert permission_snapshot(group_names, "interleaved") == after_changes
+
+    def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
+        """A workflow code given up by a model in one app and taken over by a model in another app.
+
+        Workflow codes are unique, so the migration that deletes the workflow in ``store`` must run before the one
+        that adds it again in ``erring``. The two migrations are written in that order, and the second depends on
+        the first. Reversing them puts the workflow back on ``store.Parcel``, and applying them again moves it.
+        """
+        with (
+            self.temporary_migration_module(settings, app_label="store") as store_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() <= {"store", "erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            store_before = set(Path(store_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            store_last_before = max(path.stem for path in store_before if path.stem[0].isdigit())
+            before_changes = workflow_snapshot("parcel_delivery")
+            assert before_changes["model"] == "store.parcel", before_changes
+
+            # Take the workflow apart in the order that its protected relations allow.
+            moved_from = Workflow.objects.get(code="parcel_delivery")
+            TransitionSource.objects.filter(transition__workflow=moved_from).delete()
+            Transition.objects.filter(workflow=moved_from).delete()
+            InitialState.objects.filter(workflow=moved_from).delete()
+            State.objects.filter(workflow=moved_from).delete()
+            moved_from.delete()
+            moved_to = Workflow.objects.create(
+                code="parcel_delivery",
+                name="Parcel Delivery",
+                content_type=ContentType.objects.get_for_model(EnabledWithoutWorkflow),
+            )
+            received = State.objects.create(workflow=moved_to, code="received", name="Received")
+            InitialState.objects.create(workflow=moved_to, state=received)
+            after_changes = workflow_snapshot("parcel_delivery")
+
+            call_command("makevuedamigrations", stdout=io.StringIO())
+
+            (given_up,) = new_migration_names(store_dir, store_before)
+            (taken_over,) = new_migration_names(erring_dir, erring_before)
+            assert ("store", given_up) in migration_dependencies(erring_dir, taken_over)
+            # The first step depends on every project app's latest migration from before the run, never on a new one.
+            assert ("erring", taken_over) not in migration_dependencies(store_dir, given_up)
+
+            # The developer's database already has the changes, so the new migrations are faked here.
+            call_command("migrate", "erring", taken_over, fake=True, verbosity=0)
+
+            # Reversing the store migration first reverses the erring migration that depends on it.
+            call_command("migrate", "store", store_last_before, verbosity=0)
+            assert workflow_snapshot("parcel_delivery") == before_changes
+
+            call_command("migrate", "erring", taken_over, verbosity=0)
+            assert workflow_snapshot("parcel_delivery") == after_changes
 
     def test_migrations_with_copied_code_round_trip(self, settings, monkeypatch):
         """Projects get migrations that copy the functions they run, rather than import them from VUEDA."""
