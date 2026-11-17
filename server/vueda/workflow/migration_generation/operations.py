@@ -104,9 +104,9 @@ def workflow_migration_action(apps, change_reason):
 def forwards_migrate_workflow(apps, changed_items, change_reason):
     """Apply a generated workflow migration's ``changed_items`` in order, then sync workflow object states.
 
-    Generated workflow migrations call this from their forwards step; the migrations import it when
-    made with ``--import-instead`` and copy it otherwise. All writes are grouped under one migration
-    action named by ``change_reason``.
+    Generated workflow migrations copy this function and call it from their forwards step. The
+    migrations that VUEDA's own tests write import it instead. All writes are grouped under one
+    migration action named by ``change_reason``.
     """
     with workflow_migration_action(apps, change_reason):
         _forwards_migrate_workflow(apps, changed_items, change_reason)
@@ -155,8 +155,8 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
     states change only for the workflows ``changed_items`` names: a removed workflow's object states
     are deleted, an object in a removed state is restored from its history or reset to the initial
     state, and a re-created workflow gives its objects the initial state. Every other object state
-    keeps its row and its state. Generated workflow migrations call this from their reverse step; the
-    migrations import it when made with ``--import-instead`` and copy it otherwise.
+    keeps its row and its state. Generated workflow migrations copy this function and call it from
+    their reverse step. The migrations that VUEDA's own tests write import it instead.
     """
     apps = rebuild_migration_apps(apps)
     with workflow_migration_action(apps, change_reason):
@@ -1037,7 +1037,7 @@ def make_sure_permissions_exist(app_label):
     """Create any missing permissions for the app named ``app_label``.
 
     Generated workflow migrations run this before applying their changes, so the permissions those changes
-    name exist. The migrations import it when made with ``--import-instead`` and copy it otherwise.
+    name exist. The migrations copy this function. The migrations that VUEDA's own tests write import it instead.
     """
     app = django_apps.get_app_config(app_label)
     create_permissions(app, interactive=False)

@@ -312,6 +312,7 @@ def test_makevuedamigrations_writes_group_migrations_without_workflow():
         from django.conf import settings
         from django.core.management import call_command
 
+        from vueda.user.management.commands.makevuedamigrations import Command
         from vueda.user.migration_generation.groups import GroupChangeTool
         from vueda.user.migration_generation.tools import PendingChange
         from vueda.user.migration_generation.tools import get_migration_tools
@@ -342,7 +343,9 @@ def test_makevuedamigrations_writes_group_migrations_without_workflow():
         )
 
         assert [tool.key for tool in get_migration_tools(None)] == ["group"]
-        call_command("makevuedamigrations", "--import-instead", stdout=io.StringIO())
+        # This process does not run the conftest fixture that sets this for the test suite.
+        Command._import_instead = True
+        call_command("makevuedamigrations", stdout=io.StringIO())
 
         names = sorted(path.name for path in migrations_dir.glob("0*.py"))
         assert names == ["0001_initial.py", "0002_group_permission_migrations.py"], names

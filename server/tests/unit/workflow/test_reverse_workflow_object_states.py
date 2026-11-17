@@ -2,7 +2,7 @@
 Reversing a workflow migration changes object states only for the workflows it names.
 
 Each test reverses hand-built ``changed_data`` against the live models, the same way a generated
-migration made with ``--import-instead`` calls ``backwards_migrate_workflow``.
+migration that the tests write calls ``backwards_migrate_workflow``.
 """
 
 import copy
