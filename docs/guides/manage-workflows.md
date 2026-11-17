@@ -97,7 +97,7 @@ The generated file is a standard Django migration with these additions:
 After applying its recorded changes, a workflow migration checks the objects of every workflow. It reads the objects through the model's base manager, so a default manager that hides rows does not hide them. An object without an object state gets its workflow's initial state. An existing object state moves to the current initial state when it is untouched. That holds each time the initial state changes, including a change back. An object state is untouched when both of these statements hold:
 
 - It was created in the workflow's initial state as it stood at that moment. For example, an import that places an object directly in a later state creates it outside the initial state, so the object stays in that later state.
-- Nobody has moved it since its creation.
+- Nobody has moved the object in that workflow. A move that someone made before a migration's reversal deleted and re-created the object state still counts.
 
 The check records its own moves with `initial_state_sync` in their pghistory context, so a later check does not count them as someone's move. A migration's own writes don't count either. The check reads the initial state at the object state's creation from the workflow's initial state history. An object state created before that history begins stays where it is.
 

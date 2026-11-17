@@ -758,7 +758,9 @@ def manage_state_objects(
     - It was created in the workflow's initial state as it stood at that moment. That initial state is the one that
       the latest initial state event at or before the creation records. A state that was created somewhere else,
       such as an imported object placed in a later state, stays where it is.
-    - No event after its creation records a move that someone made. This function's own moves are tagged with
+    - No event for the same workflow and object records a move that someone made. That includes an event on an
+      earlier object state of the object that a migration's reversal deleted, so a move that someone made before
+      the reversal still counts. This function's own moves are tagged with
       ``initial_state_sync`` through ``tagged_writes``. A migration's writes are recorded under an action of the
       ``migration`` kind, such as a reversal that moves objects out of a state that it removes. Neither counts as
       someone's move.
