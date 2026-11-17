@@ -303,6 +303,108 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
                 assert re.search(r",\s*\]$", changed_data_source), (name, changed_data_source)
                 assert quoted_key in changed_data_source, (name, changed_data_source)
 
+    def test_a_new_migration_follows_earlier_ones_with_the_old_and_the_new_name_formats(self, settings):
+        """Projects keep the migrations that the old commands wrote, so the next run must follow both formats.
+
+        The first pair of migrations is turned into the old format: a name that ends in a date, the old marker
+        comments, and a workflow action named without the app. It then runs back and forth, so that action is
+        recorded. The second pair has the new format. The third pair must then hold only the newest changes, follow
+        the second pair, and leave nothing pending. Reversing all three pairs and applying them again checks that
+        migrate handles both formats too.
+        """
+        content_type = ContentType.objects.get_for_model(EnabledWithoutWorkflow)
+        read, update, list_ = (
+            Permission.objects.get(content_type=content_type, codename=f"{action}_enabledwithoutworkflow")
+            for action in ("read", "update", "list")
+        )
+        admin = get_user_model().objects.create_superuser(email="admin@domain.invalid", password="pw", name="Admin")
+        group_names = ("Formats Group",)
+
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            assert apps_with_pending_changes() <= {"employee", "erring"}, (
+                "Another app has pending changes, so the command would write into the source tree."
+            )
+            employee_before = set(Path(employee_dir).glob("*.py"))
+            erring_before = set(Path(erring_dir).glob("*.py"))
+            employee_last_before = max(path.stem for path in employee_before if path.stem[0].isdigit())
+            erring_last_before = max(path.stem for path in erring_before if path.stem[0].isdigit())
+            before_changes = (permission_snapshot(group_names, "formats"), workflow_snapshot("formats"))
+
+            # The first pair, rewritten into the format that the old commands used.
+            save_group_permission(admin, read, "Formats Group")
+            workflow = Workflow.objects.create(code="formats", name="Formats", content_type=content_type)
+            draft = State.objects.create(workflow=workflow, code="draft", name="Draft")
+            InitialState.objects.create(workflow=workflow, state=draft)
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (new_group_name,) = new_migration_names(employee_dir, employee_before)
+            (new_workflow_name,) = new_migration_names(erring_dir, erring_before)
+            old_group = f"{new_group_name.split('_', 1)[0]}_group_permission_migrations_2026_06_29"
+            old_workflow = f"{new_workflow_name.split('_', 1)[0]}_workflow_migrations_2026_06_29"
+            for directory, new_name, old_name, operations in (
+                (employee_dir, new_group_name, old_group, group_operations),
+                (erring_dir, new_workflow_name, old_workflow, workflow_operations),
+            ):
+                source = (Path(directory) / f"{new_name}.py").read_text()
+                assert source.count(operations.MIGRATION_MODIFIED_COMMENT) == 1
+                source = source.replace(
+                    operations.MIGRATION_MODIFIED_COMMENT, operations.LEGACY_MIGRATION_MODIFIED_COMMENT
+                )
+                # The workflow migration depends on the group migration, and named its action without the app.
+                source = source.replace(new_group_name, old_group).replace(
+                    f"Workflow Migration - erring.{new_workflow_name}", f"Workflow Migration - {old_workflow}"
+                )
+                (Path(directory) / f"{old_name}.py").write_text(source)
+                (Path(directory) / f"{new_name}.py").unlink()
+            assert ("employee", old_group) in migration_dependencies(erring_dir, old_workflow)
+            call_command("migrate", "erring", old_workflow, fake=True, verbosity=0)
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            call_command("migrate", "employee", employee_last_before, verbosity=0)
+            call_command("migrate", "erring", old_workflow, verbosity=0)
+            after_old = set(Path(employee_dir).glob("*.py")), set(Path(erring_dir).glob("*.py"))
+
+            # The second pair, in the new format.
+            # Without a group id, the page grants the permission to the existing group with that name.
+            save_group_permission(admin, update, "Formats Group")
+            State.objects.create(workflow=Workflow.objects.get(code="formats"), code="review", name="Review")
+            call_command("makevuedamigrations", stdout=io.StringIO())
+            (second_group,) = new_migration_names(employee_dir, after_old[0])
+            (second_workflow,) = new_migration_names(erring_dir, after_old[1])
+            call_command("migrate", "erring", second_workflow, fake=True, verbosity=0)
+            after_second = set(Path(employee_dir).glob("*.py")), set(Path(erring_dir).glob("*.py"))
+
+            # The third pair follows both formats.
+            save_group_permission(admin, list_, "Formats Group")
+            State.objects.create(workflow=Workflow.objects.get(code="formats"), code="done", name="Done")
+            after_changes = (permission_snapshot(group_names, "formats"), workflow_snapshot("formats"))
+            call_command("makevuedamigrations", stdout=io.StringIO())
+
+            (third_group,) = new_migration_names(employee_dir, after_second[0])
+            (third_workflow,) = new_migration_names(erring_dir, after_second[1])
+            for previous, latest, migration_name in (
+                (second_group, third_group, "group_permission_migrations"),
+                (second_workflow, third_workflow, "workflow_migrations"),
+            ):
+                assert re.fullmatch(rf"\d{{4}}_{migration_name}_[0-9a-f]{{8}}", latest), latest
+                assert int(latest.split("_", 1)[0]) == int(previous.split("_", 1)[0]) + 1, (previous, latest)
+            assert ("erring", second_workflow) in migration_dependencies(employee_dir, third_group)
+            assert ("employee", third_group) in migration_dependencies(erring_dir, third_workflow)
+            third_workflow_source = (Path(erring_dir) / f"{third_workflow}.py").read_text()
+            assert '"done"' in third_workflow_source
+            assert '"draft"' not in third_workflow_source
+            assert '"review"' not in third_workflow_source
+            assert apps_with_pending_changes() == set()
+
+            call_command("migrate", "erring", third_workflow, fake=True, verbosity=0)
+            call_command("migrate", "erring", erring_last_before, verbosity=0)
+            call_command("migrate", "employee", employee_last_before, verbosity=0)
+            assert (permission_snapshot(group_names, "formats"), workflow_snapshot("formats")) == before_changes
+
+            call_command("migrate", "erring", third_workflow, verbosity=0)
+            assert (permission_snapshot(group_names, "formats"), workflow_snapshot("formats")) == after_changes
+
     def test_a_workflow_code_that_moves_to_another_app_round_trips(self, settings):
         """A workflow code given up by a model in one app and taken over by a model in another app.
 
