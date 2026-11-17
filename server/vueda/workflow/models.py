@@ -624,6 +624,8 @@ def objects_without_object_state(model, workflow):
     object in this queryset has no current state, which leaves it out of state filters and state
     grants and makes its transitions fail. ``backfillworkflowstates`` gives each one the initial state.
     """
+    # manage_state_objects in vueda.workflow.migration_generation.operations runs the same query with a
+    # migration's models. Change both together.
     with_state = ObjectState.objects.filter(workflow=workflow).values("object_id")
     return model._base_manager.exclude(pk__in=with_state)
 

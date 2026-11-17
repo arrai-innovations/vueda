@@ -34,6 +34,8 @@ def audited_action(action, kind=None, **metadata):
     action keeps that metadata until it exits. Only the outermost block clears the action when it
     ends, because an inner one leaving must not take the action its caller is still writing under.
     """
+    if "action" in metadata:
+        raise TypeError("audited_action() got multiple values for argument 'action'")
     with _open_or_join_action({"action": action, **metadata}, kind):
         yield
 

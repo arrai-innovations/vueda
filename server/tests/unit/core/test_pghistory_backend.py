@@ -143,6 +143,11 @@ class TestActionContext:
         assert context.metadata["action"] == "invoice.create"
         assert context.metadata["source"] == "test"
 
+    def test_metadata_named_action_is_refused_rather_than_replacing_the_action_name(self):
+        with pytest.raises(TypeError, match="multiple values for argument 'action'"):
+            with audited_action("invoice.create", action="other"):
+                pass
+
     def test_separate_actions_do_not_share_an_identity(self):
         with audited_action("first"):
             one = make_invoice("One")

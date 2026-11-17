@@ -781,6 +781,8 @@ def manage_state_objects(
         # A workflow part-way through its own migration has no initial state to give anything.
         return
 
+    # vueda.workflow.models.objects_without_object_state runs the same query for the system check. This copy
+    # stays separate, because migrations copy this function and must not import the current models.
     with_state = workflow_obj_state_class.objects.filter(workflow=workflow).values("object_id")
     missing = obj_class._base_manager.exclude(pk__in=with_state).values_list("pk", flat=True)
     workflow_obj_state_class.objects.bulk_create(

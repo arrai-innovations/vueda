@@ -58,10 +58,9 @@ statements hold:
 - No migration that the test applies depends on another test app's migrations.
 
 `test_the_vdq_migrations_still_reverse_and_apply` in
-`unit/workflow/test_reverse_workflow_object_states.py` is an example. The group migration tests in
-`unit/users/test_management_commands.py` do not use the marker. The migration that
-`makegroupmigrations` generates depends on the latest migration of every project app, test apps
-included.
+`unit/workflow/test_reverse_workflow_object_states.py` is an example. The `makevuedamigrations`
+tests in `unit/users/test_makevuedamigrations.py` do not use the marker. The first migration that
+the command writes depends on the latest migration of every project app, test apps included.
 
 Each xdist worker builds the template the first time a marked test needs it. The worker drops the
 template when the session ends. `suffix_each_test` fails a marked test that is not also marked
