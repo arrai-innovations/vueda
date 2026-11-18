@@ -19,6 +19,7 @@ from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
 from vueda.user.migration_generation.dependencies import is_installed_package_path
+from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_item
@@ -26,7 +27,6 @@ from vueda.workflow.migration_generation.operations import get_migration_imports
 from vueda.workflow.migration_generation.operations import get_migration_sources
 
 
-WORKFLOW_MIGRATION_COMMENT_MARKER = tuple(marker.strip() for marker in MIGRATION_MODIFIED_COMMENTS)
 IMPORT_INSTEAD_MARKER = "from vueda.workflow.migration_generation.operations import"
 
 # The copied functions read ObjectStateEvent and write through the workflow event triggers.
@@ -286,13 +286,8 @@ class Command(BaseCommand):
                     continue
 
                 filepath = os.path.join(migrations_path, filename)
-                with open(filepath, encoding="utf-8") as f:
-                    for line_no, line in enumerate(f):
-                        if line.startswith(WORKFLOW_MIGRATION_COMMENT_MARKER):
-                            result[filepath] = ((app_label, filename.removesuffix(".py")), writable)
-                            break
-                        if line_no > 20:  # noqa: PLR2004
-                            break
+                if is_generated_migration(filepath, MIGRATION_MODIFIED_COMMENTS):
+                    result[filepath] = ((app_label, filename.removesuffix(".py")), writable)
 
         return result
 
