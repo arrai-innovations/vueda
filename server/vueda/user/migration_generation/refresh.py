@@ -108,11 +108,13 @@ def rewrite_removed_imports(source):
             )
             replacements.append((node.lineno, node.end_lineno, text))
 
-    # A name used through an aliased module import has to exist in the current module.
+    # A name read through an aliased module import has to exist in the current module. Assigning one, as the
+    # early group migrations did with changed_data, works on any module.
     for child in ast.walk(tree):
         if (
             isinstance(child, ast.Attribute)
             and isinstance(child.value, ast.Name)
+            and not isinstance(child.ctx, ast.Store)
             and child.value.id in module_aliases
             and not hasattr(module_aliases[child.value.id], child.attr)
         ):

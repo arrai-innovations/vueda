@@ -207,48 +207,26 @@ class Command(BaseCommand):
         The result is False when the migration was already up to date. It is None when the refresh failed.
         """
         update_changed_data = None
+        blocked = None
         if generated.kind.name == "workflow":
-            workflow_refresh = workflow["module"]
-            if workflow["loader"] is not None:
-                migration_key = (generated.app_label, generated.path.stem)
-                try:
-                    has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
-                except NodeNotFoundError:
-                    self.stderr.write(
-                        self.style.ERROR(
-                            f"  Cannot update {generated.path}: the migration graph does not include it, for "
-                            "example because a squashed migration replaces it. "
-                            f"{self._left_as_it_was(generated)}"
-                        )
-                    )
-                    return None
-                if not has_workflow_events:
-                    required = workflow_refresh.REQUIRED_WORKFLOW_MIGRATION
-                    self.stderr.write(
-                        self.style.ERROR(
-                            f"  Cannot update {generated.path}: its dependencies do not include "
-                            f"{required[0]}.{required[1]}, which the current workflow functions require. "
-                            f"{self._left_as_it_was(generated)}"
-                        )
-                    )
-                    return None
-            elif not self.dry_run:
-                self.stderr.write(
-                    self.style.ERROR(
-                        f"  Cannot update {generated.path}: {workflow['loader_problem']}. "
-                        f"{self._left_as_it_was(generated)}"
-                    )
+            blocked = self._workflow_blocker(generated, workflow)
+            if blocked is None:
+                update_changed_data = workflow["module"].changed_data_updater(
+                    workflow["identities"], generated.path, stderr=self.stderr, dry_run=self.dry_run
                 )
-                return None
-            update_changed_data = workflow_refresh.changed_data_updater(
-                workflow["identities"], generated.path, stderr=self.stderr, dry_run=self.dry_run
-            )
 
+        # The refresh runs even when the workflow checks block the file, because the code that the file needs
+        # changed by hand is the more useful report. An import that is still used also stops the graph.
         try:
             result = refresh_migration(generated.text, generated.kind, update_changed_data=update_changed_data)
         except (RefreshError, ValueError) as error:
             self.stderr.write(
                 self.style.ERROR(f"  Could not update {generated.path}: {error} {self._left_as_it_was(generated)}")
+            )
+            return None
+        if blocked is not None:
+            self.stderr.write(
+                self.style.ERROR(f"  Cannot update {generated.path}: {blocked} {self._left_as_it_was(generated)}")
             )
             return None
 
@@ -270,6 +248,26 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
                 return None
         return True
+
+    def _workflow_blocker(self, generated, workflow):
+        """Return why the migration graph stops a workflow migration from being refreshed. It is None when
+        nothing does."""
+        workflow_refresh = workflow["module"]
+        if workflow["loader"] is None:
+            # A dry run refreshes without the dependency check, and notes why.
+            return None if self.dry_run else f"{workflow['loader_problem']}."
+        migration_key = (generated.app_label, generated.path.stem)
+        try:
+            has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
+        except NodeNotFoundError:
+            return "the migration graph does not include it, for example because a squashed migration replaces it."
+        if not has_workflow_events:
+            required = workflow_refresh.REQUIRED_WORKFLOW_MIGRATION
+            return (
+                f"its dependencies do not include {required[0]}.{required[1]}, which the current workflow "
+                "functions require."
+            )
+        return None
 
     def _left_as_it_was(self, generated):
         """Say what a failed refresh left in a file: either nothing, or only the import fixes written before it."""
