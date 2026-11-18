@@ -17,6 +17,7 @@ from django.db.migrations.loader import MigrationLoader
 
 from tests.utils import BaseTestMigrations
 from vueda import workflow as workflow_module
+from vueda.user.migration_generation import dependencies
 from vueda.workflow.management.commands import updateworkflowmigrations
 
 
@@ -324,10 +325,10 @@ class TestInstalledPackageApps(BaseTestMigrations):
     def test_no_label_leaves_an_installed_package_app_unchanged(self, settings, monkeypatch, dry_run):
         with self.temporary_migration_module(settings, app_label="vueda_vdq") as directory:
             monkeypatch.setattr(
-                updateworkflowmigrations,
+                dependencies,
                 "INSTALLED_PACKAGE_PATHS",
                 (
-                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *dependencies.INSTALLED_PACKAGE_PATHS,
                     *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, directory)),
                 ),
             )
@@ -350,10 +351,10 @@ class TestInstalledPackageApps(BaseTestMigrations):
     def test_named_installed_package_app_is_rejected(self, settings, monkeypatch, dry_run):
         with self.temporary_migration_module(settings, app_label="vueda_vdq") as directory:
             monkeypatch.setattr(
-                updateworkflowmigrations,
+                dependencies,
                 "INSTALLED_PACKAGE_PATHS",
                 (
-                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *dependencies.INSTALLED_PACKAGE_PATHS,
                     *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, directory)),
                 ),
             )
@@ -378,9 +379,9 @@ class TestInstalledPackageApps(BaseTestMigrations):
     def test_no_label_updates_an_app_outside_installed_packages(self, settings, monkeypatch):
         with self.temporary_migration_module(settings, app_label="vueda_vdq") as directory:
             monkeypatch.setattr(
-                updateworkflowmigrations,
+                dependencies,
                 "INSTALLED_PACKAGE_PATHS",
-                (*updateworkflowmigrations.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(SOURCE_TREE))),
+                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(SOURCE_TREE))),
             )
             path = Path(directory) / "0006_workflow_probe.py"
             write_workflow_migration(path, [("vueda_vdq", VDQ_WORKFLOW), ("vueda_workflow", WORKFLOW_EVENTS)])
@@ -406,10 +407,10 @@ class TestInstalledPackageApps(BaseTestMigrations):
             self.temporary_migration_module(settings, app_label="product") as project_directory,
         ):
             monkeypatch.setattr(
-                updateworkflowmigrations,
+                dependencies,
                 "INSTALLED_PACKAGE_PATHS",
                 (
-                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *dependencies.INSTALLED_PACKAGE_PATHS,
                     *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, package_directory)),
                 ),
             )
@@ -510,10 +511,10 @@ class TestInstalledPackageApps(BaseTestMigrations):
             self.temporary_migration_module(settings, app_label="product") as project_directory,
         ):
             monkeypatch.setattr(
-                updateworkflowmigrations,
+                dependencies,
                 "INSTALLED_PACKAGE_PATHS",
                 (
-                    *updateworkflowmigrations.INSTALLED_PACKAGE_PATHS,
+                    *dependencies.INSTALLED_PACKAGE_PATHS,
                     *(os.path.normcase(os.path.realpath(path)) for path in (SOURCE_TREE, package_directory)),
                 ),
             )
@@ -625,12 +626,12 @@ def test_workflow_identity_at_a_reference_recorded_before_every_workflow(changed
 )
 def test_is_installed_package_path(tmp_path, monkeypatch, relative_path, expected):
     monkeypatch.setattr(
-        updateworkflowmigrations,
+        dependencies,
         "INSTALLED_PACKAGE_PATHS",
         (os.path.normcase(os.path.realpath(tmp_path / "site-packages")),),
     )
 
-    assert updateworkflowmigrations.is_installed_package_path(tmp_path / relative_path) is expected
+    assert dependencies.is_installed_package_path(tmp_path / relative_path) is expected
 
 
 def test_user_site_directory_counts_as_installed(tmp_path, monkeypatch):
@@ -641,12 +642,10 @@ def test_user_site_directory_counts_as_installed(tmp_path, monkeypatch):
     monkeypatch.setattr(site, "USER_SITE", None)
     user_site = Path(site.getusersitepackages())
     assert user_site.is_relative_to(tmp_path)
-    monkeypatch.setattr(
-        updateworkflowmigrations, "INSTALLED_PACKAGE_PATHS", updateworkflowmigrations.get_installed_package_paths()
-    )
+    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", dependencies.get_installed_package_paths())
 
-    assert updateworkflowmigrations.is_installed_package_path(user_site / "somepackage" / "migrations")
-    assert not updateworkflowmigrations.is_installed_package_path(tmp_path / "project" / "migrations")
+    assert dependencies.is_installed_package_path(user_site / "somepackage" / "migrations")
+    assert not dependencies.is_installed_package_path(tmp_path / "project" / "migrations")
 
 
 def test_base_interpreter_packages_count_as_installed():
@@ -654,7 +653,7 @@ def test_base_interpreter_packages_count_as_installed():
     # created from has installed, which is where that interpreter's own pip installs.
     base_packages = sysconfig.get_path("purelib", vars={"base": sys.base_prefix, "platbase": sys.base_exec_prefix})
 
-    assert updateworkflowmigrations.is_installed_package_path(Path(base_packages) / "somepackage" / "migrations")
+    assert dependencies.is_installed_package_path(Path(base_packages) / "somepackage" / "migrations")
 
 
 def test_base_interpreter_directory_itself_does_not_count_as_installed(monkeypatch):
@@ -667,13 +666,11 @@ def test_base_interpreter_directory_itself_does_not_count_as_installed(monkeypat
             path for prefix in prefixes for path in (prefix, os.path.join(prefix, "Lib", "site-packages"))
         ],
     )
-    monkeypatch.setattr(
-        updateworkflowmigrations, "INSTALLED_PACKAGE_PATHS", updateworkflowmigrations.get_installed_package_paths()
-    )
+    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", dependencies.get_installed_package_paths())
     base_prefix = Path(sys.base_prefix)
 
-    assert updateworkflowmigrations.is_installed_package_path(base_prefix / "Lib" / "site-packages" / "somepackage")
-    assert not updateworkflowmigrations.is_installed_package_path(base_prefix / "project" / "migrations")
+    assert dependencies.is_installed_package_path(base_prefix / "Lib" / "site-packages" / "somepackage")
+    assert not dependencies.is_installed_package_path(base_prefix / "project" / "migrations")
 
 
 def workflow_references(value):

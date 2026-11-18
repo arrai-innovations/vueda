@@ -1,8 +1,10 @@
 """Find the migrations that a generated migration depends on."""
 
 __all__ = (
-    "INSTALLED_PACKAGE_DIRECTORIES",
+    "INSTALLED_PACKAGE_PATHS",
+    "get_installed_package_paths",
     "is_installed_package_app",
+    "is_installed_package_path",
     "is_vueda_app",
     "latest_migration_names",
     "project_app_labels",
@@ -10,25 +12,66 @@ __all__ = (
 )
 
 import importlib
-from pathlib import Path
+import os
+import site
+import sys
+import sysconfig
 
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.core.management import CommandError
 from django.db.migrations.loader import MigrationLoader
 
+from vueda.user.management.commands.utils import get_migrations_path
 
-# The directory names that Python installs third-party packages into.
-INSTALLED_PACKAGE_DIRECTORIES = frozenset(("site-packages", "dist-packages"))
+
+def get_installed_package_paths():
+    """Return the directories packages are installed into, normalized for comparison.
+
+    A migration under one of them belongs to a package, so the project cannot commit a rewrite of it,
+    and reinstalling the package puts the original back. An editable install leaves its files in their
+    source tree, so it is not under any of these.
+
+    Besides the environment's own package directories, these include the base interpreter's, which a
+    virtual environment created with ``--system-site-packages`` also imports from, and the user site
+    directory that ``pip install --user`` installs into.
+
+    On Windows, ``site.getsitepackages`` lists each prefix itself alongside its ``Lib\\site-packages``.
+    A prefix holds far more than packages, so counting it would treat a project kept inside a Python
+    install, such as a portable or embedded one, as installed. The prefixes are left out.
+    """
+    prefixes = (sys.base_prefix, sys.base_exec_prefix)
+    paths = (
+        sysconfig.get_path("purelib"),
+        sysconfig.get_path("platlib"),
+        *site.getsitepackages(prefixes),
+        site.getusersitepackages(),
+    )
+    # Different spellings can name one directory, such as lib64 linked to lib, so duplicates are
+    # dropped once each path is resolved.
+    resolved_prefixes = {os.path.normcase(os.path.realpath(prefix)) for prefix in prefixes}
+    resolved_paths = {os.path.normcase(os.path.realpath(path)): None for path in paths}
+    return tuple(path for path in resolved_paths if path not in resolved_prefixes)
+
+
+INSTALLED_PACKAGE_PATHS = get_installed_package_paths()
+
+
+def is_installed_package_path(path):
+    """Return whether a path is inside a directory packages are installed into."""
+    path = os.path.normcase(os.path.realpath(path))
+    return any(path == root or path.startswith(root + os.sep) for root in INSTALLED_PACKAGE_PATHS)
 
 
 def is_installed_package_app(app_label):
-    """Return whether the app ``app_label`` is installed as a package, under ``site-packages`` or ``dist-packages``.
+    """Return whether the app ``app_label`` is installed as a package, so no command may write its migrations.
 
-    A project cannot commit a migration written into such an app, and a reinstall puts the package's own files
-    back.
+    It checks the app's migrations directory, which honors ``MIGRATION_MODULES``, against the directories that
+    packages are installed into. An app without a migrations directory is checked by its own directory. A
+    project cannot commit a migration written into a package, and a reinstall puts the package's own files back.
     """
-    return bool(INSTALLED_PACKAGE_DIRECTORIES & set(Path(django_apps.get_app_config(app_label).path).parts))
+    app_config = django_apps.get_app_config(app_label)
+    return is_installed_package_path(get_migrations_path(app_config) or app_config.path)
 
 
 def is_vueda_app(app_label):

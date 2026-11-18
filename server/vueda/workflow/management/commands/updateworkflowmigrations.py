@@ -4,9 +4,7 @@ import ast
 import datetime
 import importlib.util
 import os
-import site
 import sys
-import sysconfig
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
@@ -20,6 +18,7 @@ from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
+from vueda.user.migration_generation.dependencies import is_installed_package_path
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_item
@@ -40,44 +39,6 @@ REQUIRED_WORKFLOW_MIGRATION = (
 # The keys naming the app and model a workflow was written for, which a change records alongside a
 # workflow's code so that a code two content types have held resolves to the right one.
 WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
-
-
-def get_installed_package_paths():
-    """Return the directories packages are installed into, normalized for comparison.
-
-    A migration under one of them belongs to a package, so the project cannot commit a rewrite of it,
-    and reinstalling the package puts the original back. An editable install leaves its files in their
-    source tree, so it is not under any of these.
-
-    Besides the environment's own package directories, these include the base interpreter's, which a
-    virtual environment created with ``--system-site-packages`` also imports from, and the user site
-    directory that ``pip install --user`` installs into.
-
-    On Windows, ``site.getsitepackages`` lists each prefix itself alongside its ``Lib\\site-packages``.
-    A prefix holds far more than packages, so counting it would treat a project kept inside a Python
-    install, such as a portable or embedded one, as installed. The prefixes are left out.
-    """
-    prefixes = (sys.base_prefix, sys.base_exec_prefix)
-    paths = (
-        sysconfig.get_path("purelib"),
-        sysconfig.get_path("platlib"),
-        *site.getsitepackages(prefixes),
-        site.getusersitepackages(),
-    )
-    # Different spellings can name one directory, such as lib64 linked to lib, so duplicates are
-    # dropped once each path is resolved.
-    resolved_prefixes = {os.path.normcase(os.path.realpath(prefix)) for prefix in prefixes}
-    resolved_paths = {os.path.normcase(os.path.realpath(path)): None for path in paths}
-    return tuple(path for path in resolved_paths if path not in resolved_prefixes)
-
-
-INSTALLED_PACKAGE_PATHS = get_installed_package_paths()
-
-
-def is_installed_package_path(path):
-    """Return whether a path is inside a directory packages are installed into."""
-    path = os.path.normcase(os.path.realpath(path))
-    return any(path == root or path.startswith(root + os.sep) for root in INSTALLED_PACKAGE_PATHS)
 
 
 def describe_unreadable_changes(changed_data):
