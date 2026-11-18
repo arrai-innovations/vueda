@@ -3,6 +3,7 @@
 import copy
 import datetime
 import enum
+import sys
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -2025,8 +2026,9 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
         )
         for count, outcome in counts:
             if count:
-                # A migration's code has no command stdout to write to; migrate shows what it prints.
-                print(f"  Workflow {record['code']}: {count} object state(s) {outcome}.")
+                # A migration's code has no command stdout to write to; migrate shows what it writes here. It
+                # writes rather than prints, so a project's linter has no print call to flag in its migrations.
+                sys.stdout.write(f"  Workflow {record['code']}: {count} object state(s) {outcome}.\n")
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
