@@ -39,26 +39,45 @@ class ImportRewrite:
     ``source`` is the migration's text with each import of a removed module pointed at its current module.
     ``changed`` says whether any import was rewritten. ``dropped`` names each imported name that the current
     module no longer has, as ``module.name``. It is empty when every name still exists. ``dropped_bound_names``
-    holds the names that those imports bound in the migration. ``unsupported_uses`` describes the uses that no
-    rewrite of the imports can keep working.
+    holds the names that those imports bound in the migration. ``module_aliases`` maps each alias of a removed
+    module to the current module. ``unaliased_modules`` holds each removed module that is imported without an
+    alias.
     """
 
     source: str
     changed: bool
     dropped: tuple[str, ...]
     dropped_bound_names: frozenset = frozenset()
-    unsupported_uses: tuple[str, ...] = ()
+    module_aliases: tuple[tuple[str, str], ...] = ()
+    unaliased_modules: tuple[str, ...] = ()
 
     def problems(self):
-        """Return why the rewritten source would fail when it runs, as sorted messages. The list is empty when it
-        would not.
+        """Return why ``source`` would fail when it runs, as sorted messages. The list is empty when it would not.
 
-        A dropped name that the migration still uses would raise ``NameError``. A name used through an aliased
-        module import that the current module lacks would raise ``AttributeError``. A removed module imported
-        without an alias is used through its full dotted path, which no import can point elsewhere.
+        The checks read ``source`` as it is now, so a use that the refresh removed with an old copied function does
+        not count. A dropped name that the migration still uses would raise ``NameError``. A name read through an
+        aliased module import that the current module lacks would raise ``AttributeError``. A removed module
+        imported without an alias is used through its full dotted path, which no import can point elsewhere.
         """
-        still_used = sorted(self.dropped_bound_names & _used_names(ast.parse(self.source)))
-        return [*(f"still uses {name}, which VUEDA no longer has" for name in still_used), *self.unsupported_uses]
+        tree = ast.parse(self.source)
+        still_used = sorted(self.dropped_bound_names & _used_names(tree))
+        problems = {f"still uses {name}, which VUEDA no longer has" for name in still_used}
+        aliases = {alias: importlib.import_module(current) for alias, current in self.module_aliases}
+        for child in ast.walk(tree):
+            if not isinstance(child, ast.Attribute) or isinstance(child.ctx, ast.Store):
+                continue
+            # Assigning a name works on any module, as the early group migrations did with changed_data.
+            if (
+                isinstance(child.value, ast.Name)
+                and child.value.id in aliases
+                and not hasattr(aliases[child.value.id], child.attr)
+            ):
+                problems.add(f"uses {child.value.id}.{child.attr}, which VUEDA no longer has")
+            dotted = ast.unparse(child)
+            for module in self.unaliased_modules:
+                if dotted.startswith(f"{module}."):
+                    problems.add(f"uses {module} without an alias, so its uses name the removed module")
+        return sorted(problems)
 
 
 def rewrite_removed_imports(source):
@@ -75,7 +94,7 @@ def rewrite_removed_imports(source):
     lines = source.splitlines(keepends=True)
     dropped = []
     dropped_bound = set()
-    unsupported = []
+    unaliased = set()
     module_aliases = {}
     replacements = []
 
@@ -98,27 +117,15 @@ def rewrite_removed_imports(source):
                 if alias.name not in REMOVED_MODULES:
                     continue
                 if alias.asname:
-                    module_aliases[alias.asname] = importlib.import_module(REMOVED_MODULES[alias.name])
+                    module_aliases[alias.asname] = REMOVED_MODULES[alias.name]
                 else:
-                    unsupported.append(f"imports {alias.name} without an alias, so its uses name the removed module")
+                    unaliased.add(alias.name)
             text = "".join(
                 f"import {REMOVED_MODULES.get(alias.name, alias.name)}"
                 f"{f' as {alias.asname}' if alias.asname else ''}{NEWLINE}"
                 for alias in node.names
             )
             replacements.append((node.lineno, node.end_lineno, text))
-
-    # A name read through an aliased module import has to exist in the current module. Assigning one, as the
-    # early group migrations did with changed_data, works on any module.
-    for child in ast.walk(tree):
-        if (
-            isinstance(child, ast.Attribute)
-            and isinstance(child.value, ast.Name)
-            and not isinstance(child.ctx, ast.Store)
-            and child.value.id in module_aliases
-            and not hasattr(module_aliases[child.value.id], child.attr)
-        ):
-            unsupported.append(f"uses {child.value.id}.{child.attr}, which VUEDA no longer has")
 
     # Replace from the bottom of the file to the top, so the line numbers stay correct throughout.
     for start, end, text in reversed(replacements):
@@ -134,7 +141,8 @@ def rewrite_removed_imports(source):
         changed=bool(replacements),
         dropped=tuple(dropped),
         dropped_bound_names=frozenset(dropped_bound),
-        unsupported_uses=tuple(sorted(set(unsupported))),
+        module_aliases=tuple(sorted(module_aliases.items())),
+        unaliased_modules=tuple(sorted(unaliased)),
     )
 
 
@@ -180,11 +188,17 @@ def remove_obsolete_names(source, names):
         removed |= bound
         start = min([node.lineno, *(decorator.lineno for decorator in getattr(node, "decorator_list", ()))])
         end = node.end_lineno
-        # When a blank line comes before it, take the blank lines before it too, so the gap after it stays the
-        # only gap. That gap may be the two blank lines that end the imports. An import inside a block of imports
-        # has no blank line before it, so nothing else goes.
-        while start > 1 and not lines[start - 2].strip():
-            start -= 1
+        # When blank lines come both before and after it, take the ones before, so the gap after it stays the
+        # only gap. That gap may be the two blank lines that end the imports. An import that opens or sits inside
+        # a group of imports has no blank line on one side, so the group's gaps stay as they are. At the top of
+        # the file, take the blank lines after it, so the file does not start with one.
+        followed_by_blank = end == len(lines) or not lines[end].strip()
+        if start == 1:
+            while end < len(lines) and not lines[end].strip():
+                end += 1
+        elif followed_by_blank:
+            while start > 1 and not lines[start - 2].strip():
+                start -= 1
         spans.append((start, end))
 
     for start, end in sorted(spans, reverse=True):
@@ -238,6 +252,10 @@ class MigrationKind:
 
 class RefreshError(Exception):
     """A generated migration that a refresh cannot rewrite. The message says why."""
+
+
+class ImportRefreshError(RefreshError):
+    """A generated migration that still needs something that the rewritten imports took away."""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -303,7 +321,7 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     # A rewrite of the imports is safe only when nothing in the migration still needs what it took away.
     problems = dataclasses.replace(imports, source=text).problems()
     if problems:
-        raise RefreshError(
+        raise ImportRefreshError(
             f"The migration {'; '.join(problems)}. Replace or remove that code by hand, then run the command again."
         )
 

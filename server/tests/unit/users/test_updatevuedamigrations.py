@@ -213,6 +213,25 @@ def test_an_obsolete_import_alone_in_the_last_import_group_keeps_two_blank_lines
     assert result == "import datetime\n\n\nchanged_data = []\n"
 
 
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        pytest.param(
+            "import datetime\n\nfrom django.utils import timezone\nfrom django.db import migrations\n",
+            "import datetime\n\nfrom django.db import migrations\n",
+            id="opens-a-group",
+        ),
+        pytest.param(
+            "from django.utils import timezone\n\nimport datetime\n",
+            "import datetime\n",
+            id="first-line",
+        ),
+    ],
+)
+def test_an_obsolete_import_keeps_the_gaps_between_import_groups(source, expected):
+    assert remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names) == (expected, ("timezone",))
+
+
 def test_an_obsolete_name_that_other_code_still_uses_is_kept():
     """A developer's own code may still call it, so only the unused ones go."""
     source = textwrap.dedent(
@@ -283,6 +302,24 @@ def test_a_removed_module_imported_without_an_alias_is_refused():
 
     with pytest.raises(RefreshError, match="without an alias"):
         refresh_migration(source, GROUP_MIGRATION_KIND)
+
+
+def test_a_module_alias_use_that_only_a_replaced_copy_had_is_not_refused():
+    """The checks read the refreshed text, so the old copy that the refresh replaced no longer counts."""
+    source = (OLD_MIGRATIONS / "workflow_imported_old_module_2026_07.py.txt").read_text()
+    source = source.replace(
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+        "import vueda.workflow.management.commands.makeworkflowmigrations as _old\n"
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+    ).replace(
+        "    forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)\n",
+        "    _old.add_history_to_data(changed_data)\n"
+        "    forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)\n",
+    )
+
+    result = refresh_migration(source, WORKFLOW_MIGRATION_KIND)
+
+    assert "add_history_to_data" not in result.source
 
 
 def test_a_name_that_the_current_module_lacks_used_through_a_module_alias_is_refused():
@@ -816,6 +853,22 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert {item: item.read_bytes() for item in originals} == originals
             assert "Updating:" not in out
 
+    def test_a_dry_run_reports_a_migration_graph_that_cannot_be_built(self, settings):
+        """Only old imports let a dry run skip the dependency check. A missing dependency fails it too."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "missing_migration"), WORKFLOW_SCHEMA),
+            )
+
+            out, err, status = run_update("--dry-run")
+
+            assert status == 1
+            assert f"Cannot update {path}: cannot resolve migration dependencies" in err
+            assert "Would update:" not in out
+
     def test_a_reference_takes_the_app_and_model_of_a_workflow_that_only_a_package_records(self, settings):
         """queueitem's workflow is recorded only in vueda_vdq's migrations, which these tests treat as a package."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
@@ -1049,6 +1102,37 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert f"Cannot update {path}: its dependencies do not include vueda_workflow.0008_" in err
             assert "Its imports of removed modules were fixed. The rest of the file was left unchanged." in err
             assert "management.commands.makeworkflowmigrations" not in path.read_text()
+
+    def test_a_refresh_that_fails_for_another_reason_still_gets_its_import_fix(self, settings):
+        """Its old import would stop the migration graph, and with it every other workflow migration."""
+        with (
+            self.temporary_migration_module(settings, app_label="store") as store_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            healthy = write_old_migration(
+                store_dir,
+                "0012_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("store", "0011_customerorder_object_stream"), WORKFLOW_SCHEMA),
+            )
+            broken = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            broken.write_text(
+                broken.read_text().replace(
+                    'history_change_reason = "Workflow Migration - 0004_workflow_migrations_2026_07_01"\n', ""
+                )
+            )
+
+            out, err, status = run_update()
+
+            assert status == 1
+            assert f"Could not update {broken}: Could not find history_change_reason" in err
+            assert "management.commands.makeworkflowmigrations" not in broken.read_text()
+            assert f"Updating: {healthy}" in out
 
     def test_an_app_whose_path_has_a_package_directory_name_is_never_rewritten(self, settings, monkeypatch):
         """A package installed with pip install --target sits outside this interpreter's package directories."""

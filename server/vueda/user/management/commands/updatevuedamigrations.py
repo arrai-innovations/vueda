@@ -20,6 +20,7 @@ from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.migration_generation.dependencies import is_installed_package_app
 from vueda.user.migration_generation.dependencies import is_installed_package_location
 from vueda.user.migration_generation.existing import is_generated_migration
+from vueda.user.migration_generation.refresh import ImportRefreshError
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import rewrite_removed_imports
@@ -186,10 +187,9 @@ class Command(BaseCommand):
                 )
         else:
             for generated, imports in stale_imports:
-                # A rewrite that would leave the migration broken is not written. Its refresh reports why. The
-                # trial refresh replaces the copied functions first, so a dropped name that only an old copy uses
-                # does not hold the import fix back.
-                if not generated.writable or not _refreshes_cleanly(generated):
+                # A rewrite that would leave the migration broken is not written. Its refresh reports why. Any
+                # other import fix is written, so one broken file does not stop the graph for the others.
+                if not generated.writable or not _import_fix_is_safe(generated, imports):
                     continue
                 try:
                     _write_atomically(generated.path, imports.source)
@@ -209,6 +209,8 @@ class Command(BaseCommand):
             "identities": workflow_refresh.collect_workflow_identities(changed_data_lists),
             "loader": loader,
             "loader_problem": loader_problem,
+            # Only a dry run with old imports skips the check. Any other graph problem fails a dry run too.
+            "check_skipped": loader is None and bool(stale_imports) and self.dry_run,
         }
 
     def _refresh_file(self, generated, workflow):
@@ -264,8 +266,8 @@ class Command(BaseCommand):
         nothing does."""
         workflow_refresh = workflow["module"]
         if workflow["loader"] is None:
-            # A dry run refreshes without the dependency check, and notes why.
-            return None if self.dry_run else f"{workflow['loader_problem']}."
+            # A dry run that skipped the dependency check refreshes anyway, and notes why.
+            return None if workflow["check_skipped"] else f"{workflow['loader_problem']}."
         migration_key = (generated.app_label, generated.path.stem)
         try:
             has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
@@ -325,10 +327,16 @@ def _write_atomically(path, text):
         raise
 
 
-def _refreshes_cleanly(generated):
-    """Return whether a refresh of ``generated`` succeeds, without its ``changed_data`` update."""
+def _import_fix_is_safe(generated, imports):
+    """Return whether the import fix in ``imports`` leaves ``generated`` able to run.
+
+    A trial refresh replaces the copied functions first, so a dropped name that only an old copy uses does not
+    count. When the refresh fails for another reason, which it reports later, only the import fix is checked.
+    """
     try:
         refresh_migration(generated.text, generated.kind)
-    except (RefreshError, ValueError):
+    except ImportRefreshError:
         return False
+    except (RefreshError, ValueError):
+        return not imports.problems()
     return True
