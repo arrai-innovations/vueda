@@ -5,11 +5,13 @@ every migration when it builds the migration graph, and an import of a removed m
 """
 
 import io
+import re
 import textwrap
 from pathlib import Path
 
 import pytest
 
+from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.migration_generation.groups import GROUP_MIGRATION_KIND
 from vueda.user.migration_generation.refresh import OBSOLETE_GROUP_NAMES
 from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
@@ -243,6 +245,9 @@ def test_an_old_migration_is_refreshed_and_a_second_refresh_changes_nothing(fixt
     assert "VUEDA's own tests" not in once.source
     assert ".management.commands.make" not in once.source
     compile(once.source, fixture, "exec")
+    # Every top-level definition keeps a blank line before it, and the refresh adds no runs of blank lines.
+    assert re.search(r"[^\n]\n(def|class) ", once.source) is None
+    assert "\n\n\n\n" not in once.source
     second = refresh_migration(once.source, kind)
     assert not second.changed
     assert second.source == once.source
@@ -268,3 +273,21 @@ def test_changed_data_that_cannot_be_read_is_reported_with_the_reason():
     source = 'history_change_reason = "Workflow Migration - x"\nchanged_data = [{"model_name": "state"}]\n'
 
     assert read_changed_data(source, "broken.py") == (None, "change 0 has no 'history_date', 'changes'")
+
+
+def test_a_function_inserted_before_an_existing_one_keeps_two_blank_lines_on_each_side():
+    """A new function that comes first in the copied sources is inserted before the first one that the file has."""
+    source = "import copy\n\n\ndef existing():\n    return 1\n\n\nclass Migration:\n    pass\n"
+    sources = {
+        ("added",): "def added():\n    return 2\n",
+        ("existing",): "def existing():\n    return 1\n",
+    }
+
+    merged = merge_migration_sources(source, sources)
+
+    assert merged == (
+        "import copy\n\n\n"
+        "def added():\n    return 2\n\n\n"
+        "def existing():\n    return 1\n\n\n"
+        "class Migration:\n    pass\n"
+    )
