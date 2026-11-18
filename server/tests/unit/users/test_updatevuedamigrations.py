@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 from django.core.management import call_command
+from django.db.migrations.exceptions import CircularDependencyError
 from django.db.migrations.exceptions import NodeNotFoundError
 
 import vueda
@@ -191,6 +192,25 @@ def test_obsolete_functions_and_imports_that_nothing_uses_are_removed():
             operations = []
         """
     )
+
+
+def test_an_obsolete_import_alone_in_the_last_import_group_keeps_two_blank_lines_before_the_code():
+    """ruff's isort rules, as this project sets them, want two blank lines after the imports."""
+    source = textwrap.dedent(
+        """\
+        import datetime
+
+        from django.utils import timezone
+
+
+        changed_data = []
+        """
+    )
+
+    result, removed = remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names)
+
+    assert removed == ("timezone",)
+    assert result == "import datetime\n\n\nchanged_data = []\n"
 
 
 def test_an_obsolete_name_that_other_code_still_uses_is_kept():
@@ -932,6 +952,26 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             ) in out
             assert f"Updating: {refreshed}" in out
 
+    def test_a_package_migration_that_cannot_be_read_is_only_a_warning(self, settings, monkeypatch):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            packaged = write_workflow_migration(
+                erring_dir, "0003_workflow_migrations_2026_06_29", "[{'model_name': 'state', 'changes': {}}]"
+            )
+            packaged.write_bytes(packaged.read_bytes() + b"# Caf\xe9\n")
+            monkeypatch.setattr(
+                dependencies,
+                "INSTALLED_PACKAGE_PATHS",
+                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+            )
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"  Could not read {packaged}: " in out
+            assert (
+                "If it is a generated workflow migration, the workflows it records are not used to name references."
+            ) in out
+
     def test_a_refreshed_migration_keeps_its_file_permissions(self, settings):
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
@@ -1122,6 +1162,110 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             assert status == 1
             assert "still uses add_history_to_data, which VUEDA no longer has" in err
+            assert path.read_text() == before
+
+    def test_a_dropped_import_that_only_a_replaced_copy_uses_is_written_early(self, settings):
+        """The refresh replaces the copied function that uses the dropped name, so the import fix is safe."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            path.write_text(
+                path.read_text()
+                .replace(
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n"
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+                )
+                .replace(
+                    "    forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)\n",
+                    "    add_history_to_data(changed_data)\n"
+                    "    forwards_migrate_workflow(apps, copy.deepcopy(changed_data), history_change_reason)\n",
+                )
+            )
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
+            source = path.read_text()
+            assert "add_history_to_data" not in source
+            assert "management.commands.makeworkflowmigrations" not in source
+
+    def test_a_circular_dependency_fails_each_workflow_migration_with_a_message(self, settings, monkeypatch):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+
+            def circular(_loader, _migration_key):
+                raise CircularDependencyError("erring.0003_workflow_migrations_2026_06_29")
+
+            monkeypatch.setattr(workflow_refresh, "requires_workflow_events", circular)
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert (
+                f"Cannot update {path}: the migration graph has a circular dependency: "
+                "erring.0003_workflow_migrations_2026_06_29."
+            ) in err
+            assert path.read_text() == before
+
+    def test_rewritten_changed_data_follows_the_migrations_project_settings(self, settings):
+        """The formatter reads the settings that apply to the migration's own path.
+
+        A formatter keeps the trailing comma after the last change, which pformat never writes. With the
+        formatter shown to have run, single quotes show that it read the migration's settings, since neither ruff
+        nor black defaults to them.
+        """
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            (Path(erring_dir).parent / "pyproject.toml").write_text('[tool.ruff.format]\nquote-style = "single"\n')
+            path = write_workflow_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                STATE_ADDED.format(history_date="datetime.datetime(2026, 6, 29)"),
+            )
+
+            _out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            source = path.read_text()
+            assignment = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
+            )
+            changed_data_source = ast.get_source_segment(source, assignment)
+            assert re.search(r",\s*\]$", changed_data_source)
+            assert "'history_type'" in changed_data_source
+
+    def test_a_dry_run_reports_a_formatter_error_without_claiming_a_write(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            # ruff cannot read this setting, so it fails on the rewritten changed_data.
+            (Path(erring_dir).parent / "pyproject.toml").write_text('[tool.ruff]\nline-length = "long"\n')
+            path = write_workflow_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                STATE_ADDED.format(history_date="datetime.datetime(2026, 6, 29)"),
+            )
+            before = path.read_text()
+
+            out, err, status = run_update("--dry-run")
+
+            assert status == 0
+            assert f"Would update: {path}" in out
+            assert err.startswith(f"  ruff could not format changed_data for {path}:\n")
+            assert err.endswith(
+                "  A run without --dry-run would write changed_data with pprint instead. Fix the problem above first.\n"
+            )
             assert path.read_text() == before
 
     @pytest.mark.skipif(os.geteuid() == 0, reason="root can write a read-only file")

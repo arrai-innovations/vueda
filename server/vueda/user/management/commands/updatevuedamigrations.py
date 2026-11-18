@@ -11,6 +11,7 @@ from pathlib import Path
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
+from django.db.migrations.exceptions import CircularDependencyError
 from django.db.migrations.exceptions import NodeNotFoundError
 from django.db.migrations.loader import MigrationLoader
 
@@ -112,6 +113,13 @@ class Command(BaseCommand):
                     generated = _GeneratedFile(path, app_config.label, None, writable, read_problem=str(error))
                     if writable:
                         self.stderr.write(self.style.ERROR(f"  Could not read {path}: {error}"))
+                    else:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"  Could not read {path}: {error}. If it is a generated workflow migration, "
+                                "the workflows it records are not used to name references."
+                            )
+                        )
                 found.append(generated)
 
         return found
@@ -178,8 +186,10 @@ class Command(BaseCommand):
                 )
         else:
             for generated, imports in stale_imports:
-                # A rewrite that would leave the migration broken is not written. Its refresh reports why.
-                if not generated.writable or imports.problems():
+                # A rewrite that would leave the migration broken is not written. Its refresh reports why. The
+                # trial refresh replaces the copied functions first, so a dropped name that only an old copy uses
+                # does not hold the import fix back.
+                if not generated.writable or not _refreshes_cleanly(generated):
                     continue
                 try:
                     _write_atomically(generated.path, imports.source)
@@ -259,6 +269,8 @@ class Command(BaseCommand):
         migration_key = (generated.app_label, generated.path.stem)
         try:
             has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
+        except CircularDependencyError as error:
+            return f"the migration graph has a circular dependency: {error}."
         except NodeNotFoundError:
             return "the migration graph does not include it, for example because a squashed migration replaces it."
         if not has_workflow_events:
@@ -311,3 +323,12 @@ def _write_atomically(path, text):
         # Also on an interrupt, so no temporary file is left in the migrations directory.
         Path(handle.name).unlink(missing_ok=True)
         raise
+
+
+def _refreshes_cleanly(generated):
+    """Return whether a refresh of ``generated`` succeeds, without its ``changed_data`` update."""
+    try:
+        refresh_migration(generated.text, generated.kind)
+    except (RefreshError, ValueError):
+        return False
+    return True

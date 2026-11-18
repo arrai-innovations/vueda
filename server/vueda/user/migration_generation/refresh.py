@@ -180,11 +180,11 @@ def remove_obsolete_names(source, names):
         removed |= bound
         start = min([node.lineno, *(decorator.lineno for decorator in getattr(node, "decorator_list", ()))])
         end = node.end_lineno
-        # When a blank line comes before it, take the blank lines after it too, so the gap before it stays the
-        # only gap. An import inside a block of imports keeps the blank lines that end the block.
-        if start > 1 and not lines[start - 2].strip():
-            while end < len(lines) and not lines[end].strip():
-                end += 1
+        # When a blank line comes before it, take the blank lines before it too, so the gap after it stays the
+        # only gap. That gap may be the two blank lines that end the imports. An import inside a block of imports
+        # has no blank line before it, so nothing else goes.
+        while start > 1 and not lines[start - 2].strip():
+            start -= 1
         spans.append((start, end))
 
     for start, end in sorted(spans, reverse=True):
