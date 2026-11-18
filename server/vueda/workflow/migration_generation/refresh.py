@@ -6,6 +6,7 @@ change was recorded, from the workflow changes that every app's generated migrat
 """
 
 __all__ = (
+    "REQUIRED_WORKFLOW_MIGRATION",
     "WORKFLOW_IDENTITY_KEYS",
     "add_workflow_identities",
     "add_workflow_identities_to_changed_data",
@@ -15,6 +16,7 @@ __all__ = (
     "has_naive_history_dates",
     "read_changed_data",
     "recorded_at_utc",
+    "requires_workflow_events",
     "workflow_identity_at",
     "workflow_identity_of",
 )
@@ -265,3 +267,19 @@ def changed_data_updater(identities, filepath, *, stderr, dry_run):
         return "".join(lines)
 
     return update
+
+
+# The current copied workflow functions read the event tables that this migration creates. #741 replaces this
+# check with a project setting that names the migrations to leave alone.
+REQUIRED_WORKFLOW_MIGRATION = ("vueda_workflow", "0008_initialstateevent_objectstateevent_stateevent_and_more")
+
+
+def requires_workflow_events(loader, migration_key):
+    """Return whether ``REQUIRED_WORKFLOW_MIGRATION`` comes before ``migration_key`` in ``loader``'s graph.
+
+    It follows indirect dependencies, and it accepts a squashed migration that replaces the required one. A
+    refreshed migration that ran before that migration on an empty database would fail there.
+    """
+    ancestors = set(loader.graph.forwards_plan(migration_key)) - {migration_key}
+    required = REQUIRED_WORKFLOW_MIGRATION
+    return required in ancestors or any(required in loader.disk_migrations[key].replaces for key in ancestors)
