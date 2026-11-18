@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 from django.apps import apps as django_apps
+from django.contrib.auth.models import Group
 from django.core.management import call_command
 from django.db.migrations.exceptions import NodeNotFoundError
 
@@ -988,6 +989,57 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 "  A run without --dry-run would write changed_data with pprint instead. Fix the problem above first.\n"
             )
             assert path.read_text() == before
+
+    @pytest.mark.xdist_group(name="management_command_tests")
+    @pytest.mark.django_db(transaction=True)
+    @pytest.mark.lean_database
+    def test_a_refreshed_group_migration_replays_without_deleting_the_group(self, settings):
+        """Older copied code deleted a group when its last permission was removed, which also dropped its users.
+
+        The refreshed migration removes the permission and keeps the group, forwards and in reverse.
+        """
+        with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
+            path = write_old_migration(
+                employee_dir,
+                "0002_group_permission_migrations_2026_06_29",
+                "group_copied_2026_06.py.txt",
+                (("employee", "0001_initial"), USER_SCHEMA),
+            )
+            source = path.read_text()
+            start = source.index("changed_data = [\n")
+            end = source.index("\n]\n", start) + len("\n]\n")
+            change = (
+                '"group_name": "Replayed", "group_name_old": "", '
+                '"historical_permission_codename": "view_permission", '
+                '"historical_permission_content_type_app_label": "auth", '
+                '"historical_permission_content_type_model_name": "permission", '
+                '"historical_permission_name": "Can view permission"'
+            )
+            path.write_text(
+                source[:start]
+                + "changed_data = [\n"
+                + f'    {{"change_type": "associated", {change}, '
+                + '"when": datetime.datetime(2026, 6, 29, 15, 0, tzinfo=datetime.timezone.utc)},\n'
+                + f'    {{"change_type": "deleted", {change}, '
+                + '"when": datetime.datetime(2026, 6, 29, 16, 0, tzinfo=datetime.timezone.utc)},\n'
+                + "]\n"
+                + source[end:]
+            )
+            assert "group.delete()" in path.read_text()
+
+            _out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert "group.delete()" not in path.read_text()
+
+            call_command("migrate", "employee", path.stem, verbosity=0)
+
+            group = Group.objects.get(name="Replayed")
+            assert not group.permissions.exists()
+
+            call_command("migrate", "employee", "0001_initial", verbosity=0)
+
+            assert Group.objects.filter(name="Replayed").exists()
 
     @pytest.mark.skipif(os.geteuid() == 0, reason="root can write a read-only file")
     def test_a_read_only_migration_is_not_replaced(self, settings):
