@@ -4,14 +4,23 @@ The tests that only rewrite text need no database. The import rewrites run on so
 every migration when it builds the migration graph, and an import of a removed module would stop that.
 """
 
+import ast
 import io
+import os
 import re
+import subprocess
+import sys
 import textwrap
 from pathlib import Path
 
 import pytest
+from django.core.management import call_command
 
+import vueda
+from tests.utils import BaseTestMigrations
 from vueda.user.management.commands.utils import merge_migration_sources
+from vueda.user.migration_generation import dependencies
+from vueda.user.migration_generation import group_operations
 from vueda.user.migration_generation.groups import GROUP_MIGRATION_KIND
 from vueda.user.migration_generation.refresh import OBSOLETE_GROUP_NAMES
 from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
@@ -291,3 +300,256 @@ def test_a_function_inserted_before_an_existing_one_keeps_two_blank_lines_on_eac
         "def existing():\n    return 1\n\n\n"
         "class Migration:\n    pass\n"
     )
+
+
+@pytest.mark.parametrize(
+    ("fixture", "kind"),
+    [
+        ("group_copied_2026_06.py.txt", GROUP_MIGRATION_KIND),
+        ("workflow_copied_2026_06.py.txt", WORKFLOW_MIGRATION_KIND),
+        ("workflow_imported_old_module_2026_07.py.txt", WORKFLOW_MIGRATION_KIND),
+    ],
+)
+def test_a_refreshed_migration_passes_the_projects_ruff_check_and_format_unchanged(fixture, kind):
+    """A linter that changed a refreshed migration would make the next refresh write it again.
+
+    VUEDA's own pre-commit hook runs ruff on committed migrations, so the refreshed text must be what ruff leaves:
+    no unused imports, no unused suppressions, and ruff's formatting.
+    """
+    source = refresh_migration((OLD_MIGRATIONS / fixture).read_text(), kind).source
+    as_if_in = "tests/erring/migrations/0099_refreshed.py"
+
+    for args in (("check",), ("format", "--check")):
+        result = subprocess.run(
+            [sys.executable, "-m", "ruff", *args, "--stdin-filename", as_if_in, "-"],
+            input=source,
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=Path(__file__).parents[3],
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+# The latest migrations of the apps that the old migrations below are made to depend on.
+WORKFLOW_SCHEMA = ("vueda_workflow", "0009_remove_historicalobjectstate_history_relation_and_more")
+# A vueda_workflow migration from before the event tables that the current workflow functions read.
+WORKFLOW_SCHEMA_BEFORE_EVENTS = (
+    "vueda_workflow",
+    "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more",
+)
+USER_SCHEMA = ("vueda_user", "0007_groupchange_when_database_clock")
+
+
+def write_old_migration(directory, name, fixture, migration_dependencies):
+    """Write the frozen migration ``fixture`` into ``directory`` as ``name``, with ``migration_dependencies``.
+
+    The frozen migrations depend on the apps of the projects that they came from, so their dependency list is
+    replaced, found with ast so nothing else in the file changes.
+    """
+    source = (OLD_MIGRATIONS / fixture).read_text()
+    migration_class = next(
+        node for node in ast.parse(source).body if isinstance(node, ast.ClassDef) and node.name == "Migration"
+    )
+    assignment = next(
+        node
+        for node in migration_class.body
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "dependencies"
+    )
+    lines = source.splitlines(keepends=True)
+    lines[assignment.lineno - 1 : assignment.end_lineno] = [
+        "    dependencies = [\n",
+        *(f'        ("{app_label}", "{migration}"),\n' for app_label, migration in migration_dependencies),
+        "    ]\n",
+    ]
+    path = Path(directory) / f"{name}.py"
+    path.write_text("".join(lines))
+    return path
+
+
+def run_update(*args):
+    """Run updatevuedamigrations, and return its output, its error output, and its exit status."""
+    stdout, stderr = io.StringIO(), io.StringIO()
+    try:
+        call_command("updatevuedamigrations", *args, stdout=stdout, stderr=stderr)
+    except SystemExit as exit_:
+        return stdout.getvalue(), stderr.getvalue(), exit_.code
+    return stdout.getvalue(), stderr.getvalue(), 0
+
+
+class TestUpdateVuedaMigrations(BaseTestMigrations):
+    """The command on whole files. No test touches the database: the command reads and writes migration files, and
+    it builds the migration graph without a connection."""
+
+    @pytest.fixture(autouse=True)
+    def source_tree_installed_as_a_package(self, monkeypatch):
+        """Mark this repository's source tree as installed, so only the temporary migration modules are written.
+
+        The command covers every app. In a project, VUEDA is an installed package, so the command reads its
+        migrations and never rewrites them. Here every committed migration must stay as it is, so the whole source
+        tree counts as installed. The temporary migration modules live outside it.
+        """
+        source_tree = os.path.normcase(os.path.realpath(Path(vueda.__file__).parent.parent))
+        monkeypatch.setattr(
+            dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, source_tree)
+        )
+
+    def test_an_old_workflow_migration_is_refreshed_and_then_up_to_date(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
+            assert "  Removed add_history_to_data, which VUEDA no longer writes and nothing uses." in out
+            assert "Updated 1 workflow migration(s)." in out
+            after = path.read_text()
+            assert after != before
+            assert "def add_history_to_data" not in after
+            assert "forwards_migrate_workflow_through_imports" in after
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Already up to date: {path}" in out
+            assert "Updated" not in out
+            assert path.read_text() == after
+
+    def test_an_old_group_migration_is_refreshed(self, settings):
+        with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
+            path = write_old_migration(
+                employee_dir,
+                "0002_group_permission_migrations_2026_06_29",
+                "group_copied_2026_06.py.txt",
+                (("employee", "0001_initial"), USER_SCHEMA),
+            )
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
+            assert "Updated 1 group migration(s)." in out
+            source = path.read_text()
+            assert "forwards_migrate_groups_through_imports," in source
+            assert "def forwards_migrate_groups(apps, changed_items):" in source
+
+    def test_a_dry_run_reports_without_writing(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+
+            out, err, status = run_update("--dry-run")
+
+            assert (status, err) == (0, "")
+            assert f"Would update: {path}" in out
+            assert "Would update 1 workflow migration(s)." in out
+            assert path.read_text() == before
+
+    def test_imports_of_a_removed_module_are_fixed_before_the_graph_is_built(self, settings):
+        """Django imports every migration to build the graph, so one importing a removed module would stop it."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
+            source = path.read_text()
+            assert "management.commands.makeworkflowmigrations" not in source
+            assert "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow" in source
+
+    def test_a_dry_run_with_imports_of_a_removed_module_skips_only_the_dependency_check(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+
+            out, err, status = run_update("--dry-run")
+
+            assert (status, err) == (0, "")
+            assert f"Would update: {path}" in out
+            assert "the dependency check is skipped in a dry run" in out
+            assert path.read_text() == before
+
+    def test_a_workflow_migration_that_runs_before_the_workflow_events_is_left_unchanged(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (
+                    ("erring", "0001_initial"),
+                    ("vueda_workflow", "0006_rename_fail_with_silent_historicaltransitionsource_ignored_and_more"),
+                ),
+            )
+            before = path.read_text()
+
+            out, err, status = run_update()
+
+            assert status == 1
+            assert f"Cannot update {path}: its dependencies do not include vueda_workflow.0008_" in err
+            assert "Failed updating 1 migration(s)." in out
+            assert path.read_text() == before
+
+    def test_a_migration_that_is_not_valid_python_fails_and_the_others_are_still_refreshed(self, settings):
+        with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
+            refreshed = write_old_migration(
+                employee_dir,
+                "0002_group_permission_migrations_2026_06_29",
+                "group_copied_2026_06.py.txt",
+                (("employee", "0001_initial"), USER_SCHEMA),
+            )
+            broken = Path(employee_dir) / "0003_group_permission_migrations_2026_06_30.py"
+            broken.write_text(
+                "# Generated by Django 6.1 on 2026-06-30 00:00\n"
+                + group_operations.LEGACY_MIGRATION_MODIFIED_COMMENT
+                + "changed_data = [\n"
+            )
+
+            out, err, status = run_update()
+
+            assert status == 1
+            assert f"Could not update {broken}: The migration is not valid Python" in err
+            assert f"Updating: {refreshed}" in out
+            assert "Failed updating 1 migration(s)." in out
+
+    def test_an_app_installed_as_a_package_is_never_rewritten(self, settings, monkeypatch):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+            monkeypatch.setattr(
+                dependencies,
+                "INSTALLED_PACKAGE_PATHS",
+                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+            )
+
+            out, _err, _status = run_update()
+
+            assert str(path) not in out
+            assert path.read_text() == before
