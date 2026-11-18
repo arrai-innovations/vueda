@@ -2,6 +2,7 @@
 
 __all__ = ("Command",)
 
+import ast
 import dataclasses
 import os
 import stat
@@ -20,10 +21,8 @@ from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.migration_generation.dependencies import is_installed_package_app
 from vueda.user.migration_generation.dependencies import is_installed_package_location
 from vueda.user.migration_generation.existing import is_generated_migration
-from vueda.user.migration_generation.refresh import ImportRefreshError
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
-from vueda.user.migration_generation.refresh import rewrite_removed_imports
 from vueda.user.migration_generation.tools import get_migration_tools
 
 
@@ -42,9 +41,8 @@ class _GeneratedFile:
 class Command(BaseCommand):
     help = (
         "Refresh every generated group and workflow migration in your project with the functions and imports that "
-        "makevuedamigrations writes now, so fixes in VUEDA reach migrations that copied older versions. Imports of "
-        "the removed makegroupmigrations and makeworkflowmigrations modules are pointed at the current ones, and "
-        "functions that VUEDA no longer writes are removed when nothing uses them. Code that you added stays. "
+        "makevuedamigrations writes now, so fixes in VUEDA reach migrations that copied older versions. Functions "
+        "that VUEDA no longer writes are removed when nothing uses them. Code that you added stays. "
         "Workflow references gain the app and model of the workflow that they name. Apps installed as packages are "
         "read but never rewritten. A file that needs no change is reported as already up to date."
     )
@@ -68,7 +66,6 @@ class Command(BaseCommand):
             return
 
         # Workflow history and the migration graph are needed only to refresh a workflow migration.
-        self.imports_fixed = set()
         workflow = None
         if any(generated.kind.name == "workflow" for generated in writable):
             workflow = self._prepare_workflow(files)
@@ -129,18 +126,16 @@ class Command(BaseCommand):
         """Read every workflow migration's history and build the migration graph, before any file is refreshed.
 
         What a workflow code meant can be recorded in another app's migration, even one in a package, so every
-        generated workflow migration is read first. In a real run, imports of the removed modules are fixed on
-        disk before the graph is built, because building it imports every migration.
+        generated workflow migration is read first.
         """
         from vueda.workflow.migration_generation import refresh as workflow_refresh
 
         changed_data_lists = []
-        stale_imports = []
         for generated in files:
-            if generated.text is None:
+            if generated.text is None or generated.kind.name != "workflow":
                 continue
             try:
-                imports = rewrite_removed_imports(generated.text)
+                ast.parse(generated.text)
             except SyntaxError as error:
                 # The refresh reports a project's file. A package's file is only read here, so say so.
                 if not generated.writable:
@@ -151,12 +146,8 @@ class Command(BaseCommand):
                         )
                     )
                 continue
-            if imports.changed:
-                stale_imports.append((generated, imports))
-            if generated.kind.name != "workflow":
-                continue
 
-            changed_data, problem = workflow_refresh.read_changed_data(imports.source, generated.path)
+            changed_data, problem = workflow_refresh.read_changed_data(generated.text, generated.path)
             if problem is not None:
                 if not generated.writable:
                     self.stdout.write(
@@ -173,54 +164,18 @@ class Command(BaseCommand):
             changed_data_lists.append(changed_data)
 
         loader = loader_problem = None
-        check_skipped = False
-        if stale_imports and self.dry_run:
-            if any(not generated.writable for generated, _imports in stale_imports):
-                loader_problem = (
-                    "some migrations still import modules that VUEDA removed. One of them is in an installed "
-                    "package, which no run rewrites, so a run without --dry-run cannot build the migration graph "
-                    "either"
-                )
-            elif unsafe := [
-                generated for generated, imports in stale_imports if not _import_fix_is_safe(generated, imports)
-            ]:
-                loader_problem = (
-                    f"{unsafe[0].path} still imports a module that VUEDA removed, and its imports cannot be fixed "
-                    "until it is changed by hand, so a run without --dry-run cannot build the migration graph either"
-                )
-            else:
-                check_skipped = True
-                loader_problem = (
-                    "the dependency check is skipped in a dry run, because some migrations still import modules "
-                    "that VUEDA removed. A run without --dry-run fixes those imports first, then checks dependencies."
-                )
-        else:
-            for generated, imports in stale_imports:
-                # A rewrite that would leave the migration broken is not written. Its refresh reports why. A
-                # refresh that fails for another reason still gets its import fix, so the graph can load.
-                if not generated.writable or not _import_fix_is_safe(generated, imports):
-                    continue
-                try:
-                    _write_atomically(generated.path, imports.source)
-                except OSError as error:
-                    self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
-                    continue
-                self.imports_fixed.add(generated.path)
-            try:
-                # The declared graph, not the migrations applied to this database: a refreshed migration must
-                # also work when a new installation starts with an empty database.
-                loader = MigrationLoader(None, ignore_no_migrations=True)
-            except Exception as error:
-                loader_problem = f"cannot resolve migration dependencies: {error}"
+        try:
+            # The declared graph, not the migrations applied to this database: a refreshed migration must also
+            # work when a new installation starts with an empty database.
+            loader = MigrationLoader(None, ignore_no_migrations=True)
+        except Exception as error:
+            loader_problem = f"cannot resolve migration dependencies: {error}"
 
         return {
             "module": workflow_refresh,
             "identities": workflow_refresh.collect_workflow_identities(changed_data_lists),
             "loader": loader,
             "loader_problem": loader_problem,
-            # Only a dry run with old imports that a real run fixes skips the check. Any other graph problem
-            # fails a dry run too.
-            "check_skipped": check_skipped,
         }
 
     def _refresh_file(self, generated, workflow):
@@ -243,12 +198,12 @@ class Command(BaseCommand):
             result = refresh_migration(generated.text, generated.kind, update_changed_data=update_changed_data)
         except (RefreshError, ValueError) as error:
             self.stderr.write(
-                self.style.ERROR(f"  Could not update {generated.path}: {error} {self._left_as_it_was(generated)}")
+                self.style.ERROR(f"  Could not update {generated.path}: {error} Leaving the file unchanged.")
             )
             return None
         if blocked is not None:
             self.stderr.write(
-                self.style.ERROR(f"  Cannot update {generated.path}: {blocked} {self._left_as_it_was(generated)}")
+                self.style.ERROR(f"  Cannot update {generated.path}: {blocked} Leaving the file unchanged.")
             )
             return None
 
@@ -257,12 +212,8 @@ class Command(BaseCommand):
             return False
 
         self.stdout.write(f"{'Would update' if self.dry_run else 'Updating'}: {generated.path}")
-        for dropped in result.dropped_imports:
-            self.stdout.write(f"  Dropped the import of {dropped}, which VUEDA no longer has.")
         for name in result.removed_names:
             self.stdout.write(f"  Removed {name}, which VUEDA no longer writes and nothing uses.")
-        if workflow is not None and generated.kind.name == "workflow" and workflow["loader"] is None:
-            self.stdout.write(f"  Note: {workflow['loader_problem']}")
         if not self.dry_run:
             try:
                 _write_atomically(generated.path, result.source)
@@ -276,8 +227,7 @@ class Command(BaseCommand):
         nothing does."""
         workflow_refresh = workflow["module"]
         if workflow["loader"] is None:
-            # A dry run that skipped the dependency check refreshes anyway, and notes why.
-            return None if workflow["check_skipped"] else f"{workflow['loader_problem']}."
+            return f"{workflow['loader_problem']}."
         migration_key = (generated.app_label, generated.path.stem)
         try:
             has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
@@ -292,12 +242,6 @@ class Command(BaseCommand):
                 "functions require."
             )
         return None
-
-    def _left_as_it_was(self, generated):
-        """Say what a failed refresh left in a file: either nothing, or only the import fixes written before it."""
-        if generated.path in self.imports_fixed:
-            return "Its imports of removed modules were fixed. The rest of the file was left unchanged."
-        return "Leaving the file unchanged."
 
     def _write_summary(self, updated, up_to_date, failed):
         for kind_name, count in sorted(updated.items()):
@@ -335,18 +279,3 @@ def _write_atomically(path, text):
         # Also on an interrupt, so no temporary file is left in the migrations directory.
         Path(handle.name).unlink(missing_ok=True)
         raise
-
-
-def _import_fix_is_safe(generated, imports):
-    """Return whether the import fix in ``imports`` leaves ``generated`` able to run.
-
-    A trial refresh replaces the copied functions first, so a dropped name that only an old copy uses does not
-    count. When the refresh fails for another reason, which it reports later, only the import fix is checked.
-    """
-    try:
-        refresh_migration(generated.text, generated.kind)
-    except ImportRefreshError:
-        return False
-    except (RefreshError, ValueError):
-        return not imports.problems()
-    return True

@@ -105,7 +105,7 @@ An object state with no events also stays where it is, even when the initial sta
 
 `makevuedamigrations` performs the same checks on the local database, even when it detects no workflow changes. Its `--dry-run` leaves object states unchanged. Like a migration, it covers a model whose `class Vueda.Workflow` no longer enables workflow.
 
-Older v3-generated migration files can still reset states with no events because they contain copies of the functions. After upgrading VUEDA, run `python manage.py updatevuedamigrations`, review the changes, and commit them before applying the migrations to an upgraded database. [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations) describes the dependency checks and files that the command skips. A migration generated with the `--import-instead` option of earlier versions imports these functions from `vueda.workflow.management.commands.makeworkflowmigrations`, which no longer exists. The command points those imports at `vueda.workflow.migration_generation.operations`, where the functions kept their names, and refreshes the rest of the migration. The refreshed migration then uses VUEDA's current functions when it runs, so it gets the fix through the package upgrade.
+Older v3-generated migration files can still reset states with no events because they contain copies of the functions. After upgrading VUEDA, run `python manage.py updatevuedamigrations`, review the changes, and commit them before applying the migrations to an upgraded database. [Updating Existing Workflow Migrations](#updating-existing-workflow-migrations) describes the dependency checks and files that the command skips.
 
 This fix prevents future resets. It does not restore states that an older migration or command already reset.
 
@@ -224,7 +224,7 @@ python manage.py updatevuedamigrations
 
 For each migration, it prints `Updating:` when it rewrote the file, or `Already up to date:` when nothing needed to change. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, and how many failed. It exits with status 1 if any file fails.
 
-`--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update, with one exception that [What the Command Changes](#what-the-command-changes) describes.
+`--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update.
 
 ### Which Apps a Run Covers
 
@@ -252,14 +252,11 @@ Workflow migrations carry everything they need to run, so you do not need to upd
 - The VUEDA release notes say that a fix to the embedded functions needs it.
 - You have v3-generated migrations whose embedded functions reset object states with no events. Update them before applying them to a database upgraded from v2, as [How Object States Are Updated](#how-object-states-are-updated) describes.
 - You are squashing migrations.
-- A migration imports from `vueda.workflow.management.commands.makeworkflowmigrations` or `vueda.user.management.commands.makegroupmigrations`, which no longer exist. Such a migration was made with the `--import-instead` option of earlier versions, and it stops `migrate` until its imports change.
 - A migration names a workflow by code alone: a workflow reference in its `changed_data` has `code` but no `historical_app_label`. That reference becomes ambiguous once another model takes over the workflow code. The command adds the app label and model that each code meant when the change was recorded. Run it once for your own apps and commit the result.
 
 You can update migrations that other environments have already applied. The change data names the same workflow records either way, so a rewritten migration that runs again produces the same result. The command skips a migration that it cannot rewrite safely, as [Migrations the Command Must Not Rewrite](#migrations-the-command-must-not-rewrite) describes.
 
 ### What the Command Changes
-
-Before it reads or checks anything, the command points each import of `vueda.workflow.management.commands.makeworkflowmigrations` or `vueda.user.management.commands.makegroupmigrations` at the module that holds those functions now. The functions kept their names. An imported name that VUEDA no longer has is dropped, and the command reports it. A real run writes these import fixes first, because the dependency check imports every migration. A dry run cannot import the fixed text from disk, so when a migration still needs this fix, it skips the dependency check and says so.
 
 For each workflow migration that passes the dependency check, the command:
 
@@ -288,9 +285,9 @@ When the command cannot read the `changed_data` of a migration that it does not 
 
 The current functions need the event models and triggers that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. Before it rewrites a migration, the command checks that `0008` comes before that migration in the migration graph. The check follows indirect dependencies, and it accepts a squashed migration that replaces `0008`. It reads the migration files, not the database's migration records, because the rewritten file must also apply to an empty database.
 
-When the check fails, the command names the file and the required migration. It leaves the file unchanged, apart from the import fix that the next paragraph describes. It counts the file as a failure, continues with the other files, and exits with status 1.
+When the check fails, the command names the file and the required migration. It leaves the file unchanged. It counts the file as a failure, continues with the other files, and exits with status 1.
 
-Any workflow migration generated with VUEDA v3.0.0a0 or earlier fails this check. A migration generated with the `--import-instead` option of earlier versions gets the same check. Its imports are fixed first either way, so Django can load the migration graph again. A migration that fails the check is still not ready to run: its `operations` call the functions that it imports with the arguments that the old functions took. Handle it by hand, as the steps below describe.
+Any workflow migration generated with VUEDA v3.0.0a0 or earlier fails this check. Handle each one by hand, as the steps below describe.
 
 For each skipped migration:
 

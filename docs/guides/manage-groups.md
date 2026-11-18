@@ -180,7 +180,6 @@ python manage.py updatevuedamigrations --dry-run
 
 The command finds group migrations in every app by their marker comment, including the marker that `makegroupmigrations` wrote. It never rewrites an app installed as a package. In each group migration it:
 
-- Points imports of `vueda.user.management.commands.makegroupmigrations`, which no longer exists, at `vueda.user.migration_generation.group_operations`. A migration made with the `--import-instead` option of earlier versions imports from there, and it stops `migrate` until its imports change.
 - Replaces each copied function, and `GroupChangeTypes`, with the current version, matched by name. It adds any that the file lacks.
 - Updates the import lines that it recognizes, and leaves other imports in place.
 - Removes imports that earlier versions wrote and the current version does not, such as `settings`, when nothing else in the file uses them.

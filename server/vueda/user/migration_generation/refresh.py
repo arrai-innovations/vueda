@@ -1,154 +1,22 @@
 """Refresh the generated migrations that earlier versions of VUEDA wrote, so they import and run with this one."""
 
 __all__ = (
-    "REMOVED_MODULES",
-    "ImportRewrite",
     "MigrationKind",
     "Refresh",
     "RefreshError",
     "refresh_migration",
     "remove_obsolete_names",
-    "rewrite_removed_imports",
 )
 
 import ast
 import dataclasses
-import importlib
 from collections.abc import Callable
 
-from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import NoRenamesError
 from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
-
-
-# Modules that migrations made with the removed --import-instead option import from, and the module that holds
-# their functions now. The functions kept their names when they moved.
-REMOVED_MODULES = {
-    "vueda.user.management.commands.makegroupmigrations": "vueda.user.migration_generation.group_operations",
-    "vueda.workflow.management.commands.makeworkflowmigrations": "vueda.workflow.migration_generation.operations",
-}
-
-
-@dataclasses.dataclass(frozen=True)
-class ImportRewrite:
-    """The result of ``rewrite_removed_imports``.
-
-    ``source`` is the migration's text with each import of a removed module pointed at its current module.
-    ``changed`` says whether any import was rewritten. ``dropped`` names each imported name that the current
-    module no longer has, as ``module.name``. It is empty when every name still exists. ``dropped_bound_names``
-    holds the names that those imports bound in the migration. ``module_aliases`` maps each alias of a removed
-    module to the current module. ``unaliased_modules`` holds each removed module that is imported without an
-    alias.
-    """
-
-    source: str
-    changed: bool
-    dropped: tuple[str, ...]
-    dropped_bound_names: frozenset = frozenset()
-    module_aliases: tuple[tuple[str, str], ...] = ()
-    unaliased_modules: tuple[str, ...] = ()
-
-    def problems(self):
-        """Return why ``source`` would fail when it runs, as sorted messages. The list is empty when it would not.
-
-        The checks read ``source`` as it is now, so a use that the refresh removed with an old copied function does
-        not count. A dropped name that the migration still uses would raise ``NameError``. A name read through an
-        aliased module import that the current module lacks would raise ``AttributeError``. A removed module
-        imported without an alias is used through its full dotted path, which no import can point elsewhere.
-        """
-        tree = ast.parse(self.source)
-        still_used = sorted(self.dropped_bound_names & _used_names(tree))
-        problems = {f"still uses {name}, which VUEDA no longer has" for name in still_used}
-        aliases = {alias: importlib.import_module(current) for alias, current in self.module_aliases}
-        for child in ast.walk(tree):
-            if not isinstance(child, ast.Attribute) or isinstance(child.ctx, ast.Store):
-                continue
-            # Assigning a name works on any module, as the early group migrations did with changed_data.
-            if (
-                isinstance(child.value, ast.Name)
-                and child.value.id in aliases
-                and not hasattr(aliases[child.value.id], child.attr)
-            ):
-                problems.add(f"uses {child.value.id}.{child.attr}, which VUEDA no longer has")
-            dotted = ast.unparse(child)
-            for module in self.unaliased_modules:
-                if dotted.startswith(f"{module}."):
-                    problems.add(f"uses {module} without an alias, so its uses name the removed module")
-        return sorted(problems)
-
-
-def rewrite_removed_imports(source):
-    """Point the top-level imports of removed modules in a migration's ``source`` at their current modules.
-
-    Only import statements change, so strings and comments that mention a removed module are left alone. A
-    ``from`` import keeps each name that the current module still has, and drops the others, which the refresh
-    replaces anyway. ``import <removed module> as <alias>`` imports the current module under the same alias.
-
-    This works on the text, so it runs before anything imports the migration. Django imports every migration
-    when it builds the migration graph, and an import of a removed module would stop that.
-    """
-    tree = ast.parse(source)
-    lines = source.splitlines(keepends=True)
-    dropped = []
-    dropped_bound = set()
-    unaliased = set()
-    module_aliases = {}
-    replacements = []
-
-    for node in tree.body:
-        if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module in REMOVED_MODULES:
-            current = REMOVED_MODULES[node.module]
-            module = importlib.import_module(current)
-            kept = []
-            for alias in node.names:
-                # A star import takes whatever the current module has, as it did from the removed one.
-                if alias.name == "*" or hasattr(module, alias.name):
-                    kept.append(alias)
-                else:
-                    dropped.append(f"{node.module}.{alias.name}")
-                    dropped_bound.add(alias.asname or alias.name)
-            text = "".join(f"from {current} import {_alias_text(alias)}{NEWLINE}" for alias in kept)
-            replacements.append((node.lineno, node.end_lineno, text))
-
-        elif isinstance(node, ast.Import) and any(alias.name in REMOVED_MODULES for alias in node.names):
-            for alias in node.names:
-                if alias.name not in REMOVED_MODULES:
-                    continue
-                if alias.asname:
-                    module_aliases[alias.asname] = REMOVED_MODULES[alias.name]
-                else:
-                    unaliased.add(alias.name)
-            text = "".join(
-                f"import {REMOVED_MODULES.get(alias.name, alias.name)}"
-                f"{f' as {alias.asname}' if alias.asname else ''}{NEWLINE}"
-                for alias in node.names
-            )
-            replacements.append((node.lineno, node.end_lineno, text))
-
-    # Replace from the bottom of the file to the top, so the line numbers stay correct throughout.
-    for start, end, text in reversed(replacements):
-        # An import group that loses every line takes the blank lines before it too, so the blank lines after it,
-        # which separate the imports from the code, are the only gap left.
-        if not text and end < len(lines) and not lines[end].strip():
-            while start > 1 and not lines[start - 2].strip():
-                start -= 1
-        lines[start - 1 : end] = [text] if text else []
-
-    return ImportRewrite(
-        source="".join(lines),
-        changed=bool(replacements),
-        dropped=tuple(dropped),
-        dropped_bound_names=frozenset(dropped_bound),
-        module_aliases=tuple(sorted(module_aliases.items())),
-        unaliased_modules=tuple(sorted(unaliased)),
-    )
-
-
-def _alias_text(alias):
-    return f"{alias.name} as {alias.asname}" if alias.asname else alias.name
 
 
 def remove_obsolete_names(source, names):
@@ -235,9 +103,10 @@ class MigrationKind:
     ``name`` names the kind in output. ``markers`` are the comments that mark such a migration. A migration
     must assign every name in ``required_assignments`` at the top level. ``renames`` maps the old names of the
     functions that its operations call to the current ones. A migration that imports any of ``entry_functions``
-    from ``current_module`` imports its functions instead of copying them. ``get_sources`` and ``get_imports``
-    are the kind's builders of the copied functions and imports, called with ``as_mapping=True``.
-    ``obsolete_names`` are the names that earlier versions wrote and the current ones do not.
+    from ``current_module`` imports its functions instead of copying them, which a refresh refuses.
+    ``get_sources`` and ``get_imports`` are the kind's builders of the copied functions and imports, called with
+    ``as_mapping=True``. ``obsolete_names`` are the names that earlier versions wrote and the current ones do
+    not.
     """
 
     name: str
@@ -255,37 +124,31 @@ class RefreshError(Exception):
     """A generated migration that a refresh cannot rewrite. The message says why."""
 
 
-class ImportRefreshError(RefreshError):
-    """A generated migration that still needs something that the rewritten imports took away."""
-
-
 @dataclasses.dataclass(frozen=True)
 class Refresh:
     """The result of ``refresh_migration``.
 
-    ``source`` is the refreshed text. ``changed`` says whether it differs from the original. ``dropped_imports``
-    and ``removed_names`` say what ``rewrite_removed_imports`` dropped and ``remove_obsolete_names`` removed.
+    ``source`` is the refreshed text. ``changed`` says whether it differs from the original. ``removed_names``
+    says what ``remove_obsolete_names`` removed.
     """
 
     source: str
     changed: bool
-    dropped_imports: tuple[str, ...]
     removed_names: tuple[str, ...]
 
 
 def refresh_migration(source, kind, *, update_changed_data=None):
     """Return the generated migration ``source`` with the current functions and imports of its ``kind``.
 
-    The steps run in this order: imports of removed modules point at the current ones; the operations call the
-    current function names; each copied function and import that the kind writes is replaced or added; and
-    obsolete names that nothing uses are removed. Code that a developer added stays. ``update_changed_data``,
-    when given, takes the text after the import rewrite and returns it with its ``changed_data`` updated.
+    The steps run in this order: the operations call the current function names; each copied function and
+    import that the kind writes is replaced or added; and obsolete names that nothing uses are removed. Code that
+    a developer added stays. ``update_changed_data``, when given, takes the text and returns it with its
+    ``changed_data`` updated.
 
-    Raises ``RefreshError`` when the migration is not valid Python or lacks an assignment that the kind needs.
+    Raises ``RefreshError`` when the migration is not valid Python, lacks an assignment that the kind needs, or
+    imports its functions from VUEDA instead of copying them.
     """
-    _parse_or_refuse(source)
-    imports = rewrite_removed_imports(source)
-    text = imports.source
+    text = source
     tree = _parse_or_refuse(text)
 
     assigned = {
@@ -299,13 +162,17 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     if missing:
         raise RefreshError(f"Could not find {', '.join(missing)} in the migration.")
 
-    direct_runpython_import = has_direct_runpython_import(text.splitlines(keepends=True))
-    import_instead = any(
+    # Only VUEDA's own tests write migrations that import their functions, so a refresh never sees one in a
+    # project. Copying the functions in would leave two definitions of each name.
+    if any(
         isinstance(node, ast.ImportFrom)
         and node.module == kind.current_module
         and any(alias.name in kind.entry_functions for alias in node.names)
         for node in tree.body
-    )
+    ):
+        raise RefreshError(f"The migration imports its functions from {kind.current_module} instead of copying them.")
+
+    direct_runpython_import = has_direct_runpython_import(text.splitlines(keepends=True))
 
     if update_changed_data is not None:
         text = update_changed_data(text)
@@ -315,18 +182,11 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     except NoRenamesError:
         # The operations already call the current names.
         pass
-    text = merge_migration_sources(text, kind.get_sources(import_instead, as_mapping=True))
-    text = merge_migration_imports(text, kind.get_imports(import_instead, direct_runpython_import, as_mapping=True))
+    text = merge_migration_sources(text, kind.get_sources(False, as_mapping=True))
+    text = merge_migration_imports(text, kind.get_imports(False, direct_runpython_import, as_mapping=True))
     text, removed = remove_obsolete_names(text, kind.obsolete_names)
 
-    # A rewrite of the imports is safe only when nothing in the migration still needs what it took away.
-    problems = dataclasses.replace(imports, source=text).problems()
-    if problems:
-        raise ImportRefreshError(
-            f"The migration {'; '.join(problems)}. Replace or remove that code by hand, then run the command again."
-        )
-
-    return Refresh(source=text, changed=text != source, dropped_imports=imports.dropped, removed_names=removed)
+    return Refresh(source=text, changed=text != source, removed_names=removed)
 
 
 def _parse_or_refuse(text):
