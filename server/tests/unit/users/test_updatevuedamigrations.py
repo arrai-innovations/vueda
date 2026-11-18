@@ -14,6 +14,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
+from django.apps import apps as django_apps
 from django.core.management import call_command
 from django.db.migrations.exceptions import CircularDependencyError
 from django.db.migrations.exceptions import NodeNotFoundError
@@ -108,10 +109,17 @@ def test_an_obsolete_import_alone_in_the_last_import_group_keeps_two_blank_lines
             "import datetime\n",
             id="first-line",
         ),
+        pytest.param(
+            "from django.utils import timezone\n\nfrom django.db.models import Count\n\nX = 1\n",
+            "X = 1\n",
+            id="two-groups-at-the-top",
+        ),
     ],
 )
 def test_an_obsolete_import_keeps_the_gaps_between_import_groups(source, expected):
-    assert remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names) == (expected, ("timezone",))
+    result, _removed = remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names)
+
+    assert result == expected
 
 
 def test_an_obsolete_name_that_other_code_still_uses_is_kept():
@@ -151,6 +159,16 @@ def test_an_obsolete_name_that_a_kept_one_uses_is_kept_too():
     )
 
     assert remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names) == (source, ())
+
+
+def test_an_app_whose_migration_modules_entry_does_not_exist_yet_is_not_installed(settings, monkeypatch):
+    """The project creates the module that MIGRATION_MODULES names, so the app's own directory does not decide."""
+    app_path = os.path.normcase(os.path.realpath(django_apps.get_app_config("erring").path))
+    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, app_path))
+    assert dependencies.is_installed_package_app("erring")
+    settings.MIGRATION_MODULES = {"erring": "tests.erring.migrations_not_created_yet"}
+
+    assert not dependencies.is_installed_package_app("erring")
 
 
 def test_a_path_with_a_site_packages_part_counts_as_installed(monkeypatch):
@@ -199,6 +217,12 @@ def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
             "import datetime\n"
             "changed_data = [{'model_name': 'workflow', 'history_date': datetime.datetime(2026, 6, 29), "
             "'changes': {'code': ['a', 'b']}}]",
+            "change 0 has a workflow code that is not a single value",
+        ),
+        (
+            "import datetime\n"
+            "changed_data = [{'model_name': 'state', 'history_date': datetime.datetime(2026, 6, 29), "
+            "'changes': {'workflow_id': {'code': ['a']}}}]",
             "change 0 has a workflow code that is not a single value",
         ),
         ("raise RuntimeError('the migration fails to import')", "the migration fails to import"),

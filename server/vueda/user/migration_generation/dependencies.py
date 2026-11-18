@@ -73,13 +73,20 @@ def is_installed_package_app(app_label):
     """Return whether the app ``app_label`` is installed as a package, so no command may write its migrations.
 
     It checks the app's migrations directory, which honors ``MIGRATION_MODULES``. An app without a migrations
-    directory is checked by its own directory. The directory counts as installed when it is inside a directory that
-    this interpreter installs packages into, or when its path has a ``site-packages`` or ``dist-packages`` part,
-    which covers packages installed with ``pip install --target`` or kept on ``PYTHONPATH``. A project cannot
-    commit a migration written into a package, and a reinstall puts the package's own files back.
+    directory is checked by its own directory. An app whose ``MIGRATION_MODULES`` entry names a module that does
+    not exist yet is not installed, because the project creates that module. The directory counts as installed
+    when it is inside a directory that this interpreter installs packages into, or when its path has a
+    ``site-packages`` or ``dist-packages`` part, which covers packages installed with ``pip install --target`` or
+    kept on ``PYTHONPATH``. A project cannot commit a migration written into a package, and a reinstall puts the
+    package's own files back.
     """
     app_config = django_apps.get_app_config(app_label)
-    return is_installed_package_location(get_migrations_path(app_config) or app_config.path)
+    migrations_path = get_migrations_path(app_config)
+    if migrations_path is None and settings.MIGRATION_MODULES.get(app_label):
+        # MIGRATION_MODULES moves the migrations into a module that does not exist yet. The project creates it, so
+        # the app's own directory does not decide.
+        return False
+    return is_installed_package_location(migrations_path or app_config.path)
 
 
 def is_installed_package_location(path):

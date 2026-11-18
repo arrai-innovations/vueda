@@ -61,13 +61,35 @@ def describe_unreadable_changes(changed_data):
         if not isinstance(changed_item["changes"], dict):
             return f"change {index} has changes that are not a dict"
 
-        if changed_item["model_name"] == "workflow":
-            try:
-                hash(get_id_values_from_item(changed_item["changes"].get("code"), reversing=True))
-            except TypeError:
-                return f"change {index} has a workflow code that is not a single value"
+        if not all(_is_single_value(code) for code in _workflow_codes(changed_item)):
+            return f"change {index} has a workflow code that is not a single value"
 
     return None
+
+
+def _workflow_codes(changed_item):
+    """Yield each workflow code that a change records: a workflow's own code, and the code of each reference."""
+    if changed_item["model_name"] == "workflow":
+        yield changed_item["changes"].get("code")
+    pending = [changed_item["changes"]]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, tuple | list):
+            pending.extend(value)
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                if key == "workflow_id" and isinstance(item, dict) and "code" in item:
+                    yield item["code"]
+                pending.append(item)
+
+
+def _is_single_value(code):
+    """Return whether a recorded ``code`` can be looked up, which needs a hashable value."""
+    try:
+        hash(get_id_values_from_item(code, reversing=True))
+    except TypeError:
+        return False
+    return True
 
 
 def recorded_at_utc(recorded):

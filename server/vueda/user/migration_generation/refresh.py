@@ -59,18 +59,26 @@ def remove_obsolete_names(source, names):
         end = node.end_lineno
         # When blank lines come both before and after it, take the ones before, so the gap after it stays the
         # only gap. That gap may be the two blank lines that end the imports. An import that opens or sits inside
-        # a group of imports has no blank line on one side, so the group's gaps stay as they are. At the top of
-        # the file, take the blank lines after it, so the file does not start with one.
-        followed_by_blank = end == len(lines) or not lines[end].strip()
-        if start == 1:
-            while end < len(lines) and not lines[end].strip():
-                end += 1
-        elif followed_by_blank:
+        # a group of imports has no blank line on one side, so the group's gaps stay as they are.
+        if end == len(lines) or not lines[end].strip():
             while start > 1 and not lines[start - 2].strip():
                 start -= 1
         spans.append((start, end))
 
-    for start, end in sorted(spans, reverse=True):
+    # Two spans can share the blank lines between them, so overlapping spans are merged before any is deleted.
+    merged = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    # A span at the top of the file takes the blank lines after it too, so the file does not start with one.
+    if merged and merged[0][0] == 1:
+        start, end = merged[0]
+        while end < len(lines) and not lines[end].strip():
+            end += 1
+        merged[0] = (start, end)
+    for start, end in reversed(merged):
         del lines[start - 1 : end]
 
     return "".join(lines), tuple(sorted(removed))
