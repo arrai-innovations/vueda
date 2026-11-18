@@ -18,7 +18,7 @@ from django.db.migrations.loader import MigrationLoader
 from tests.utils import BaseTestMigrations
 from vueda import workflow as workflow_module
 from vueda.user.migration_generation import dependencies
-from vueda.workflow.management.commands import updateworkflowmigrations
+from vueda.workflow.migration_generation import refresh as workflow_refresh
 
 
 WORKFLOW_EVENTS = "0008_initialstateevent_objectstateevent_stateevent_and_more"
@@ -606,9 +606,9 @@ FIRST_WORKFLOW = {"historical_app_label": "product", "historical_model": "first"
     ],
 )
 def test_workflow_identity_at_a_reference_recorded_before_every_workflow(changed_data, expected):
-    identities = updateworkflowmigrations.collect_workflow_identities([changed_data])
+    identities = workflow_refresh.collect_workflow_identities([changed_data])
 
-    identity = updateworkflowmigrations.workflow_identity_at(
+    identity = workflow_refresh.workflow_identity_at(
         identities, "reused", datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC)
     )
 
