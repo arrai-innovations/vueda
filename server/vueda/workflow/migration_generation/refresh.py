@@ -256,8 +256,7 @@ def read_changed_data(source, filepath):
 
     When the changes cannot be read, the result is ``(None, problem)``, and ``problem`` says why. The text is run as a
     module, rather than parsed, because a change records real datetimes and a literal parser cannot build them.
-    It runs the given text, not the file, so a refresh can read a migration after fixing its imports and before
-    writing anything.
+    It runs the given text, not the file, so a refresh can read a migration before writing anything.
     """
     module = types.ModuleType("workflow_migration_being_updated")
     module.__file__ = str(filepath)

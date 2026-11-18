@@ -85,14 +85,8 @@ def remove_obsolete_names(source, names):
 
 
 def _used_names(node):
-    """Return the names that ``node`` reads, including the first name of each attribute chain."""
-    used = set()
-    for child in ast.walk(node):
-        if isinstance(child, ast.Name):
-            used.add(child.id)
-        elif isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
-            used.add(child.value.id)
-    return used
+    """Return the names that ``node`` uses, including the first name of each attribute chain."""
+    return {child.id for child in ast.walk(node) if isinstance(child, ast.Name)}
 
 
 def _bound_names(node):

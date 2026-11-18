@@ -14,6 +14,7 @@ __all__ = (
 )
 
 import importlib
+import importlib.util
 import os
 import site
 import sys
@@ -82,11 +83,23 @@ def is_installed_package_app(app_label):
     """
     app_config = django_apps.get_app_config(app_label)
     migrations_path = get_migrations_path(app_config)
-    if migrations_path is None and settings.MIGRATION_MODULES.get(app_label):
+    if migrations_path is None and _names_a_missing_module(settings.MIGRATION_MODULES.get(app_label)):
         # MIGRATION_MODULES moves the migrations into a module that does not exist yet. The project creates it, so
         # the app's own directory does not decide.
         return False
     return is_installed_package_location(migrations_path or app_config.path)
+
+
+def _names_a_missing_module(module_name):
+    """Return whether ``module_name`` names a module that cannot be found. A module that exists but fails to import
+    does not count."""
+    if not module_name:
+        return False
+    try:
+        return importlib.util.find_spec(module_name) is None
+    except ModuleNotFoundError:
+        # A parent package is missing too.
+        return True
 
 
 def is_installed_package_location(path):

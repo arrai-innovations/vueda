@@ -16,7 +16,6 @@ from pathlib import Path
 import pytest
 from django.apps import apps as django_apps
 from django.core.management import call_command
-from django.db.migrations.exceptions import CircularDependencyError
 from django.db.migrations.exceptions import NodeNotFoundError
 
 import vueda
@@ -169,6 +168,15 @@ def test_an_app_whose_migration_modules_entry_does_not_exist_yet_is_not_installe
     settings.MIGRATION_MODULES = {"erring": "tests.erring.migrations_not_created_yet"}
 
     assert not dependencies.is_installed_package_app("erring")
+
+
+def test_an_app_whose_migration_modules_entry_is_a_single_module_is_judged_by_its_own_directory(settings, monkeypatch):
+    """Only a module that does not exist yet moves the decision to the project. tests.settings exists."""
+    app_path = os.path.normcase(os.path.realpath(django_apps.get_app_config("erring").path))
+    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, app_path))
+    settings.MIGRATION_MODULES = {"erring": "tests.settings"}
+
+    assert dependencies.is_installed_package_app("erring")
 
 
 def test_a_path_with_a_site_packages_part_counts_as_installed(monkeypatch):
@@ -931,30 +939,6 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             assert f"Could not read {broken}:" in out
             assert "The workflows it records are not used to name references." in out
-
-    def test_a_circular_dependency_fails_each_workflow_migration_with_a_message(self, settings, monkeypatch):
-        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
-            path = write_old_migration(
-                erring_dir,
-                "0003_workflow_migrations_2026_06_29",
-                "workflow_copied_2026_06.py.txt",
-                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
-            )
-            before = path.read_text()
-
-            def circular(_loader, _migration_key):
-                raise CircularDependencyError("erring.0003_workflow_migrations_2026_06_29")
-
-            monkeypatch.setattr(workflow_refresh, "requires_workflow_events", circular)
-
-            _out, err, status = run_update()
-
-            assert status == 1
-            assert (
-                f"Cannot update {path}: the migration graph has a circular dependency: "
-                "erring.0003_workflow_migrations_2026_06_29."
-            ) in err
-            assert path.read_text() == before
 
     def test_rewritten_changed_data_follows_the_migrations_project_settings(self, settings):
         """The formatter reads the settings that apply to the migration's own path.

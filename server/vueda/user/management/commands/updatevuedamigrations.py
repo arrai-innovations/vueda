@@ -12,7 +12,6 @@ from pathlib import Path
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
-from django.db.migrations.exceptions import CircularDependencyError
 from django.db.migrations.exceptions import NodeNotFoundError
 from django.db.migrations.loader import MigrationLoader
 
@@ -93,7 +92,7 @@ class Command(BaseCommand):
             if migrations_path is None or not os.path.isdir(migrations_path):
                 continue
 
-            # A package's migrations are read for the workflows they record, but a project cannot commit a change
+            # A package's migrations are read for the workflows that they record, but a project cannot commit a change
             # to them, and a reinstall puts the originals back. makevuedamigrations uses the same rule.
             app_writable = not is_installed_package_app(app_config.label)
             for path in sorted(Path(migrations_path).glob("*.py")):
@@ -196,7 +195,9 @@ class Command(BaseCommand):
         # changed by hand is the more useful report. An import that is still used also stops the graph.
         try:
             result = refresh_migration(generated.text, generated.kind, update_changed_data=update_changed_data)
-        except (RefreshError, ValueError) as error:
+        # A hand-edited migration can also fail a merge or the formatter in ways that raise TypeError or
+        # SyntaxError. Each one fails only its own file.
+        except (RefreshError, ValueError, TypeError, SyntaxError) as error:
             self.stderr.write(
                 self.style.ERROR(f"  Could not update {generated.path}: {error} Leaving the file unchanged.")
             )
@@ -231,8 +232,6 @@ class Command(BaseCommand):
         migration_key = (generated.app_label, generated.path.stem)
         try:
             has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
-        except CircularDependencyError as error:
-            return f"the migration graph has a circular dependency: {error}."
         except NodeNotFoundError:
             return "the migration graph does not include it, for example because a squashed migration replaces it."
         if not has_workflow_events:
