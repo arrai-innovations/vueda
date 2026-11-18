@@ -35,6 +35,7 @@ import copy
 import enum
 import inspect
 import re
+import sys
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -1021,8 +1022,9 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
         )
         for count, outcome in counts:
             if count:
-                # A migration's code has no command stdout to write to; migrate shows what it prints.
-                print(f"  Workflow {record['code']}: {count} object state(s) {outcome}.")  # noqa: T201
+                # A migration's code has no command stdout to write to; migrate shows what it writes here. It
+                # writes rather than prints, so a project's linter has no print call to flag in its migrations.
+                sys.stdout.write(f"  Workflow {record['code']}: {count} object state(s) {outcome}.\n")
 
 
 def get_id_values_from_item(values, reversing=False):
@@ -1111,6 +1113,7 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
     }
     if not import_instead:
         result_mapping[("enum",)] = f"import enum{NEWLINE}"
+        result_mapping[("sys",)] = f"import sys{NEWLINE}"
 
     if not import_instead:
         result_mapping[("django_apps",)] = f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}"
@@ -1141,12 +1144,10 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
             f"from vueda.workflow.migration_generation.operations import make_sure_permissions_exist{NEWLINE}"
         )
     else:
-        result_mapping[("Count",)] = f"from django.db.models import Count{NEWLINE}"
         result_mapping[("Exists",)] = f"from django.db.models import Exists{NEWLINE}"
         result_mapping[("OuterRef",)] = f"from django.db.models import OuterRef{NEWLINE}"
         result_mapping[("Q",)] = f"from django.db.models import Q{NEWLINE}"
         result_mapping[("Subquery",)] = f"from django.db.models import Subquery{NEWLINE}"
-        result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
         result_mapping[("audited_action",)] = f"{NEWLINE}from vueda.core.audit import audited_action{NEWLINE}"
         result_mapping[("tagged_writes",)] = f"from vueda.core.audit import tagged_writes{NEWLINE}"
 

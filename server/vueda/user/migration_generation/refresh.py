@@ -37,7 +37,7 @@ REMOVED_MODULES = {
 # Top-level names that earlier versions copied or imported into generated migrations, and that the current
 # versions no longer write. A refresh removes each one that nothing else in the migration still uses.
 OBSOLETE_GROUP_NAMES = frozenset(("settings",))
-OBSOLETE_WORKFLOW_NAMES = frozenset(("add_history_to_data",))
+OBSOLETE_WORKFLOW_NAMES = frozenset(("add_history_to_data", "Count", "timezone"))
 
 
 @dataclasses.dataclass(frozen=True)
