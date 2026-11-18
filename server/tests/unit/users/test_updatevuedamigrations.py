@@ -4,6 +4,7 @@ The tests that only rewrite text need no database. The import rewrites run on so
 every migration when it builds the migration graph, and an import of a removed module would stop that.
 """
 
+import io
 import textwrap
 from pathlib import Path
 
@@ -15,6 +16,9 @@ from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_obsolete_names
 from vueda.user.migration_generation.refresh import rewrite_removed_imports
+from vueda.workflow.migration_generation.refresh import changed_data_updater
+from vueda.workflow.migration_generation.refresh import collect_workflow_identities
+from vueda.workflow.migration_generation.refresh import read_changed_data
 from vueda.workflow.migration_generation.tool import WORKFLOW_MIGRATION_KIND
 
 
@@ -242,3 +246,25 @@ def test_an_old_migration_is_refreshed_and_a_second_refresh_changes_nothing(fixt
     second = refresh_migration(once.source, kind)
     assert not second.changed
     assert second.source == once.source
+
+
+def test_a_workflow_reference_gains_its_app_and_model_and_a_second_refresh_changes_nothing():
+    """References in older workflow migrations name a workflow by code alone. The refresh adds the app and model
+    that the workflow's own change recorded."""
+    source = (OLD_MIGRATIONS / "workflow_copied_2026_06.py.txt").read_text()
+    changed_data, problem = read_changed_data(source, "workflow_copied_2026_06.py")
+    assert problem is None
+    update = changed_data_updater(
+        collect_workflow_identities([changed_data]), "workflow_copied_2026_06.py", stderr=io.StringIO(), dry_run=True
+    )
+
+    once = refresh_migration(source, WORKFLOW_MIGRATION_KIND, update_changed_data=update)
+
+    assert once.source.count("historical_app_label") > source.count("historical_app_label")
+    assert not refresh_migration(once.source, WORKFLOW_MIGRATION_KIND, update_changed_data=update).changed
+
+
+def test_changed_data_that_cannot_be_read_is_reported_with_the_reason():
+    source = 'history_change_reason = "Workflow Migration - x"\nchanged_data = [{"model_name": "state"}]\n'
+
+    assert read_changed_data(source, "broken.py") == (None, "change 0 has no 'history_date', 'changes'")
