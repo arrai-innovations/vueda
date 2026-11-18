@@ -8,6 +8,7 @@ import ast
 import io
 import os
 import re
+import stat
 import subprocess
 import sys
 import textwrap
@@ -15,6 +16,7 @@ from pathlib import Path
 
 import pytest
 from django.core.management import call_command
+from django.db.migrations.exceptions import NodeNotFoundError
 
 import vueda
 from tests.utils import BaseTestMigrations
@@ -29,6 +31,7 @@ from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_obsolete_names
 from vueda.user.migration_generation.refresh import rewrite_removed_imports
 from vueda.workflow.migration_generation import operations as workflow_operations
+from vueda.workflow.migration_generation import refresh as workflow_refresh
 from vueda.workflow.migration_generation.refresh import changed_data_updater
 from vueda.workflow.migration_generation.refresh import collect_workflow_identities
 from vueda.workflow.migration_generation.refresh import read_changed_data
@@ -835,3 +838,42 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 f"Could not read changed_data in {packaged}: change 0 has no 'history_date'. "
                 "The workflows it records are not used to name references."
             ) in out
+
+    def test_a_refreshed_migration_keeps_its_file_permissions(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            readable_by_everyone = 0o644
+            path.chmod(readable_by_everyone)
+
+            out, _err, status = run_update()
+
+            assert status == 0
+            assert f"Updating: {path}" in out
+            assert stat.S_IMODE(path.stat().st_mode) == readable_by_everyone
+
+    def test_a_migration_that_the_graph_does_not_include_fails_only_that_file(self, settings, monkeypatch):
+        """While a squash is unfinished, a migration that it replaces is on disk but not in the graph."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+
+            def replaced_by_a_squash(loader, migration_key):
+                raise NodeNotFoundError("replaced", migration_key)
+
+            monkeypatch.setattr(workflow_refresh, "requires_workflow_events", replaced_by_a_squash)
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert f"Cannot update {path}: a squashed migration replaces it" in err
+            assert path.read_text() == before

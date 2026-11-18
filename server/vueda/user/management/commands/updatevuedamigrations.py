@@ -4,12 +4,14 @@ __all__ = ("Command",)
 
 import dataclasses
 import os
+import stat
 import sys
 import tempfile
 from pathlib import Path
 
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
+from django.db.migrations.exceptions import NodeNotFoundError
 from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NEWLINE
@@ -177,7 +179,18 @@ class Command(BaseCommand):
             workflow_refresh = workflow["module"]
             if workflow["loader"] is not None:
                 migration_key = (generated.app_label, generated.path.stem)
-                if not workflow_refresh.requires_workflow_events(workflow["loader"], migration_key):
+                try:
+                    has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
+                except NodeNotFoundError:
+                    # A squashed migration replaced this one, so the graph has no node for it while both files exist.
+                    self.stderr.write(
+                        self.style.ERROR(
+                            f"  Cannot update {generated.path}: a squashed migration replaces it, so the migration "
+                            "graph does not include it. Leaving the file unchanged."
+                        )
+                    )
+                    return None
+                if not has_workflow_events:
                     required = workflow_refresh.REQUIRED_WORKFLOW_MIGRATION
                     self.stderr.write(
                         self.style.ERROR(
@@ -232,4 +245,6 @@ def _write_atomically(path, text):
     path = Path(path)
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False, suffix=".tmp") as handle:
         handle.write(text)
+    # A temporary file is created readable by its owner only. Keep the permissions that the migration had.
+    os.chmod(handle.name, stat.S_IMODE(path.stat().st_mode))
     os.replace(handle.name, path)
