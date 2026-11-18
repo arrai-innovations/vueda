@@ -246,7 +246,7 @@ def get_group_migration_imports(import_instead=False, direct_runpython_import=Fa
     When ``as_mapping`` is True, an ordered mapping is returned instead: keys are single-name tuples (an
     import only ever binds one name, per this project's force-single-line isort convention) and values are
     the current import line, each ending in its own newline and prefixed with a blank line where it opens
-    a new isort group. This is used by ``updategroupmigrations`` to update or insert only the imports it
+    a new isort group. This is used by ``updatevuedamigrations`` to update or insert only the imports it
     recognizes in an existing migration, leaving any hand-added imports (or comments) around them
     untouched.
     """
@@ -291,7 +291,7 @@ def get_group_migration_sources(import_instead=False, as_mapping=False):
 
     When ``as_mapping`` is True, an ordered mapping is returned instead: keys are tuples of every name
     (old and current) that identifies a given function/class across versions of this command, and values
-    are the current source for it. This is used by ``updategroupmigrations`` to replace only the functions
+    are the current source for it. This is used by ``updatevuedamigrations`` to replace only the functions
     it recognizes in an existing migration, leaving any hand-added code around them untouched.
     """
     noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
