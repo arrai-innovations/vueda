@@ -36,7 +36,9 @@ WORKFLOW_IDENTITY_KEYS = ("historical_app_label", "historical_model")
 
 
 def describe_unreadable_changes(changed_data):
-    """Return why the command cannot read a migration's changes, or ``None`` when it can.
+    """Return why the command cannot read a migration's changes.
+
+    The result is ``None`` when the command can read them.
 
     A migration's ``changed_data`` can import and still not hold what the command reads from each
     change, when it has been edited by hand. Checking every change before any is used lets the file
@@ -84,7 +86,7 @@ def has_naive_history_dates(changed_data):
 
 
 def workflow_identity_of(changes):
-    """Return the app and model a workflow change names, exactly as the change recorded them.
+    """Return the app and model that a workflow change names, exactly as the change recorded them.
 
     A field the change altered is returned as the ``(old, new)`` pair it is recorded as, because
     the workflow's own id is read with ``get_id_values_from_dict``, which picks the side the
@@ -258,11 +260,23 @@ def changed_data_updater(identities, filepath, *, stderr, dry_run):
         if updated == changed_data:
             return source
 
-        node = next(
+        # Only one plain `changed_data = [...]` assignment can be rewritten safely. A second assignment, an
+        # augmented one, or a chained one would replay changes twice or leave the update without effect.
+        assignments = [
             node
-            for node in ast.parse(source).body
-            if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
-        )
+            for node in ast.walk(ast.parse(source))
+            if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign))
+            and any(
+                isinstance(target, ast.Name) and target.id == "changed_data"
+                for target in (node.targets if isinstance(node, ast.Assign) else [node.target])
+            )
+        ]
+        if len(assignments) != 1 or not isinstance(assignments[0], ast.Assign) or len(assignments[0].targets) != 1:
+            raise ValueError(
+                "changed_data is assigned in a way that the command cannot rewrite. Keep a single "
+                "`changed_data = [...]` assignment, then run the command again."
+            )
+        node = assignments[0]
         lines = source.splitlines(keepends=True)
         lines[node.lineno - 1 : node.end_lineno] = [
             format_changed_data(updated, filepath, stderr=stderr, dry_run=dry_run)

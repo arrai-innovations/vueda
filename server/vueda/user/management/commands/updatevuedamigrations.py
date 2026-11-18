@@ -16,6 +16,7 @@ from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
+from vueda.user.migration_generation.dependencies import is_installed_package_app
 from vueda.user.migration_generation.dependencies import is_installed_package_path
 from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.refresh import RefreshError
@@ -94,12 +95,14 @@ class Command(BaseCommand):
                 continue
 
             # A package's migrations are read for the workflows they record, but a project cannot commit a change
-            # to them, and a reinstall puts the originals back.
-            writable = not is_installed_package_path(migrations_path)
+            # to them, and a reinstall puts the originals back. makevuedamigrations uses the same rule.
+            app_writable = not is_installed_package_app(app_config.label)
             for path in sorted(Path(migrations_path).glob("*.py")):
                 # Django's loader skips names that start with an underscore or a tilde, so they are no migration.
                 if path.name.startswith(("_", "~")) or not path.is_file():
                     continue
+                # A migration that links into a package is that package's file.
+                writable = app_writable and not is_installed_package_path(path.resolve())
                 try:
                     kind = next((kind for kind in kinds if is_generated_migration(path, kind.markers)), None)
                     if kind is None:
@@ -129,8 +132,15 @@ class Command(BaseCommand):
                 continue
             try:
                 imports = rewrite_removed_imports(generated.text)
-            except SyntaxError:
-                # The refresh reports the file. Nothing here can read it.
+            except SyntaxError as error:
+                # The refresh reports a project's file. A package's file is only read here, so say so.
+                if not generated.writable:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  Could not read {generated.path}: {error}. "
+                            "The workflows it records are not used to name references."
+                        )
+                    )
                 continue
             if imports.changed:
                 stale_imports.append((generated, imports.source))
@@ -179,7 +189,7 @@ class Command(BaseCommand):
             try:
                 # The declared graph, not the migrations applied to this database: a refreshed migration must
                 # also work when a new installation starts with an empty database.
-                loader = MigrationLoader(None)
+                loader = MigrationLoader(None, ignore_no_migrations=True)
             except Exception as error:
                 loader_problem = f"cannot resolve migration dependencies: {error}"
 
@@ -191,7 +201,10 @@ class Command(BaseCommand):
         }
 
     def _refresh_file(self, generated, workflow):
-        """Refresh one migration. Return True when it changed, False when it was up to date, None on failure."""
+        """Refresh one migration, and return True when it changed.
+
+        The result is False when the migration was already up to date. It is None when the refresh failed.
+        """
         update_changed_data = None
         if generated.kind.name == "workflow":
             workflow_refresh = workflow["module"]
@@ -219,7 +232,12 @@ class Command(BaseCommand):
                     )
                     return None
             elif not self.dry_run:
-                self.stderr.write(self.style.ERROR(f"  Cannot update {generated.path}: {workflow['loader_problem']}"))
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"  Cannot update {generated.path}: {workflow['loader_problem']}. "
+                        f"{self._left_as_it_was(generated)}"
+                    )
+                )
                 return None
             update_changed_data = workflow_refresh.changed_data_updater(
                 workflow["identities"], generated.path, stderr=self.stderr, dry_run=self.dry_run
@@ -277,11 +295,12 @@ def _write_atomically(path, text):
     on every platform.
     """
     path = Path(path).resolve()
-    with tempfile.NamedTemporaryFile(
+    handle = tempfile.NamedTemporaryFile(  # noqa: SIM115
         "w", encoding="utf-8", newline="", dir=path.parent, delete=False, suffix=".tmp"
-    ) as handle:
-        handle.write(text)
+    )
     try:
+        with handle:
+            handle.write(text)
         # A temporary file is created readable by its owner only. Keep the permissions that the migration had.
         os.chmod(handle.name, stat.S_IMODE(path.stat().st_mode))
         os.replace(handle.name, path)

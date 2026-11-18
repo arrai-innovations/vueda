@@ -28,7 +28,7 @@ from vueda.user.management.commands.utils import get_migrations_path
 
 
 def get_installed_package_paths():
-    """Return the directories packages are installed into, normalized for comparison.
+    """Return the directories that packages are installed into, normalized for comparison.
 
     A migration under one of them belongs to a package, so the project cannot commit a rewrite of it,
     and reinstalling the package puts the original back. An editable install leaves its files in their
@@ -63,7 +63,7 @@ INSTALLED_PACKAGE_DIRECTORY_NAMES = frozenset(("site-packages", "dist-packages")
 
 
 def is_installed_package_path(path):
-    """Return whether a path is inside a directory packages are installed into."""
+    """Return whether a path is inside a directory that packages are installed into."""
     path = os.path.normcase(os.path.realpath(path))
     return any(path == root or path.startswith(root + os.sep) for root in INSTALLED_PACKAGE_PATHS)
 

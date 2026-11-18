@@ -74,7 +74,8 @@ class MigrationTool:
     key = ""
     migration_name = ""
     tie_order = 0
-    # The refresh.MigrationKind that updatevuedamigrations uses for this tool's migrations, or None.
+    # The refresh.MigrationKind that updatevuedamigrations uses for this tool's migrations. None means the tool's
+    # migrations are never refreshed.
     refresh_kind = None
 
     def __init__(self, command):
