@@ -851,15 +851,16 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert f"Updating: {path}" in out
 
     def test_changed_data_that_a_package_records_but_cannot_be_read_is_only_a_warning(self, settings, monkeypatch):
+        """The workflow history is read only when a workflow migration can be refreshed, so store has one."""
         with (
-            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="store") as store_dir,
             self.temporary_migration_module(settings, app_label="erring") as erring_dir,
         ):
-            write_old_migration(
-                employee_dir,
-                "0002_group_permission_migrations_2026_06_29",
-                "group_copied_2026_06.py.txt",
-                (("employee", "0001_initial"), USER_SCHEMA),
+            refreshed = write_old_migration(
+                store_dir,
+                "0012_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("store", "0011_customerorder_object_stream"), WORKFLOW_SCHEMA),
             )
             packaged = write_workflow_migration(
                 erring_dir, "0003_workflow_migrations_2026_06_29", "[{'model_name': 'state', 'changes': {}}]"
@@ -877,6 +878,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 f"Could not read changed_data in {packaged}: change 0 has no 'history_date'. "
                 "The workflows it records are not used to name references."
             ) in out
+            assert f"Updating: {refreshed}" in out
 
     def test_a_refreshed_migration_keeps_its_file_permissions(self, settings):
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
@@ -914,7 +916,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             _out, err, status = run_update()
 
             assert status == 1
-            assert f"Cannot update {path}: a squashed migration replaces it" in err
+            assert f"Cannot update {path}: the migration graph does not include it" in err
             assert path.read_text() == before
 
     def test_a_hand_written_migration_in_another_encoding_and_an_underscore_file_are_not_counted(self, settings):
