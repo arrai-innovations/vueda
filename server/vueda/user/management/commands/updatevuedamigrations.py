@@ -70,7 +70,7 @@ class Command(BaseCommand):
         # Workflow history and the migration graph are needed only to refresh a workflow migration.
         self.imports_fixed = set()
         workflow = None
-        if any(generated.kind is not None and generated.kind.name == "workflow" for generated in writable):
+        if any(generated.kind.name == "workflow" for generated in writable):
             workflow = self._prepare_workflow(files)
 
         updated = {}
@@ -109,7 +109,7 @@ class Command(BaseCommand):
                     kind = next((kind for kind in kinds if is_generated_migration(path, kind.markers)), None)
                     if kind is None:
                         continue
-                    generated = _GeneratedFile(path, app_config.label, kind, writable, text=path.read_text("utf-8"))
+                    generated = _GeneratedFile(path, app_config.label, kind, writable, text=path.read_text("utf-8-sig"))
                 except (OSError, UnicodeDecodeError) as error:
                     generated = _GeneratedFile(path, app_config.label, None, writable, read_problem=str(error))
                     if writable:
@@ -173,22 +173,31 @@ class Command(BaseCommand):
             changed_data_lists.append(changed_data)
 
         loader = loader_problem = None
+        check_skipped = False
         if stale_imports and self.dry_run:
             if any(not generated.writable for generated, _imports in stale_imports):
                 loader_problem = (
-                    "the dependency check is skipped in a dry run, because some migrations still import modules "
-                    "that VUEDA removed. One of them is in an installed package, which no run rewrites, so a run "
-                    "without --dry-run cannot build the migration graph either."
+                    "some migrations still import modules that VUEDA removed. One of them is in an installed "
+                    "package, which no run rewrites, so a run without --dry-run cannot build the migration graph "
+                    "either"
+                )
+            elif unsafe := [
+                generated for generated, imports in stale_imports if not _import_fix_is_safe(generated, imports)
+            ]:
+                loader_problem = (
+                    f"{unsafe[0].path} still imports a module that VUEDA removed, and its imports cannot be fixed "
+                    "until it is changed by hand, so a run without --dry-run cannot build the migration graph either"
                 )
             else:
+                check_skipped = True
                 loader_problem = (
                     "the dependency check is skipped in a dry run, because some migrations still import modules "
                     "that VUEDA removed. A run without --dry-run fixes those imports first, then checks dependencies."
                 )
         else:
             for generated, imports in stale_imports:
-                # A rewrite that would leave the migration broken is not written. Its refresh reports why. Any
-                # other import fix is written, so one broken file does not stop the graph for the others.
+                # A rewrite that would leave the migration broken is not written. Its refresh reports why. A
+                # refresh that fails for another reason still gets its import fix, so the graph can load.
                 if not generated.writable or not _import_fix_is_safe(generated, imports):
                     continue
                 try:
@@ -209,8 +218,9 @@ class Command(BaseCommand):
             "identities": workflow_refresh.collect_workflow_identities(changed_data_lists),
             "loader": loader,
             "loader_problem": loader_problem,
-            # Only a dry run with old imports skips the check. Any other graph problem fails a dry run too.
-            "check_skipped": loader is None and bool(stale_imports) and self.dry_run,
+            # Only a dry run with old imports that a real run fixes skips the check. Any other graph problem
+            # fails a dry run too.
+            "check_skipped": check_skipped,
         }
 
     def _refresh_file(self, generated, workflow):

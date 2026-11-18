@@ -104,7 +104,8 @@ def rewrite_removed_imports(source):
             module = importlib.import_module(current)
             kept = []
             for alias in node.names:
-                if hasattr(module, alias.name):
+                # A star import takes whatever the current module has, as it did from the removed one.
+                if alias.name == "*" or hasattr(module, alias.name):
                     kept.append(alias)
                 else:
                     dropped.append(f"{node.module}.{alias.name}")

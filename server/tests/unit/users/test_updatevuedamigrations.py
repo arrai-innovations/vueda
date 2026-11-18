@@ -322,6 +322,19 @@ def test_a_module_alias_use_that_only_a_replaced_copy_had_is_not_refused():
     assert "add_history_to_data" not in result.source
 
 
+def test_a_star_import_of_a_removed_module_imports_the_current_one():
+    source = (
+        "from vueda.workflow.management.commands.makeworkflowmigrations import *\n\nstep = forwards_migrate_workflow\n"
+    )
+
+    imports = rewrite_removed_imports(source)
+
+    assert imports.source == (
+        "from vueda.workflow.migration_generation.operations import *\n\nstep = forwards_migrate_workflow\n"
+    )
+    assert imports.dropped == ()
+
+
 def test_a_name_that_the_current_module_lacks_used_through_a_module_alias_is_refused():
     source = (
         "import vueda.workflow.management.commands.makeworkflowmigrations as _old\n\n"
@@ -377,6 +390,12 @@ def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
             "import datetime\n"
             "changed_data = [{'model_name': 'state', 'history_date': datetime.datetime(2026, 6, 29), 'changes': []}]",
             "change 0 has changes that are not a dict",
+        ),
+        (
+            "import datetime\n"
+            "changed_data = [{'model_name': 'workflow', 'history_date': datetime.datetime(2026, 6, 29), "
+            "'changes': {'code': ['a', 'b']}}]",
+            "change 0 has a workflow code that is not a single value",
         ),
         ("raise RuntimeError('the migration fails to import')", "the migration fails to import"),
     ],
@@ -868,6 +887,51 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert status == 1
             assert f"Cannot update {path}: cannot resolve migration dependencies" in err
             assert "Would update:" not in out
+
+    def test_a_dry_run_fails_when_a_package_migration_imports_a_removed_module(self, settings, monkeypatch):
+        """No run rewrites a package's file, so a real run cannot build the graph either."""
+        with (
+            self.temporary_migration_module(settings, app_label="store") as store_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            project = write_old_migration(
+                store_dir,
+                "0012_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("store", "0011_customerorder_object_stream"), WORKFLOW_SCHEMA),
+            )
+            write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            monkeypatch.setattr(
+                dependencies,
+                "INSTALLED_PACKAGE_PATHS",
+                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+            )
+
+            out, err, status = run_update("--dry-run")
+
+            assert status == 1
+            assert f"Cannot update {project}: some migrations still import modules that VUEDA removed." in err
+            assert "Would update:" not in out
+
+    def test_a_migration_saved_with_a_byte_order_mark_is_refreshed(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            path.write_bytes(b"\xef\xbb\xbf" + path.read_bytes())
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
 
     def test_a_reference_takes_the_app_and_model_of_a_workflow_that_only_a_package_records(self, settings):
         """queueitem's workflow is recorded only in vueda_vdq's migrations, which these tests treat as a package."""

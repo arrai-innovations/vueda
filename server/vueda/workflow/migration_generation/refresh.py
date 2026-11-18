@@ -61,6 +61,12 @@ def describe_unreadable_changes(changed_data):
         if not isinstance(changed_item["changes"], dict):
             return f"change {index} has changes that are not a dict"
 
+        if changed_item["model_name"] == "workflow":
+            try:
+                hash(get_id_values_from_item(changed_item["changes"].get("code"), reversing=True))
+            except TypeError:
+                return f"change {index} has a workflow code that is not a single value"
+
     return None
 
 
