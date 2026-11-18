@@ -24,8 +24,6 @@ from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.migration_generation import dependencies
 from vueda.user.migration_generation import group_operations
 from vueda.user.migration_generation.groups import GROUP_MIGRATION_KIND
-from vueda.user.migration_generation.refresh import OBSOLETE_GROUP_NAMES
-from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_obsolete_names
@@ -177,7 +175,7 @@ def test_obsolete_functions_and_imports_that_nothing_uses_are_removed():
         """
     )
 
-    result, removed = remove_obsolete_names(source, OBSOLETE_WORKFLOW_NAMES)
+    result, removed = remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names)
 
     assert removed == ("add_history_to_data",)
     assert result == textwrap.dedent(
@@ -211,16 +209,57 @@ def test_an_obsolete_name_that_other_code_still_uses_is_kept():
         """
     )
 
-    assert remove_obsolete_names(source, OBSOLETE_WORKFLOW_NAMES | OBSOLETE_GROUP_NAMES) == (source, ())
+    obsolete = WORKFLOW_MIGRATION_KIND.obsolete_names | GROUP_MIGRATION_KIND.obsolete_names
+    assert remove_obsolete_names(source, obsolete) == (source, ())
+
+
+def test_an_obsolete_name_that_a_kept_one_uses_is_kept_too():
+    """add_history_to_data stays because the developer's step calls it, so the timezone that it uses stays too."""
+    source = textwrap.dedent(
+        """\
+        from django.utils import timezone
+
+
+        def add_history_to_data(data):
+            return timezone.now()
+
+
+        def my_own_step(apps, schema_editor):
+            return add_history_to_data({})
+        """
+    )
+
+    assert remove_obsolete_names(source, WORKFLOW_MIGRATION_KIND.obsolete_names) == (source, ())
+
+
+def test_a_dropped_import_that_the_migration_still_uses_is_refused():
+    source = (OLD_MIGRATIONS / "workflow_imported_old_module_2026_07.py.txt").read_text()
+    source = source.replace(
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+        "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n"
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+    )
+    source += "\n\ndef my_own_step(apps, schema_editor):\n    return add_history_to_data({})\n"
+
+    with pytest.raises(RefreshError, match=r"The migration still uses add_history_to_data, which VUEDA no longer has"):
+        refresh_migration(source, WORKFLOW_MIGRATION_KIND)
+
+
+def test_a_path_with_a_site_packages_part_counts_as_installed(monkeypatch):
+    """A package installed with pip install --target, or kept on PYTHONPATH, is outside this interpreter's own
+    package directories."""
+    monkeypatch.setattr(dependencies, "get_migrations_path", lambda app_config: "/srv/deps/site-packages/x/migrations")
+
+    assert dependencies.is_installed_package_app("erring")
 
 
 def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
     source = "from django.conf import settings\n\nfrom django.db import migrations\n"
 
-    once, removed = remove_obsolete_names(source, OBSOLETE_GROUP_NAMES)
+    once, removed = remove_obsolete_names(source, GROUP_MIGRATION_KIND.obsolete_names)
 
     assert removed == ("settings",)
-    assert remove_obsolete_names(once, OBSOLETE_GROUP_NAMES) == (once, ())
+    assert remove_obsolete_names(once, GROUP_MIGRATION_KIND.obsolete_names) == (once, ())
 
 
 @pytest.mark.parametrize(
@@ -877,3 +916,42 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert status == 1
             assert f"Cannot update {path}: a squashed migration replaces it" in err
             assert path.read_text() == before
+
+    def test_a_hand_written_migration_in_another_encoding_and_an_underscore_file_are_not_counted(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            (Path(erring_dir) / "0003_hand_written.py").write_bytes(
+                b"# -*- coding: latin-1 -*-\n# Caf\xe9\nfrom django.db import migrations\n\n\n"
+                b"class Migration(migrations.Migration):\n"
+                b"    dependencies = [('erring', '0002_workflow_migrations_2026_03_24')]\n"
+                b"    operations = []\n"
+            )
+            parked = write_old_migration(
+                erring_dir,
+                "_0004_workflow_migrations_parked",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0003_hand_written"), WORKFLOW_SCHEMA),
+            )
+            before = parked.read_text()
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert "0003_hand_written" not in out
+            assert str(parked) not in out
+            assert parked.read_text() == before
+
+    def test_a_failed_refresh_says_when_it_fixed_the_imports_first(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0001_initial"), WORKFLOW_SCHEMA_BEFORE_EVENTS),
+            )
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert f"Cannot update {path}: its dependencies do not include vueda_workflow.0008_" in err
+            assert "Its imports of removed modules were fixed. The rest of the file was left unchanged." in err
+            assert "management.commands.makeworkflowmigrations" not in path.read_text()

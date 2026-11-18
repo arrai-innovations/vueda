@@ -64,7 +64,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No generated migrations found to update."))
             return
 
-        workflow = self._prepare_workflow(files) if any(kind.name == "workflow" for kind in kinds) else None
+        # Workflow history and the migration graph are needed only to refresh a workflow migration.
+        self.imports_fixed = set()
+        workflow = None
+        if any(generated.kind is not None and generated.kind.name == "workflow" for generated in writable):
+            workflow = self._prepare_workflow(files)
 
         updated = {}
         up_to_date = 0
@@ -93,7 +97,8 @@ class Command(BaseCommand):
             # to them, and a reinstall puts the originals back.
             writable = not is_installed_package_path(migrations_path)
             for path in sorted(Path(migrations_path).glob("*.py")):
-                if path.name == "__init__.py":
+                # Django's loader skips names that start with an underscore or a tilde, so they are no migration.
+                if path.name.startswith(("_", "~")) or not path.is_file():
                     continue
                 try:
                     kind = next((kind for kind in kinds if is_generated_migration(path, kind.markers)), None)
@@ -150,14 +155,27 @@ class Command(BaseCommand):
 
         loader = loader_problem = None
         if stale_imports and self.dry_run:
-            loader_problem = (
-                "the dependency check is skipped in a dry run, because some migrations still import modules that "
-                "VUEDA removed. A run without --dry-run fixes those imports first, then checks dependencies."
-            )
+            if any(not generated.writable for generated, _source in stale_imports):
+                loader_problem = (
+                    "the dependency check is skipped in a dry run, because some migrations still import modules "
+                    "that VUEDA removed. One of them is in an installed package, which no run rewrites, so a run "
+                    "without --dry-run cannot build the migration graph either."
+                )
+            else:
+                loader_problem = (
+                    "the dependency check is skipped in a dry run, because some migrations still import modules "
+                    "that VUEDA removed. A run without --dry-run fixes those imports first, then checks dependencies."
+                )
         else:
             for generated, source in stale_imports:
-                if generated.writable:
+                if not generated.writable:
+                    continue
+                try:
                     _write_atomically(generated.path, source)
+                except OSError as error:
+                    self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
+                    continue
+                self.imports_fixed.add(generated.path)
             try:
                 # The declared graph, not the migrations applied to this database: a refreshed migration must
                 # also work when a new installation starts with an empty database.
@@ -182,11 +200,11 @@ class Command(BaseCommand):
                 try:
                     has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
                 except NodeNotFoundError:
-                    # A squashed migration replaced this one, so the graph has no node for it while both files exist.
                     self.stderr.write(
                         self.style.ERROR(
-                            f"  Cannot update {generated.path}: a squashed migration replaces it, so the migration "
-                            "graph does not include it. Leaving the file unchanged."
+                            f"  Cannot update {generated.path}: the migration graph does not include it, for "
+                            "example because a squashed migration replaces it. "
+                            f"{self._left_as_it_was(generated)}"
                         )
                     )
                     return None
@@ -195,8 +213,8 @@ class Command(BaseCommand):
                     self.stderr.write(
                         self.style.ERROR(
                             f"  Cannot update {generated.path}: its dependencies do not include "
-                            f"{required[0]}.{required[1]}, which the current workflow functions require. Leaving "
-                            "the file unchanged."
+                            f"{required[0]}.{required[1]}, which the current workflow functions require. "
+                            f"{self._left_as_it_was(generated)}"
                         )
                     )
                     return None
@@ -210,7 +228,9 @@ class Command(BaseCommand):
         try:
             result = refresh_migration(generated.text, generated.kind, update_changed_data=update_changed_data)
         except (RefreshError, ValueError) as error:
-            self.stderr.write(self.style.ERROR(f"  Could not update {generated.path}: {error}"))
+            self.stderr.write(
+                self.style.ERROR(f"  Could not update {generated.path}: {error} {self._left_as_it_was(generated)}")
+            )
             return None
 
         if not result.changed:
@@ -225,8 +245,18 @@ class Command(BaseCommand):
         if workflow is not None and generated.kind.name == "workflow" and workflow["loader"] is None:
             self.stdout.write(f"  Note: {workflow['loader_problem']}")
         if not self.dry_run:
-            _write_atomically(generated.path, result.source)
+            try:
+                _write_atomically(generated.path, result.source)
+            except OSError as error:
+                self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
+                return None
         return True
+
+    def _left_as_it_was(self, generated):
+        """Say what a failed refresh left in a file: either nothing, or only the import fixes written before it."""
+        if generated.path in self.imports_fixed:
+            return "Its imports of removed modules were fixed. The rest of the file was left unchanged."
+        return "Leaving the file unchanged."
 
     def _write_summary(self, updated, up_to_date, failed):
         for kind_name, count in sorted(updated.items()):
@@ -241,10 +271,20 @@ class Command(BaseCommand):
 
 def _write_atomically(path, text):
     """Write ``text`` to ``path`` through a temporary file in the same directory, so a failed write leaves the
-    original in place."""
-    path = Path(path)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False, suffix=".tmp") as handle:
+    original in place.
+
+    A symlinked migration is written through its link. The file keeps its permissions and gets ``\\n`` line endings
+    on every platform.
+    """
+    path = Path(path).resolve()
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", newline="", dir=path.parent, delete=False, suffix=".tmp"
+    ) as handle:
         handle.write(text)
-    # A temporary file is created readable by its owner only. Keep the permissions that the migration had.
-    os.chmod(handle.name, stat.S_IMODE(path.stat().st_mode))
-    os.replace(handle.name, path)
+    try:
+        # A temporary file is created readable by its owner only. Keep the permissions that the migration had.
+        os.chmod(handle.name, stat.S_IMODE(path.stat().st_mode))
+        os.replace(handle.name, path)
+    except OSError:
+        Path(handle.name).unlink(missing_ok=True)
+        raise

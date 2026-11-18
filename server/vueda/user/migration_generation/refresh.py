@@ -1,8 +1,6 @@
 """Refresh the generated migrations that earlier versions of VUEDA wrote, so they import and run with this one."""
 
 __all__ = (
-    "OBSOLETE_GROUP_NAMES",
-    "OBSOLETE_WORKFLOW_NAMES",
     "REMOVED_MODULES",
     "ImportRewrite",
     "MigrationKind",
@@ -34,24 +32,20 @@ REMOVED_MODULES = {
 }
 
 
-# Top-level names that earlier versions copied or imported into generated migrations, and that the current
-# versions no longer write. A refresh removes each one that nothing else in the migration still uses.
-OBSOLETE_GROUP_NAMES = frozenset(("settings",))
-OBSOLETE_WORKFLOW_NAMES = frozenset(("add_history_to_data", "Count", "timezone"))
-
-
 @dataclasses.dataclass(frozen=True)
 class ImportRewrite:
     """The result of ``rewrite_removed_imports``.
 
     ``source`` is the migration's text with each import of a removed module pointed at its current module.
     ``changed`` says whether any import was rewritten. ``dropped`` names each imported name that the current
-    module no longer has, as ``module.name``. It is empty when every name still exists.
+    module no longer has, as ``module.name``. It is empty when every name still exists. ``dropped_bound_names``
+    holds the names that those imports bound in the migration.
     """
 
     source: str
     changed: bool
     dropped: tuple[str, ...]
+    dropped_bound_names: frozenset = frozenset()
 
 
 def rewrite_removed_imports(source):
@@ -67,6 +61,7 @@ def rewrite_removed_imports(source):
     tree = ast.parse(source)
     lines = source.splitlines(keepends=True)
     dropped = []
+    dropped_bound = set()
     replacements = []
 
     for node in tree.body:
@@ -79,6 +74,7 @@ def rewrite_removed_imports(source):
                     kept.append(alias)
                 else:
                     dropped.append(f"{node.module}.{alias.name}")
+                    dropped_bound.add(alias.asname or alias.name)
             text = "".join(f"from {current} import {_alias_text(alias)}{NEWLINE}" for alias in kept)
             replacements.append((node.lineno, node.end_lineno, text))
 
@@ -94,7 +90,12 @@ def rewrite_removed_imports(source):
     for start, end, text in reversed(replacements):
         lines[start - 1 : end] = [text] if text else []
 
-    return ImportRewrite(source="".join(lines), changed=bool(replacements), dropped=tuple(dropped))
+    return ImportRewrite(
+        source="".join(lines),
+        changed=bool(replacements),
+        dropped=tuple(dropped),
+        dropped_bound_names=frozenset(dropped_bound),
+    )
 
 
 def _alias_text(alias):
@@ -115,22 +116,26 @@ def remove_obsolete_names(source, names):
         if bound and bound <= names:
             candidates[node] = bound
 
-    removed_nodes = set(candidates)
     used = set()
     for node in tree.body:
-        if node in removed_nodes:
-            continue
-        for child in ast.walk(node):
-            if isinstance(child, ast.Name):
-                used.add(child.id)
-            elif isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
-                used.add(child.value.id)
+        if node not in candidates:
+            used |= _used_names(node)
+    # A candidate that stays because something uses it keeps what it uses too, such as an import that a kept
+    # function calls. Repeat until no more candidates stay.
+    kept = set()
+    while True:
+        newly_kept = {node for node, bound in candidates.items() if node not in kept and bound & used}
+        if not newly_kept:
+            break
+        kept |= newly_kept
+        for node in newly_kept:
+            used |= _used_names(node)
 
     lines = source.splitlines(keepends=True)
     removed = set()
     spans = []
     for node, bound in candidates.items():
-        if bound & used:
+        if node in kept:
             continue
         removed |= bound
         start = min([node.lineno, *(decorator.lineno for decorator in getattr(node, "decorator_list", ()))])
@@ -146,6 +151,17 @@ def remove_obsolete_names(source, names):
         del lines[start - 1 : end]
 
     return "".join(lines), tuple(sorted(removed))
+
+
+def _used_names(node):
+    """Return the names that ``node`` reads, including the first name of each attribute chain."""
+    used = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name):
+            used.add(child.id)
+        elif isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
+            used.add(child.value.id)
+    return used
 
 
 def _bound_names(node):
@@ -243,6 +259,14 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     text = merge_migration_sources(text, kind.get_sources(import_instead, as_mapping=True))
     text = merge_migration_imports(text, kind.get_imports(import_instead, direct_runpython_import, as_mapping=True))
     text, removed = remove_obsolete_names(text, kind.obsolete_names)
+
+    # A dropped import of a name that VUEDA no longer has is safe only when nothing in the migration still uses it.
+    still_used = sorted(imports.dropped_bound_names & _used_names(ast.parse(text)))
+    if still_used:
+        raise RefreshError(
+            f"The migration still uses {', '.join(still_used)}, which VUEDA no longer has. Replace or remove that "
+            "code by hand, then run the command again."
+        )
 
     return Refresh(source=text, changed=text != source, dropped_imports=imports.dropped, removed_names=removed)
 

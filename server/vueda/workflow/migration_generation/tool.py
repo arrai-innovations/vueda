@@ -31,7 +31,6 @@ from vueda.user.migration_generation.dependencies import is_installed_package_ap
 from vueda.user.migration_generation.dependencies import user_app_label
 from vueda.user.migration_generation.existing import app_migration_names
 from vueda.user.migration_generation.existing import generated_migrations
-from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
 from vueda.user.migration_generation.refresh import MigrationKind
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
@@ -233,6 +232,11 @@ WORKFLOW_MODEL_NAMES = (
     "transitionpermission",
     "transitionsource",
 )
+
+
+# Top-level names that earlier versions wrote into workflow migrations and the current version does not. A refresh
+# removes each one that nothing else in the migration still uses.
+OBSOLETE_WORKFLOW_NAMES = frozenset(("add_history_to_data", "Count", "timezone"))
 
 
 WORKFLOW_MIGRATION_KIND = MigrationKind(

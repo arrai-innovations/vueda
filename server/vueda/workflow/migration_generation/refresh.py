@@ -146,7 +146,10 @@ def collect_workflow_identities(changed_data_lists):
 
 
 def workflow_identity_at(identities, code, recorded_at):
-    """Return what a workflow code meant when a change naming it was recorded, or ``None`` when that cannot be told."""
+    """Return what a workflow code meant when a change naming it was recorded.
+
+    The result is ``None`` when that cannot be told.
+    """
     entries = identities.get(code)
     if not entries:
         return None
@@ -219,9 +222,9 @@ def add_workflow_identities_to_changed_data(changed_data, identities):
 
 
 def read_changed_data(source, filepath):
-    """Return the ``changed_data`` that a migration's ``source`` records, and why it cannot be read.
+    """Return the ``changed_data`` that a migration's ``source`` records, as ``(changed_data, None)``.
 
-    The result is ``(changed_data, None)``, or ``(None, problem)`` when it cannot be read. The text is run as a
+    When the changes cannot be read, the result is ``(None, problem)``, and ``problem`` says why. The text is run as a
     module, rather than parsed, because a change records real datetimes and a literal parser cannot build them.
     It runs the given text, not the file, so a refresh can read a migration after fixing its imports and before
     writing anything.

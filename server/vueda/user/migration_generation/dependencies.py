@@ -1,6 +1,7 @@
 """Find the migrations that a generated migration depends on."""
 
 __all__ = (
+    "INSTALLED_PACKAGE_DIRECTORY_NAMES",
     "INSTALLED_PACKAGE_PATHS",
     "get_installed_package_paths",
     "is_installed_package_app",
@@ -16,6 +17,7 @@ import os
 import site
 import sys
 import sysconfig
+from pathlib import Path
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -56,6 +58,9 @@ def get_installed_package_paths():
 
 INSTALLED_PACKAGE_PATHS = get_installed_package_paths()
 
+# The names of the directories that Python installs third-party packages into, wherever they are.
+INSTALLED_PACKAGE_DIRECTORY_NAMES = frozenset(("site-packages", "dist-packages"))
+
 
 def is_installed_package_path(path):
     """Return whether a path is inside a directory packages are installed into."""
@@ -66,12 +71,15 @@ def is_installed_package_path(path):
 def is_installed_package_app(app_label):
     """Return whether the app ``app_label`` is installed as a package, so no command may write its migrations.
 
-    It checks the app's migrations directory, which honors ``MIGRATION_MODULES``, against the directories that
-    packages are installed into. An app without a migrations directory is checked by its own directory. A
-    project cannot commit a migration written into a package, and a reinstall puts the package's own files back.
+    It checks the app's migrations directory, which honors ``MIGRATION_MODULES``. An app without a migrations
+    directory is checked by its own directory. The directory counts as installed when it is inside a directory that
+    this interpreter installs packages into, or when its path has a ``site-packages`` or ``dist-packages`` part,
+    which covers packages installed with ``pip install --target`` or kept on ``PYTHONPATH``. A project cannot
+    commit a migration written into a package, and a reinstall puts the package's own files back.
     """
     app_config = django_apps.get_app_config(app_label)
-    return is_installed_package_path(get_migrations_path(app_config) or app_config.path)
+    path = get_migrations_path(app_config) or app_config.path
+    return is_installed_package_path(path) or bool(INSTALLED_PACKAGE_DIRECTORY_NAMES & set(Path(path).parts))
 
 
 def is_vueda_app(app_label):
@@ -86,8 +94,8 @@ def is_vueda_app(app_label):
 def project_app_labels():
     """Return the labels of the installed apps that belong to the project, in installed order.
 
-    An app installed under ``site-packages``, or ``dist-packages`` on Debian's system Python, is a third-party
-    package, so it is left out.
+    An app installed as a package, as ``is_installed_package_app`` decides, is a third-party package, so it is left
+    out.
     """
     return tuple(
         app_config.label

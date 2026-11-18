@@ -11,7 +11,6 @@ from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.user.migration_generation.group_operations import get_group_migration_imports
 from vueda.user.migration_generation.group_operations import get_group_migration_sources
-from vueda.user.migration_generation.refresh import OBSOLETE_GROUP_NAMES
 from vueda.user.migration_generation.refresh import MigrationKind
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
@@ -28,6 +27,11 @@ CHANGE_FIELDS = (
     "historical_permission_content_type_app_label",
     "historical_permission_content_type_model_name",
 )
+
+
+# Top-level names that earlier versions wrote into group migrations and the current version does not. A refresh
+# removes each one that nothing else in the migration still uses.
+OBSOLETE_GROUP_NAMES = frozenset(("settings",))
 
 
 GROUP_MIGRATION_KIND = MigrationKind(

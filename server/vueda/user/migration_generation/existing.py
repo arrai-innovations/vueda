@@ -50,7 +50,9 @@ def app_migration_names(app_label):
 def is_generated_migration(migration_path, marker_comments):
     """Return whether the file at ``migration_path`` carries one of ``marker_comments`` near its top."""
     markers = tuple(marker.strip() for marker in marker_comments)
-    with open(migration_path, encoding="utf-8") as migration_file:
+    # The markers are plain ASCII. Replacing undecodable bytes lets a hand-written migration in another encoding be
+    # checked without an error.
+    with open(migration_path, encoding="utf-8", errors="replace") as migration_file:
         for line_number, line in enumerate(migration_file):
             if line_number > MARKER_SEARCH_LINES:
                 break
