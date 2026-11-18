@@ -11,6 +11,8 @@ from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.user.migration_generation.group_operations import get_group_migration_imports
 from vueda.user.migration_generation.group_operations import get_group_migration_sources
+from vueda.user.migration_generation.refresh import OBSOLETE_GROUP_NAMES
+from vueda.user.migration_generation.refresh import MigrationKind
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
@@ -28,6 +30,22 @@ CHANGE_FIELDS = (
 )
 
 
+GROUP_MIGRATION_KIND = MigrationKind(
+    name="group",
+    markers=MIGRATION_MODIFIED_COMMENTS,
+    required_assignments=("changed_data",),
+    renames={
+        "forwards_migrate_groups": "forwards_migrate_groups_through_imports",
+        "backwards_migrate_groups": "backwards_migrate_groups_through_imports",
+    },
+    current_module="vueda.user.migration_generation.group_operations",
+    entry_functions=frozenset(("forwards_migrate_groups", "backwards_migrate_groups", "make_sure_permissions_exist")),
+    get_sources=get_group_migration_sources,
+    get_imports=get_group_migration_imports,
+    obsolete_names=OBSOLETE_GROUP_NAMES,
+)
+
+
 class GroupChangeTool(MigrationTool):
     """Write the group permission changes that the Group Management Page recorded as ``GroupChange`` rows.
 
@@ -37,6 +55,7 @@ class GroupChangeTool(MigrationTool):
 
     key = "group"
     migration_name = "group_permission_migrations"
+    refresh_kind = GROUP_MIGRATION_KIND
     # Workflow changes can name a group, so a group change goes first when both were recorded at once.
     tie_order = 0
 

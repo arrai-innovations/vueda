@@ -5,11 +5,21 @@ every migration when it builds the migration graph, and an import of a removed m
 """
 
 import textwrap
+from pathlib import Path
 
+import pytest
+
+from vueda.user.migration_generation.groups import GROUP_MIGRATION_KIND
 from vueda.user.migration_generation.refresh import OBSOLETE_GROUP_NAMES
 from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
+from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_obsolete_names
 from vueda.user.migration_generation.refresh import rewrite_removed_imports
+from vueda.workflow.migration_generation.tool import WORKFLOW_MIGRATION_KIND
+
+
+# Frozen copies of migrations that earlier versions generated. They are text, so nothing imports them by accident.
+OLD_MIGRATIONS = Path(__file__).parent / "old_migrations"
 
 
 def test_a_group_import_of_the_removed_module_points_at_the_current_one():
@@ -191,3 +201,44 @@ def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
 
     assert removed == ("settings",)
     assert remove_obsolete_names(once, OBSOLETE_GROUP_NAMES) == (once, ())
+
+
+@pytest.mark.parametrize(
+    ("fixture", "kind", "entry_point", "removed_names"),
+    [
+        ("group_copied_2026_06.py.txt", GROUP_MIGRATION_KIND, "def forwards_migrate_groups(apps, changed_items):", ()),
+        (
+            "workflow_copied_2026_06.py.txt",
+            WORKFLOW_MIGRATION_KIND,
+            "def forwards_migrate_workflow(apps, changed_items, change_reason):",
+            ("add_history_to_data",),
+        ),
+        (
+            "workflow_imported_2026_07.py.txt",
+            WORKFLOW_MIGRATION_KIND,
+            "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow",
+            (),
+        ),
+        (
+            "workflow_imported_old_module_2026_07.py.txt",
+            WORKFLOW_MIGRATION_KIND,
+            "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow",
+            (),
+        ),
+    ],
+)
+def test_an_old_migration_is_refreshed_and_a_second_refresh_changes_nothing(fixture, kind, entry_point, removed_names):
+    source = (OLD_MIGRATIONS / fixture).read_text()
+
+    once = refresh_migration(source, kind)
+
+    assert once.changed
+    assert once.removed_names == removed_names
+    assert entry_point in once.source
+    assert "--import-instead" not in once.source
+    assert "VUEDA's own tests" not in once.source
+    assert ".management.commands.make" not in once.source
+    compile(once.source, fixture, "exec")
+    second = refresh_migration(once.source, kind)
+    assert not second.changed
+    assert second.source == once.source

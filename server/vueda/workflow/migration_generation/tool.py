@@ -31,6 +31,8 @@ from vueda.user.migration_generation.dependencies import is_installed_package_ap
 from vueda.user.migration_generation.dependencies import user_app_label
 from vueda.user.migration_generation.existing import app_migration_names
 from vueda.user.migration_generation.existing import generated_migrations
+from vueda.user.migration_generation.refresh import OBSOLETE_WORKFLOW_NAMES
+from vueda.user.migration_generation.refresh import MigrationKind
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
@@ -233,6 +235,25 @@ WORKFLOW_MODEL_NAMES = (
 )
 
 
+WORKFLOW_MIGRATION_KIND = MigrationKind(
+    name="workflow",
+    markers=MIGRATION_MODIFIED_COMMENTS,
+    required_assignments=("history_change_reason", "changed_data"),
+    renames={
+        "make_sure_permissions_exist": "make_sure_permissions_exist_through_imports",
+        "forwards_migrate_workflow": "forwards_migrate_workflow_through_imports",
+        "backwards_migrate_workflow": "backwards_migrate_workflow_through_imports",
+    },
+    current_module="vueda.workflow.migration_generation.operations",
+    entry_functions=frozenset(
+        ("forwards_migrate_workflow", "backwards_migrate_workflow", "make_sure_permissions_exist")
+    ),
+    get_sources=get_migration_sources,
+    get_imports=get_migration_imports,
+    obsolete_names=OBSOLETE_WORKFLOW_NAMES,
+)
+
+
 class WorkflowChangeTool(MigrationTool):
     """Write the workflow changes that pghistory recorded for every app that has, or had, a workflow.
 
@@ -244,6 +265,7 @@ class WorkflowChangeTool(MigrationTool):
     key = "workflow"
     migration_name = "workflow_migrations"
     tie_order = 10
+    refresh_kind = WORKFLOW_MIGRATION_KIND
 
     def add_arguments(self, parser):
         parser.add_argument(

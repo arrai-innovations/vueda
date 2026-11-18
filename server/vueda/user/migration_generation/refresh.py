@@ -5,6 +5,10 @@ __all__ = (
     "OBSOLETE_WORKFLOW_NAMES",
     "REMOVED_MODULES",
     "ImportRewrite",
+    "MigrationKind",
+    "Refresh",
+    "RefreshError",
+    "refresh_migration",
     "remove_obsolete_names",
     "rewrite_removed_imports",
 )
@@ -12,8 +16,14 @@ __all__ = (
 import ast
 import dataclasses
 import importlib
+from collections.abc import Callable
 
 from vueda.user.management.commands.utils import NEWLINE
+from vueda.user.management.commands.utils import NoRenamesError
+from vueda.user.management.commands.utils import has_direct_runpython_import
+from vueda.user.management.commands.utils import merge_migration_imports
+from vueda.user.management.commands.utils import merge_migration_sources
+from vueda.user.management.commands.utils import update_operation_function_names
 
 
 # Modules that migrations made with the removed --import-instead option import from, and the module that holds
@@ -145,3 +155,100 @@ def _bound_names(node):
     if isinstance(node, (ast.Import, ast.ImportFrom)):
         return {alias.asname or alias.name.split(".")[0] for alias in node.names}
     return set()
+
+
+@dataclasses.dataclass(frozen=True)
+class MigrationKind:
+    """What a refresh needs to know about one kind of generated migration, such as group or workflow migrations.
+
+    ``name`` names the kind in output. ``markers`` are the comments that mark such a migration. A migration
+    must assign every name in ``required_assignments`` at the top level. ``renames`` maps the old names of the
+    functions that its operations call to the current ones. A migration that imports any of ``entry_functions``
+    from ``current_module`` imports its functions instead of copying them. ``get_sources`` and ``get_imports``
+    are the kind's builders of the copied functions and imports, called with ``as_mapping=True``.
+    ``obsolete_names`` are the names that earlier versions wrote and the current ones do not.
+    """
+
+    name: str
+    markers: tuple[str, ...]
+    required_assignments: tuple[str, ...]
+    renames: dict
+    current_module: str
+    entry_functions: frozenset
+    get_sources: Callable
+    get_imports: Callable
+    obsolete_names: frozenset
+
+
+class RefreshError(Exception):
+    """A generated migration that a refresh cannot rewrite. The message says why."""
+
+
+@dataclasses.dataclass(frozen=True)
+class Refresh:
+    """The result of ``refresh_migration``.
+
+    ``source`` is the refreshed text. ``changed`` says whether it differs from the original. ``dropped_imports``
+    and ``removed_names`` say what ``rewrite_removed_imports`` dropped and ``remove_obsolete_names`` removed.
+    """
+
+    source: str
+    changed: bool
+    dropped_imports: tuple[str, ...]
+    removed_names: tuple[str, ...]
+
+
+def refresh_migration(source, kind, *, update_changed_data=None):
+    """Return the generated migration ``source`` with the current functions and imports of its ``kind``.
+
+    The steps run in this order: imports of removed modules point at the current ones; the operations call the
+    current function names; each copied function and import that the kind writes is replaced or added; and
+    obsolete names that nothing uses are removed. Code that a developer added stays. ``update_changed_data``,
+    when given, takes the text after the import rewrite and returns it with its ``changed_data`` updated.
+
+    Raises ``RefreshError`` when the migration is not valid Python or lacks an assignment that the kind needs.
+    """
+    _parse_or_refuse(source)
+    imports = rewrite_removed_imports(source)
+    text = imports.source
+    tree = _parse_or_refuse(text)
+
+    assigned = {
+        target.id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    missing = [name for name in kind.required_assignments if name not in assigned]
+    if missing:
+        raise RefreshError(f"Could not find {', '.join(missing)} in the migration.")
+
+    direct_runpython_import = has_direct_runpython_import(text.splitlines(keepends=True))
+    import_instead = any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == kind.current_module
+        and any(alias.name in kind.entry_functions for alias in node.names)
+        for node in tree.body
+    )
+
+    if update_changed_data is not None:
+        text = update_changed_data(text)
+
+    try:
+        text = update_operation_function_names(text, kind.renames)
+    except NoRenamesError:
+        # The operations already call the current names.
+        pass
+    text = merge_migration_sources(text, kind.get_sources(import_instead, as_mapping=True))
+    text = merge_migration_imports(text, kind.get_imports(import_instead, direct_runpython_import, as_mapping=True))
+    text, removed = remove_obsolete_names(text, kind.obsolete_names)
+
+    return Refresh(source=text, changed=text != source, dropped_imports=imports.dropped, removed_names=removed)
+
+
+def _parse_or_refuse(text):
+    try:
+        return ast.parse(text)
+    except SyntaxError as error:
+        raise RefreshError(f"The migration is not valid Python: {error}") from error
