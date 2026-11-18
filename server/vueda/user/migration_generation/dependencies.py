@@ -5,6 +5,7 @@ __all__ = (
     "INSTALLED_PACKAGE_PATHS",
     "get_installed_package_paths",
     "is_installed_package_app",
+    "is_installed_package_location",
     "is_installed_package_path",
     "is_vueda_app",
     "latest_migration_names",
@@ -78,7 +79,15 @@ def is_installed_package_app(app_label):
     commit a migration written into a package, and a reinstall puts the package's own files back.
     """
     app_config = django_apps.get_app_config(app_label)
-    path = get_migrations_path(app_config) or app_config.path
+    return is_installed_package_location(get_migrations_path(app_config) or app_config.path)
+
+
+def is_installed_package_location(path):
+    """Return whether ``path`` belongs to an installed package, by the rules that ``is_installed_package_app`` uses.
+
+    The path counts as installed when it is inside a directory that this interpreter installs packages into, or
+    when it has a ``site-packages`` or ``dist-packages`` part.
+    """
     return is_installed_package_path(path) or bool(INSTALLED_PACKAGE_DIRECTORY_NAMES & set(Path(path).parts))
 
 

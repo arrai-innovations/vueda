@@ -39,13 +39,26 @@ class ImportRewrite:
     ``source`` is the migration's text with each import of a removed module pointed at its current module.
     ``changed`` says whether any import was rewritten. ``dropped`` names each imported name that the current
     module no longer has, as ``module.name``. It is empty when every name still exists. ``dropped_bound_names``
-    holds the names that those imports bound in the migration.
+    holds the names that those imports bound in the migration. ``unsupported_uses`` describes the uses that no
+    rewrite of the imports can keep working.
     """
 
     source: str
     changed: bool
     dropped: tuple[str, ...]
     dropped_bound_names: frozenset = frozenset()
+    unsupported_uses: tuple[str, ...] = ()
+
+    def problems(self):
+        """Return why the rewritten source would fail when it runs, as sorted messages. The list is empty when it
+        would not.
+
+        A dropped name that the migration still uses would raise ``NameError``. A name used through an aliased
+        module import that the current module lacks would raise ``AttributeError``. A removed module imported
+        without an alias is used through its full dotted path, which no import can point elsewhere.
+        """
+        still_used = sorted(self.dropped_bound_names & _used_names(ast.parse(self.source)))
+        return [*(f"still uses {name}, which VUEDA no longer has" for name in still_used), *self.unsupported_uses]
 
 
 def rewrite_removed_imports(source):
@@ -62,6 +75,8 @@ def rewrite_removed_imports(source):
     lines = source.splitlines(keepends=True)
     dropped = []
     dropped_bound = set()
+    unsupported = []
+    module_aliases = {}
     replacements = []
 
     for node in tree.body:
@@ -79,6 +94,13 @@ def rewrite_removed_imports(source):
             replacements.append((node.lineno, node.end_lineno, text))
 
         elif isinstance(node, ast.Import) and any(alias.name in REMOVED_MODULES for alias in node.names):
+            for alias in node.names:
+                if alias.name not in REMOVED_MODULES:
+                    continue
+                if alias.asname:
+                    module_aliases[alias.asname] = importlib.import_module(REMOVED_MODULES[alias.name])
+                else:
+                    unsupported.append(f"imports {alias.name} without an alias, so its uses name the removed module")
             text = "".join(
                 f"import {REMOVED_MODULES.get(alias.name, alias.name)}"
                 f"{f' as {alias.asname}' if alias.asname else ''}{NEWLINE}"
@@ -86,8 +108,23 @@ def rewrite_removed_imports(source):
             )
             replacements.append((node.lineno, node.end_lineno, text))
 
+    # A name used through an aliased module import has to exist in the current module.
+    for child in ast.walk(tree):
+        if (
+            isinstance(child, ast.Attribute)
+            and isinstance(child.value, ast.Name)
+            and child.value.id in module_aliases
+            and not hasattr(module_aliases[child.value.id], child.attr)
+        ):
+            unsupported.append(f"uses {child.value.id}.{child.attr}, which VUEDA no longer has")
+
     # Replace from the bottom of the file to the top, so the line numbers stay correct throughout.
     for start, end, text in reversed(replacements):
+        # An import group that loses every line takes the blank lines before it too, so the blank lines after it,
+        # which separate the imports from the code, are the only gap left.
+        if not text and end < len(lines) and not lines[end].strip():
+            while start > 1 and not lines[start - 2].strip():
+                start -= 1
         lines[start - 1 : end] = [text] if text else []
 
     return ImportRewrite(
@@ -95,6 +132,7 @@ def rewrite_removed_imports(source):
         changed=bool(replacements),
         dropped=tuple(dropped),
         dropped_bound_names=frozenset(dropped_bound),
+        unsupported_uses=tuple(sorted(set(unsupported))),
     )
 
 
@@ -260,12 +298,11 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     text = merge_migration_imports(text, kind.get_imports(import_instead, direct_runpython_import, as_mapping=True))
     text, removed = remove_obsolete_names(text, kind.obsolete_names)
 
-    # A dropped import of a name that VUEDA no longer has is safe only when nothing in the migration still uses it.
-    still_used = sorted(imports.dropped_bound_names & _used_names(ast.parse(text)))
-    if still_used:
+    # A rewrite of the imports is safe only when nothing in the migration still needs what it took away.
+    problems = dataclasses.replace(imports, source=text).problems()
+    if problems:
         raise RefreshError(
-            f"The migration still uses {', '.join(still_used)}, which VUEDA no longer has. Replace or remove that "
-            "code by hand, then run the command again."
+            f"The migration {'; '.join(problems)}. Replace or remove that code by hand, then run the command again."
         )
 
     return Refresh(source=text, changed=text != source, dropped_imports=imports.dropped, removed_names=removed)

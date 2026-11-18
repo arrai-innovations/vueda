@@ -253,6 +253,51 @@ def test_a_path_with_a_site_packages_part_counts_as_installed(monkeypatch):
     assert dependencies.is_installed_package_app("erring")
 
 
+def test_a_removed_module_imported_without_an_alias_is_refused():
+    """Its uses name the module by its full dotted path, which no import can point at the current module."""
+    source = (
+        "import vueda.user.management.commands.makegroupmigrations\n\n"
+        "changed_data = []\n"
+        "step = vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups\n"
+    )
+
+    with pytest.raises(RefreshError, match="without an alias"):
+        refresh_migration(source, GROUP_MIGRATION_KIND)
+
+
+def test_a_name_that_the_current_module_lacks_used_through_a_module_alias_is_refused():
+    source = (
+        "import vueda.workflow.management.commands.makeworkflowmigrations as _old\n\n"
+        'history_change_reason = "Workflow Migration - x"\n'
+        "changed_data = []\n"
+        "step = _old.add_history_to_data\n"
+    )
+
+    with pytest.raises(RefreshError, match=r"uses _old\.add_history_to_data, which VUEDA no longer has"):
+        refresh_migration(source, WORKFLOW_MIGRATION_KIND)
+
+
+def test_an_import_group_that_loses_every_line_leaves_no_extra_blank_lines():
+    source = (
+        "from django.db import migrations\n\n"
+        "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n\n\n"
+        "changed_data = []\n"
+    )
+
+    assert rewrite_removed_imports(source).source == "from django.db import migrations\n\n\nchanged_data = []\n"
+
+
+def test_a_local_variable_named_changed_data_does_not_stop_the_identity_update():
+    source = (OLD_MIGRATIONS / "workflow_copied_2026_06.py.txt").read_text()
+    source += "\n\ndef my_own_step(apps, schema_editor):\n    changed_data = []\n    return changed_data\n"
+    changed_data, _problem = read_changed_data(source, "workflow_copied_2026_06.py")
+    update = changed_data_updater(
+        collect_workflow_identities([changed_data]), "workflow_copied_2026_06.py", stderr=io.StringIO(), dry_run=True
+    )
+
+    assert refresh_migration(source, WORKFLOW_MIGRATION_KIND, update_changed_data=update).changed
+
+
 def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
     source = "from django.conf import settings\n\nfrom django.db import migrations\n"
 
@@ -292,6 +337,12 @@ def test_a_workflow_migration_without_its_history_change_reason_is_refused():
     ("fixture", "kind", "entry_point", "removed_names"),
     [
         ("group_copied_2026_06.py.txt", GROUP_MIGRATION_KIND, "def forwards_migrate_groups(apps, changed_items):", ()),
+        (
+            "group_copied_direct_runpython_2026_06.py.txt",
+            GROUP_MIGRATION_KIND,
+            "code=forwards_migrate_groups_through_imports,",
+            (),
+        ),
         (
             "workflow_copied_2026_06.py.txt",
             WORKFLOW_MIGRATION_KIND,
@@ -376,6 +427,7 @@ def test_a_function_inserted_before_an_existing_one_keeps_two_blank_lines_on_eac
     ("fixture", "kind"),
     [
         ("group_copied_2026_06.py.txt", GROUP_MIGRATION_KIND),
+        ("group_copied_direct_runpython_2026_06.py.txt", GROUP_MIGRATION_KIND),
         ("workflow_copied_2026_06.py.txt", WORKFLOW_MIGRATION_KIND),
         ("workflow_imported_old_module_2026_07.py.txt", WORKFLOW_MIGRATION_KIND),
     ],
@@ -1046,3 +1098,46 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             assert f"Could not read {broken}:" in out
             assert "The workflows it records are not used to name references." in out
+
+    def test_a_dropped_import_that_is_still_used_is_not_written_early(self, settings):
+        """The import fix is written before the graph is built only when it leaves the migration working."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_07_01",
+                "workflow_imported_old_module_2026_07.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            path.write_text(
+                path.read_text().replace(
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n"
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n",
+                )
+                + "\n\ndef my_own_step(apps, schema_editor):\n    return add_history_to_data({})\n"
+            )
+            before = path.read_text()
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert "still uses add_history_to_data, which VUEDA no longer has" in err
+            assert path.read_text() == before
+
+    @pytest.mark.skipif(os.geteuid() == 0, reason="root can write a read-only file")
+    def test_a_read_only_migration_is_not_replaced(self, settings):
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = path.read_text()
+            path.chmod(0o444)
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert f"Could not write {path}:" in err
+            assert path.read_text() == before

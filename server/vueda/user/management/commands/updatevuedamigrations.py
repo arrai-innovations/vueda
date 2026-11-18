@@ -17,7 +17,7 @@ from django.db.migrations.loader import MigrationLoader
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.migration_generation.dependencies import is_installed_package_app
-from vueda.user.migration_generation.dependencies import is_installed_package_path
+from vueda.user.migration_generation.dependencies import is_installed_package_location
 from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
@@ -102,7 +102,7 @@ class Command(BaseCommand):
                 if path.name.startswith(("_", "~")) or not path.is_file():
                     continue
                 # A migration that links into a package is that package's file.
-                writable = app_writable and not is_installed_package_path(path.resolve())
+                writable = app_writable and not is_installed_package_location(path.resolve())
                 try:
                     kind = next((kind for kind in kinds if is_generated_migration(path, kind.markers)), None)
                     if kind is None:
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                     )
                 continue
             if imports.changed:
-                stale_imports.append((generated, imports.source))
+                stale_imports.append((generated, imports))
             if generated.kind.name != "workflow":
                 continue
 
@@ -165,7 +165,7 @@ class Command(BaseCommand):
 
         loader = loader_problem = None
         if stale_imports and self.dry_run:
-            if any(not generated.writable for generated, _source in stale_imports):
+            if any(not generated.writable for generated, _imports in stale_imports):
                 loader_problem = (
                     "the dependency check is skipped in a dry run, because some migrations still import modules "
                     "that VUEDA removed. One of them is in an installed package, which no run rewrites, so a run "
@@ -177,11 +177,12 @@ class Command(BaseCommand):
                     "that VUEDA removed. A run without --dry-run fixes those imports first, then checks dependencies."
                 )
         else:
-            for generated, source in stale_imports:
-                if not generated.writable:
+            for generated, imports in stale_imports:
+                # A rewrite that would leave the migration broken is not written. Its refresh reports why.
+                if not generated.writable or imports.problems():
                     continue
                 try:
-                    _write_atomically(generated.path, source)
+                    _write_atomically(generated.path, imports.source)
                 except OSError as error:
                     self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
                     continue
@@ -295,6 +296,10 @@ def _write_atomically(path, text):
     on every platform.
     """
     path = Path(path).resolve()
+    # Replacing a file needs only the directory's permission, so a migration marked read-only is refused here, as
+    # writing it in place would be.
+    if not os.access(path, os.W_OK):
+        raise PermissionError(f"{path} is read-only")
     handle = tempfile.NamedTemporaryFile(  # noqa: SIM115
         "w", encoding="utf-8", newline="", dir=path.parent, delete=False, suffix=".tmp"
     )
@@ -304,6 +309,7 @@ def _write_atomically(path, text):
         # A temporary file is created readable by its owner only. Keep the permissions that the migration had.
         os.chmod(handle.name, stat.S_IMODE(path.stat().st_mode))
         os.replace(handle.name, path)
-    except OSError:
+    except BaseException:
+        # Also on an interrupt, so no temporary file is left in the migrations directory.
         Path(handle.name).unlink(missing_ok=True)
         raise

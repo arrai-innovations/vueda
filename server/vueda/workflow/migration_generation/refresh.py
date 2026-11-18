@@ -248,7 +248,9 @@ def changed_data_updater(identities, filepath, *, stderr, dry_run):
 
     The step reads the text's ``changed_data``, adds the app and model to each workflow reference that names a
     code alone, and rewrites the assignment only when that changed something. Otherwise the list is left as
-    written, comments included. It raises ``ValueError`` when the ``changed_data`` cannot be read.
+    written, comments included. It raises ``ValueError`` when the ``changed_data`` cannot be read. It also raises
+    ``ValueError`` when ``changed_data`` is assigned in a way that it cannot rewrite safely, such as a chained, an
+    augmented, or a second assignment.
     """
 
     def update(source):
@@ -262,9 +264,10 @@ def changed_data_updater(identities, filepath, *, stderr, dry_run):
 
         # Only one plain `changed_data = [...]` assignment can be rewritten safely. A second assignment, an
         # augmented one, or a chained one would replay changes twice or leave the update without effect.
+        # Only the module's own statements count. A local variable of the same name inside a function does not.
         assignments = [
             node
-            for node in ast.walk(ast.parse(source))
+            for node in ast.parse(source).body
             if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign))
             and any(
                 isinstance(target, ast.Name) and target.id == "changed_data"
