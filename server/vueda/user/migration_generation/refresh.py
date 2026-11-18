@@ -1,8 +1,11 @@
 """Refresh the generated migrations that earlier versions of VUEDA wrote, so they import and run with this one."""
 
 __all__ = (
+    "OBSOLETE_GROUP_NAMES",
+    "OBSOLETE_WORKFLOW_NAMES",
     "REMOVED_MODULES",
     "ImportRewrite",
+    "remove_obsolete_names",
     "rewrite_removed_imports",
 )
 
@@ -19,6 +22,12 @@ REMOVED_MODULES = {
     "vueda.user.management.commands.makegroupmigrations": "vueda.user.migration_generation.group_operations",
     "vueda.workflow.management.commands.makeworkflowmigrations": "vueda.workflow.migration_generation.operations",
 }
+
+
+# Top-level names that earlier versions copied or imported into generated migrations, and that the current
+# versions no longer write. A refresh removes each one that nothing else in the migration still uses.
+OBSOLETE_GROUP_NAMES = frozenset(("settings",))
+OBSOLETE_WORKFLOW_NAMES = frozenset(("add_history_to_data",))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -80,3 +89,59 @@ def rewrite_removed_imports(source):
 
 def _alias_text(alias):
     return f"{alias.name} as {alias.asname}" if alias.asname else alias.name
+
+
+def remove_obsolete_names(source, names):
+    """Remove the top-level functions, classes, and imports in ``source`` that bind one of ``names``.
+
+    Each one is removed only when nothing else in ``source`` refers to its name, so code that a developer added
+    and still uses stays. Run it after the copied functions are replaced, so references from old copies are
+    gone. Returns the new source and the sorted names that were removed.
+    """
+    tree = ast.parse(source)
+    candidates = {}
+    for node in tree.body:
+        bound = _bound_names(node)
+        if bound and bound <= names:
+            candidates[node] = bound
+
+    removed_nodes = set(candidates)
+    used = set()
+    for node in tree.body:
+        if node in removed_nodes:
+            continue
+        for child in ast.walk(node):
+            if isinstance(child, ast.Name):
+                used.add(child.id)
+            elif isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
+                used.add(child.value.id)
+
+    lines = source.splitlines(keepends=True)
+    removed = set()
+    spans = []
+    for node, bound in candidates.items():
+        if bound & used:
+            continue
+        removed |= bound
+        start = min([node.lineno, *(decorator.lineno for decorator in getattr(node, "decorator_list", ()))])
+        end = node.end_lineno
+        # When a blank line comes before it, take the blank lines after it too, so the gap before it stays the
+        # only gap. An import inside a block of imports keeps the blank lines that end the block.
+        if start > 1 and not lines[start - 2].strip():
+            while end < len(lines) and not lines[end].strip():
+                end += 1
+        spans.append((start, end))
+
+    for start, end in sorted(spans, reverse=True):
+        del lines[start - 1 : end]
+
+    return "".join(lines), tuple(sorted(removed))
+
+
+def _bound_names(node):
+    """Return the names that a top-level ``node`` binds, for the kinds that a refresh may remove."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return {node.name}
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        return {alias.asname or alias.name.split(".")[0] for alias in node.names}
+    return set()
