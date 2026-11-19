@@ -1822,10 +1822,82 @@ def check_ordering_configuration(app_configs, **kwargs):
     return errors
 
 
+_LOOKUP_FILTER_USE = "The client's delete and bulk action views load the selected rows through that filter."
+
+
+def _meta_fields_name_lookup(filterset_class):
+    """
+    Return whether the ``Meta`` options of ``filterset_class`` ask for a filter named ``lookup`` on a model field.
+
+    ``Meta.fields`` asks for the filters that it names. ``Meta.fields = "__all__"`` and a ``Meta.exclude`` without
+    ``Meta.fields`` ask for a filter on every model field that they do not exclude. django-filter gives such a filter
+    the name of a declared filter, so the declared filter replaces it.
+    """
+    from django_filters.utils import get_model_field
+
+    model = filterset_class._meta.model
+    if model is None or (filterset_class._meta.fields is None and filterset_class._meta.exclude is None):
+        return False
+    return any(
+        get_model_field(model, field_name) is not None
+        and any(filterset_class.get_filter_name(field_name, lookup_expr) == "lookup" for lookup_expr in lookups)
+        for field_name, lookups in filterset_class.get_fields().items()
+    )
+
+
+def _lookup_filter_conflict(filterset_class, filterset):
+    """
+    Return the message and hint of the E018 error for ``filterset_class``, or ``None`` when its ``lookup`` filter is
+    the object key filter that ``LookupInFilterSet`` adds.
+    """
+    from vueda.core.filters import LookupInFilter
+
+    name = filterset_class.__name__
+    lookup_filter = filterset.filters.get("lookup")
+    if lookup_filter is None:
+        return (
+            f"{name} removes the object key filter 'lookup' that LookupInFilterSet adds. {_LOOKUP_FILTER_USE}",
+            "Remove the 'lookup = None' declaration so that the subclass keeps the inherited filter.",
+        )
+    if not isinstance(lookup_filter, LookupInFilter):
+        return (
+            f"{name} declares its own 'lookup' filter, which replaces the object key filter that LookupInFilterSet "
+            f"adds. {_LOOKUP_FILTER_USE}",
+            "Rename the filter so that query parameter 'lookup' keeps matching object keys.",
+        )
+    if not _meta_fields_name_lookup(filterset_class):
+        return None
+    meta = filterset_class._meta
+    if isinstance(meta.fields, (list, tuple, dict)):
+        setting = "Meta.fields names model field 'lookup'"
+        hint = "Remove 'lookup' from Meta.fields, and declare that field's filter under another name."
+    else:
+        setting = (
+            "Meta.fields = '__all__' includes model field 'lookup'"
+            if meta.fields is not None
+            else "Meta.exclude leaves model field 'lookup' in"
+        )
+        hint = "Add 'lookup' to Meta.exclude, and declare that field's filter under another name."
+    return (
+        f"{name}.{setting}, but the object key filter that LookupInFilterSet adds already uses the name 'lookup'. "
+        f"{_LOOKUP_FILTER_USE}",
+        hint,
+    )
+
+
 def check_filter_query_param_configuration(app_configs, **kwargs):
-    """Report filtersets whose filters bind the same public query parameter."""
+    """
+    Report filtersets whose filters bind the same public query parameter (``vueda_info.E012``).
+
+    Also report a subclass of :class:`~vueda.core.filters.LookupInFilterSet`, such as a ``VuedaFilterSet``
+    subclass, that does not keep the object key filter ``lookup`` that ``LookupInFilterSet`` adds
+    (``vueda_info.E018``). A subclass loses the filter when it declares its own ``lookup`` filter, or
+    removes the filter with ``lookup = None``. It also loses the filter when its ``Meta`` options ask for a
+    filter on a model field named ``lookup``.
+    """
     from django_filters.filterset import BaseFilterSet
 
+    from vueda.core.filters import LookupInFilterSet
     from vueda.core.viewsets import iter_filterset_query_param_names
     from vueda.info.registration import get_all_registrations
 
@@ -1842,6 +1914,15 @@ def check_filter_query_param_configuration(app_configs, **kwargs):
         queryset = model._default_manager.none()
         filterset = filterset_class.__new__(filterset_class)
         BaseFilterSet.__init__(filterset, queryset=queryset)
+
+        conflict = (
+            _lookup_filter_conflict(filterset_class, filterset)
+            if issubclass(filterset_class, LookupInFilterSet)
+            else None
+        )
+        if conflict is not None:
+            message, hint = conflict
+            errors.append(Error(message, hint=hint, obj=viewset, id="vueda_info.E018"))
 
         owners = {}
         for param_name, filter_name in iter_filterset_query_param_names(filterset):
@@ -2474,3 +2555,100 @@ def check_field_source_resolution(app_configs, **kwargs):
             warnings.extend(_validate_field_source_resolution(serializer_class, model))
 
     return warnings
+
+
+def _is_unique_field(model, field):
+    """
+    Return whether every row of ``model`` holds a different value in ``field``.
+
+    The field is unique when it declares ``unique=True``. It is also unique when a ``UniqueConstraint``
+    names that field alone and has no condition and no expressions.
+    """
+    if field.unique:
+        return True
+    return any(tuple(constraint.fields) == (field.name,) for constraint in model._meta.total_unique_constraints)
+
+
+def _validate_lookup_field(viewset, serializer_class, model):
+    """
+    Report a viewset ``lookup_field`` that cannot identify exactly one row of ``model``.
+
+    The lookup field's value is the object key in the viewset's detail URLs, so it has to name a
+    unique concrete field that rejects null. The client reads that key from each row, so the
+    canonical serializer has to return the field under the same name. The primary key passes both by
+    definition.
+    """
+    from vueda.info.registration import is_primary_key_lookup
+    from vueda.info.registration import viewset_lookup_field
+
+    lookup_field = viewset_lookup_field(viewset, model)
+    if is_primary_key_lookup(model, lookup_field):
+        return []
+
+    label = f"{viewset.__name__}.lookup_field"
+    try:
+        field = model._meta.get_field(lookup_field)
+    except FieldDoesNotExist:
+        return [
+            Error(
+                f"{label} is '{lookup_field}', which is not a field of {model.__name__}.",
+                hint="Set lookup_field to a unique field of the model, or remove it to use the primary key.",
+                obj=viewset,
+                id="vueda_info.E017",
+            )
+        ]
+    if not field.concrete or not _is_unique_field(model, field):
+        return [
+            Error(
+                f"{label} is '{lookup_field}', which is not a unique column of {model.__name__}, so one URL "
+                "value can match several rows.",
+                hint=(
+                    "Declare the field with unique=True or a UniqueConstraint on that field alone, or set "
+                    "lookup_field to a unique field."
+                ),
+                obj=viewset,
+                id="vueda_info.E017",
+            )
+        ]
+    if field.null:
+        return [
+            Error(
+                f"{label} is '{lookup_field}', which allows null on {model.__name__}, so a row that holds null "
+                "has no URL value.",
+                hint="Declare the field with null=False, or set lookup_field to a field that always holds a value.",
+                obj=viewset,
+                id="vueda_info.E017",
+            )
+        ]
+
+    try:
+        serializer_fields = serializer_class(context={"view": _CheckContextView()}).get_fields()
+    except Exception:
+        # A canonical serializer this check cannot introspect outside a request must not prevent
+        # manage.py check, or any other command, from completing.
+        return []
+    if lookup_field not in serializer_fields:
+        return [
+            Error(
+                f"{label} is '{lookup_field}', but {serializer_class.__name__} does not return that field, so the "
+                "client cannot read an object's key from its row.",
+                hint=f"Add '{lookup_field}' to {serializer_class.__name__}.Meta.fields.",
+                obj=viewset,
+                id="vueda_info.E017",
+            )
+        ]
+    return []
+
+
+def check_lookup_field_configuration(app_configs, **kwargs):
+    """Report registered viewsets whose ``lookup_field`` cannot identify one object (``vueda_info.E017``)."""
+    from vueda.info.registration import get_all_registrations
+
+    errors = []
+    for registration in get_all_registrations().values():
+        viewset = registration["viewset"]
+        if viewset is None:
+            continue
+        serializer_class = registration["serializer"]
+        errors.extend(_validate_lookup_field(viewset, serializer_class, serializer_class.Meta.model))
+    return errors

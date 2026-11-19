@@ -147,3 +147,122 @@ def test_serializer_without_viewset_has_no_filter_parameters():
     info.register_serializer(ProductSerializer)
 
     assert check_filter_query_param_configuration(app_configs=None) == []
+
+
+def test_a_declared_lookup_filter_that_replaces_the_object_key_filter_is_reported():
+    class OwnLookupFilterSet(VuedaFilterSet):
+        lookup = rest_framework.CharFilter(field_name="name")
+
+        class Meta:
+            model = Product
+            fields = []
+
+    viewset = register_filterset(OwnLookupFilterSet)
+    expected = Error(
+        "OwnLookupFilterSet declares its own 'lookup' filter, which replaces the object key filter that "
+        "LookupInFilterSet adds. The client's delete and bulk action views load the selected rows through that "
+        "filter.",
+        hint="Rename the filter so that query parameter 'lookup' keeps matching object keys.",
+        obj=viewset,
+        id="vueda_info.E018",
+    )
+
+    assert check_filter_query_param_configuration(app_configs=None) == [expected]
+
+
+def test_a_subclass_that_removes_the_object_key_filter_is_reported():
+    class NoLookupFilterSet(VuedaFilterSet):
+        lookup = None
+
+        class Meta:
+            model = Product
+            fields = []
+
+    viewset = register_filterset(NoLookupFilterSet)
+    expected = Error(
+        "NoLookupFilterSet removes the object key filter 'lookup' that LookupInFilterSet adds. The client's delete "
+        "and bulk action views load the selected rows through that filter.",
+        hint="Remove the 'lookup = None' declaration so that the subclass keeps the inherited filter.",
+        obj=viewset,
+        id="vueda_info.E018",
+    )
+
+    assert check_filter_query_param_configuration(app_configs=None) == [expected]
+
+
+@isolate_apps("tests.store")
+@pytest.mark.parametrize(
+    ("meta_options", "setting", "hint"),
+    [
+        (
+            {"fields": ["lookup"]},
+            "Meta.fields names model field 'lookup'",
+            "Remove 'lookup' from Meta.fields, and declare that field's filter under another name.",
+        ),
+        (
+            {"fields": {"lookup": ["exact"]}},
+            "Meta.fields names model field 'lookup'",
+            "Remove 'lookup' from Meta.fields, and declare that field's filter under another name.",
+        ),
+        (
+            {"fields": "__all__"},
+            "Meta.fields = '__all__' includes model field 'lookup'",
+            "Add 'lookup' to Meta.exclude, and declare that field's filter under another name.",
+        ),
+        (
+            {"exclude": ["id"]},
+            "Meta.exclude leaves model field 'lookup' in",
+            "Add 'lookup' to Meta.exclude, and declare that field's filter under another name.",
+        ),
+    ],
+    ids=["fields_list", "fields_dict", "fields_all", "exclude"],
+)
+def test_a_model_field_named_lookup_in_the_meta_options_is_reported(meta_options, setting, hint):
+    class Gadget(models.Model):
+        lookup = models.CharField(max_length=20)
+
+        class Meta:
+            app_label = "store"
+
+    class GadgetFilterSet(VuedaFilterSet):
+        Meta = type("Meta", (), {"model": Gadget, **meta_options})
+
+    viewset = register_filterset(GadgetFilterSet)
+    expected = Error(
+        f"GadgetFilterSet.{setting}, but the object key filter that LookupInFilterSet adds already uses the name "
+        "'lookup'. The client's delete and bulk action views load the selected rows through that filter.",
+        hint=hint,
+        obj=viewset,
+        id="vueda_info.E018",
+    )
+
+    assert check_filter_query_param_configuration(app_configs=None) == [expected]
+
+
+@isolate_apps("tests.store")
+def test_a_model_field_named_lookup_with_only_other_lookups_passes():
+    class Gadget(models.Model):
+        lookup = models.CharField(max_length=20)
+
+        class Meta:
+            app_label = "store"
+
+    class GadgetFilterSet(VuedaFilterSet):
+        class Meta:
+            model = Gadget
+            fields = {"lookup": ["icontains"]}
+
+    register_filterset(GadgetFilterSet)
+
+    assert check_filter_query_param_configuration(app_configs=None) == []
+
+
+def test_a_declared_lookup_filter_keeps_its_own_field():
+    class OwnLookupFilterSet(VuedaFilterSet):
+        lookup = rest_framework.CharFilter(field_name="name")
+
+        class Meta:
+            model = Product
+            fields = []
+
+    assert OwnLookupFilterSet(queryset=Product.objects.none()).filters["lookup"].field_name == "name"
