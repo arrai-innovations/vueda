@@ -66,7 +66,7 @@ For fields and widgets, precedence is: **component props > model config > server
 - **Field lists** ([`fields`]{@api vue:component:FormModel:prop:fields}, {@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.expand}, [`computedFields`]{@api vue:component:FormModel:prop:computedFields}): a component prop replaces the model config list whole.
 - **Field metadata** ({@api js:property:@arrai-innovations/vueda/stores/storeModelConfig#OverridingModelConfig.fieldDetails}): entries merge over the server's field entries, per property, in the same order.
 
-The resolver sets a few props after every layer, so no layer can override them. On the widget these are [`readOnly`]{@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS} and the choice source (`options`, or the endpoint coordinates for `choices: true`). On the field they are [`name`]{@api vue:component:FormField:prop:name} and [`readOnly`]{@api vue:component:FormField:prop:readOnly}.
+The resolver sets a few props after every layer, so no layer can override them. On the widget these are [`readOnly`]{@api js:property:@arrai-innovations/vueda/use/useWidget#WIDGET_PROPS} and the choice source (`options`, or the endpoint coordinates for `choices: true`). A read-only relation field also gets its related model's `app` and `model`. On the field they are [`name`]{@api vue:component:FormField:prop:name} and [`readOnly`]{@api vue:component:FormField:prop:readOnly}.
 
 ### Exceptions
 

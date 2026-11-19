@@ -33,7 +33,7 @@ Each section has its own source:
 - `read_only`, `required`, and `many` (whether the field holds several values).
 - Constraints when they apply: `min_value`, `max_value`, `min_length`, `max_length`, `max_digits`, `decimal_places`.
 - `choices`: `false` for no choices, an inline list of `{label, value}` pairs for [static choices]{@term Choice-Backed Field}, or `true` for an editable relation.
-- `app_label` and `model` on a relation: the related model. The client uses them to call the [choices endpoint](#choices-endpoints).
+- `app_label` and `model` on a relation: the related model. Model info sends them for writable and read-only relations. The client uses them to load related rows from the related model's routes: to search them in the editable widget of a primary key relation, and to show a read-only label that links to its row. The [choices endpoint](#choices-endpoints) is addressed by the model that owns the field, not by these keys.
 - `display_choices`: read-only display labels for stored values. They do not change validation or the choices an editable widget offers.
 - [`pk: true`]{@term Pk Marker} on the primary key field. The client requires it for object identity.
 

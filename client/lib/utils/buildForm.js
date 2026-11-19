@@ -330,6 +330,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     }
                 } else {
                     baseProps.options = detailObject.choices;
+                    if (readOnly && detailObject.appLabel && detailObject.model) {
+                        // The server names the related model of a relation field that it marks read-only. The
+                        // read-only widget looks up each value in that model and shows its label as a link.
+                        baseProps.app = detailObject.appLabel;
+                        baseProps.model = detailObject.model;
+                    }
                 }
                 baseProps.themeOverride = fieldLevelThemeOverride;
                 baseProps.readOnly = readOnly;
