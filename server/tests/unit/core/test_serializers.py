@@ -1442,6 +1442,7 @@ class TestFieldListDefault:
         fields = ModelInfoSerializer().get_model_fields_data(store_serializers.CustomerOrderSerializer)
 
         assert fields["workflow_state_code"]["list_default"] is False
+        # The transitions only drive the transition buttons, so model info reports them hidden instead.
         assert fields["valid_transitions"]["hidden"] is True
         assert "list_default" not in fields["valid_transitions"]
         assert "list_default" not in fields["workflow_state_name"]
