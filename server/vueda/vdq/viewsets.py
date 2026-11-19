@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from vueda.core.decorators import action
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.permissions import ObjectPermissions
-from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.serializers import ObjectKeyListSerializer
 from vueda.core.viewsets import VuedaReadOnlyViewSet
 from vueda.vdq.constants import QUEUE_ITEM_DONE_STATES
 from vueda.vdq.filtersets import SendQueueFilterSet
@@ -81,7 +81,7 @@ class DefaultSentItemViewSet(VuedaReadOnlyViewSet):
 
         else:
             with transaction.atomic():
-                serializer = PrimaryKeyListSerializer(data=request.data)
+                serializer = ObjectKeyListSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 pks = serializer.validated_data["pks"]
                 for pk in pks:

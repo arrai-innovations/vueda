@@ -4,11 +4,21 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
+from django.urls import resolve
 from django.urls import reverse
 from rest_framework import status
 
 from tests.conftest import response_body
 from tests.store import models as store_models
+from tests.store import serializers as store_serializers
+from tests.store.viewsets import CustomerOrderViewSet
+from vueda import info
+
+
+class CustomerOrderByOrderNumberViewSet(CustomerOrderViewSet):
+    """A customer order viewset whose detail URLs carry the order number instead of the primary key."""
+
+    lookup_field = "order_number"
 
 
 def test_workflow_state_history_route_path(settings):
@@ -91,3 +101,40 @@ class TestWorkflowStateHistoryView:
             stale_permission_response
         )
         assert mutated_permission_response.status_code == status.HTTP_200_OK, response_body(mutated_permission_response)
+
+    @pytest.fixture
+    def orders_looked_up_by_order_number(self):
+        """Register a canonical customer order viewset that identifies each order by its unique ``order_number``."""
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CustomerOrderSerializer, CustomerOrderByOrderNumberViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.mark.usefixtures("orders_looked_up_by_order_number")
+    def test_get_resolves_the_object_by_its_key(self, settings, api_client, customer_order):
+        settings.ROOT_URLCONF = "tests.unit.history.urls_workflow_state_history"
+        reader = get_user_model().objects.create(email="history-key-reader@domain.invalid", name="History Key Reader")
+        content_type = ContentType.objects.get_for_model(store_models.CustomerOrder)
+        reader.user_permissions.add(Permission.objects.get(content_type=content_type, codename="read_customerorder"))
+        api_client.force_authenticate(reader)
+
+        def history_url(object_id):
+            return reverse(
+                "workflow-state-history",
+                kwargs={"app_label": "store", "model": "customerorder", "object_id": object_id},
+            )
+
+        by_key = api_client.get(history_url("18001"), format="json")
+        by_primary_key = api_client.get(history_url(customer_order.pk), format="json")
+
+        assert by_key.status_code == status.HTTP_200_OK, response_body(by_key)
+        assert by_primary_key.status_code == status.HTTP_404_NOT_FOUND, response_body(by_primary_key)
+
+
+def test_the_route_passes_an_object_key_that_is_not_a_number(settings):
+    settings.ROOT_URLCONF = "tests.unit.history.urls_workflow_state_history"
+
+    match = resolve("/vueda.history/workflow-state-history/store/customerorder/SAGE-0042/")
+
+    assert match.url_name == "workflow-state-history"
+    assert match.kwargs["object_id"] == "SAGE-0042"

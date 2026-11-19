@@ -164,6 +164,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -989,6 +1005,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -1563,6 +1595,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -2262,6 +2310,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -2874,6 +2938,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -4085,6 +4165,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -5830,6 +5926,22 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "empty_value": "",
+                    "help_text": "Repeat the parameter once for each object key.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Object key",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "CharInField",
+                    "validators": [
+                        {"code": "null_characters_not_allowed", "message": "Null characters are not allowed."}
+                    ],
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {

@@ -2074,7 +2074,7 @@ class TestTimesheetViewSet(BaseTestModelViewSet):
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         error_key = missing_pk if missing_pk in response.data else str(missing_pk)
         assert error_key in response.data
-        assert response.data[error_key][0] == f"Object with pk={missing_pk} does not exist."
+        assert response.data[error_key][0] == f"Object with key {missing_pk} does not exist."
         assert self.model.objects.filter(pk=existing_pk).exists()
 
     def _create_timesheets(self, count):
@@ -3426,7 +3426,9 @@ class TestNoExtraFieldsForViewSetMixin(BaseTestAssertResponseMixin):
         response = authenticated_client.get(reverse("store.distributor-list"), data={"nosuchparam": "1"})
 
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
-        assert response.data["nosuchparam"] == ["Invalid query parameter.  Valid filters are id, name, name_icontains."]
+        assert response.data["nosuchparam"] == [
+            "Invalid query parameter.  Valid filters are id, lookup, name, name_icontains."
+        ]
 
     def test_retrieve_with_filterset_class_accepts_flex_param(self, authenticated_client, test_data):
         distributor = test_data.distributors["T-Shirt Corp."]

@@ -11,6 +11,7 @@ __all__ = (
     "FlexFieldsMixin",
     "ListRowLevelViewSetMixin",
     "NoExtraFieldsForViewSetMixin",
+    "ObjectLookupViewSetMixin",
     "PerActionSerializerMixin",
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
@@ -66,7 +67,7 @@ from vueda.core.paths import query_path_field
 from vueda.core.permissions import filter_rows_for_user
 from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.serializers import GenericForeignKeySerializer
-from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.serializers import ObjectKeyListSerializer
 from vueda.core.serializers import ensure_flex_fields_applied
 from vueda.core.utils import sort_by_dot_count_alphabetically
 from vueda.core.utils import unwrap_expandable_field
@@ -77,6 +78,10 @@ from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.history.serializers.actions import HistoryActionGroupSerializer
 from vueda.history.sources import state_events_for
+from vueda.info.registration import is_primary_key_lookup
+from vueda.info.registration import object_key_of
+from vueda.info.registration import viewset_lookup_field
+from vueda.info.registration import viewset_lookup_url_kwarg
 
 
 # The zero a column total falls back to when its filtered set is empty, by column type. Django hands
@@ -1713,6 +1718,33 @@ class AllowedExtraActionsMixin:
         }
 
 
+class ObjectLookupViewSetMixin:
+    """
+    Names the model field whose value identifies an object in this viewset's URLs and requests.
+
+    DRF routes detail URLs by ``lookup_field`` and names the URL keyword ``lookup_url_kwarg``,
+    which defaults to ``lookup_field``. These methods resolve the same field for the code that
+    reads a URL value or a bulk ``pks`` body, so a URL and a bulk request name an object by the
+    same value.
+    """
+
+    def get_lookup_model(self):
+        """Return the model whose objects this viewset's URLs and requests name."""
+        return getattr(self.queryset, "model", None) or self.get_queryset().model
+
+    def get_lookup_model_field(self):
+        """Return the name of the model field that ``lookup_field`` names, with ``"pk"`` resolved."""
+        return viewset_lookup_field(self, self.get_lookup_model())
+
+    def get_lookup_value(self):
+        """Return the object key in the request URL, or ``None`` on a route without one."""
+        return self.kwargs.get(viewset_lookup_url_kwarg(self))
+
+    def get_instance_lookup_value(self, instance):
+        """Return ``instance``'s object key, the value that its detail URL carries."""
+        return object_key_of(instance, self.get_lookup_model_field())
+
+
 class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
@@ -1728,8 +1760,9 @@ class DeactivateActionViewSetMixin:
     """
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def deactivate(self, request, pk=None):
-        if pk:
+    def deactivate(self, request, **kwargs):
+        lookup_value = self.get_lookup_value()
+        if lookup_value:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
@@ -1737,7 +1770,9 @@ class DeactivateActionViewSetMixin:
                     status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
             if not instance.is_active:
-                raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
+                raise VuedaValidationError(
+                    {lookup_value: [f"This {instance.__class__.__name__} is already deactivated"]}
+                )
             gate_warnings(request, self.get_warnings_for_object("deactivate", instance))
             instance.is_active = False
             instance.save()
@@ -1746,7 +1781,7 @@ class DeactivateActionViewSetMixin:
                 status=status.HTTP_200_OK,
             )
 
-        queryset, requested_pks = self.get_bulk_queryset(request, perm_type="update")
+        queryset, requested_keys = self.get_bulk_queryset(request, perm_type="update")
 
         already_deactivated = []
         for instance in queryset:
@@ -1757,7 +1792,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             elif not instance.is_active:
-                already_deactivated.append(requested_pks[instance.pk])
+                already_deactivated.append(requested_keys[self.get_instance_lookup_value(instance)])
 
         if already_deactivated:
             errors = {}
@@ -1771,8 +1806,9 @@ class DeactivateActionViewSetMixin:
         return Response({"detail": f"Successfully deactivated {updated} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def activate(self, request, pk=None):
-        if pk:
+    def activate(self, request, **kwargs):
+        lookup_value = self.get_lookup_value()
+        if lookup_value:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
@@ -1781,7 +1817,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             if instance.is_active:
-                raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
+                raise VuedaValidationError({lookup_value: [f"This {instance.__class__.__name__} is already activated"]})
 
             gate_warnings(request, self.get_warnings_for_object("activate", instance))
             instance.is_active = True
@@ -1791,7 +1827,7 @@ class DeactivateActionViewSetMixin:
                 status=status.HTTP_200_OK,
             )
 
-        queryset, requested_pks = self.get_bulk_queryset(request, perm_type="update")
+        queryset, requested_keys = self.get_bulk_queryset(request, perm_type="update")
 
         already_activated = []
         for instance in queryset:
@@ -1802,7 +1838,7 @@ class DeactivateActionViewSetMixin:
                 )
 
             elif instance.is_active:
-                already_activated.append(requested_pks[instance.pk])
+                already_activated.append(requested_keys[self.get_instance_lookup_value(instance)])
         if already_activated:
             errors = {}
             for pk in already_activated:
@@ -1816,6 +1852,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    ObjectLookupViewSetMixin,
     AllowedExtraActionsMixin,
     NestedMultipartMixin,
     WarningConfirmationMixin,
@@ -1839,8 +1876,6 @@ class VuedaViewSet(
       ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation with the same rule
       for both; override ``get_warnings`` instead if bulk needs its own logic.
     """
-
-    detail_args = ["pk"]
 
     nulls_ordering: dict[str, str] | None = None
     """Nulls placement per field name, ``"first"`` or ``"last"``, applied wherever that field is sorted.
@@ -1886,7 +1921,7 @@ class VuedaViewSet(
         return extra_actions
 
     @action(detail=True, methods=["get"])
-    def history_list(self, request, pk=None):
+    def history_list(self, request, **kwargs):
         """Return this object's history as the user actions behind it.
 
         A page is a page of actions. One action that wrote several rows stays whole, because the
@@ -1962,40 +1997,41 @@ class VuedaViewSet(
         """
         Return the rows that a bulk request's ``pks`` body names, after permission filtering.
 
-        Each entry converts through the model's primary key field, as
-        :class:`~vueda.core.serializers.PrimaryKeyListSerializer` describes. The rows then pass
+        Each entry is an object key: the value of the viewset's lookup field, the same value that
+        its detail URLs carry. Each entry converts through that field, as
+        :class:`~vueda.core.serializers.ObjectKeyListSerializer` describes. The rows then pass
         through :meth:`apply_row_level_filter` for ``perm_type`` and through
         :meth:`apply_object_permission_filter`, the checks that a single-object request makes.
 
         A key that names no row raises :class:`~vueda.core.exceptions.VuedaValidationError` with
-        "Object with pk=... does not exist." for that key. A key that names a row that the request
+        "Object with key ... does not exist." for that key. A key that names a row that the request
         may not change raises the same error, so the response does not reveal that the row exists.
 
         Returns the queryset and a dict that maps each converted key to the value that the request
         sent. Key errors use the sent value, because a composite key converts to a tuple, which
         cannot be a JSON object key.
         """
-        model = self.get_queryset().model
-        serializer = PrimaryKeyListSerializer(data=request.data, model=model)
+        model = self.get_lookup_model()
+        lookup_field = self.get_lookup_model_field()
+        serializer = ObjectKeyListSerializer(data=request.data, model=model, lookup_field=lookup_field)
         serializer.is_valid(raise_exception=True)
-        requested_pks = dict(zip(serializer.validated_data["pks"], serializer.initial_data["pks"], strict=True))
+        requested_keys = dict(zip(serializer.validated_data["pks"], serializer.initial_data["pks"], strict=True))
 
-        queryset = self.get_queryset().filter(pk__in=list(requested_pks))
+        queryset = self.get_queryset().filter(**{f"{lookup_field}__in": list(requested_keys)})
         queryset = self.apply_row_level_filter(queryset, perm_type=perm_type)
         queryset = self.apply_object_permission_filter(queryset)
-        found_pks = set(queryset.values_list("pk", flat=True))
-        missing_pks = [sent for key, sent in requested_pks.items() if key not in found_pks]
-        if missing_pks:
+        found_keys = set(queryset.values_list(lookup_field, flat=True))
+        missing_keys = [sent for key, sent in requested_keys.items() if key not in found_keys]
+        if missing_keys:
             raise VuedaValidationError(
-                {missing_pk: [f"Object with pk={missing_pk} does not exist."] for missing_pk in missing_pks}
+                {missing_key: [f"Object with key {missing_key} does not exist."] for missing_key in missing_keys}
             )
-        return queryset, requested_pks
+        return queryset, requested_keys
 
     def destroy(self, request, **kwargs):
         """Delete one or more objects."""
-        pk = kwargs.get("pk")
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
-        if pk:
+        if self.get_lookup_value():
             instance = self.get_object()
             self.destroy_validation((instance,))
             gate_warnings(request, self.get_warnings_for_object("destroy", instance))
@@ -2004,7 +2040,7 @@ class VuedaViewSet(
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        queryset, _requested_pks = self.get_bulk_queryset(request, perm_type="delete")
+        queryset, _requested_keys = self.get_bulk_queryset(request, perm_type="delete")
 
         self.destroy_validation(queryset)
         gate_warnings(request, self.get_warnings("destroy", queryset))
@@ -2016,24 +2052,25 @@ class VuedaViewSet(
 
     def get_object(self):
         """
-        Override this function to convert the pk kwarg to a list if the model has a composite primary key.
-        """
-        if hasattr(self, "kwargs") and "pk" in self.kwargs:
-            has_composite_primary_key = False
-            cpk_field = None
-            model = getattr(self.queryset, "model", None) or self.get_queryset().model
-            for field in model._meta.fields:
-                if isinstance(field, CompositePrimaryKey):
-                    has_composite_primary_key = True
-                    cpk_field = field
+        Return the object whose object key the request URL carries.
 
-            if has_composite_primary_key:
-                # 'CompositePrimaryKey' must be named 'pk'. A key that does not convert names no
-                # object, so answer 404 the way DRF's get_object_or_404 does for a malformed pk.
-                try:
-                    self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
-                except (TypeError, ValueError, ValidationError) as exc:
-                    raise Http404 from exc
+        DRF reads the key from the ``lookup_url_kwarg`` URL keyword and filters by ``lookup_field``.
+        When the lookup field is a composite primary key, the URL carries the key as its JSON array
+        string, which converts here to the tuple of column values that the filter expects. A key
+        that does not convert names no object, so it answers 404, as DRF does for a malformed key.
+        """
+        key = self.get_lookup_value()
+        model = self.get_lookup_model()
+        pk_field = model._meta.pk
+        if (
+            key is not None
+            and isinstance(pk_field, CompositePrimaryKey)
+            and is_primary_key_lookup(model, self.lookup_field)
+        ):
+            try:
+                self.kwargs[viewset_lookup_url_kwarg(self)] = pk_field.to_python(key)
+            except (TypeError, ValueError, ValidationError) as exc:
+                raise Http404 from exc
 
         return super().get_object()
 
@@ -2080,6 +2117,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    ObjectLookupViewSetMixin,
     AllowedExtraActionsMixin,
     NestedMultipartMixin,
     FlexFieldsMixin,
@@ -2092,8 +2130,6 @@ class VuedaReadOnlyViewSet(
     with the same flex-fields, query-parameter validation, row-level filtering, and extra-action
     permission checks as ``VuedaViewSet``.
     """
-
-    detail_args = ["pk"]
 
     nulls_ordering: dict[str, str] | None = None
     """Nulls placement per field name, ``"first"`` or ``"last"``, applied wherever that field is sorted.

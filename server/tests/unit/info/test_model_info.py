@@ -715,6 +715,78 @@ class TestExtraActionUrlPath:
         assert "url_path" not in actions_by_name["update"]
 
 
+class SpecialCareViewSetWithCodeLookup(VuedaViewSet):
+    """A special care viewset whose detail URLs carry the unique ``code`` instead of the primary key."""
+
+    queryset = store_models.SpecialCare.objects.all()
+    serializer_class = store_serializers.SpecialCareSerializer
+    lookup_field = "code"
+
+    @action(detail=True, methods=["post"], permission_classes=())
+    def mark_reviewed(self, request, **kwargs):
+        return Response(status=204)
+
+    @action(detail=True, methods=["get"], permission_classes=(), url_path=r"notes/(?P<note_id>[^/.]+)")
+    def note(self, request, note_id, **kwargs):
+        return Response(status=204)
+
+
+class SpecialCareViewSetWithLeftoverArgument(SpecialCareViewSetWithCodeLookup):
+    """The ``code`` lookup, with an extra action whose method takes an argument that its URL does not capture."""
+
+    @action(detail=True, methods=["post"], permission_classes=())
+    def legacy(self, request, pk=None, **kwargs):
+        return Response(status=204)
+
+
+class SpecialCareViewSetWithRenamedLookupKwarg(SpecialCareViewSetWithCodeLookup):
+    """The ``code`` lookup, with the URL keyword renamed to ``special_care_code``."""
+
+    lookup_url_kwarg = "special_care_code"
+
+
+@pytest.mark.django_db
+class TestDetailActionParameters:
+    """A detail action's ``parameters`` name the viewset's lookup URL keyword, then its own URL arguments."""
+
+    @staticmethod
+    def actions_by_name(viewset):
+        info.registration.get_empty_registry()
+        info.register(store_serializers.SpecialCareSerializer, viewset)
+        try:
+            content_type = ContentType.objects.get(app_label="store", model="specialcare")
+            serializer = ModelInfoSerializer(content_type, context={})
+            return {action["name"]: action for action in serializer.get_model_actions(content_type)}
+        finally:
+            info.registration.get_empty_registry()
+
+    @pytest.mark.parametrize("name", ["retrieve", "update", "partial_update", "destroy"])
+    def test_builtin_detail_action_names_the_lookup_field(self, name):
+        assert self.actions_by_name(SpecialCareViewSetWithCodeLookup)[name]["parameters"] == ["code"]
+
+    @pytest.mark.parametrize("name", ["list", "create"])
+    def test_list_and_create_have_no_parameters(self, name):
+        assert "parameters" not in self.actions_by_name(SpecialCareViewSetWithCodeLookup)[name]
+
+    def test_history_list_names_the_lookup_field(self):
+        assert self.actions_by_name(SpecialCareViewSetWithCodeLookup)["history-list"]["parameters"] == ["code"]
+
+    def test_extra_action_names_the_lookup_field(self):
+        assert self.actions_by_name(SpecialCareViewSetWithCodeLookup)["mark-reviewed"]["parameters"] == ["code"]
+
+    def test_extra_action_adds_the_arguments_of_its_url_path(self):
+        assert self.actions_by_name(SpecialCareViewSetWithCodeLookup)["note"]["parameters"] == ["code", "note_id"]
+
+    def test_extra_action_leaves_out_an_argument_that_its_url_path_does_not_capture(self):
+        assert self.actions_by_name(SpecialCareViewSetWithLeftoverArgument)["legacy"]["parameters"] == ["code"]
+
+    def test_renamed_lookup_url_kwarg_is_reported(self):
+        actions = self.actions_by_name(SpecialCareViewSetWithRenamedLookupKwarg)
+
+        assert actions["retrieve"]["parameters"] == ["special_care_code"]
+        assert actions["note"]["parameters"] == ["special_care_code", "note_id"]
+
+
 @pytest.mark.django_db
 class TestHistoryActionMetadataAvailabilityUnderWorkflowState(BaseTestUserMixin, BaseTestGroupMixin):
     """

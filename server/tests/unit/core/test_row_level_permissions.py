@@ -144,7 +144,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, HTTPStatus.BAD_REQUEST)
         error_key = banana.pk if banana.pk in response.data else str(banana.pk)
         assert error_key in response.data
-        assert str(response.data[error_key][0]) == f"Object with pk={banana.pk} does not exist."
+        assert str(response.data[error_key][0]) == f"Object with key {banana.pk} does not exist."
         assert Product.objects.filter(pk=apple.pk).exists()
         assert Product.objects.filter(pk=banana.pk).exists()
 
@@ -161,7 +161,7 @@ class TestRowLevelPermissions(BaseTestAssertResponseMixin, BaseTestGroupMixin, B
         self.assert_response(response, 400)
         error_key = banana.pk if banana.pk in response.data else str(banana.pk)
         assert [str(message) for message in response.data[error_key]] == [
-            f"Object with pk={banana.pk} does not exist."
+            f"Object with key {banana.pk} does not exist."
         ], response.data
         assert Product.objects.filter(pk=apple.pk).exists()
         assert Product.objects.filter(pk=banana.pk).exists()

@@ -47,21 +47,15 @@ KEY_TYPES = {
 }
 
 MALFORMED_KEYS = [
-    pytest.param("integer", "abc", "Primary keys must be valid integers.", id="integer-not-a-number"),
-    pytest.param(
-        "uuid", "not-a-uuid", "Primary keys must be valid values for this model's primary key.", id="uuid-not-a-uuid"
-    ),
+    pytest.param("integer", "abc", "Object keys must be valid integers.", id="integer-not-a-number"),
+    pytest.param("uuid", "not-a-uuid", "Object keys must be valid values for the id field.", id="uuid-not-a-uuid"),
     pytest.param("string", None, "This field may not be null.", id="string-null"),
-    pytest.param(
-        "composite", "abc", "Primary keys must be valid values for this model's primary key.", id="composite-not-json"
-    ),
-    pytest.param(
-        "composite", "[1]", "Primary keys must be valid values for this model's primary key.", id="composite-too-short"
-    ),
+    pytest.param("composite", "abc", "Object keys must be valid values for the pk field.", id="composite-not-json"),
+    pytest.param("composite", "[1]", "Object keys must be valid values for the pk field.", id="composite-too-short"),
     pytest.param(
         "composite",
         [1, 1],
-        "Primary keys must be valid values for this model's primary key.",
+        "Object keys must be valid values for the pk field.",
         id="composite-not-string",
     ),
 ]
@@ -145,7 +139,7 @@ class TestBulkActionsAcceptEveryPrimaryKeyType:
         response = send_bulk(superuser_client, model, action, [gadget_key, missing_key])
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
-        assert errors(response) == {str(missing_key): [f"Object with pk={missing_key} does not exist."]}
+        assert errors(response) == {str(missing_key): [f"Object with key {missing_key} does not exist."]}
         unchanged = refreshed(model, gadget)
         assert unchanged is not None
         assert unchanged.is_active == (action != "activate")
@@ -230,7 +224,7 @@ class TestBulkActionsApplyRowLevelPermissions:
         response = send_bulk(manager_client, IntegerKeyGadget, action, [allowed_key, locked_key])
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
-        assert errors(response) == {str(locked_key): [f"Object with pk={locked_key} does not exist."]}
+        assert errors(response) == {str(locked_key): [f"Object with key {locked_key} does not exist."]}
         assert refreshed(IntegerKeyGadget, allowed).is_active == is_active
         assert refreshed(IntegerKeyGadget, locked).is_active == is_active
 

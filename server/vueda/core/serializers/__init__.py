@@ -6,9 +6,9 @@ __all__ = (
     "FlexFieldsWriteableNestedSerializerMixin",
     "GenericForeignKeySerializer",
     "MakeReadonly",
-    "ModelPrimaryKeyValueField",
     "NoExtraFieldsSerializerMixin",
-    "PrimaryKeyListSerializer",
+    "ObjectKeyField",
+    "ObjectKeyListSerializer",
     "VuedaExpandableFieldsSerializerMixin",
     "VuedaListSerializer",
     "VuedaLookupSerializer",
@@ -69,48 +69,53 @@ from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
+from vueda.info.registration import object_key_of
+from vueda.info.registration import resolve_lookup_field
+from vueda.info.registration import viewset_lookup_url_kwarg
 
 
-class ModelPrimaryKeyValueField(serializers.Field):
+class ObjectKeyField(serializers.Field):
     """
-    Converts one primary key value to the value that a ``pk`` filter on ``model`` expects.
+    Converts one object key to the value that a filter on a field of ``model`` expects.
 
-    The model's primary key field does the conversion, so a UUID, string, or other key type
-    converts the way the database lookup needs it. A composite key arrives as its JSON array
-    string, such as ``'["1", "42"]'``, the same form that the detail route takes. It converts to a
-    tuple of column values. A value that the key field cannot convert fails as ``invalid``.
+    An object key is the value of a model's lookup field, the value that the model's detail URLs
+    carry. ``field_name`` is a ``lookup_field`` value that names that field. As in DRF, ``"pk"`` names
+    the model's primary key field, and it is the default. The model field
+    does the conversion, so a UUID, string, or other key type converts the way the database lookup
+    needs it. A composite primary key arrives as its JSON array string, such as ``'["1", "42"]'``,
+    the same form that the detail route takes. It converts to a tuple of column values. A value
+    that the field cannot convert fails as ``invalid``.
     """
 
-    default_error_messages = {"invalid": "Primary keys must be valid values for this model's primary key."}
+    default_error_messages = {"invalid": "Object keys must be valid values for the {field} field."}
 
-    def __init__(self, model, **kwargs):
+    def __init__(self, model, field_name="pk", **kwargs):
         self.model = model
+        self.model_field = model._meta.get_field(resolve_lookup_field(model, field_name))
         super().__init__(**kwargs)
 
     def to_internal_value(self, data):
-        pk_field = self.model._meta.pk
-        if isinstance(pk_field, CompositePrimaryKey):
+        if isinstance(self.model_field, CompositePrimaryKey):
             if not isinstance(data, str):
-                self.fail("invalid")
+                self.fail("invalid", field=self.model_field.name)
             try:
-                return tuple(pk_field.to_python(data))
+                return tuple(self.model_field.to_python(data))
             except (TypeError, ValueError, DjangoValidationError):
-                self.fail("invalid")
+                self.fail("invalid", field=self.model_field.name)
         try:
-            return pk_field.to_python(data)
+            return self.model_field.to_python(data)
         except (TypeError, ValueError, DjangoValidationError):
-            self.fail("invalid")
+            self.fail("invalid", field=self.model_field.name)
 
     def to_representation(self, value):
         return value
 
 
-def _has_integer_primary_key(model):
-    """Return whether ``model``'s primary key holds an integer, following a key that is a relation."""
-    pk_field = model._meta.pk
-    while pk_field.is_relation:
-        pk_field = pk_field.target_field
-    return isinstance(pk_field, models.IntegerField)
+def _holds_integer(model_field):
+    """Return whether ``model_field`` holds an integer, following a field that is a relation."""
+    while model_field.is_relation:
+        model_field = model_field.target_field
+    return isinstance(model_field, models.IntegerField)
 
 
 def _model_field_is_editable(model, name):
@@ -174,29 +179,33 @@ def _expand_is_locked(model, name, expand_options, excluded):
     return not _model_field_is_editable(model, source)
 
 
-class PrimaryKeyListSerializer(serializers.Serializer):
+class ObjectKeyListSerializer(serializers.Serializer):
     """
-    Validates a ``pks`` body field containing a non-empty list of primary keys.
+    Validates a ``pks`` body field containing a non-empty list of object keys.
 
     Without ``model``, each entry must be an integer. With ``model``, each entry converts through
-    that model's primary key field, as :class:`ModelPrimaryKeyValueField` describes. A model with
-    an integer primary key keeps the integer check and its error message.
+    ``model``'s ``lookup_field``, as :class:`ObjectKeyField` describes. ``lookup_field`` defaults to
+    ``"pk"``, the primary key. A lookup field that holds an integer keeps the integer check and its error
+    message.
     """
 
     pks = serializers.ListField(
-        child=serializers.IntegerField(error_messages={"invalid": "Primary keys must be valid integers."}),
+        child=serializers.IntegerField(error_messages={"invalid": "Object keys must be valid integers."}),
         allow_empty=False,
         error_messages={
-            "not_a_list": "pks must be a list of primary keys.",
+            "not_a_list": "pks must be a list of object keys.",
             "empty": "pks list cannot be empty.",
         },
     )
 
-    def __init__(self, *args, model=None, **kwargs):
+    def __init__(self, *args, model=None, lookup_field="pk", **kwargs):
         super().__init__(*args, **kwargs)
-        if model is not None and not _has_integer_primary_key(model):
+        if model is None:
+            return
+        child = ObjectKeyField(model, lookup_field)
+        if not _holds_integer(child.model_field):
             pks = self.fields["pks"]
-            pks.child = ModelPrimaryKeyValueField(model)
+            pks.child = child
             pks.child.bind(field_name="", parent=pks)
 
 
@@ -497,9 +506,7 @@ class FlexFieldsWriteableNestedSerializerMixin(
         view.action = action
         view.detail = instance is not None
         view.args = ()
-        view.kwargs = (
-            {view.lookup_url_kwarg or view.lookup_field: getattr(instance, view.lookup_field)} if instance else {}
-        )
+        view.kwargs = {viewset_lookup_url_kwarg(view): object_key_of(instance, view.lookup_field)} if instance else {}
         view.format_kwarg = None
         try:
             view.check_permissions(related_request)

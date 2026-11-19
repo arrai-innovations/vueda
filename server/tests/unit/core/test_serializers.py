@@ -28,7 +28,7 @@ from tests.utils import FakeRequest
 from tests.utils import FakeView
 from vueda import info
 from vueda.core.serializers import FlexFieldsWriteableNestedSerializerMixin
-from vueda.core.serializers import PrimaryKeyListSerializer
+from vueda.core.serializers import ObjectKeyListSerializer
 from vueda.core.serializers import VuedaReadonlyListSerializer
 from vueda.core.serializers.fields import AvailableActionsField
 from vueda.core.viewsets import VuedaViewSet
@@ -967,30 +967,52 @@ class TestFlexFieldsWriteableNestedSerializerMixinOverPlainModelSerializer:
         assert serializer.save().code == "mine"
 
 
-class TestPrimaryKeyListSerializer:
+class TestObjectKeyListSerializer:
     def test_valid_pk_list(self):
-        serializer = PrimaryKeyListSerializer(data={"pks": [1, 2, 3]})
+        serializer = ObjectKeyListSerializer(data={"pks": [1, 2, 3]})
 
         assert serializer.is_valid()
         assert serializer.validated_data["pks"] == [1, 2, 3]
 
     def test_rejects_non_integer_values(self):
-        serializer = PrimaryKeyListSerializer(data={"pks": [1, "abc"]})
+        serializer = ObjectKeyListSerializer(data={"pks": [1, "abc"]})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][1][0] == "Primary keys must be valid integers.", serializer.errors
+        assert serializer.errors["pks"][1][0] == "Object keys must be valid integers.", serializer.errors
 
     def test_requires_list_input(self):
-        serializer = PrimaryKeyListSerializer(data={"pks": "1"})
+        serializer = ObjectKeyListSerializer(data={"pks": "1"})
 
         assert not serializer.is_valid()
-        assert serializer.errors["pks"][0] == "pks must be a list of primary keys.", serializer.errors
+        assert serializer.errors["pks"][0] == "pks must be a list of object keys.", serializer.errors
 
     def test_requires_data(self):
-        serializer = PrimaryKeyListSerializer(data={"pks": []})
+        serializer = ObjectKeyListSerializer(data={"pks": []})
 
         assert not serializer.is_valid()
         assert serializer.errors["pks"][0] == "pks list cannot be empty.", serializer.errors
+
+    def test_converts_entries_through_the_lookup_field(self):
+        serializer = ObjectKeyListSerializer(
+            data={"pks": ["SC-1", "SC-2"]}, model=store_models.SpecialCare, lookup_field="code"
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["pks"] == ["SC-1", "SC-2"]
+
+    def test_the_lookup_field_pk_names_the_primary_key(self):
+        serializer = ObjectKeyListSerializer(
+            data={"pks": [1, "abc"]}, model=store_models.SpecialCare, lookup_field="pk"
+        )
+
+        assert not serializer.is_valid()
+        assert serializer.errors["pks"][1][0] == "Object keys must be valid integers.", serializer.errors
+
+    def test_a_lookup_field_that_holds_an_integer_through_a_relation_keeps_the_integer_check(self):
+        serializer = ObjectKeyListSerializer(data={"pks": [1, "abc"]}, model=store_models.Customer, lookup_field="user")
+
+        assert not serializer.is_valid()
+        assert serializer.errors["pks"][1][0] == "Object keys must be valid integers.", serializer.errors
 
 
 class TestVuedaSerializerFieldMapping:
@@ -1420,7 +1442,8 @@ class TestFieldListDefault:
         fields = ModelInfoSerializer().get_model_fields_data(store_serializers.CustomerOrderSerializer)
 
         assert fields["workflow_state_code"]["list_default"] is False
-        assert fields["valid_transitions"]["list_default"] is False
+        assert fields["valid_transitions"]["hidden"] is True
+        assert "list_default" not in fields["valid_transitions"]
         assert "list_default" not in fields["workflow_state_name"]
         # `when` is auto_now_add: an integrator-declared timestamp, so the server leaves it unflagged.
         assert "list_default" not in fields["when"]

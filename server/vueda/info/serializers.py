@@ -10,7 +10,7 @@ __all__ = (
 )
 
 import datetime
-import inspect
+import re
 from collections.abc import Iterable
 
 import django_filters
@@ -60,8 +60,10 @@ from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
+from vueda.info.registration import get_lookup_field
 from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
+from vueda.info.registration import viewset_lookup_url_kwarg
 from vueda.info.schema import MODEL_INFO_DETAIL_EXAMPLES
 from vueda.info.schema import ModelInfoActionSerializer
 from vueda.info.schema import ModelInfoColumnTotalsSerializer
@@ -173,10 +175,16 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
     verbose_name = serializers.SerializerMethodField()
     verbose_name_plural = serializers.SerializerMethodField()
     workflow_enabled = serializers.SerializerMethodField()
+    lookup_field = serializers.SerializerMethodField(
+        help_text=(
+            "Name of the field whose value identifies an object in the model's URLs and requests: the "
+            "`lookup_field` of the registered viewset, or the primary key field."
+        )
+    )
 
     class Meta:
         model = ContentType
-        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled"]
+        fields = ["id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled", "lookup_field"]
         expandable_fields = {
             "model_permissions": serializers.SerializerMethodField,
             "model_fields": serializers.SerializerMethodField,
@@ -204,6 +212,10 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         which transitions a user may see and take.
         """
         return workflow_enabled(instance.model_class())
+
+    def get_lookup_field(self, instance: object) -> str:
+        """Name the field whose value identifies an object in the model's URLs and bulk request bodies."""
+        return get_lookup_field(instance.model_class())
 
     @property
     def data(self):
@@ -569,6 +581,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
         request = self.context.get("request", None)
         called_viewset = viewset(request=request, args=(), kwargs={}, format_kwarg=None)
+        lookup_url_kwarg = viewset_lookup_url_kwarg(viewset)
         user = request.user if request is not None else None
 
         queryset = viewset().get_queryset()
@@ -593,9 +606,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
 
             if action not in ("list", "create"):
                 action_item_data["detail"] = True
-                parameters = viewset.detail_args
-                if parameters:
-                    action_item_data["parameters"] = parameters
+                action_item_data["parameters"] = [lookup_url_kwarg]
             action_data.append(action_item_data)
 
         action_data.sort(key=lambda x: x["name"])
@@ -610,8 +621,6 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
             if allowed_extra_actions is not None and extra_action.url_name not in allowed_extra_actions:
                 continue
 
-            signature = inspect.signature(extra_action)
-            parameters = signature.parameters if extra_action.detail else ()
             extra_action_data = {
                 "name": extra_action.url_name,
                 "description": f"{extra_action.url_name} {app_label}.{model_name}",
@@ -620,9 +629,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                 "method_names": permitted_extra_action_methods(called_viewset, request, None, extra_action),
                 "url_path": extra_action.url_path,
             }
-            parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
-            if parameters:
-                extra_action_data["parameters"] = parameters
+            if extra_action.detail:
+                # The URL keyword names the object. The router passes the action every other argument
+                # that a named group of its `url_path` pattern captures.
+                extra_action_data["parameters"] = [lookup_url_kwarg] + [
+                    name for name in re.compile(extra_action.url_path).groupindex if name != lookup_url_kwarg
+                ]
 
             all_extra_actions.append(extra_action_data)
 
@@ -1756,6 +1768,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "distributor",
                                         "verbose_name_plural": "distributors",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 2,
@@ -1764,6 +1777,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "option type",
                                         "verbose_name_plural": "option types",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 6,
@@ -1772,6 +1786,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "customer",
                                         "verbose_name_plural": "customers",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 7,
@@ -1780,6 +1795,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "cart",
                                         "verbose_name_plural": "carts",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 8,
@@ -1788,6 +1804,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "customer order",
                                         "verbose_name_plural": "customer orders",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 11,
@@ -1796,6 +1813,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "inventory entry reason",
                                         "verbose_name_plural": "inventory entry reasons",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 13,
@@ -1804,6 +1822,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "product",
                                         "verbose_name_plural": "products",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 15,
@@ -1812,6 +1831,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "product option",
                                         "verbose_name_plural": "product options",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 16,
@@ -1820,6 +1840,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "ORDER item",
                                         "verbose_name_plural": "ORDER items",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 17,
@@ -1828,6 +1849,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "inventory entry",
                                         "verbose_name_plural": "inventory entries",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 19,
@@ -1836,6 +1858,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "cart item",
                                         "verbose_name_plural": "cart items",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                     {
                                         "id": 24,
@@ -1844,6 +1867,7 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
                                         "verbose_name": "Packing Box",
                                         "verbose_name_plural": "Packing Boxes",
                                         "workflow_enabled": False,
+                                        "lookup_field": "id",
                                     },
                                 ],
                                 "perPage": settings.MAX_PAGE_SIZE,
