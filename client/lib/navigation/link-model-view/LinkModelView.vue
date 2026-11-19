@@ -35,7 +35,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the model instance to navigate to. */
+    /** Object key of the model instance to navigate to. */
     pk: {
         type: [String, Number, Array],
         default: undefined,

@@ -58,12 +58,12 @@ const props = defineProps({
         default: () => ({}),
         description: "Props to pass to the field slots",
     },
-    /** Name of the primary key property on `obj`. */
+    /** Name of the property on `obj` whose value identifies the row. */
     pkKey: {
         type: String,
         default: "id",
     },
-    /** Primary key value of the current row's object. */
+    /** Value of the property that `pkKey` names on the current row's object. It identifies the row. */
     pk: {
         type: [String, Number],
         default: undefined,

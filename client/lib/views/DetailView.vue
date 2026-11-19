@@ -45,7 +45,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the object instance to fetch and render. */
+    /** Object key of the object instance to fetch and render. */
     pk: {
         type: String,
         required: true,

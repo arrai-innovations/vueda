@@ -8,7 +8,9 @@ import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
+import { LOOKUP_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { lookupFieldOf } from "@vueda/utils/objectKeys.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -36,7 +38,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or array of primary keys identifying the instances to act on. */
+    /** Object key or array of object keys identifying the instances to act on. */
     pk: {
         type: [String, Array],
         required: true,
@@ -73,9 +75,9 @@ const instanceListProps = reactive({
         app: toRef(props, "app"),
         model: toRef(props, "model"),
     },
-    pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+    pkKey: computed(() => lookupFieldOf(modelConfig.info)),
     params: {
-        id: computed(() => (Array.isArray(props.pk) ? props.pk : [props.pk])),
+        [LOOKUP_PARAM]: computed(() => (Array.isArray(props.pk) ? props.pk : [props.pk])),
     },
     intendToList: validAndActive,
 });

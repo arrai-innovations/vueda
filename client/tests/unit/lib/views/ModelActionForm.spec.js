@@ -185,10 +185,13 @@ function createInstanceStub() {
 // `useModelAction` builds its own transport instances; stub the factories so this spec observes which
 // verb the component's action reaches, not the HTTP the handlers would send.
 const instanceStubs = { fallbackList: null, instanceObject: null };
+const useListSpy = vi.hoisted(() => vi.fn());
 vi.mock("@arrai-innovations/reactive-helpers", async () => {
     const actual = await vi.importActual("@arrai-innovations/reactive-helpers");
+    useListSpy.mockImplementation(actual.useList);
     return {
         ...actual,
+        useList: useListSpy,
         useListInstance: () => instanceStubs.fallbackList,
         useObjectInstance: () => instanceStubs.instanceObject,
     };
@@ -314,6 +317,17 @@ describe("lib/views/ModelActionForm.vue", () => {
             const items = wrapper.findAll('[data-qa="action-form-list-item"]');
             expect(items[0].find('[data-qa="action-form-list-item-pk"]').exists()).toBe(false);
             expect(items[1].get('[data-qa="action-form-list-item-pk"]').text()).toBe("2");
+        });
+
+        scopedIt("looks up the selected records by the model's lookup field without a fetchState", () => {
+            modelConfig.info.lookupField = "invoice_sage_id";
+            useListSpy.mockClear();
+            mountModelActionForm({ props: { fetchState: undefined, pk: ["SAGE-4", "SAGE-7"] } });
+            expect(useListSpy).toHaveBeenCalledTimes(1);
+            const listProps = useListSpy.mock.calls[0][0].props;
+            expect(listProps.pkKey).toBe("invoice_sage_id");
+            expect(listProps.params.lookup).toEqual(["SAGE-4", "SAGE-7"]);
+            expect(listProps.params.id).toBeUndefined();
         });
 
         scopedIt("shows loading placeholder when fetchState.loading", () => {

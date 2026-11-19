@@ -10,7 +10,7 @@
  * @property {string} app - Django app label from the route.
  * @property {string} model - Django model name from the route.
  * @property {string} action - Action segment from the route.
- * @property {string|number|(string|number)[]} pk - Primary key or keys from the route.
+ * @property {string|number|(string|number)[]} pk - Object key or keys from the route.
  */
 
 /**

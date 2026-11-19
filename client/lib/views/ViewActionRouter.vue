@@ -30,7 +30,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key(s) forwarded to the resolved action view. */
+    /** Object key(s) forwarded to the resolved action view. */
     pk: {
         type: [String, Number, Array],
         default: "",

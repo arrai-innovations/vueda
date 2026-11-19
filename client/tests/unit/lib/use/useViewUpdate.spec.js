@@ -35,7 +35,10 @@ vi.mock("@vueda/use/useObjectForm.js", async () => {
 // useViewUpdate.js's own wiring — its two separate object instances — surfaces a submission failure.
 // Every other test in this file mocks useDetailView wholesale, so these never get called for them.
 vi.mock("@vueda/use/useLeaveUnload.js", () => ({ useLeaveUnload: vi.fn() }));
-vi.mock("vue-router", async () => ({ ...(await vi.importActual("vue-router")), useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("vue-router", async () => ({
+    ...(await vi.importActual("vue-router")),
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), currentRoute: { value: { name: "home", params: {} } } }),
+}));
 vi.mock("@arrai-innovations/vue-sonner", () => ({
     toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), loading: vi.fn(), message: vi.fn() },
 }));
@@ -100,7 +103,7 @@ describe("lib/use/useViewUpdate.js", () => {
         });
 
         mockModelConfig = reactive({
-            info: { pk: "id" },
+            info: { pk: "id", lookupField: "id" },
             config: {
                 fetchFields: ["id", "name"],
                 submitFields: ["name"],
@@ -607,8 +610,8 @@ describe("lib/use/useViewUpdate.js", () => {
             let serverObject = { ...retrieved };
             const retrieve = vi.fn(() => Promise.resolve({ ...serverObject }));
             const saves = [];
-            const recordingUpdate = vi.fn(({ object, params }) => {
-                saves.push({ body: cloneDeep(object), fields: [...params[FIELDS_PARAM]] });
+            const recordingUpdate = vi.fn(({ object, pk, params }) => {
+                saves.push({ body: cloneDeep(object), pk, fields: [...params[FIELDS_PARAM]] });
                 serverObject = { ...serverObject, ...object, total: serverObject.unit_price * object.quantity };
                 return Promise.resolve({ ...serverObject });
             });
@@ -642,21 +645,25 @@ describe("lib/use/useViewUpdate.js", () => {
             await flushPromises();
         };
 
-        scopedIt("submits the pk and submitFields, leaving fetched and displayed fields out of the body", async () => {
-            const { default: flushPromises } = await import("flush-promises");
-            const { result, saves } = await buildSelectionViewUpdate({
-                config: orderConfig,
-                retrieved: orderRetrieved,
-            });
-            await flushPromises();
+        scopedIt(
+            "submits submitFields to the route's object key, leaving fetched and displayed fields out",
+            async () => {
+                const { default: flushPromises } = await import("flush-promises");
+                const { result, saves } = await buildSelectionViewUpdate({
+                    config: orderConfig,
+                    retrieved: orderRetrieved,
+                });
+                await flushPromises();
 
-            await editAndSubmit(result, "quantity", 2);
+                await editAndSubmit(result, "quantity", 2);
 
-            // `total` is displayed and `notes` is fetched but not displayed. Sending `notes` back would
-            // overwrite a change another user made after this form loaded.
-            expect(saves).toHaveLength(1);
-            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
-        });
+                // `total` is displayed and `notes` is fetched but not displayed. Sending `notes` back would
+                // overwrite a change another user made after this form loaded.
+                expect(saves).toHaveLength(1);
+                expect(saves[0].body).toEqual({ quantity: 2 });
+                expect(saves[0].pk).toBe("42");
+            },
+        );
 
         scopedIt("requests fetchFields in the save response and exposes them on the save result", async () => {
             const { default: flushPromises } = await import("flush-promises");
@@ -685,7 +692,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
             await editAndSubmit(result, "quantity", 3);
             expect(saves).toHaveLength(2);
-            expect(saves[1].body).toEqual({ quantity: 3, id: "42" });
+            expect(saves[1].body).toEqual({ quantity: 3 });
             expect(result.instanceObject.state.object.total).toBe(15);
             expect(result.objectForm.state.object.total).toBe(15);
         });
@@ -701,7 +708,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
             await editAndSubmit(result, "quantity", 2);
 
-            expect(saves[0].body).toEqual({ quantity: 2, notes: "packed", id: "42" });
+            expect(saves[0].body).toEqual({ quantity: 2, notes: "packed" });
         });
 
         scopedIt("keeps falsy submitted values and still drops ignored fields", async () => {
@@ -727,7 +734,7 @@ describe("lib/use/useViewUpdate.js", () => {
             result.formContext.ignore("photo");
             await editAndSubmit(result, "quantity", 0);
 
-            expect(saves[0].body).toEqual({ quantity: 0, active: false, note: null, tags: [], id: "42" });
+            expect(saves[0].body).toEqual({ quantity: 0, active: false, note: null, tags: [] });
         });
 
         scopedIt("sends a nested value whole under a top-level entry and narrows a dotted entry", async () => {
@@ -754,7 +761,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
             await editAndSubmit(result, "quantity", 2);
 
-            expect(saves[0].body).toEqual({ quantity: 2, lines, address: { city: "Calgary" }, id: "42" });
+            expect(saves[0].body).toEqual({ quantity: 2, lines, address: { city: "Calgary" } });
         });
 
         scopedIt("saves to the edited object's URL through the default update handler", async () => {
@@ -770,8 +777,8 @@ describe("lib/use/useViewUpdate.js", () => {
             );
             vi.stubGlobal("fetch", fetchMock);
             try {
-                // The server returns an integer pk while the route pk is the string "42", so the body's
-                // "42" shows that the save takes its pk from the route, not from the retrieved object.
+                // The server returns the integer 42 while the route's object key is the string "42", so the
+                // URL shows that the save takes its object key from the route, not from the retrieved object.
                 const { result } = await buildSelectionViewUpdate({
                     config: orderConfig,
                     retrieved: { ...orderRetrieved, id: 42 },
@@ -786,7 +793,7 @@ describe("lib/use/useViewUpdate.js", () => {
                 const [url, options] = fetchMock.mock.calls[0];
                 expect(new URL(url, "http://domain.invalid").pathname).toBe("/routes/testapp/test_model/42/");
                 expect(options.method).toBe("PUT");
-                expect(JSON.parse(options.body)).toEqual({ quantity: 2, id: "42" });
+                expect(JSON.parse(options.body)).toEqual({ quantity: 2 });
             } finally {
                 vi.unstubAllGlobals();
             }
@@ -836,9 +843,9 @@ describe("lib/use/useViewUpdate.js", () => {
                 return Promise.resolve({ id: "42", quantity: 1, items: cloneDeep(items) });
             });
             const saves = [];
-            const update = vi.fn(({ object, params }) => {
+            const update = vi.fn(({ object, pk, params }) => {
                 saves.push({ body: cloneDeep(object), expand: params[EXPAND_PARAM] });
-                return Promise.resolve({ ...object });
+                return Promise.resolve({ id: pk, ...object });
             });
             let callCount = 0;
             useObject.mockImplementation((options) => {
@@ -864,7 +871,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
             expect(retrieves[0].expand).toEqual([]);
             expect(saves).toHaveLength(1);
-            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
+            expect(saves[0].body).toEqual({ quantity: 2 });
             expect(saves[0].expand).toEqual([]);
         });
 
@@ -880,7 +887,7 @@ describe("lib/use/useViewUpdate.js", () => {
 
                 expect(retrieves[0].expand).toEqual(["items"]);
                 expect(saves).toHaveLength(1);
-                expect(saves[0].body).toEqual({ quantity: 2, items, id: "42" });
+                expect(saves[0].body).toEqual({ quantity: 2, items });
                 expect(saves[0].expand).toEqual(["items"]);
             });
         }
@@ -890,7 +897,7 @@ describe("lib/use/useViewUpdate.js", () => {
             const { retrieves, saves } = await buildReverseForeignKeyViewUpdate({ expand: ["items"] });
 
             expect(retrieves[0].expand).toEqual([]);
-            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
+            expect(saves[0].body).toEqual({ quantity: 2 });
             expect(saves[0].expand).toEqual([]);
         });
 
@@ -898,7 +905,7 @@ describe("lib/use/useViewUpdate.js", () => {
             props.submitFields = ["quantity", "items"];
             const { saves } = await buildReverseForeignKeyViewUpdate({ expand: [] });
 
-            expect(saves[0].body).toEqual({ quantity: 2, items, id: "42" });
+            expect(saves[0].body).toEqual({ quantity: 2, items });
             expect(saves[0].expand).toEqual([]);
         });
     });

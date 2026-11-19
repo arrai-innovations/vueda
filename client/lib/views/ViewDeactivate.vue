@@ -27,7 +27,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or array of primary keys identifying the instances to deactivate. */
+    /** Object key or array of object keys identifying the instances to deactivate. */
     pk: {
         type: [String, Array],
         required: true,

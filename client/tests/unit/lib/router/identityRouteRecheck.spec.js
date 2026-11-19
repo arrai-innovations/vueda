@@ -34,7 +34,10 @@ const urls = {
     infoModelInfo: "/info/model-info/",
     workflowUserPermittedTransitions: "/workflow/permitted/",
 };
-vi.mock("@vueda/utils/urls.js", () => ({ getUrl: vi.fn((name) => urls[name] ?? `/unhandled/${name}/`) }));
+vi.mock("@vueda/utils/urls.js", async (importOriginal) => ({
+    ...(await importOriginal()),
+    getUrl: vi.fn((name) => urls[name] ?? `/unhandled/${name}/`),
+}));
 vi.mock("@vueda/utils/connectionHostname.js", () => ({ httpOrHttpsHostname: "http://host" }));
 vi.mock("@vueda/utils/csrf.js", () => ({ getCSRFValue: vi.fn(() => "csrf") }));
 

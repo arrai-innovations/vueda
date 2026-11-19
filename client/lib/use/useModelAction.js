@@ -7,6 +7,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getActionRequestMethod } from "@vueda/utils/actionMap.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
+import { lookupFieldOf } from "@vueda/utils/objectKeys.js";
 import startCase from "lodash-es/startCase.js";
 import { computed, reactive, ref, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -16,7 +17,7 @@ import { useRoute, useRouter } from "vue-router";
  * @property {string} app - Django app label that owns the model.
  * @property {string} model - Django model name the action targets.
  * @property {string} action - Action identifier sent to the server.
- * @property {string|string[]|number|number[]} [pk] - Optional primary key or primary keys when no fetch state is ready.
+ * @property {string|string[]|number|number[]} [pk] - Optional object key or object keys when no fetch state is ready.
  * @property {string} [actionVerboseName] - Human-readable action name.
  * @property {string} [actionSuccessSummary] - Toast summary shown on successful action completion.
  * @property {string} [actionErrorSummary] - Toast summary shown when the action fails.
@@ -51,11 +52,11 @@ import { useRoute, useRouter } from "vue-router";
  * @typedef {object} ModelActionRawState
  *
  * Target state.
- * @property {import('vue').ComputedRef<unknown[]>} pks - Primary keys targeted by the action.
- * @property {import('vue').ComputedRef<string[]>} pksAsString - String primary keys for rendering.
- * @property {import('vue').ComputedRef<boolean>} bulk - Whether more than one primary key is targeted.
- * @property {import('vue').ComputedRef<number>} pkCount - Number of primary keys targeted.
- * @property {import('vue').ComputedRef<Map<string, object>>} objectsMap - Selected objects by string primary key.
+ * @property {import('vue').ComputedRef<unknown[]>} pks - Object keys targeted by the action.
+ * @property {import('vue').ComputedRef<string[]>} pksAsString - String object keys for rendering.
+ * @property {import('vue').ComputedRef<boolean>} bulk - Whether more than one object key is targeted.
+ * @property {import('vue').ComputedRef<number>} pkCount - Number of object keys targeted.
+ * @property {import('vue').ComputedRef<Map<string, object>>} objectsMap - Selected objects by string object key.
  *
  * Copy state.
  * @property {import('vue').ComputedRef<string>} modelVerboseName - Singular or plural model name.
@@ -70,7 +71,7 @@ import { useRoute, useRouter } from "vue-router";
  *  (a target is present, dry-run is enabled, model info has loaded, and the action instance is idle). Model info gives
  *  the action's URL segment and request method, so the dry run waits for it. Carries no per-target memory of its
  *  own; pair it with `dryRunTarget` so the dry-run trigger latches per target instead of re-firing on every idle tick.
- * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and primary keys,
+ * @property {import('vue').ComputedRef<string>} dryRunTarget - Identity of the app, model, action, and object keys,
  *  for a consumer to key its own "already dry-ran this one" bookkeeping off of.
  *
  * Permission state.
@@ -96,10 +97,10 @@ import { useRoute, useRouter } from "vue-router";
  */
 
 /**
- * Normalizes a scalar, array, or empty primary key value into an array.
+ * Normalizes a scalar, array, or empty object key value into an array.
  *
- * @param {unknown|unknown[]} value - Raw primary key input.
- * @returns {unknown[]} Normalized primary keys.
+ * @param {unknown|unknown[]} value - Raw object key input.
+ * @returns {unknown[]} Normalized object keys.
  */
 function normalizePks(value) {
     if (Array.isArray(value)) {
@@ -124,8 +125,10 @@ export function useModelAction(props) {
     const route = useRoute();
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
+    // The model's lookup field: its value is each object's key in URLs and in bulk `pks` bodies.
+    const pkKey = computed(() => lookupFieldOf(modelConfig.info));
     const pks = computed(() => {
-        const objectPks = props.fetchState?.objectsInOrder?.map((obj) => obj?.id ?? obj) || [];
+        const objectPks = props.fetchState?.objectsInOrder?.map((obj) => obj?.[pkKey.value] ?? obj) || [];
         return objectPks.length > 0 ? objectPks : normalizePks(props.pk);
     });
     const pksAsString = computed(() => pks.value.map((pk) => pk.toString()));
@@ -135,7 +138,6 @@ export function useModelAction(props) {
 
     // Bulk actions need a list instance so destroy can reconcile selected rows. Use the caller's list when provided;
     // otherwise create a private list only for transport. Single-object actions use an object instance owned here.
-    const pkKey = computed(() => modelConfig.info?.pk ?? "id");
     const target = reactive({ app: toRef(props, "app"), model: toRef(props, "model") });
     const fallbackInstanceList = props.instanceList
         ? undefined

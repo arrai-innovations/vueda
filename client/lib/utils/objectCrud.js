@@ -44,7 +44,7 @@ const makeSearchParamsString = (searchParams) => {
  *     model:string,
  *     action?:string,
  * }} args.target - VUEDA specific arguments for the CRUD operation.
- * @param {string} args.pk - The primary key of the object to retrieve.
+ * @param {string} args.pk - The object key of the object to retrieve, the value of the model's lookup field.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} -
  *  A cancellable promise.
@@ -141,17 +141,20 @@ export function defaultObjectCreate({ target, object, params, acknowledgeWarning
  *     action?: string,
  * }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {import("@arrai-innovations/reactive-helpers").CrudObject} args.object - The object to update.
- * @param {string} args.pkKey - The primary key field name on the object. Defaults to `id`.
+ * @param {string} [args.pk] - The object key of the object to update, which the request URL carries. Pass it when the
+ *  body may change the lookup field, so the request still targets the stored object.
+ * @param {string} args.pkKey - The lookup field name on the object, which gives the object key when `pk` is omitted.
+ *  Defaults to `id`.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
  * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} -
  *  A cancellable promise.
  */
-export function defaultObjectUpdate({ target, object, pkKey = "id", params, acknowledgeWarnings }) {
+export function defaultObjectUpdate({ target, object, pk, pkKey = "id", params, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model, action } = target;
-    const pk = object[pkKey];
+    const objectKey = pk ?? object[pkKey];
     const query = params ? makeSearchParamsString(params) : "";
-    const url = getDetailUrl({ app, model, pk, action, query });
+    const url = getDetailUrl({ app, model, pk: objectKey, action, query });
 
     const body = encodeObjectBody(object);
     const headers = {
@@ -197,7 +200,7 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params, ackn
  *     model: string,
  *     action?: string,
  * }} args.target - VUEDA specific arguments for the CRUD operation.
- * @param {string} args.pk - The primary key of the object to patch.
+ * @param {string} args.pk - The object key of the object to patch, the value of the model's lookup field.
  * @param {object} args.partialObject - The partial object to patch.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
  * @param {string} [args.acknowledgeWarnings] - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
@@ -250,7 +253,7 @@ export function defaultObjectPatch({ target, pk, partialObject, params, acknowle
  *
  * @param {object} args - The arguments object.
  * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
- * @param {string} args.pk - The primary key of the object to delete.
+ * @param {string} args.pk - The object key of the object to delete, the value of the model's lookup field.
  * @param {object} args.deleteArgs - The arguments to be passed to the delete function.
  * @param {object} [args.formData] - Extra fields submitted alongside the delete, sent as the request body.
  * @param {boolean} [args.dryRun] - Dry-run requests treat a server `200` as success; real deletes still require `204`.
@@ -286,7 +289,7 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
  *
  * @param {object} args - The arguments object.
  * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
- * @param {string} args.pk - The primary key of the object to act on.
+ * @param {string} args.pk - The object key of the object to act on, the value of the model's lookup field.
  * @param {string} args.action - The action name, as model info reports it.
  * @param {string} [args.urlPath] - The url's action segment. `useModelAction` passes the `urlPath` that model info
  *  reports for the action. Defaults to `action`.

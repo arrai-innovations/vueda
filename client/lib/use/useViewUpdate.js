@@ -33,6 +33,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { formModelExpand } from "@vueda/use/useFormModelProps.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { lookupFieldOf } from "@vueda/utils/objectKeys.js";
 import { omitUnexpandedReverseForeignKeys } from "@vueda/utils/reverseForeignKey.js";
 import { computed, reactive, toRef, unref } from "vue";
 
@@ -45,13 +46,13 @@ const VIEW_NAME = "update";
  * Required identification.
  * @property {string} app - Django app label that owns the model.
  * @property {string} model - Django model name.
- * @property {string} pk - Primary key of the instance to fetch and edit.
+ * @property {string} pk - Object key of the instance to fetch and edit.
  *
  * Optional data-fetching overrides.
  * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response;
  *  overrides the model config default when non-empty.
- * @property {string[]} [submitFields] - Field paths sent in the update request body, which also carries the primary
- *  key. Overrides the model config default when non-empty.
+ * @property {string[]} [submitFields] - Field paths sent in the update request body. Overrides the model config default
+ *  when non-empty.
  * @property {{ [key: string]: object }} [relatedObjectRules] - Rules for fetching related objects alongside the
  *  instance.
  * @property {{ [key: string]: object }} [calculatedObjectRules] - Rules for deriving calculated objects alongside the
@@ -158,12 +159,12 @@ export function useViewUpdate(options) {
             app: toRef(options, "app"),
             model: toRef(options, "model"),
         },
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        pkKey: computed(() => lookupFieldOf(modelConfig.info)),
         pk: toRef(options, "pk"),
         params: {
             [FIELDS_PARAM]: computed(() => {
                 const fields = [...(fetchFields.value ?? [])];
-                const pkKey = modelConfig.info?.pk ?? "id";
+                const pkKey = lookupFieldOf(modelConfig.info);
                 if (!fields.includes(pkKey)) {
                     fields.push(pkKey);
                 }

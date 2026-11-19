@@ -26,7 +26,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or array of primary keys identifying the instances to activate. */
+    /** Object key or array of object keys identifying the instances to activate. */
     pk: {
         type: [String, Array],
         required: true,

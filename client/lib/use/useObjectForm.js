@@ -24,7 +24,8 @@ import { useRouter } from "vue-router";
  * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
  * @property {string[]} [submitFields] - Field paths to send in the request body. A top-level name sends that
  *  field's whole value; a dotted path sends only that nested value. When omitted, every non-ignored form value
- *  is sent. An update body also carries the object's primary key, which names the object to save.
+ *  is sent. An update request names the object to save by its object key in the URL, so the body keeps the
+ *  submitted value of an editable lookup field.
  */
 
 /**
@@ -43,8 +44,8 @@ import { useRouter } from "vue-router";
  * @property {boolean} modified - Whether the form has changes from the initial values.
  * @property {string} firstErrorField - The name of the first field with an error.
  * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
- * @property {string} pkKey - The primary key field name.
- * @property {string} pk - The primary key value.
+ * @property {string} pkKey - The lookup field name, whose value is the object key.
+ * @property {string} pk - The object key that the form requested.
  * @property {object} object - The object being edited.
  */
 
@@ -227,6 +228,15 @@ export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, fo
 /**
  * Default implementation for onSubmissionSuccess hook.
  *
+ * It shows a success toast, then goes to the view that `redirectAfter` names. An update with no `redirectAfter`
+ * stays on the page. When that update changed the object's key, the hook replaces the current detail route with
+ * one that carries the saved key. It does this only when the current route is the detail route of this form's
+ * app, model, and requested key.
+ *
+ * A view that takes its object key from the route receives the saved key through that route. A view that gets its
+ * object key from somewhere else, such as a parent component's prop, keeps the old key. That view must update its
+ * own `pk` after a save that changes the key. One way is to pass an `onSubmissionSuccess` hook that does so.
+ *
  * @param {object} options
  * @param {boolean} options.isUpdate - Whether it was a create or update submission.
  * @param {import("@arrai-innovations/vue-sonner").toast} options.toast - The toast service.
@@ -278,8 +288,29 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
                 pk: state.object[state.pkKey],
             },
         });
+    } else if (isUpdate) {
+        // Stay on the same page. A save that changed the object's lookup field changed its object key,
+        // so the detail route of this form's object moves to the new key. That route names the form's
+        // app, model, and old key.
+        const savedKey = String(state.object[state.pkKey] ?? "");
+        const route = router.currentRoute.value;
+        if (
+            route.name === DETAIL_VIEW_CRUD_NAME &&
+            savedKey !== "" &&
+            String(route.params.app) === String(state.app) &&
+            String(route.params.model) === String(state.model) &&
+            String(route.params.pk) === String(state.pk) &&
+            savedKey !== String(state.pk)
+        ) {
+            // A named location lets the router percent-encode the key in the URL.
+            await router.replace({
+                name: route.name,
+                params: { ...route.params, pk: savedKey },
+                query: route.query,
+                hash: route.hash,
+            });
+        }
     }
-    // else, stay on the same page.
 };
 
 /**
@@ -370,8 +401,8 @@ export function useObjectForm({ props, formContext, instanceObject }) {
         firstErrorField: computed(() => props.firstErrorField),
         redirectAfter: computed(() => props.redirectAfter),
         pkKey: computed(() => instanceObject.state.pkKey),
-        // what we requested the pk to be, not what the server returned.
-        // in success after create, state.object[state.pkKey] will have the new pk.
+        // The object key that this form requested, not what the server returned. After a save,
+        // state.object[state.pkKey] holds the saved object's key, which the redirect uses.
         pk: computed(() => instanceObject.state.pk),
         object: computed(() => instanceObject.state.object),
     });
@@ -525,12 +556,11 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             const formValues = props.submitFields
                 ? pick(formContext.state.submittingValues, props.submitFields)
                 : formContext.state.submittingValues;
-            const { pk, pkKey } = instanceObject.state;
-            // The update handler builds the request URL from the body's primary key. The instance's
-            // pk goes in last, so every save targets the object that this form edits.
-            const args = {
-                object: isUpdate ? { ...formValues, [pkKey]: pk } : { ...formValues },
-            };
+            // The update handler builds the request URL from `pk`, the stored object's key, so every save
+            // targets the object that this form edits, even one that changes its own lookup field.
+            const args = isUpdate
+                ? { object: { ...formValues }, pk: instanceObject.state.pk }
+                : { object: { ...formValues } };
             await performAndHandle(createOrUpdate, args, isUpdate, generation);
         } catch (e) {
             // errors here are outside the normal course for expected errors

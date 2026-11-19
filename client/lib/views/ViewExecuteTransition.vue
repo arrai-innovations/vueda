@@ -41,7 +41,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key(s) of the object(s) to transition; pass an array for a bulk transition. */
+    /** Object key(s) of the object(s) to transition; pass an array for a bulk transition. */
     pk: {
         type: [String, Number, Array],
         default: undefined,

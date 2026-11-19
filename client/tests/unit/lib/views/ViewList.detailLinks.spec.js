@@ -71,7 +71,7 @@ beforeEach(() => {
         errored: false,
         error: null,
         clearError: vi.fn(),
-        info: { pk: "id" },
+        info: { pk: "id", lookupField: "id" },
         config: {
             detailLinkField: "reference",
             displayFields: ["reference", "note"],
@@ -151,8 +151,8 @@ describe("lib/views/ViewList.vue", () => {
             ]);
         });
 
-        scopedIt("uses the model's primary key and the field's formatted value", async () => {
-            modelConfig.info.pk = "uuid";
+        scopedIt("uses the model's lookup field and the field's formatted value", async () => {
+            modelConfig.info.lookupField = "uuid";
             modelConfig.config.fieldDetails.reference.formatted = "display_reference";
             instanceList.state.objectsInOrder = [
                 {

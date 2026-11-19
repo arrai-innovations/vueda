@@ -11,7 +11,9 @@ import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelAction } from "@vueda/use/useModelAction.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { LOOKUP_PARAM } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { lookupFieldOf } from "@vueda/utils/objectKeys.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import ActionForm from "@vueda/views/ActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
@@ -56,7 +58,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or primary keys used when selected objects have not been fetched yet. */
+    /** Object key or object keys used when selected objects have not been fetched yet. */
     pk: {
         type: [String, Number, Array],
         default: undefined,
@@ -91,7 +93,7 @@ const props = defineProps({
     },
     /**
      * Reactive fetch state object providing the list of selected objects and their data. Without it, the form looks the
-     * selected records up by primary key so its chips can show their formatted names. That lookup is for display only
+     * selected records up by object key so its chips can show their formatted names. That lookup is for display only
      * and never changes which records the action targets.
      */
     fetchState: {
@@ -233,17 +235,17 @@ const {
 } = modelAction.state;
 const redirectTo = modelAction.redirectTo;
 // A host that fetches the selected records passes them as `fetchState`. Without one, look the
-// records up here, so each chip shows the record's formatted name rather than its primary key.
+// records up here, so each chip shows the record's formatted name rather than its object key.
 // The lookup is for display only: the action still targets the `pk` prop, and a failed lookup
-// leaves the chips showing primary keys without blocking the confirm button.
+// leaves the chips showing object keys without blocking the confirm button.
 const isActive = useIsActive();
 const selectedObjectsLookup = props.fetchState
     ? null
     : useList({
           props: reactive({
               target: { app: toRef(props, "app"), model: toRef(props, "model") },
-              pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-              params: { id: pksAsString },
+              pkKey: computed(() => lookupFieldOf(modelConfig.info)),
+              params: { [LOOKUP_PARAM]: pksAsString },
               intendToList: computed(
                   () => !!(isActive.value && pksAsString.value.length > 0 && modelConfig.loading === false),
               ),

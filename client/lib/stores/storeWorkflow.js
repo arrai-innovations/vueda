@@ -15,7 +15,7 @@ import {
     FormValidationError,
 } from "@vueda/utils/errors.js";
 import { fetchHelper } from "@vueda/utils/fetchSupport.js";
-import { getUrl } from "@vueda/utils/urls.js";
+import { encodeObjectKey, getUrl } from "@vueda/utils/urls.js";
 import { defineStore } from "pinia";
 import { unref } from "vue";
 
@@ -184,8 +184,7 @@ const workflowUserPermittedTransitionsUrl = (result) => {
     // Replace placeholders with actual values from the result object
     const urlWithVariables = routeTemplate
         .replace(":app", memoizedSnakeCase(result.app))
-        .replace(":model", memoizedSnakeCase(result.model))
-        .replace(":pk", result.pk);
+        .replace(":model", memoizedSnakeCase(result.model));
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
 const objectHistoriesUrl = (result) => {
@@ -194,7 +193,7 @@ const objectHistoriesUrl = (result) => {
     const urlWithVariables = routeTemplate
         .replace(":app", memoizedSnakeCase(result.app))
         .replace(":model", memoizedSnakeCase(result.model))
-        .replace(":pk", result.pk);
+        .replace(":pk", encodeObjectKey(result.pk));
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
 const executeTransitionUrl = (result) => {
@@ -204,7 +203,7 @@ const executeTransitionUrl = (result) => {
         .replace(":app", memoizedSnakeCase(result.app))
         .replace(":model", memoizedSnakeCase(result.model));
     if (!Array.isArray(result.pk)) {
-        urlWithVariables = urlWithVariables + `${result.pk}/`;
+        urlWithVariables = urlWithVariables + `${encodeObjectKey(result.pk)}/`;
     }
     return `${httpOrHttpsHostname}${urlWithVariables}`;
 };
@@ -263,7 +262,7 @@ export const storeWorkflow = defineStore("workflow", {
             errors: createErrorPromiseStructure(),
             /**
              * The in-flight fetches, in one bucket per cache. Each object bucket is keyed by app and model
-             * dot name, then by object primary key. Each model bucket is keyed by app and model dot name. A
+             * dot name, then by object key. Each model bucket is keyed by app and model dot name. A
              * fetch removes its entry when it settles.
              *
              * @type {{
@@ -274,7 +273,7 @@ export const storeWorkflow = defineStore("workflow", {
             promises: createErrorPromiseStructure(),
             /**
              * The recorded workflow states of each fetched object, oldest first, keyed by app and model
-             * dot name, then by object primary key.
+             * dot name, then by object key.
              *
              * @type {{[appModelDotName: string]: {[objectPk: string]: WorkflowHistoryEntry[]}}}
              */
@@ -422,7 +421,7 @@ export const storeWorkflow = defineStore("workflow", {
          *
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
-         * @param {string} objectPk - The object's primary key.
+         * @param {string} objectPk - The object's key, the value of the model's lookup field.
          * @returns {Promise<WorkflowHistoryEntry[]>} A promise for the object's history, oldest first. It
          *  resolves to an empty array when workflow is off or the model does not enable it. It rejects
          *  with `WorkflowError` when the request fails. The server answers with a 404 for an object that
@@ -515,7 +514,7 @@ export const storeWorkflow = defineStore("workflow", {
          *
          * @param {string} app - The app label.
          * @param {string} model - The model name.
-         * @param {string|number} objectPk - The object's primary key.
+         * @param {string|number} objectPk - The object's key, the value of the model's lookup field.
          * @returns {void}
          */
         forgetObjectHistory(app, model, objectPk) {
@@ -534,7 +533,8 @@ export const storeWorkflow = defineStore("workflow", {
          *
          * @param {string} app - Django app label.
          * @param {string} model - Model name.
-         * @param {string|string[]} objectPk - The object's primary key, or an array of keys for a bulk run.
+         * @param {string|string[]} objectPk - The object's key, the value of the model's lookup field, or an array of
+         *  keys for a bulk run.
          * @param {string} transitionCode - The code of the transition to run.
          * @param {import('vue-router').Router} [router] - The router to navigate with after the run.
          * @param {{[stateCode: string]: import('vue-router').RouteLocationRaw}} [stateToRoute] - The route
@@ -546,7 +546,7 @@ export const storeWorkflow = defineStore("workflow", {
          *     {new_state: WorkflowState, new_transitions: WorkflowTransition[]}|
          *     {[objectPk: string]: {new_state: WorkflowState, new_transitions: WorkflowTransition[]}}|
          *     Array
-         * >} A promise for the server response. A bulk run resolves to one result per primary key. It
+         * >} A promise for the server response. A bulk run resolves to one result per object key. It
          *  resolves to an empty array when workflow is off. It rejects with `FormValidationError` on a
          *  400, `ConfirmationRequiredError` on a 409, and `WorkflowError` for other failures.
          */

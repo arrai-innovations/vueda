@@ -107,7 +107,7 @@ const props = defineProps({
         default: "lg",
         description: "When to switch to table layout.",
     },
-    /** Name of the field used as the primary key for row identity. */
+    /** Name of the property whose value identifies each row. */
     pkKey: {
         type: String,
         default: "id",

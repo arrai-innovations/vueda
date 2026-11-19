@@ -272,6 +272,21 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(options).toEqual({ method: "GET" });
         });
 
+        scopedIt("percent-encodes the object key in the workflow-state-history route", async () => {
+            storeModelInfo().infos[getAppModelDotName({ app: "store", model: "CustomerOrder" })] = {
+                workflowEnabled: true,
+            };
+            mockedFetchHelper.mockResolvedValue(history);
+            const store = storeWorkflow();
+
+            await store.fetchObjectHistory("store", "CustomerOrder", "SO #7");
+
+            const [url] = mockedFetchHelper.mock.calls[0];
+            expect(new URL(url).pathname).toBe(
+                "/routes/vueda.history/workflow-state-history/store/customer_order/SO%20%237/",
+            );
+        });
+
         scopedIt("rejects with the WorkflowError for an object without a workflow state, and caches it", async () => {
             // the server answers `{"detail": "Object does not have a workflow state history."}` with a 404
             const error = new storeWorkflowModule.WorkflowError(
@@ -476,6 +491,19 @@ describe("lib/stores/storeWorkflow.js", () => {
 
         const options = mockedFetchHelper.mock.calls[0][1];
         expect(options.headers["Acknowledge-Warnings"]).toBe("digest123");
+    });
+
+    scopedIt("executeTransition percent-encodes the object key in the transition URL", async () => {
+        mockedFetchHelper.mockResolvedValue({
+            new_state: { code: "closed", name: "Closed" },
+            new_transitions: [],
+        });
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", "SO #7", "close");
+
+        const [url] = mockedFetchHelper.mock.calls[0];
+        expect(new URL(url).pathname).toBe("/routes/vueda.workflow/workflows/app/model/execute-transition/SO%20%237/");
     });
 
     scopedIt("executeTransition omits Acknowledge-Warnings header when not acknowledging", async () => {

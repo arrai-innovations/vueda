@@ -1,4 +1,5 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
+import { DETAIL_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
@@ -173,6 +174,109 @@ describe("lib/use/useObjectForm.js", () => {
         expect(routerPush).toHaveBeenCalled();
     });
 
+    describe("defaultOnSubmissionSuccess after an update that stays on the page", () => {
+        const runUpdateSuccess = async ({ requestedKey, savedKey, route }) => {
+            const state = reactive({
+                redirectAfter: null,
+                verboseName: "invoice",
+                app: "billing",
+                model: "invoice",
+                pkKey: "invoice_sage_id",
+                pk: requestedKey,
+                object: { id: 5, invoice_sage_id: savedKey },
+            });
+            const router = {
+                push: routerPush,
+                replace: vi.fn().mockResolvedValue(undefined),
+                currentRoute: ref(route),
+            };
+            await defaultOnSubmissionSuccess({ isUpdate: true, state, toast: toastMock, router });
+            return router;
+        };
+        const detailRoute = (pk) => ({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: { app: "billing", model: "invoice", action: "update", pk },
+            query: { tab: "lines" },
+        });
+
+        scopedIt("moves a detail route to the saved object key when the save changed it", async () => {
+            const router = await runUpdateSuccess({
+                requestedKey: "SAGE-1",
+                savedKey: "SAGE-2",
+                route: detailRoute("SAGE-1"),
+            });
+            expect(router.replace).toHaveBeenCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { ...detailRoute("SAGE-1").params, pk: "SAGE-2" },
+                query: { tab: "lines" },
+                hash: undefined,
+            });
+            expect(routerPush).not.toHaveBeenCalled();
+        });
+
+        scopedIt("percent-encodes a saved object key in the new URL", async () => {
+            const { createMemoryHistory, createRouter } = await vi.importActual("vue-router");
+            const router = createRouter({
+                history: createMemoryHistory(),
+                routes: [{ path: "/:app/:model/:action/:pk", name: DETAIL_VIEW_CRUD_NAME, component: {} }],
+            });
+            await router.push("/billing/invoice/update/SAGE-1?tab=lines#totals");
+            const state = reactive({
+                redirectAfter: null,
+                verboseName: "invoice",
+                app: "billing",
+                model: "invoice",
+                pkKey: "invoice_sage_id",
+                pk: "SAGE-1",
+                object: { id: 5, invoice_sage_id: "SAGE 2?#%" },
+            });
+
+            await defaultOnSubmissionSuccess({ isUpdate: true, state, toast: toastMock, router });
+
+            expect(router.currentRoute.value.fullPath).toBe(
+                "/billing/invoice/update/SAGE%202%3F%23%25?tab=lines#totals",
+            );
+            expect(router.currentRoute.value.params.pk).toBe("SAGE 2?#%");
+        });
+
+        scopedIt("keeps the route when the object key is unchanged", async () => {
+            const router = await runUpdateSuccess({
+                requestedKey: "SAGE-1",
+                savedKey: "SAGE-1",
+                route: detailRoute("SAGE-1"),
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps a route that names a different object", async () => {
+            const router = await runUpdateSuccess({
+                requestedKey: "SAGE-1",
+                savedKey: "SAGE-2",
+                route: detailRoute("SAGE-9"),
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps a detail route of another model that names the same key", async () => {
+            const route = detailRoute("SAGE-1");
+            const router = await runUpdateSuccess({
+                requestedKey: "SAGE-1",
+                savedKey: "SAGE-2",
+                route: { ...route, params: { ...route.params, model: "payment" } },
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps a route that is not a detail route", async () => {
+            const router = await runUpdateSuccess({
+                requestedKey: "SAGE-1",
+                savedKey: "SAGE-2",
+                route: { name: "dashboard", params: {}, query: {} },
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+    });
+
     scopedIt("submit calls create and success path", async () => {
         const props = reactive({
             app: "app",
@@ -261,18 +365,18 @@ describe("lib/use/useObjectForm.js", () => {
             expect(instanceObject.create).toHaveBeenCalledWith({ object: { name: "test" } });
         });
 
-        scopedIt("adds the instance's primary key to an update body under pkKey", async () => {
+        scopedIt("names the edited object by the instance's object key, outside the update body", async () => {
             const { instanceObject, submit } = buildSubmit("7");
             await submit();
             await flushPromises();
-            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: "7" } });
+            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test" }, pk: "7" });
         });
 
-        scopedIt("keeps the instance's primary key when submitFields names a different form value", async () => {
+        scopedIt("sends a changed lookup field value in the body and the stored object key as pk", async () => {
             const { instanceObject, submit } = buildSubmit("7", ["id", "name"]);
             await submit();
             await flushPromises();
-            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: "7" } });
+            expect(instanceObject.update).toHaveBeenCalledWith({ object: { id: "9", name: "test" }, pk: "7" });
         });
     });
 

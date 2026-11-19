@@ -21,7 +21,7 @@ import { useRouter } from "vue-router";
  * and the route guards still enforce access on the linked page.
  *
  * The link targets the first view that is available and resolves to a route. A view that needs a
- * primary key resolves only when `pk` is set. `linkable` is true when such a view exists. While the
+ * object key resolves only when `pk` is set. `linkable` is true when such a view exists. While the
  * target model's info loads, and after it fails to load, no view is available, so `linkable` is
  * false. When no view is linkable, the target is the first view in the list, so a button keeps
  * its href and disabled state.
@@ -70,7 +70,7 @@ export const useLinkModelView = (props) => {
     const router = useRouter();
     // One entry per view in the list: the view, whether it is available, and its resolved route when
     // it has one. Availability and the route come from the same model info, so a view becomes
-    // linkable only together with the route that its primary key requirement produces. Every
+    // linkable only together with the route that its object key requirement produces. Every
     // reactive read happens before the first await, so computedAsync tracks each value that the
     // entries depend on, including the items of a pk array.
     const candidates = computedAsync(async () => {
