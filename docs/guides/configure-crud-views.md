@@ -67,7 +67,7 @@ Each call replaces what it names. A model-wide object replaces the stored model-
 
 Each view uses the three field lists this way:
 
-- {@api vue:component:ViewList} requests `fetchFields` and renders a column for each `displayFields` entry. It always adds the pk to the request. When you name only `displayFields`, the list's `fetchFields` follow them. The list's [`displayFields`]{@api vue:component:ViewList:prop:displayFields} prop replaces the column list for one list, and its [`fetchFields`]{@api vue:component:ViewList:prop:fetchFields} prop replaces the fetch list. Its [`fieldDetails`]{@api vue:component:ViewList:prop:fieldDetails} prop overrides keys of each field's `fieldDetails` entry for that list. The columns and the sort controls both use these details.
+- {@api vue:component:ViewList} requests `fetchFields` and renders a column for each `displayFields` entry. It always adds the model's lookup field to the request, because each row's {@term Object Key} comes from that field. When you name only `displayFields`, the list's `fetchFields` follow them. The list's [`displayFields`]{@api vue:component:ViewList:prop:displayFields} prop replaces the column list for one list, and its [`fetchFields`]{@api vue:component:ViewList:prop:fetchFields} prop replaces the fetch list. Its [`fieldDetails`]{@api vue:component:ViewList:prop:fieldDetails} prop overrides keys of each field's `fieldDetails` entry for that list. The columns and the sort controls both use these details.
 - {@api vue:component:ViewRead} and {@api vue:component:ViewUpdate} retrieve `fetchFields` and `expand` through {@api js:function:@arrai-innovations/vueda/use/useDetailView#useDetailView}. They also request the object's {@term Available Actions}, and its `formatted_name` for the record name heading when the model info lists that field. A `formatted_name` requested only for the heading stays out of the form's values.
 - {@api vue:component:ViewCreate} and `ViewUpdate` render `displayFields`, and create derives its initial values from them. The form's [`fields`]{@api vue:component:FormModel:prop:fields} prop replaces the list. Both views take [`fields`]{@api vue:component:ViewCreate:prop:fields} as their own prop.
 
@@ -75,9 +75,9 @@ A save uses all three lists:
 
 - `displayFields` selects the fields that the form renders.
 - `submitFields` selects the values that the request body carries. A value outside `submitFields` stays out of the body, even when the form shows it.
-- `fetchFields` selects the fields that the save response returns, through {@term Sparse Fields}. Both views add the pk.
+- `fetchFields` selects the fields that the save response returns, through {@term Sparse Fields}. Both views add the model's lookup field.
 
-An update body also carries the pk of the object that the view edits. The update saves to that object, even when `submitFields` names the pk.
+An update request names the object that the view edits by its object key in the URL. The update saves to that object, even when `submitFields` names the lookup field and the form changes its value.
 
 A top-level `submitFields` name, such as `lines`, sends that field's whole value, including nested inline rows. A dotted path, such as `address.city`, sends only that nested value. Do not name a subfield of an expanded relation: the view's config then fails to build, with an error that names the path.
 

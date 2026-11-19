@@ -61,7 +61,7 @@ A bulk delete is a `DELETE` request on the list route with a `pks` array in the 
 1. It applies queryset filtering to the requested rows with the action name `"delete"`. This runs `check_queryset`, the state-permission pass, and `check_queryset_workflow`, as for `list`.
 2. {@api py:function:vueda.core.viewsets.VuedaViewSet.apply_object_permission_filter} runs the object permission check on each remaining row. It drops a row on any refusal from that check. That includes the `404` raised when the user can neither delete nor read the row, and a Django {@api ext:django:django.core.exceptions.PermissionDenied} raised by a viewset override.
 
-If any requested primary key is not eligible, the request deletes nothing. The response is `400` with one error per ineligible key, keyed by that key: `"Object with pk=<pk> does not exist."`. A key with no row gets the same message, so the response does not reveal which rows exist.
+If any requested object key is not eligible, the request deletes nothing. The response is `400` with one error per ineligible key, keyed by that key: `"Object with key <key> does not exist."`. A key with no row gets the same message, so the response does not reveal which rows exist.
 
 The second pass loads and checks each row in Python. A bulk delete of many rows on a model with an expensive `check_instance` takes time in proportion to the number of rows.
 

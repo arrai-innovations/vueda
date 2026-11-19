@@ -127,7 +127,7 @@ Cover these cases:
 - `list` with pagination and totals: `totalRecords`, `totalPages`, and `columnTotals` count only the visible rows. If the viewset declares column totals, test them with row filtering active.
 - Retrieve: the owner gets `200`. A non-owner of a private project gets `404`, which hides that the row exists.
 - Update and single delete: a non-owner of a public project gets `403`, because they can read it. A non-owner of a private project gets `404`.
-- Bulk delete: when every requested pk passes both hooks, the rows are deleted. When any pk fails, nothing is deleted. The response is `400`, keyed by pk, with `"Object with pk=... does not exist."`, the same message as for a missing pk.
+- Bulk delete: when every requested object key passes both hooks, the rows are deleted. When any key fails, nothing is deleted. The response is `400`, keyed by the key, with `"Object with key ... does not exist."`, the same message as for a missing key.
 
 [Row-Level Permission Filtering](../core-concepts/row-level-permission-filtering) explains the empty `list`, the `404`, and the bulk delete message. Bulk delete runs the object check once for each row that passes `check_queryset`, so its time grows with the number of pks.
 

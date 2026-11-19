@@ -256,7 +256,9 @@ Set a default sort order with the viewset's `ordering` attribute (or the model's
 
 `VuedaViewSet` inherits from DRF's `ModelViewSet` and adds several framework behaviors. `ListRowLevelViewSetMixin` applies row-level permission filtering on `list` queries. `NoExtraFieldsForViewSetMixin` validates query parameters against the filterset and rejects unknown parameters. `FlexFieldsMixin` provides expand-aware serializer context. Together these mixins ensure that the viewset's behavior is consistent with what the metadata API advertises.
 
-The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `Dry-Run` header.
+The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with an {@term Object Key} in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload of object keys). Bulk destroy validates that all requested keys exist before deleting any of them, and supports an optional dry-run mode via the `Dry-Run` header.
+
+To identify objects by a unique field other than the primary key, set DRF's `lookup_field` on the viewset, such as `lookup_field = "code"` for `/widget/W-001/`. List that field in the serializer's `Meta.fields`, because the client reads each row's object key from it. The client, bulk requests, and the workflow and history endpoints then use that field's value. [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline.md#lookup-field-and-object-key) describes where the value travels.
 
 ::: warning
 `VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
@@ -418,7 +420,7 @@ With all pieces in place, verify the surface end-to-end:
     - {@api py:class:vueda.core.routers.VuedaRouter}
     - {@api py:function:vueda.info.registration.register}
     - {@api py:class:vueda.core.serializers.VuedaListSerializer}
-    - {@api py:class:vueda.core.serializers.PrimaryKeyListSerializer}
+    - {@api py:class:vueda.core.serializers.ObjectKeyListSerializer}
 - REST:
     - {@api rest:endpoint:GET:/vueda.info/model_info/{app_label}/{model}/}
     - {@api rest:endpoint:GET:/vueda.info/model_info_choices/{app_label}/{model}/{field}/}

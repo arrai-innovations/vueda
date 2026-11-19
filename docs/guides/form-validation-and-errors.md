@@ -36,7 +36,7 @@ from vueda.core.exceptions import VuedaValidationError
 raise VuedaValidationError(["The start date must be before the end date."])
 ```
 
-The client does not label bulk errors by object. To tell the user which object failed, name it in the message text, for example `{"non_field_errors": ["Order 9: count is too high."]}`. A bulk delete answers a missing or refused row with `{"9": ["Object with pk=9 does not exist."]}`, which `ActionForm`'s summary lists under `9`.
+The client does not label bulk errors by object. To tell the user which object failed, name it in the message text, for example `{"non_field_errors": ["Order 9: count is too high."]}`. A bulk delete answers a missing or refused row with `{"9": ["Object with key 9 does not exist."]}`, which `ActionForm`'s summary lists under `9`.
 
 ## Classify Responses in a Custom Fetch Wrapper
 
