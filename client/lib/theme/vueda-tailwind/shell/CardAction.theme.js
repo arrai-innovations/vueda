@@ -13,7 +13,8 @@ patchTheme({
      */
     CardAction: {
         /**
-         * The trailing card header action region. It parks in the top-right column and spans the title and description rows without adding wrapper layout logic.
+         * The trailing card header action region. It parks in the top-right column and spans the title and description
+         * rows without adding wrapper layout logic.
          */
         root: {
             class: "col-start-2 row-span-2 row-start-1 self-start justify-self-end",

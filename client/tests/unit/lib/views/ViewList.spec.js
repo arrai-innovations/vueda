@@ -1,6 +1,14 @@
 import { mockProvideInject, scopedIt } from "@tests/unit/utils.js";
 import { enableAutoUnmount, mount } from "@vue/test-utils";
-import { COLUMN_TOTALS_PARAM, FIELDS_PARAM, ORDERING_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import {
+    COLUMN_TOTALS_PARAM,
+    EXPAND_PARAM,
+    FIELDS_PARAM,
+    ORDERING_PARAM,
+    PAGE_PARAM,
+    PAGE_SIZE_PARAM,
+    SEARCH_PARAM,
+} from "@vueda/utils/constants.js";
 import { defineComponent, h, reactive, ref } from "vue";
 
 var provideStore, mockedProvide, mockedInject;
@@ -52,6 +60,17 @@ const mockedSinglePageAdaptor = vi.fn();
 vi.mock("@vueda/utils/listCrud.js", async () => {
     const actual = await vi.importActual("@vueda/utils/listCrud.js");
     return { ...actual, singlePagePaginatedListCrudAdaptor: mockedSinglePageAdaptor };
+});
+
+const mockedStreamsEnabled = vi.fn(() => false);
+const mockedSubscribeToListChanges = vi.fn(() => Object.assign(Promise.resolve(), { cancel: vi.fn() }));
+vi.mock("@vueda/utils/objectStreams.js", async () => {
+    const actual = await vi.importActual("@vueda/utils/objectStreams.js");
+    return {
+        ...actual,
+        objectStreamsEnabled: mockedStreamsEnabled,
+        subscribeToListChanges: mockedSubscribeToListChanges,
+    };
 });
 
 vi.mock("@vueda/router/getCrud.js", () => ({
@@ -398,6 +417,7 @@ beforeEach(async () => {
     });
     mockedUseModelConfig.mockReturnValue(modelConfig);
     mockedUseIsActive.mockReturnValue(ref(true));
+    mockedStreamsEnabled.mockReturnValue(false);
     mockedUseWorkflowTransitions.mockReturnValue(
         vue.readonly(
             vue.reactive({
@@ -1690,6 +1710,25 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt(
+            "offers no filters but still requests a hidden filter's URL value when it is the only filter",
+            async () => {
+                mockedInject.mockReturnValueOnce({});
+                route.params = { action: "list" };
+                modelConfig.config.filterables = ["id"];
+                modelConfig.config.filterableDetails = { id: { typeFilter: "UUIDField", hidden: true } };
+                route.query = { id: "1,2" };
+                const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                await vue.nextTick();
+
+                // An empty list is what keeps FilterGroup from rendering the add-filter trigger.
+                expect(wrapper.findComponent(FilterGroupStub).props().validFilterables).toEqual([]);
+                expect(wrapper.vm.filter.state.addedFilters).toEqual([]);
+                expect(wrapper.vm.list.listState.params.id).toBe("1,2");
+                wrapper.unmount();
+            },
+        );
+
         scopedIt("keeps a hidden filter out of the menu when its type has an input mapping", async () => {
             const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
             mockedInject.mockReturnValueOnce({});
@@ -2129,7 +2168,7 @@ describe("lib/views/ViewList.vue", () => {
         });
 
         scopedIt(
-            "shows Reset sort only when the active sort differs from the server default, and restores it on click",
+            "shows Reset sort only when the active sort differs from the server default, restores it on click, and shows it again after a change",
             async () => {
                 mockedInject.mockReturnValueOnce({});
                 modelConfig.config.sortables = ["name", "created_at"];
@@ -2147,6 +2186,13 @@ describe("lib/views/ViewList.vue", () => {
 
                 expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["-created_at"]);
                 expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(false);
+
+                // Flipping the default's direction makes the sort differ again.
+                await wrapper.get('[data-qa="sort-chip-toggle"]').trigger("click");
+                await vue.nextTick();
+
+                expect(wrapper.findComponent(SortControlStub).props("sorted")).toEqual(["created_at"]);
+                expect(wrapper.find('[data-qa="sort-reset"]').exists()).toBe(true);
                 wrapper.unmount();
             },
         );
@@ -2429,6 +2475,44 @@ describe("lib/views/ViewList.vue", () => {
             expect(readout.text()).toContain("1 selected");
             wrapper.unmount();
         });
+
+        // The grid hands every `field(<col>)` slot its whole cell context. The default checkbox
+        // takes only its own props, so none of that context lands on its element as attributes.
+        for (const isTableLayout of [true, false]) {
+            scopedIt(
+                `keeps the cell context off the default checkbox in the ${isTableLayout ? "table" : "card"} layout`,
+                async () => {
+                    mockedInject.mockReturnValueOnce({});
+                    configureBulkAction();
+                    columnSlotProps.selected_ = {
+                        calculatedObj: {},
+                        columnIndex: 0,
+                        columnCount: 9,
+                        isCardLayout: !isTableLayout,
+                        isTableLayout,
+                        modelConfig: {},
+                        modelInfo: {},
+                        obj: { id: 1 },
+                        pkKey: "id",
+                        relatedObj: {},
+                        rowCount: 1,
+                        rowIndex: 0,
+                    };
+                    const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+                    await vue.nextTick();
+                    const checkbox = wrapper.findComponent(CheckboxStub);
+                    expect(checkbox.props()).toEqual({ id: "selected-row-1", modelValue: false, value: undefined });
+                    expect(checkbox.element.getAttributeNames().sort()).toEqual(["data-qa", "id", "name", "type"]);
+                    await checkbox.trigger("change");
+                    await vue.nextTick();
+                    expect(wrapper.vm.actions.selectedObjects).toEqual([1]);
+                    await checkbox.trigger("change");
+                    await vue.nextTick();
+                    expect(wrapper.vm.actions.selectedObjects).toEqual([]);
+                    wrapper.unmount();
+                },
+            );
+        }
     });
 
     describe("List request", () => {
@@ -2451,6 +2535,158 @@ describe("lib/views/ViewList.vue", () => {
         });
     });
 
+    describe("Live updates", () => {
+        async function mountList() {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.filterables = ["category", "tags"];
+            modelConfig.config.filterableDetails = {
+                category: { typeFilter: "ChoiceField", label: "Category" },
+                tags: { typeFilter: "MultipleChoiceField", label: "Tags" },
+            };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            const { props, handlers } = mockedUseList.mock.calls.at(-1)[0];
+            return { wrapper, props, handlers };
+        }
+
+        /** Subscribes through the list's handler and returns the change callback it registered. */
+        function subscribe(handlers) {
+            handlers.subscribe({ target: { app: "app", model: "model" }, params: {} });
+            return mockedSubscribeToListChanges.mock.calls.at(-1)[0].onChange;
+        }
+
+        scopedIt("does not subscribe before live updates are set up", async () => {
+            const { wrapper, props } = await mountList();
+
+            expect(props.intendToSubscribe).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt("subscribes once live updates are set up", async () => {
+            mockedStreamsEnabled.mockReturnValue(true);
+            const { wrapper, props } = await mountList();
+
+            expect(props.intendToSubscribe).toBe(true);
+            wrapper.unmount();
+        });
+
+        scopedIt("subscribes with the list's filters only, encoded as the list request sends them", async () => {
+            const { wrapper, handlers } = await mountList();
+
+            handlers.subscribe({
+                target: { app: "app", model: "model" },
+                params: {
+                    [ORDERING_PARAM]: "name",
+                    [FIELDS_PARAM]: ["id", "name"],
+                    [EXPAND_PARAM]: ["owner"],
+                    [PAGE_PARAM]: 2,
+                    [PAGE_SIZE_PARAM]: 25,
+                    [SEARCH_PARAM]: "widget",
+                    category: "a",
+                    tags: ["a", "b"],
+                },
+            });
+
+            expect(mockedSubscribeToListChanges).toHaveBeenCalledWith({
+                target: { app: "app", model: "model" },
+                filters: { category: "a", tags: ["a", "b"] },
+                onChange: expect.any(Function),
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("refreshes the current page after a change", async () => {
+            const { wrapper, handlers } = await mountList();
+            const onChange = subscribe(handlers);
+            instanceList.list.mockClear();
+
+            onChange();
+
+            expect(instanceList.list).toHaveBeenCalledExactlyOnceWith({ refresh: true });
+            wrapper.unmount();
+        });
+
+        scopedIt("waits for a load in progress, then refreshes once", async () => {
+            const { wrapper, handlers } = await mountList();
+            const onChange = subscribe(handlers);
+            instanceList.list.mockClear();
+            instanceList.state.loading = true;
+            await vue.nextTick();
+
+            onChange();
+            onChange();
+            expect(instanceList.list).not.toHaveBeenCalled();
+
+            instanceList.state.loading = false;
+            await vue.nextTick();
+
+            expect(instanceList.list).toHaveBeenCalledExactlyOnceWith({ refresh: true });
+            wrapper.unmount();
+        });
+
+        scopedIt("drops a refresh that returns after the list moved to other params", async () => {
+            const { wrapper, props, handlers } = await mountList();
+            let finish;
+            mockedSinglePageAdaptor.mockImplementationOnce((args) => {
+                args.setPaginateInfo({ page: 1, totalPages: 1, totalRecords: 1, perPage: 25 });
+                args.pushObjects([{ id: 2 }]);
+                return new Promise((resolve) => (finish = resolve));
+            });
+            const clearObjects = vi.fn();
+            const pushObjects = vi.fn();
+            const setPaginateInfo = vi.fn();
+
+            const request = handlers.list({
+                refresh: true,
+                params: { ...props.params },
+                clearObjects,
+                pushObjects,
+                setPaginateInfo,
+                setColumnTotals: vi.fn(),
+                isCancelled: ref(false),
+            });
+            props.params[PAGE_PARAM] = 2;
+            finish();
+            await request;
+
+            expect(clearObjects).not.toHaveBeenCalled();
+            expect(pushObjects).not.toHaveBeenCalled();
+            expect(setPaginateInfo).not.toHaveBeenCalled();
+            wrapper.unmount();
+        });
+
+        scopedIt("keeps the rows on screen until a refresh has the new set", async () => {
+            const { wrapper, props, handlers } = await mountList();
+            let finish;
+            mockedSinglePageAdaptor.mockImplementationOnce((args) => {
+                args.clearObjects();
+                args.pushObjects([{ id: 2 }]);
+                return new Promise((resolve) => (finish = resolve));
+            });
+            const clearObjects = vi.fn();
+            const pushObjects = vi.fn();
+
+            const request = handlers.list({
+                refresh: true,
+                params: { ...props.params },
+                clearObjects,
+                pushObjects,
+                setPaginateInfo: vi.fn(),
+                setColumnTotals: vi.fn(),
+                isCancelled: ref(false),
+            });
+            expect(clearObjects).not.toHaveBeenCalled();
+            expect(pushObjects).not.toHaveBeenCalled();
+
+            finish();
+            await request;
+
+            expect(clearObjects).toHaveBeenCalledWith({ keepPagination: true, keepColumnTotals: true });
+            expect(pushObjects).toHaveBeenCalledWith([{ id: 2 }]);
+            wrapper.unmount();
+        });
+    });
+
     describe("Fetched fields", () => {
         scopedIt("fetches the model config's list fields plus the primary key", async () => {
             mockedInject.mockReturnValueOnce({});
@@ -2462,19 +2698,216 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
-        scopedIt("fetches the columns a displayFields prop names when listFields is empty", async () => {
+        scopedIt("fetches the columns a displayFields prop names when the fetchFields prop is empty", async () => {
             mockedInject.mockReturnValueOnce({});
             modelConfig.config.fetchFields = ["name"];
             const wrapper = mount(ViewList, {
                 props: {
                     app: "app",
                     model: "model",
-                    displayFields: { name: { name: "name" }, created_at: { name: "created_at" } },
+                    displayFields: ["name", "created_at"],
                 },
             });
             await vue.nextTick();
 
             expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "created_at"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("fetches the fetchFields prop in place of the displayFields prop and the config", async () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.config.fetchFields = ["name"];
+            const wrapper = mount(ViewList, {
+                props: {
+                    app: "app",
+                    model: "model",
+                    displayFields: ["name", "created_at"],
+                    fetchFields: ["name", "notes"],
+                },
+            });
+            await vue.nextTick();
+
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM]).toEqual(["id", "name", "notes"]);
+            wrapper.unmount();
+        });
+    });
+
+    describe("displayFields, fieldDetails, and fetchFields props", () => {
+        const siteChoices = [
+            { label: "Office", value: "office" },
+            { label: "Field", value: "field" },
+        ];
+
+        const useModelInfo = () => {
+            modelConfig.config.displayFields = ["name"];
+            modelConfig.config.fieldDetails = {
+                name: { typeSerializer: "CharField", typeModel: "CharField", label: "Name" },
+                site: { typeSerializer: "ChoiceField", typeModel: "CharField", label: "Site", choices: siteChoices },
+                active: { typeSerializer: "BooleanField", typeModel: "BooleanField", label: "Active" },
+                created_at: { typeSerializer: "DateTimeField", typeModel: "DateTimeField", label: "Created at" },
+                customer: {
+                    typeSerializer: "PrimaryKeyRelatedField",
+                    typeModel: "ForeignKey",
+                    label: "Customer",
+                    appLabel: "sales",
+                    model: "customer",
+                },
+            };
+        };
+
+        const mountList = async (props = {}) => {
+            mockedInject.mockReturnValueOnce({});
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model", ...props } });
+            await vue.nextTick();
+            return wrapper;
+        };
+
+        const gridField = (name) => objectsGridProps.fields.find((field) => field.name === name);
+
+        scopedIt("shows the prop's columns in its order, with each field's model info", async () => {
+            useModelInfo();
+            const wrapper = await mountList({ displayFields: ["site", "customer"] });
+
+            expect(objectsGridProps.fields.map((field) => field.name)).toEqual(["selected_", "site", "customer"]);
+            expect(gridField("site")).toEqual({ name: "site", ...modelConfig.config.fieldDetails.site });
+            expect(gridField("customer").appLabel).toBe("sales");
+            wrapper.unmount();
+        });
+
+        scopedIt("uses the model config's displayFields when the prop is empty", async () => {
+            useModelInfo();
+            const wrapper = await mountList({ displayFields: [] });
+
+            expect(objectsGridProps.fields.map((field) => field.name)).toEqual(["selected_", "name"]);
+            wrapper.unmount();
+        });
+
+        scopedIt("lays a fieldDetails prop entry over the model info of a prop column", async () => {
+            useModelInfo();
+            const wrapper = await mountList({
+                displayFields: ["site"],
+                fieldDetails: { site: { label: "Location", choices: [{ label: "Remote", value: "remote" }] } },
+            });
+
+            expect(gridField("site")).toEqual({
+                name: "site",
+                typeSerializer: "ChoiceField",
+                typeModel: "CharField",
+                label: "Location",
+                choices: [{ label: "Remote", value: "remote" }],
+            });
+            wrapper.unmount();
+        });
+
+        scopedIt("lays a fieldDetails prop entry over the model info of a model config column", async () => {
+            useModelInfo();
+            const wrapper = await mountList({ fieldDetails: { name: { label: "Full name" } } });
+
+            expect(gridField("name").label).toBe("Full name");
+            expect(gridField("name").typeSerializer).toBe("CharField");
+            wrapper.unmount();
+        });
+
+        scopedIt("gives both sort controls the fieldDetails prop entries laid over the model info", async () => {
+            useModelInfo();
+            modelConfig.config.sortables = ["site", "name", "created_at"];
+            const { default: SortGroup } = await import("@vueda/display/sort/SortGroup.vue");
+            const wrapper = await mountList({
+                displayFields: ["site"],
+                fieldDetails: { site: { label: "Location" }, created_at: { label: "Opened" } },
+            });
+
+            const expected = {
+                ...modelConfig.config.fieldDetails,
+                site: { ...modelConfig.config.fieldDetails.site, label: "Location" },
+                created_at: { ...modelConfig.config.fieldDetails.created_at, label: "Opened" },
+            };
+            expect(wrapper.findComponent(SortControlStub).props("fieldDetails")).toEqual(expected);
+            expect(wrapper.findComponent(SortGroup).props("fieldDetails")).toEqual(expected);
+            expect(gridField("site").label).toBe("Location");
+            wrapper.unmount();
+        });
+
+        scopedIt("builds a column with no model info from its fieldDetails prop entry", async () => {
+            useModelInfo();
+            const wrapper = await mountList({
+                displayFields: ["total"],
+                fieldDetails: { total: { label: "Total" } },
+            });
+
+            expect(gridField("total")).toEqual({ name: "total", label: "Total" });
+            wrapper.unmount();
+        });
+
+        scopedIt.each([
+            ["a boolean", "active", "ColumnBoolean"],
+            ["a date", "created_at", "ColumnDateTime"],
+            ["a foreign key", "customer", "ColumnModelLink"],
+        ])("resolves %s prop column to its type adapter", async (_label, name, adapter) => {
+            useModelInfo();
+            const { availableColumns } = await import("@vueda/utils/columnLookups.js");
+            const wrapper = await mountList({ displayFields: [name] });
+
+            const cell = wrapper.find(`[data-column="${name}"]`);
+            expect(cell.findComponent(availableColumns[adapter]).exists()).toBe(true);
+            expect(cell.findComponent(availableColumns.ColumnText).exists()).toBe(false);
+            wrapper.unmount();
+        });
+
+        scopedIt(
+            "reads displayFields, fieldDetails, and fetchFields refs that a direct useViewList caller passes",
+            async () => {
+                useModelInfo();
+                const { useViewList } = await import("@vueda/use/useViewList.js");
+                const displayFields = ref(["site"]);
+                const fieldDetails = ref({ site: { label: "Location" } });
+                const fetchFields = ref(["site", "notes"]);
+                let viewList;
+                const Harness = defineComponent({
+                    setup() {
+                        viewList = useViewList({
+                            app: "app",
+                            model: "model",
+                            displayFields,
+                            fieldDetails,
+                            fetchFields,
+                        });
+                        return () => null;
+                    },
+                });
+                mockedInject.mockReturnValueOnce({});
+                const wrapper = mount(Harness);
+                await vue.nextTick();
+                const columnNames = () => viewList.list.computedFieldObjects.map((field) => field.name);
+                const requestedFields = () => mockedUseList.mock.calls.at(-1)[0].props.params[FIELDS_PARAM];
+
+                expect(columnNames()).toEqual(["site"]);
+                expect(viewList.list.computedFieldObjects[0].label).toBe("Location");
+                expect(viewList.sort.fieldDetails.site.label).toBe("Location");
+                expect(requestedFields()).toEqual(["id", "site", "notes"]);
+
+                displayFields.value = ["site", "customer"];
+                fieldDetails.value = { site: { label: "Branch" } };
+                fetchFields.value = ["site", "customer"];
+                await vue.nextTick();
+
+                expect(columnNames()).toEqual(["site", "customer"]);
+                expect(viewList.list.computedFieldObjects[0].label).toBe("Branch");
+                expect(viewList.sort.fieldDetails.site.label).toBe("Branch");
+                expect(requestedFields()).toEqual(["id", "site", "customer"]);
+                wrapper.unmount();
+            },
+        );
+
+        scopedIt("updates prop columns when model info arrives after mount", async () => {
+            modelConfig.config.fieldDetails = {};
+            const wrapper = await mountList({ displayFields: ["site"] });
+            expect(gridField("site")).toEqual({ name: "site" });
+
+            useModelInfo();
+            await vue.nextTick();
+
+            expect(gridField("site").choices).toEqual(siteChoices);
             wrapper.unmount();
         });
     });

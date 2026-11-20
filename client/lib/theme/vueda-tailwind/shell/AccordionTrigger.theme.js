@@ -13,7 +13,8 @@ patchTheme({
      */
     AccordionTrigger: {
         /**
-         * The clickable accordion header. It uses the container typography rhythm, exposes a focus outline, and rotates direct SVG icons when the item is open.
+         * The clickable accordion header. It uses the container typography rhythm, exposes a focus outline, and rotates
+         * direct SVG icons when the item is open.
          */
         root: {
             class: [
@@ -31,13 +32,15 @@ patchTheme({
             ],
         },
         /**
-         * The text wrapper inside the trigger. It stays minimal so custom trigger content can define its own stacking or inline layout.
+         * The text wrapper inside the trigger. It stays minimal so custom trigger content can define its own stacking
+         * or inline layout.
          */
         header: {
             class: "flex",
         },
         /**
-         * The disclosure icon beside the trigger text. It is optically nudged down to align with the first text line and uses muted color until inherited state changes it.
+         * The disclosure icon beside the trigger text. It is optically nudged down to align with the first text line
+         * and uses muted color until inherited state changes it.
          */
         icon: {
             class: [

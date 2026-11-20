@@ -77,11 +77,12 @@ class TestRegisteredArtifacts:
     def test_a_workflow_model_has_its_write_triggers(self, name):
         table = apps.get_model("vueda_workflow", name)._meta.db_table
 
-        assert trigger_names(table) == [
+        # Other features may add their own triggers, such as the object stream trigger on ObjectState.
+        assert {
             "pgtrigger_delete_delete",
             "pgtrigger_insert_insert",
             "pgtrigger_update_update",
-        ]
+        } <= set(trigger_names(table))
 
     @pytest.mark.parametrize("name", TRACKED_MODELS)
     def test_a_workflow_event_table_is_append_only(self, name):

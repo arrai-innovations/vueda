@@ -12,7 +12,9 @@ patchTheme({
      * ContextMenuShortcut aligns keyboard shortcut keycaps inside context menu items.
      */
     ContextMenuShortcut: {
-        /** Alignment wrapper for context-menu command shortcuts. See also: {@api theme-key:DropdownMenuShortcut.root}. */
+        /**
+         * Alignment wrapper for context-menu command shortcuts. See also: {@api theme-key:DropdownMenuShortcut.root}.
+         */
         root: {
             class: "ml-auto inline-flex items-center pl-2",
         },

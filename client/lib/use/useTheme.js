@@ -1,12 +1,13 @@
 /**
  * @module use/useTheme
- * @description Resolves and caches component theme classes from the base theme, project overrides, and inherited and local overrides.
+ * @description Resolves and caches component theme classes from the base theme, project overrides, and inherited and
+ *  local overrides.
  *
  * Slot entries may declare `composes: ['_MetaKey.slot', ...]` to compose classes from other entries before
  * their own classes. Underscore-prefixed entries (`_ButtonBase`, `_ButtonGhost`, etc.) are the convention
  * for shared scaffolding consumed by visually-related leaf components. Composition is resolved at lookup
- * time against the merged override theme, so `setTheme`, `overrideTheme`, or `useThemeOverride` on a meta key propagates to
- * every leaf that composes from it. Override semantics for `composes` are replace (override list wins
+ * time against the merged override theme, so `setTheme`, `overrideTheme`, or `useThemeOverride` on a meta key
+ * propagates to every leaf that composes from it. Override semantics for `composes` are replace (override list wins
  * entirely); own `class` values still combine default + override as in non-composing entries.
  */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
@@ -41,7 +42,9 @@ export { clearThemeOverrides, getTheme, mergeTheme, overrideTheme, patchTheme, s
  * @vueda-spread props
  */
 export const THEME_OVERRIDE_PROPS = {
-    /** A partial ThemeObject keyed by component name, merged over this component's theme and provided to descendants. */
+    /**
+     * A partial ThemeObject keyed by component name, merged over this component's theme and provided to descendants.
+     */
     themeOverride: {
         type: Object,
         default: null,
@@ -70,13 +73,9 @@ export const THEME_OVERRIDE_PROPS = {
  *     [slotName: string]: {
  *         [key: string]: any,
  *         ["class"]: (
- *             ((args: {props: object|import('vue').UnwrapNestedRefs<object>, [key:string]: any}) => CombinedClassesArgument|CombinedClassesArgument[]) |
- *             CombinedClassesArgument |
- *             CombinedClassesArgument[]
- *         ),
- *         ["composes"]?: string[],
- *     }
- * })} ComponentTheme
+ *             ((args: {props: object|import('vue').UnwrapNestedRefs<object>, [key:string]: any}) =>
+ *     CombinedClassesArgument|CombinedClassesArgument[]) | CombinedClassesArgument | CombinedClassesArgument[] ),
+ *     ["composes"]?: string[], } })} ComponentTheme
  */
 
 /**
@@ -92,7 +91,8 @@ export const THEME_OVERRIDE_PROPS = {
  *
  * @param {ThemeObject} configOrOverride - The theme config or override.
  * @param {string} key - The key to get the value for.
- * @param {object|import('vue').UnwrapNestedRefs<object>} [context] - The context to pass if the config or config.class is a function.
+ * @param {object|import('vue').UnwrapNestedRefs<object>} [context] - The context to pass if the config or config.class
+ *  is a function.
  */
 const getConfigValue = (configOrOverride, key, context) => {
     const value = configOrOverride[key];
@@ -250,8 +250,10 @@ const resolveSlotClasses = async (componentName, slotKey, mergedOverride, contex
  * Merge a theme object with another theme object and provide the result for child components.
  *
  * @param {object|import("vue").Ref<ThemeObject>} localOverride - The override from the current component (e.g. a prop).
- * @param {object|import("vue").Ref<ThemeObject>|null} configOverride - Optional "base" config (e.g. default config for your component).
- * @returns {import("vue").ComputedRef<ThemeObject>} A merged override that includes ancestor overrides + local overrides.
+ * @param {object|import("vue").Ref<ThemeObject>|null} configOverride - Optional "base" config (e.g. default config for
+ *  your component).
+ * @returns {import("vue").ComputedRef<ThemeObject>} A merged override that includes ancestor overrides + local
+ *  overrides.
  */
 export function useThemeOverride(localOverride, configOverride = null) {
     const currentInstance = getCurrentInstance();
@@ -315,7 +317,8 @@ export function useThemeOverride(localOverride, configOverride = null) {
  *
  * @param {string} componentName - The name of the component.
  * @param {ThemeProps} props - The reactive or computed props to pass to the class function.
- * @param {import('vue').UnwrapNestedRefs<object>|import('vue').Ref<object>|object} [context] - The context to pass if the config or config.class is a function.
+ * @param {import('vue').UnwrapNestedRefs<object>|import('vue').Ref<object>|object} [context] - The context to pass if
+ *  the config or config.class is a function.
  * @param {(key: string, kwargs: object) => string} [keyFn] - A function to modify a key based on kwargs.
  * @returns {UseThemeReturnFunction} A function that returns the classes for a given key and kwargs.
  */

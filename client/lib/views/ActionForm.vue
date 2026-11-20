@@ -16,7 +16,8 @@ import uniqueId from "lodash-es/uniqueId.js";
 import { computed, inject, reactive, toRef } from "vue";
 
 /**
- * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides confirm and cancel button slots.
+ * Form shell that executes a server action, handles dry-run validation, shows success/error toasts, and provides
+ * confirm and cancel button slots.
  *
  * Renders a pinned actions strip (confirm + cancel + optional hint) below the
  * form, or, with the `page` prop, a sticky action bar above it. When the form
@@ -77,7 +78,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as its argument. After success, the form stays locked until it unmounts unless the function resolves `false` to report that it did not navigate away. */
+    /**
+     * Async function called to navigate away after a successful action or cancel; receives `"success"` or `"cancel"` as
+     * its argument. After success, the form stays locked until it unmounts unless the function resolves `false` to
+     * report that it did not navigate away.
+     */
     redirectTo: {
         type: Function,
         default: undefined,
@@ -92,7 +97,10 @@ const props = defineProps({
         type: Function,
         default: undefined,
     },
-    /** Custom handler called when the server requires confirmation of warnings (HTTP 409) in place of the default render-warnings-and-prompt behaviour. */
+    /**
+     * Custom handler called when the server requires confirmation of warnings (HTTP 409) in place of the default
+     * render-warnings-and-prompt behaviour.
+     */
     onSubmissionWarningsRequireConfirmation: {
         type: Function,
         default: undefined,
@@ -111,17 +119,29 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
-    /** When `false`, the default action bar has no cancel button. A view whose page title already offers a Go Back action sets this, so the page does not offer two ways back. */
+    /**
+     * When `false`, the default action bar has no cancel button. A view whose page title already offers a Go Back
+     * action sets this, so the page does not offer two ways back.
+     */
     cancelButton: {
         type: Boolean,
         default: true,
     },
-    /** When `true`, the form fills a view's page. The default action bar renders first, in a top-zone StickyBar that stacks with the page title, and the confirm button stays tied to the form through its `form` attribute. The error display, the validation summary, and the form follow in the page gutter. Without a sticky stack, the bar still renders first and spans the page, as the detail views' action bar does. A form inside a dialog or a card leaves this off. */
+    /**
+     * When `true`, the form fills a view's page. The default action bar renders first, in a top-zone StickyBar that
+     * stacks with the page title, and the confirm button stays tied to the form through its `form` attribute. The error
+     * display, the validation summary, and the form follow in the page gutter. Without a sticky stack, the bar still
+     * renders first and spans the page, as the detail views' action bar does. A form inside a dialog or a card leaves
+     * this off.
+     */
     page: {
         type: Boolean,
         default: false,
     },
-    /** When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start empty where modification is not a meaningful concept. */
+    /**
+     * When `false`, skips the "no changes detected" guard. Defaults to `true`. Set to `false` for forms that start
+     * empty where modification is not a meaningful concept.
+     */
     requireModified: {
         type: Boolean,
         default: true,

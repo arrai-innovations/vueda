@@ -1,6 +1,8 @@
 /**
  * @module utils/resolveColumnComponents
- * @description Resolves the list column adapter component and props for each display field, applying the override precedence chain. Mirrors the form override chain in `buildForm.js`. Pure (no Vue reactivity) so it can be unit-tested directly and wrapped in a `computed` by `useViewList`.
+ * @description Resolves the list column adapter component and props for each display field, applying the override
+ *  precedence chain. Mirrors the form override chain in `buildForm.js`. Pure (no Vue reactivity) so it can be
+ *  unit-tested directly and wrapped in a `computed` by `useViewList`.
  */
 import { availableColumns } from "@vueda/utils/columnLookups.js";
 import { columnMappings } from "@vueda/utils/columnMappings.js";
@@ -61,7 +63,8 @@ function resolveColumnOverride(override, name) {
  * The consumer `#field(<col>)` slot (highest precedence overall) is handled in
  * the ViewList template, not here.
  *
- * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The column's field descriptor (carries `name`, `typeSerializer`, `typeModel`).
+ * @param {import('@vueda/stores/storeModelInfo.js').FieldInfo} field - The column's field descriptor (carries `name`,
+ *  `typeSerializer`, `typeModel`).
  * @param {{[name:string]: any}} [propComponents] - Inline component overrides by field name.
  * @param {{[name:string]: any}} [configComponents] - Model-config component overrides by field name.
  * @returns {import('vue').Component} The resolved adapter component.
@@ -108,14 +111,16 @@ export function resolveColumnProps(field, propProps, configProps) {
 
 /**
  * @typedef {object} ResolvedColumn
- * @property {import('vue').Component|null} component - The adapter component to render, or `null` when the column's override failed to resolve.
+ * @property {import('vue').Component|null} component - The adapter component to render, or `null` when the column's
+ *  override failed to resolve.
  * @property {object} props - The props to forward to the adapter (in addition to the grid cell's value-slot props).
  * @property {Error} [error] - Why the column's override failed to resolve. The column renders no cells.
  */
 
 /**
  * @typedef {object} ResolveColumnsOptions
- * @property {import('@vueda/stores/storeModelInfo.js').FieldInfo[]} fields - The display field descriptors (each must carry `name`).
+ * @property {import('@vueda/stores/storeModelInfo.js').FieldInfo[]} fields - The display field descriptors (each must
+ *  carry `name`).
  * @property {{[name:string]: any}} [propComponents] - `columnComponents` prop overrides.
  * @property {{[name:string]: object}} [propProps] - `columnProps` prop overrides.
  * @property {{[name:string]: any}} [configComponents] - `modelConfig.config.columnComponents`.

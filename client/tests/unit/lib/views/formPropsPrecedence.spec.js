@@ -133,7 +133,8 @@ async function mountView(name, extraProps = {}) {
     return { wrapper, formModel: wrapper.findComponent(FormModel), model };
 }
 
-// A value for every view form prop, so a mount can check that each one reaches the form and none renders as an attribute.
+// A value for every view form prop, so a mount can check that each one reaches the form and none renders as an
+// attribute.
 const EVERY_FORM_PROP = {
     formModelVariant: "passed",
     fields: ["name"],

@@ -13,9 +13,11 @@ We work as the Start Building user, `you@example.com`. Its group grants the `inv
 
 ## Wire Up Workflow URLs
 
-{@api py:module:vueda.workflow} is in {@api ext:django:setting:INSTALLED_APPS} by default, and its migrations ran with your first `migrate`. The project templates route the `vueda.info` and `vueda.user` URLs but leave out `vueda.workflow` and `vueda.history`. Add the [workflow URL patterns]{@api py:module:vueda.workflow.urls} and the [history URL patterns]{@api py:module:vueda.history.urls} to `server/config/urls.py`:
+{@api py:module:vueda.workflow} is in {@api ext:django:setting:INSTALLED_APPS} by default, and its migrations ran with your first `migrate`. The project templates route the `vueda.info` and `vueda.user` URLs but leave out `vueda.workflow` and `vueda.history`. Add the [workflow URL patterns]{@api py:module:vueda.workflow.urls} and the [history URL patterns]{@api py:module:vueda.history.urls} to `server/config/urls.py`. Add only the lines marked as added, and keep the rest of the generated file:
 
 ```python
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
 
 from vueda.history.urls import urlpatterns as vueda_history_urls  # [!code ++]
@@ -37,6 +39,8 @@ urlpatterns = [
         ),
     ),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ```
 
 This adds the workflow API under `routes/vueda.workflow/workflows/<app_label>/<model>/`. It also adds the workflow state history under `routes/vueda.history/workflow-state-history/<app_label>/<model>/<object_id>/`, which lists the states that an object has been in. The client's `storeWorkflow.fetchObjectHistory` requests this path. While {@api ext:django:setting:DEBUG} is on, it also adds the workflow management views under `routes/vueda.workflow/`.
@@ -118,12 +122,14 @@ TransitionSource.objects.create(transition=unpublish, source=published)
 
 Keep the shell open for the next step.
 
-The Starter Kit product from Start Building has no object state yet, because we saved it before the workflow existed. In a second terminal, from `server/`, give it the initial state with {@api py:class:vueda.workflow.management.commands.backfillworkflowstates.Command}:
+The products from Start Building have no object state yet, because we saved them before the workflow existed. In a second terminal, from `server/`, give each one the initial state with {@api py:class:vueda.workflow.management.commands.backfillworkflowstates.Command}:
 
 ```console
 uv run python manage.py backfillworkflowstates inventory.Product
 # Expect: inventory.Product: created 1 object state(s).
 ```
+
+The command creates one object state for each product. If you kept only Starter Kit, the command reports 1 created object state. Each other product that you kept adds 1 to that count.
 
 ## Grant Workflow Permissions
 
@@ -166,16 +172,17 @@ curl -b $COOKIE_JAR \
 # Expect: 200 with [{"code": "publish", "name": "Publish"}, {"code": "unpublish", "name": "Unpublish"}]
 ```
 
-Create a product. It starts in the `draft` state.
+Create a product. It starts in the `draft` state. The commands save the response in `RESPONSE`, print it, and store the new product's `id` in `PRODUCT_ID`:
 
 ```console
-curl -b $COOKIE_JAR -c $COOKIE_JAR \
+RESPONSE=$(curl -s -b $COOKIE_JAR -c $COOKIE_JAR \
   -H "Content-Type: application/json" \
   -H "X-CSRFToken: $CSRF_TOKEN" \
   -X POST http://localhost:8000/routes/inventory/product/ \
-  -d '{"name":"Workflow Kit","sku":"WORKFLOW-001"}'
-# Expect: 201 with the created object
-PRODUCT_ID=3  # replace with the "id" from the response
+  -d '{"name":"Workflow Kit","sku":"WORKFLOW-001"}')
+printf '%s\n' "$RESPONSE"
+# Expect: the created object, with its "id"
+PRODUCT_ID=$(printf '%s' "$RESPONSE" | uv run python -c 'import json, sys; print(json.load(sys.stdin)["id"])')
 ```
 
 Read the product's [state]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-state/{object_id}/} and the [transitions it can take]{@api rest:endpoint:GET:/vueda.workflow/workflows/{app_label}/{model}/object-transitions/{object_id}/} from that state:
@@ -206,7 +213,7 @@ The product is now published, and `unpublish` is the one transition it can take.
 
 ## Verify in the Browser
 
-With the client running, log in as `you@example.com` and reload the page, so the client reads the new permissions. Open the read view of the Starter Kit product. A **Publish** button appears beside the standard {@term CRUD} actions. On the Workflow Kit product, which we published, the button reads **Unpublish**.
+With the client running, log in as `you@example.com` and reload the page, so the client reads the new permissions. Open `http://localhost:5173/inventory/product/read/1`, the read view of the Starter Kit product. A **Publish** button appears beside the standard {@term CRUD} actions. On the Workflow Kit product, which we published, the button reads **Unpublish**.
 
 The list view builds its transition buttons from the model's permitted transitions, and a detail view builds them from the object's {@term Valid Transitions}. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#ui-affordance-filtering-layers) describes where each view's buttons come from.
 

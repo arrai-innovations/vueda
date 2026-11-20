@@ -10,7 +10,12 @@ import { createMemoryHistory, createRouter } from "vue-router";
 vi.mock("@vueda/use/useModelConfig.js", () => ({
     useModelConfig: () => ({
         loading: false,
-        info: { pk: "id", verboseName: "Order", verboseNamePlural: "Orders" },
+        info: {
+            pk: "id",
+            verboseName: "Order",
+            verboseNamePlural: "Orders",
+            actions: [{ name: "submit", detail: true, bulk: false, methodNames: ["put"], urlPath: "submit" }],
+        },
         config: { fetchFields: [], expand: [], actionRedirects: {} },
     }),
 }));

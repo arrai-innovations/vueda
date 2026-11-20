@@ -68,7 +68,6 @@ vi.mock("@tiptap/vue-3", async () => {
 });
 
 vi.mock("@tiptap/starter-kit", () => ({ default: {} }));
-vi.mock("@tiptap/extension-underline", () => ({ default: {} }));
 
 const fieldContext = {
     state: reactive({

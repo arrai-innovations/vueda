@@ -85,6 +85,7 @@ class ProductViewSet(VuedaViewSet):
     serializer_class = my_serializers.ProductSerializer
     filterset_class = my_filtersets.ProductFilterSet
     ordering_fields = ["distributor__name", "name", "disabled"]
+    permit_list_expands = ["special_care"]
 
 
 class ProductAutoDerivedFilterViewSet(ProductViewSet):

@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemTitle: {
         /**
-         * The primary label inside an item. It uses body-sized medium text and inline gap support for leading or trailing inline elements.
+         * The primary label inside an item. It uses body-sized medium text and inline gap support for leading or
+         * trailing inline elements.
          */
         root: {
             class: "flex w-fit items-center gap-2 text-body leading-snug font-medium",

@@ -26,7 +26,9 @@ const props = defineProps({
     open: { type: Boolean, default: undefined },
     /** The open state when initially rendered. Use when you do not need to control the open state. */
     defaultOpen: { type: Boolean, default: undefined },
-    /** When true, interaction with outside elements is disabled and only dialog content is visible to screen readers. */
+    /**
+     * When true, interaction with outside elements is disabled and only dialog content is visible to screen readers.
+     */
     modal: { type: Boolean, default: undefined },
     /** Accessible title shown in the dialog header. */
     title: { type: String, default: "Command Palette" },

@@ -13,7 +13,8 @@ patchTheme({
      */
     DialogFooter: {
         /**
-         * The action row for dialog footers. It stacks in reverse order on narrow screens and aligns trailing actions on wider screens.
+         * The action row for dialog footers. It stacks in reverse order on narrow screens and aligns trailing actions
+         * on wider screens.
          */
         root: {
             class: "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",

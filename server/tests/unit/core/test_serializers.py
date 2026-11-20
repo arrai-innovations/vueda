@@ -569,16 +569,17 @@ class TestNoExtraFieldsSerializerMixinDirectly(BaseTestUserMixin, BaseTestGroupM
         # simulate an update as if it was done through the view with flex fields
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
 
+        # `e` is checked before the body is read, so the invalid expand is reported although `employee`, which
+        # `e` does not expand, holds an object where its pk field expects a pk.
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
-            assert "employee" in e.detail
-            assert e.detail["employee"][0].code == "incorrect_type", e.detail  # not expanded, expected a pk
+            assert set(e.detail) == {"label10"}, e.detail
+            assert e.detail["label10"][0].code == "invalid", e.detail
         else:
             pytest.fail("Serializer is valid when it should not be")
 
-        # you won't get all the errors at once due to the incorrect_type happening before validate.
-        # fix the employee to the correct type and check that label10 is complained about
+        # With a valid body, the invalid expand is still reported.
         put_data["employee"] = employee.pk
         serializer = TimesheetSerializer(instance=t, data=put_data, context=context)
 
@@ -1419,7 +1420,9 @@ class TestFieldListDefault:
         fields = ModelInfoSerializer().get_model_fields_data(store_serializers.CustomerOrderSerializer)
 
         assert fields["workflow_state_code"]["list_default"] is False
-        assert fields["valid_transitions"]["list_default"] is False
+        # The transitions only drive the transition buttons, so model info reports them hidden instead.
+        assert fields["valid_transitions"]["hidden"] is True
+        assert "list_default" not in fields["valid_transitions"]
         assert "list_default" not in fields["workflow_state_name"]
         # `when` is auto_now_add: an integrator-declared timestamp, so the server leaves it unflagged.
         assert "list_default" not in fields["when"]

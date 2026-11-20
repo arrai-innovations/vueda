@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemContent: {
         /**
-         * The main text stack inside an item. It flexes to fill available space and lets a following content block opt out of that growth.
+         * The main text stack inside an item. It flexes to fill available space and lets a following content block opt
+         * out of that growth.
          */
         root: {
             class: "flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none",

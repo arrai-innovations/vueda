@@ -13,7 +13,11 @@ patchTheme({
      * nav buttons.
      */
     CalendarHeader: {
-        /** The title row above the day grid. Flex-centred so the {@api theme-key:CalendarHeading.root} sits in the middle of the row, with `px-8` reserving 32px of side padding for the prev / next {@api theme-key:CalendarNavButton.root} pair that the component anchors to the row edges. */
+        /**
+         * The title row above the day grid. Flex-centred so the {@api theme-key:CalendarHeading.root} sits in the
+         * middle of the row, with `px-8` reserving 32px of side padding for the prev / next
+         * {@api theme-key:CalendarNavButton.root} pair that the component anchors to the row edges.
+         */
         root: {
             class: ["flex justify-center pt-1 relative items-center w-full px-8"],
         },

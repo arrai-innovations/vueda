@@ -1519,8 +1519,8 @@ class TestStoreProductViewSet:
         )
         assert (
             response.data["distributor.brands"][0]
-            == "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, "
-            "distributor.*, distributor.~all"
+            == "Invalid expands. Permitted expands are distributor, special_care. Or use a wildcard to expand all: "
+            "*, ~all, distributor.*, distributor.~all, special_care.*, special_care.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
 
     def test_retrieve_with_two_depth_invalid_field(self, api_client, test_data):
@@ -1550,8 +1550,9 @@ class TestStoreProductViewSet:
             "distributor, distributor.description, distributor.formatted_name, distributor.id, "
             "distributor.name, distributor.object_revision, formatted_name, future_sale_dates, id, "
             "internal_comments, last_ordered, last_ten_order_betweens, name, object_revision, order_between, "
-            "reviews, special_care, tangible_type. Or use a wildcard to specify all: *, ~all, distributor.*, "
-            "distributor.~all"
+            "reviews, special_care, special_care.code, special_care.formatted_name, special_care.id, "
+            "special_care.object_revision, tangible_type. Or use a wildcard to specify all: *, ~all, "
+            "distributor.*, distributor.~all, special_care.*, special_care.~all"
         ), f"distributor.brands message: {response.data['distributor.brands'][0]}"
 
     def test_retrieve_rejects_expanded_available_actions_field(self, api_client, test_data):
@@ -1667,8 +1668,8 @@ class TestStoreProductViewSet:
         assert len(response.data["bogus"]) == 1, response_body(response)
         assert response.data["bogus"][0].startswith("Invalid field.  Valid fields are "), response_body(response)
         assert response.data["distributor.brands"] == [
-            "Invalid expands. Permitted expands are distributor. Or use a wildcard to expand all: *, ~all, "
-            "distributor.*, distributor.~all"
+            "Invalid expands. Permitted expands are distributor, special_care. Or use a wildcard to expand all: "
+            "*, ~all, distributor.*, distributor.~all, special_care.*, special_care.~all"
         ], response_body(response)
         assert "VuedaValidationError" in response.data["serverStack"], response_body(response)
 

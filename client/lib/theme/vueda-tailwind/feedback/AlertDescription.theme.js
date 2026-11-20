@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * AlertDescription renders supporting alert copy. It aligns with the alert title and keeps nested paragraph text readable.
+     * AlertDescription renders supporting alert copy. It aligns with the alert title and keeps nested paragraph text
+     * readable.
      */
     AlertDescription: {
         /**
-         * The supporting message copy beneath the alert title. It inherits variant-specific description tint from {@api theme-key:Alert.root} while keeping nested paragraphs readable for short remediation text.
+         * The supporting message copy beneath the alert title. It inherits variant-specific description tint from
+         * {@api theme-key:Alert.root} while keeping nested paragraphs readable for short remediation text.
          */
         root: {
             class: [

@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemMedia: {
         /**
-         * The leading media region for an item. The `icon` variant creates a 32px bordered tile, the `image` variant creates a 40px cropped image frame, and the default stays transparent.
+         * The leading media region for an item. The `icon` variant creates a 32px bordered tile, the `image` variant
+         * creates a 40px cropped image frame, and the default stays transparent.
          */
         root: ({ variant }) => {
             const variantClass =

@@ -13,7 +13,8 @@ patchTheme({
      */
     Separator: {
         /**
-         * The plain horizontal or vertical dividing rule. It is a single border-token line with no label or inset variant.
+         * The plain horizontal or vertical dividing rule. It is a single border-token line with no label or inset
+         * variant.
          */
         root: {
             class: [

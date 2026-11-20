@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * LoadingHeartbeatStrip displays request identity, elapsed time, dependency count, and heartbeat status in one mono row. It separates the default and slow-path dots so loading state tone remains customizable.
+     * LoadingHeartbeatStrip displays request identity, elapsed time, dependency count, and heartbeat status in one mono
+     * row. It separates the default and slow-path dots so loading state tone remains customizable.
      */
     LoadingHeartbeatStrip: {
         /** Mono status row that separates request identity from live loading state. */

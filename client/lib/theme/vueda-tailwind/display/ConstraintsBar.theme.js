@@ -14,7 +14,10 @@ patchTheme({
      * rhythm and a bottom hairline. Rendered only when a constraint is active.
      */
     ConstraintsBar: {
-        /** Collapse wrapper. A `grid-template-rows` animation (0fr to 1fr) reveals or hides the band at the canonical interaction duration; the SFC sets the row value inline. Disabled under reduced-motion. */
+        /**
+         * Collapse wrapper. A `grid-template-rows` animation (0fr to 1fr) reveals or hides the band at the canonical
+         * interaction duration; the SFC sets the row value inline. Disabled under reduced-motion.
+         */
         collapse: {
             class: [
                 "grid transition-[grid-template-rows]",

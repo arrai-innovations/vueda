@@ -629,4 +629,8 @@ class TestAppBoundary:
         """Core knows a first-party section's owning app, so it can report an absent one, and nothing more."""
         from vueda.core.features import FIRST_PARTY_SECTION_APPS
 
-        assert FIRST_PARTY_SECTION_APPS == {"History": "vueda.history", "Workflow": "vueda.workflow"}
+        assert FIRST_PARTY_SECTION_APPS == {
+            "History": "vueda.history",
+            "Streams": "vueda.streams",
+            "Workflow": "vueda.workflow",
+        }

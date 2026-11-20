@@ -1,6 +1,7 @@
 /**
  * @module use/useDevLogger
- * @description Provides a development-only logger that prefixes messages with the component name and field or widget context.
+ * @description Provides a development-only logger that prefixes messages with the component name and field or widget
+ *  context.
  */
 import { FieldContextSymbol, WidgetContextSymbol } from "@vueda/utils/symbols.js";
 import { getCurrentInstance, inject, toRaw, unref } from "vue";
@@ -22,8 +23,10 @@ import { getCurrentInstance, inject, toRaw, unref } from "vue";
  * A utility function to create a logger that can be used in development mode.
  *
  * @param {object} [args={}] - The arguments for the logger.
- * @param {import('@vueda/use/useField.js').FieldContext|null} [args.fieldContext=null] - The field context to use for logging.
- * @param {import('@vueda/use/useWidget.js').WidgetContext|null} [args.widgetContext=null] - The widget context to use for logging.
+ * @param {import('@vueda/use/useField.js').FieldContext|null} [args.fieldContext=null] - The field context to use for
+ *  logging.
+ * @param {import('@vueda/use/useWidget.js').WidgetContext|null} [args.widgetContext=null] - The widget context to use
+ *  for logging.
  * @returns {DevLogger} - The logger object with methods for logging messages.
  */
 export function useDevLogger({ fieldContext = null, widgetContext = null } = {}) {

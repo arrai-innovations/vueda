@@ -241,7 +241,7 @@ A request option that returns a related object inline in place of its primary ke
 
 ## Extra Action
 
-An {@term Action} that a viewset declares with VUEDA's `action` decorator, in addition to the built-in actions. It targets one object when declared `detail=True` and the model otherwise; a {@term Bulk Action} can target several objects. Model info reports it by its `url_name`.
+An {@term Action} that a viewset declares with VUEDA's `action` decorator, in addition to the built-in actions. It targets one object when declared `detail=True` and the model otherwise; a {@term Bulk Action} can target several objects. Model info reports it by its `url_name`. Model info also reports its `url_path`, which is the URL segment that the router serves it at.
 
 - Names: [`action`]{@api py:function:vueda.core.decorators.action}; [`detail`]{@api py:param:vueda.core.decorators.action.detail}; [`get_allowed_extra_actions`]{@api py:function:vueda.core.viewsets.AllowedExtraActionsMixin.get_allowed_extra_actions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#server-action-declaration-and-route-partitioning)
@@ -326,7 +326,7 @@ The registry that maps icon names, such as `loading` or `check`, to Vue componen
 
 ## Ignored Field
 
-A {@term Field Path} marked with the form context's `ignore` method. The form leaves an ignored field out of the values it submits. In an object form, errors on an ignored path do not block submitting. An {@term Inline} ignores each saved row you mark for removal.
+A {@term Field Path} marked with the form context's `ignore` method. The form leaves an ignored field out of the values it submits. In an object form, errors on an ignored path do not block submitting. A stacked or tabular {@term Inline} ignores each saved row that you mark for removal.
 
 - Names: [`FormContext.ignore`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContext.ignore}; [`FieldContext.ignore`]{@api js:property:@arrai-innovations/vueda/use/useField#FieldContext.ignore}; [`submittingValues`]{@api js:property:@arrai-innovations/vueda/use/useForm#FormContextRawState.submittingValues}
 - Described in: [Form State and Validation Lifecycle](../core-concepts/form-state-and-validation-lifecycle.md#ignored-fields-and-submitting-values)
@@ -366,7 +366,7 @@ The `model_actions` list in {@term Model Info}: the actions the model's viewset 
 
 ## Model API Path
 
-The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`.
+The server path the client requests for a model's endpoints: `/routes/<app_label>/<model_name>/`, with detail and action paths below it. You serve each viewset there, or change the client's URL templates with `setCustomUrl`. The `modelAction` and `modelDetailAction` templates mark the action's URL segment with the `:action_name` placeholder.
 
 - Names: [`getListUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getListUrl}; [`getDetailUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#getDetailUrl}; [`setCustomUrl`]{@api js:function:@arrai-innovations/vueda/utils/urls#setCustomUrl}; [`VuedaRouter`]{@api py:class:vueda.core.routers.VuedaRouter}; `modelList`; `modelDetail`; `modelAction`; `modelDetailAction`
 - Described in: [Create a CRUD Surface for a New Model](../guides/create-crud-surface.md#router-and-url-wiring)
@@ -396,7 +396,7 @@ The metadata the server publishes for each registered model, in seven sections: 
 
 ## Model-Scope Check
 
-A permission check with no object, which asks whether the user may perform an action on the model at all. The server runs it before a request fetches any object. It runs one for each built-in action and each {@term Extra Action} to build {@term Model Actions}.
+A permission check with no object, which asks whether the user may perform an action on the model at all. The server runs it before a request fetches any object. It runs one for each built-in action and each {@term Extra Action} to build {@term Model Actions}. It also runs one for each extra action in an object's {@term Available Actions}.
 
 - Names: [`check_action_permission`]{@api py:function:vueda.core.permissions.check_action_permission}; [`permitted_extra_action_methods`]{@api py:function:vueda.core.permissions.permitted_extra_action_methods}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#model-scope-action-metadata)
@@ -437,7 +437,7 @@ The record that stores which workflow state one object is in. VUEDA creates it i
 
 ## Object-Scope Check
 
-A permission check against one object, including its {@term Row-Level Permissions} and {@term State Permission} rules. The server runs it on requests for that object, and it decides which built-in actions appear in the object's {@term Available Actions}.
+A permission check against one object, including its {@term Row-Level Permissions} and {@term State Permission} rules. The server runs it on requests for that object. It decides which built-in actions and which detail extra actions appear in the object's {@term Available Actions}.
 
 - Names: [`check_action_permission`]{@api py:function:vueda.core.permissions.check_action_permission}; [`ObjectPermissions`]{@api py:class:vueda.core.permissions.ObjectPermissions}
 - Described in: [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#object-scope-availability-metadata)

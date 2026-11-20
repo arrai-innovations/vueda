@@ -12,7 +12,10 @@ patchTheme({
      * ContextMenuContent styles the floating context menu surface.
      */
     ContextMenuContent: {
-        /** Context-menu surface. Matches {@api theme-key:DropdownMenuContent.root} while using context-menu collision sizing. */
+        /**
+         * Context-menu surface. Matches {@api theme-key:DropdownMenuContent.root} while using context-menu collision
+         * sizing.
+         */
         root: {
             class: [
                 // Surface and color.

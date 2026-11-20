@@ -14,7 +14,16 @@ patchTheme({
      * state, row states, card layout, and row-action affordances.
      */
     ObjectsGrid: {
-        /** The outer scroll surface and card fill for the grid. It owns the density attribute, tabular number rendering, and `data-flush` edge merging used when the grid is embedded in a parent surface. The radius and inset hairline apply in table layout only, where the root is the surface the rows sit on and its edge closes the last row. Card layout drops the edge, because each card already carries one through {@api theme-key:ObjectsGrid.bodyRow} and an edge here would sit 4 px outside every card edge. The fill stays in both layouts, so the gutter between cards keeps the same tone as the chrome a consumer wraps around the grid. `data-flush` removes the embedded grid's inset hairline and radius; the parent owns the outer edge and any separators around the grid. */
+        /**
+         * The outer scroll surface and card fill for the grid. It owns the density attribute, tabular number rendering,
+         * and `data-flush` edge merging used when the grid is embedded in a parent surface. The radius and inset
+         * hairline apply in table layout only, where the root is the surface the rows sit on and its edge closes the
+         * last row. Card layout drops the edge, because each card already carries one through
+         * {@api theme-key:ObjectsGrid.bodyRow} and an edge here would sit 4 px outside every card edge. The fill stays
+         * in both layouts, so the gutter between cards keeps the same tone as the chrome a consumer wraps around the
+         * grid. `data-flush` removes the embedded grid's inset hairline and radius; the parent owns the outer edge and
+         * any separators around the grid.
+         */
         root: {
             class: ({ isTable }) => [
                 "max-w-full overflow-x-auto",
@@ -29,7 +38,12 @@ patchTheme({
                 "[[data-flush]_&]:rounded-none [[data-flush]_&]:shadow-none",
             ],
         },
-        /** The inner table-shaped container. It switches on the table display contract only when the active breakpoint resolves to table layout, and fills the root so row dividers reach both card edges instead of stopping at the last column. The separated border model keeps cell padding free of collapsed edges, so row dividers sit on cells rather than on rows. */
+        /**
+         * The inner table-shaped container. It switches on the table display contract only when the active breakpoint
+         * resolves to table layout, and fills the root so row dividers reach both card edges instead of stopping at the
+         * last column. The separated border model keeps cell padding free of collapsed edges, so row dividers sit on
+         * cells rather than on rows.
+         */
         table: {
             class: ({ isTable }) => [
                 {
@@ -37,7 +51,10 @@ patchTheme({
                 },
             ],
         },
-        /** The header row group for table layout. It is hidden in card layout because card labels come from {@api theme-key:ObjectsGridCardCell.header}. */
+        /**
+         * The header row group for table layout. It is hidden in card layout because card labels come from
+         * {@api theme-key:ObjectsGridCardCell.header}.
+         */
         headerRowGroup: {
             class: ({ isTable }) => [
                 "gap-1 2xs:gap-2 2xl:gap-4",
@@ -47,11 +64,18 @@ patchTheme({
                 },
             ],
         },
-        /** The table-layout header row wrapper. It becomes a table row only when {@api theme-key:ObjectsGrid.table} is in table mode, and carries the divider that separates the header band from the first data row. The divider sits on the header cells because the separated border model does not paint borders on rows. */
+        /**
+         * The table-layout header row wrapper. It becomes a table row only when {@api theme-key:ObjectsGrid.table} is
+         * in table mode, and carries the divider that separates the header band from the first data row. The divider
+         * sits on the header cells because the separated border model does not paint borders on rows.
+         */
         headerRow: {
             class: ({ isTable }) => [{ "!table-row": isTable, "[&>*]:border-b-hairline": isTable }],
         },
-        /** The table-layout column header cell. It aligns numeric columns with `data-numeric` so sortable columns keep their right edge stable. */
+        /**
+         * The table-layout column header cell. It aligns numeric columns with `data-numeric` so sortable columns keep
+         * their right edge stable.
+         */
         headerCell: {
             class: ({ isTable }) => [
                 "align-bottom",
@@ -66,11 +90,20 @@ patchTheme({
                 },
             ],
         },
-        /** The empty-state cell wrapper. It centers the empty content inside the single row the grid renders when it has no data. That row spans the full width in both layouts, but by different means: in table layout the cell is a `td` carrying `colspan`, because a CSS table gives a non-cell child one column; in card layout it is a `div` inside a row that spans the card grid. A recipe here should therefore set no display or column utilities of its own. */
+        /**
+         * The empty-state cell wrapper. It centers the empty content inside the single row the grid renders when it has
+         * no data. That row spans the full width in both layouts, but by different means: in table layout the cell is a
+         * `td` carrying `colspan`, because a CSS table gives a non-cell child one column; in card layout it is a `div`
+         * inside a row that spans the card grid. A recipe here should therefore set no display or column utilities of
+         * its own.
+         */
         emptyText: {
             class: ["text-center"],
         },
-        /** The empty-state content stack. It styles the icon, title, and variant-driven loading or error treatment used by the default empty slot. */
+        /**
+         * The empty-state content stack. It styles the icon, title, and variant-driven loading or error treatment used
+         * by the default empty slot.
+         */
         emptyContent: {
             class: [
                 "flex flex-col items-center justify-center gap-2.5 py-10 text-center text-muted-foreground",
@@ -80,7 +113,11 @@ patchTheme({
                 "data-[variant=error]:[&>[data-slot=icon]]:text-destructive/80",
             ],
         },
-        /** The body row group for loading, empty, and data rows. It is a responsive card grid in card layout and a table row group in table layout. In table layout it removes the last row's divider from that row's cells so the enclosing {@api theme-key:ObjectsGrid.root} edge remains the closing edge. */
+        /**
+         * The body row group for loading, empty, and data rows. It is a responsive card grid in card layout and a table
+         * row group in table layout. In table layout it removes the last row's divider from that row's cells so the
+         * enclosing {@api theme-key:ObjectsGrid.root} edge remains the closing edge.
+         */
         bodyRowGroup: {
             class: ({ isTable }) => [
                 "print:block",
@@ -92,7 +129,14 @@ patchTheme({
                 },
             ],
         },
-        /** The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so selection stays distinct from hover. In table layout each row also divides from the next; that divider sits on the row's cells, because the separated border model does not paint borders on rows. In card layout the row is the card: it carries the card fill, radius, and edge, so it reads the same on any ground and is the only edge in that layout. */
+        /**
+         * The shared row wrapper for table rows and card rows. It carries hover, selected, and marked-destroy states
+         * while preserving action controls. Selected rows use a low-primary tint plus a leading primary rail so
+         * selection stays distinct from hover. In table layout each row also divides from the next; that divider sits
+         * on the row's cells, because the separated border model does not paint borders on rows. In card layout the row
+         * is the card: it carries the card fill, radius, and edge, so it reads the same on any ground and is the only
+         * edge in that layout.
+         */
         bodyRow: {
             class: ({ isTable }) => {
                 return [
@@ -122,7 +166,10 @@ patchTheme({
                 ];
             },
         },
-        /** The card-layout field grid inside each row card. It aligns all {@api theme-key:ObjectsGridCardCell.header} and {@api theme-key:ObjectsGridCardCell.value} fragments into label and value columns. */
+        /**
+         * The card-layout field grid inside each row card. It aligns all {@api theme-key:ObjectsGridCardCell.header}
+         * and {@api theme-key:ObjectsGridCardCell.value} fragments into label and value columns.
+         */
         cardContainer: {
             class: [
                 // Card spacing.
@@ -135,7 +182,10 @@ patchTheme({
                 "[&>*]:min-w-0",
             ],
         },
-        /** Row-action classes exposed for consumers that compose inline row controls next to object rows. Use `rowActions.root` for the hidden wrapper and `rowActions.action` for compact icon buttons. */
+        /**
+         * Row-action classes exposed for consumers that compose inline row controls next to object rows. Use
+         * `rowActions.root` for the hidden wrapper and `rowActions.action` for compact icon buttons.
+         */
         rowActions: {
             /** The row-action container. It stays invisible at rest so dense grids do not read as a column of icons. */
             root: {
@@ -144,7 +194,10 @@ patchTheme({
                     "group-hover/row:visible group-focus-within/row:visible group-data-[state=selected]/row:visible",
                 ],
             },
-            /** The canonical compact icon-button action inside a row action bar. It keeps a 24px target, muted resting color, hover border, and focus ring consistent with dense table actions. */
+            /**
+             * The canonical compact icon-button action inside a row action bar. It keeps a 24px target, muted resting
+             * color, hover border, and focus ring consistent with dense table actions.
+             */
             action: {
                 class: [
                     "inline-flex items-center justify-center size-6 rounded-vueda-control",

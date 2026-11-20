@@ -25,6 +25,7 @@ The widget column gives the `data-qa` of the widget root in the snapshots listed
 | --- | --- | --- | --- | --- | --- |
 | `account` | Account name | CharField | CharField | required | `widget-read-only-root` (view-read.html)<br>`widget-text-input` (view-create.html)<br>`widget-text-input` (view-update.html) |
 | `domain` | Primary domain | URLField | URLField |  | `widget-read-only-root` (view-read.html)<br>`widget-text-input` (view-create.html)<br>`widget-text-input` (view-update.html) |
+| `contactEmail` | Billing email | EmailField | EmailField |  | `widget-read-only-root` (view-read.html)<br>`widget-text-input` (view-create.html)<br>`widget-text-input` (view-update.html) |
 | `owner` | Owner | ChoiceField | CharField | required, choices | `widget-read-only-root` (view-read.html)<br>`widget-select-dropdown` (view-create.html)<br>`widget-select-dropdown` (view-update.html) |
 | `tier` | Plan tier | ChoiceField | CharField | choices | `widget-read-only-root` (view-read.html)<br>`widget-select-dropdown` (view-create.html)<br>`widget-select-dropdown` (view-update.html) |
 | `mrr` | MRR | DecimalField | DecimalField |  | `widget-read-only-root` (view-read.html)<br>`widget-number-input` (view-create.html)<br>`widget-number-input` (view-update.html) |

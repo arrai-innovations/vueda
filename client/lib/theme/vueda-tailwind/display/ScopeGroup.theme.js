@@ -13,18 +13,26 @@ patchTheme({
      * scopes control. Only rendered when a scope is active.
      */
     ScopeGroup: {
-        /** Active-scope chips strip. Muted tint a tier below the card; shares the page-chrome rhythm and carries a bottom hairline. */
+        /**
+         * Active-scope chips strip. Muted tint a tier below the card; shares the page-chrome rhythm and carries a
+         * bottom hairline.
+         */
         strip: {
             class: [
                 "w-full flex flex-wrap items-center gap-2 px-5 py-[10px]",
                 "border-b-hairline bg-[color-mix(in_oklab,var(--muted)_25%,var(--card))] text-foreground",
             ],
         },
-        /** Bare chips group used when hosted inside a shared ConstraintsBar: the band chrome (border, tint, padding) belongs to the host, so this carries only the flex layout for the eyebrow and chips. */
+        /**
+         * Bare chips group used when hosted inside a shared ConstraintsBar: the band chrome (border, tint, padding)
+         * belongs to the host, so this carries only the flex layout for the eyebrow and chips.
+         */
         subgroup: {
             class: ["flex min-w-0 flex-wrap items-center gap-2"],
         },
-        /** "Scope" eyebrow at the left of the chips strip. 11 px / 600 / 0.06em uppercase against `--muted-foreground`. */
+        /**
+         * "Scope" eyebrow at the left of the chips strip. 11 px / 600 / 0.06em uppercase against `--muted-foreground`.
+         */
         eyebrow: {
             class: [
                 "text-[length:var(--vueda-text-micro)] font-semibold uppercase tracking-[0.06em]",

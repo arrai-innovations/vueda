@@ -20,7 +20,10 @@ defineOptions({});
 const props = defineProps({
     ...ICON_OVERRIDE_PROPS,
     ...THEME_OVERRIDE_PROPS,
-    /** Filterable field names to offer: non-hidden fields the client can render an editable input for (e.g. `useViewList`'s `filter.validFilterables`). */
+    /**
+     * Filterable field names to offer: non-hidden fields the client can render an editable input for (e.g.
+     * `useViewList`'s `filter.validFilterables`).
+     */
     filterables: {
         type: Array,
         default: () => [],

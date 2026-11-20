@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * AvatarFallback centers fallback content when an avatar image is unavailable. It uses the muted surface treatment for neutral identity placeholders.
+     * AvatarFallback centers fallback content when an avatar image is unavailable. It uses the muted surface treatment
+     * for neutral identity placeholders.
      */
     AvatarFallback: {
         /** Centered muted fallback surface for initials or placeholder content. */

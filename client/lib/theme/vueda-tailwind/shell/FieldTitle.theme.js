@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldTitle: {
         /**
-         * The compact title text adjacent to field content. It follows field disabled opacity and uses label-weight type for local field headings.
+         * The compact title text adjacent to field content. It follows field disabled opacity and uses label-weight
+         * type for local field headings.
          */
         root: {
             class: [

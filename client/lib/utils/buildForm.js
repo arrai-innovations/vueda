@@ -1,6 +1,7 @@
 /**
  * @module utils/buildForm
- * @description Builds and manages reactive form state, resolving field and widget components from configuration and props.
+ * @description Builds and manages reactive form state, resolving field and widget components from configuration and
+ *  props.
  */
 import { assignReactiveObject } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
@@ -47,9 +48,9 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
  *     [key: string]: any
  * }) => void} assignStateObjectsIfChanged - Assign state objects if they have changed.
  * @property {(
- *    (key: string, detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo, baseExpanded?: boolean, fieldName?: string) =>
- *        import('vue').ComputedRef<import('vue').Component>
- * )} setFieldComponent - Set the component for a field.
+ *    (key: string, detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo, baseExpanded?: boolean,
+ *    fieldName?: string) => import('vue').ComputedRef<import('vue').Component> )} setFieldComponent - Set the component
+ *    for a field.
  * @property {(
  *     key: string,
  *     detailObject: import('@vueda/stores/storeModelInfo.js').FieldInfo,
@@ -77,9 +78,12 @@ import { computed, effectScope, toRaw, toRef, watch } from "vue";
  * component itself. Throws when nothing resolves, naming the field and its app and model: an
  * absent reference, a name missing from `lookup`, or a function that returns no component.
  *
- * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or mapping value to resolve.
- * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in (`availableFields` or `availableWidgets`).
- * @param {{kind: "field"|"widget", fieldName: string, app?: string, model?: string}} context - What is being resolved, for the error message.
+ * @param {import('vue').Component|string|(() => import('vue').Component)|null|undefined} candidate - The override or
+ *  mapping value to resolve.
+ * @param {{[name: string]: import('vue').Component}} lookup - The registry a string name is looked up in
+ *  (`availableFields` or `availableWidgets`).
+ * @param {{kind: "field"|"widget", fieldName: string, app?: string, model?: string}} context - What is being resolved,
+ *  for the error message.
  * @returns {import('vue').Component} The resolved component.
  */
 export function resolveComponent(candidate, lookup, { kind, fieldName, app, model }) {
@@ -109,10 +113,14 @@ export function resolveComponent(candidate, lookup, { kind, fieldName, app, mode
  *
  * @param {import('vue').UnwrapNestedRefs<PropsRaw>} props - The reactive props object containing form metadata.
  * @param {import('vue').UnwrapNestedRefs<StateRaw>} state - The target reactive object to manage for form state.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getFieldComponent - Function to retrieve the component for a given field.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getFieldProps - Function to retrieve field-specific properties.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getWidgetComponent - Function to retrieve the widget for a given field.
- * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getWidgetProps - Function to retrieve widget-specific properties.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getFieldComponent -
+ *  Function to retrieve the component for a given field.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getFieldProps - Function to retrieve
+ *  field-specific properties.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => import('vue').Component} getWidgetComponent -
+ *  Function to retrieve the widget for a given field.
+ * @param {(field: import('@vueda/stores/storeModelInfo.js').FieldInfo) => object} getWidgetProps - Function to retrieve
+ *  widget-specific properties.
  * @returns {BuildForm} Functions for managing form configuration and updating reactive state.
  */
 export function buildForm(props, state, getFieldComponent, getFieldProps, getWidgetComponent, getWidgetProps) {
@@ -237,8 +245,22 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                 (deepUnref(state.computedFields) || []).includes(fieldName) ||
                 readOnlyProp === true ||
                 modelConfigReadOnly === true ||
-                detailReadOnly === true);
+                detailReadOnly === true ||
+                getIsParentReadOnly(fieldName));
         return rv;
+    }
+
+    // A dotted sub-field such as `lines.note` renders in the rows of the `lines` inline. When that
+    // inline is read-only, its rows are read-only too, unless the sub-field sets `readOnly: false`.
+    function getIsParentReadOnly(fieldName) {
+        const dotIndex = fieldName.lastIndexOf(".");
+        if (dotIndex === -1) {
+            return false;
+        }
+        const parentName = fieldName.slice(0, dotIndex);
+        const parentDetailReadOnly =
+            state.fieldDetails?.[parentName]?.readOnly === true || state.expandDetails?.[parentName]?.readOnly === true;
+        return getIsReadOnly(parentName, parentDetailReadOnly);
     }
 
     function setWidgetComponent(key, detailObject, baseExpanded = false, fieldName = key) {
@@ -308,6 +330,12 @@ export function buildForm(props, state, getFieldComponent, getFieldProps, getWid
                     }
                 } else {
                     baseProps.options = detailObject.choices;
+                    if (readOnly && detailObject.appLabel && detailObject.model) {
+                        // The server names the related model of a relation field that it marks read-only. The
+                        // read-only widget looks up each value in that model and shows its label as a link.
+                        baseProps.app = detailObject.appLabel;
+                        baseProps.model = detailObject.model;
+                    }
                 }
                 baseProps.themeOverride = fieldLevelThemeOverride;
                 baseProps.readOnly = readOnly;

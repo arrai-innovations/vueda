@@ -13,7 +13,8 @@ patchTheme({
      */
     Stepper: {
         /**
-         * The root flex row for a stepper. It provides only the step gap so orientation and step semantics stay with the composed step items.
+         * The root flex row for a stepper. It provides only the step gap so orientation and step semantics stay with
+         * the composed step items.
          */
         root: {
             class: "flex gap-2",

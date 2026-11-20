@@ -6,6 +6,7 @@ import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import escapeRegExp from "lodash-es/escapeRegExp.js";
 import get from "lodash-es/get.js";
+import has from "lodash-es/has.js";
 import identity from "lodash-es/identity.js";
 import isEqual from "lodash-es/isEqual.js";
 import omit from "lodash-es/omit.js";
@@ -27,7 +28,8 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  *
  * // *** Values & Initial State ***
  * @property {FieldValues} values - The form's values, referenced by lodash key path.
- * @property {FieldValues} submittingValues - The form's values for submission, with ignored fields omitted.
+ * @property {FieldValues} submittingValues - The form's values for submission. Ignored fields are omitted. Each
+ *  path in `submittedAsNull` holds `null`.
  * @property {{[fieldName: string]: any}} initialValues - The form's initial values (used for resets).
  *
  * // *** Validation & Errors ***
@@ -40,7 +42,8 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * @property {{[path: string]: boolean}} touched - Whether each field has been touched (blurred).
  * @property {boolean} anyTouched - Whether any field has been touched.
  * @property {string|null} focused - The currently focused field (if any).
- * @property {boolean} submitted - Whether the form has had a submission attempt (set by setAllTouched, cleared by reset).
+ * @property {boolean} submitted - Whether the form has had a submission attempt (set by setAllTouched, cleared by
+ *  reset).
  *
  * // *** Tracking & Modification ***
  * @property {import('@vueda/use/useReactiveHookRegistry.js').ComputedAggregates} modified - Tracks modified fields.
@@ -52,13 +55,21 @@ import { computed, provide, reactive, readonly, ref, toRef, watch } from "vue";
  * // *** Ignored Fields & Reset Behavior ***
  * @property {{[path: string]: string}} ignored - Fields ignored in validation/submission.
  * @property {boolean} anyIgnored - Whether any field has been ignored.
+ * @property {{[path: string]: true}} submittedAsNull - Fields that the form submits as `null`. Each field keeps its
+ *  value in `values`. Unlike an ignored field, it still counts as modified and keeps its required state.
  *
  * // *** Dependency Management ***
- * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via registerDependencyValues.
+ * @property {{[path: string]: any}} dependencyValues - Resolved dependency values for fields registered via
+ *  registerDependencyValues.
  *
  * // *** Field Metadata ***
- * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same path, new component instance) is not left labelless by the outgoing instance's cleanup.
- * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages where the reader can see them, keyed by field path. True when any live registration for the path reports that it does. A path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from one a field already shows.
+ * @property {{[path: string]: string}} labels - Display labels reported by each rendered field's label hook, keyed by
+ *  field path. Aggregates to the most recently registered hook still live for a path, so a field being replaced (same
+ *  path, new component instance) is not left labelless by the outgoing instance's cleanup.
+ * @property {{[path: string]: boolean}} showsErrors - Whether a rendered field displays its own error messages where
+ *  the reader can see them, keyed by field path. True when any live registration for the path reports that it does. A
+ *  path with no rendered field has no entry, which is how a form-level summary tells an error nothing else reports from
+ *  one a field already shows.
  */
 
 /**
@@ -152,7 +163,7 @@ const removeArrayItem = (state, name, index) => {
         }
         return `${prefix}${Number(match[1]) - 1}]${match[2]}`;
     };
-    for (const collection of [state.errors, state.messages, state.touched, state.ignored]) {
+    for (const collection of [state.errors, state.messages, state.touched, state.ignored, state.submittedAsNull]) {
         const entries = Object.entries(collection);
         for (const [path] of entries) {
             if (shiftedPath(path) !== path) {
@@ -541,6 +552,34 @@ const removeIgnore = (state, name) => {
 };
 
 /**
+ * Marks a field to be submitted as `null`. The field keeps its value in `values`.
+ *
+ * @param {FormContextState} state
+ * @param {string} name
+ * @private
+ */
+const submitAsNull = (state, name) => {
+    validateName(name);
+    if (!state.submittedAsNull[name]) {
+        state.submittedAsNull[name] = true;
+    }
+};
+
+/**
+ * Removes the mark that `submitAsNull` set, so the form submits the field's value again.
+ *
+ * @param {FormContextState} state
+ * @param {string} name
+ * @private
+ */
+const removeSubmitAsNull = (state, name) => {
+    validateName(name);
+    if (state.submittedAsNull[name]) {
+        delete state.submittedAsNull[name];
+    }
+};
+
+/**
  * Get the first displayed field with an error.
  * @param {FormContextState} state - The form context state.
  * @param {string[]} displayFields - The list of fields being displayed.
@@ -596,24 +635,28 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  *
  * // *** Form Reset & State Management ***
  * @property {() => void} reset - Reset the form to its initial values.
- * @property {(displayFields: string[], arrayFields: string[]) => string|null} getFirstErrorField - Get the first displayed field with an error.
+ * @property {(displayFields: string[], arrayFields: string[]) => string|null} getFirstErrorField - Get the first
+ *  displayed field with an error.
  *
  * // *** Value & Initial Value Handling ***
  * @property {(name: string, value: any) => void} updateValue - Update a field's value.
  * @property {(name: string) => void} deleteValue - Delete a field's value.
- * @property {(name: string, index: number) => void} removeArrayItem - Remove an array entry and shift its indexed errors, messages, touched, ignored, and focused state with the remaining values.
+ * @property {(name: string, index: number) => void} removeArrayItem - Remove an array entry and shift its indexed
+ *  errors, messages, touched, ignored, submitted-as-null, and focused state with the remaining values.
  * @property {(name: string, value: any) => void} updateInitialValue - Update a field's initial value.
  * @property {(name: string) => void} deleteInitialValue - Delete a field's initial value.
  *
  * // *** Error & Message Handling ***
- * @property {(name: string, childIndex?: number) => void} clearErrors - Clear all errors for a field, or a child's errors if childIndex is given.
+ * @property {(name: string, childIndex?: number) => void} clearErrors - Clear all errors for a field, or a child's
+ *  errors if childIndex is given.
  * @property {(name: string, code: string, message: string) => void} updateError - Update a field's error.
  * @property {(name: string, code?: string) => void} deleteError - Delete a field's error.
  * @property {(name: string, code: string, message: string) => void} updateMessage - Update a field's message.
  * @property {(name: string, childIndex?: number) => void} clearMessages - Clear a field's messages, or a child's
  *  messages if childIndex is given.
  * @property {(name: string, code?: string) => void} deleteMessage - Delete a field's message.
- * @property {(error: import('@vueda/utils/errors.js').ServerFeedbackError) => void} handleServerFormValidationError - Handle server feedback that should be ingested into form state.
+ * @property {(error: import('@vueda/utils/errors.js').ServerFeedbackError) => void} handleServerFormValidationError -
+ *  Handle server feedback that should be ingested into form state.
  * @property {(name: string, dependants: string[]|undefined) => void} clearServerErrors - clear errors and messages for
  *  the named field and optionally dependants
  *
@@ -628,6 +671,10 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * // *** Ignore State Management ***
  * @property {(name: string) => void} ignore - Mark a field as ignored.
  * @property {(name: string) => void} removeIgnore - Remove the ignored state from a field.
+ * @property {(name: string) => void} submitAsNull - Submit a field as `null`. The field keeps its value in `values`,
+ *  so its widgets still show that value.
+ * @property {(name: string) => void} removeSubmitAsNull - Submit the field's value again. This removes the mark that
+ *  `submitAsNull` set.
  *
  * // *** Hook Registrations ***
  * @property {import('@vueda/use/useReactiveHookRegistry.js').BoundRegisterHook} registerIsModifiedHook -
@@ -655,7 +702,8 @@ function getFirstErrorField(state, displayFields, arrayFields) {
  * @property {(id: string) => boolean} unregisterLabel -
  *  Unregister a previously registered label hook by its registration id.
  * @property {(name: string, showsErrorsHook: () => boolean) => string} registerShowsErrors -
- *  Register a hook reporting whether a rendered field displays its own error messages, grouped by field path; returns a registration id.
+ *  Register a hook reporting whether a rendered field displays its own error messages, grouped by field path; returns a
+ *  registration id.
  * @property {(id: string) => boolean} unregisterShowsErrors -
  *  Unregister a previously registered shows-errors hook by its registration id.
  */
@@ -760,11 +808,18 @@ export function useForm(props) {
         // *** Values & Initial State ***
         values: {},
         submittingValues: computed(() => {
-            if (state.anyIgnored) {
+            // Paths that exist hold null. This runs before ignored array items close their gaps,
+            // which would shift the indexes in these paths.
+            const nullPaths = Object.keys(state.submittedAsNull).filter((path) => has(state.values, path));
+            if (state.anyIgnored || nullPaths.length) {
                 const ignoredFields = Object.entries(state.ignored)
                     .filter(([, value]) => value === true)
                     .map(([key]) => key);
-                const values = omit(cloneDeep(state.values), ignoredFields);
+                const nulledValues = cloneDeep(state.values);
+                for (const path of nullPaths) {
+                    set(nulledValues, path, null);
+                }
+                const values = omit(nulledValues, ignoredFields);
                 for (const ignoredField of ignoredFields) {
                     if (ignoredField.match(/.*\[\d+\]$/)) {
                         const arrayField = ignoredField.split("[").slice(0, -1).join("[");
@@ -802,6 +857,7 @@ export function useForm(props) {
         // *** Ignored Fields & Reset Behavior ***
         ignored: {},
         anyIgnored: false,
+        submittedAsNull: {},
 
         // *** Dependency Management ***
         dependencyValues: {},
@@ -882,6 +938,8 @@ export function useForm(props) {
         // *** Ignore State Management ***
         ignore: ignore.bind(null, state),
         removeIgnore: removeIgnore.bind(null, state),
+        submitAsNull: submitAsNull.bind(null, state),
+        removeSubmitAsNull: removeSubmitAsNull.bind(null, state),
 
         // *** Hook Registrations ***
         registerIsModifiedHook: modifiedHookRegistry.registerHook,

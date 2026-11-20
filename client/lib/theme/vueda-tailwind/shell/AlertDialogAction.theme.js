@@ -13,7 +13,9 @@ patchTheme({
      */
     AlertDialogAction: {
         /**
-         * Extra classes for the Button rendered inside AlertDialogAction. Button owns the tone, emphasis, size, focus, and disabled recipes; this slot is intentionally empty by default so the wrapper cannot drift from the button contract.
+         * Extra classes for the Button rendered inside AlertDialogAction. Button owns the tone, emphasis, size, focus,
+         * and disabled recipes; this slot is intentionally empty by default so the wrapper cannot drift from the button
+         * contract.
          */
         root: {
             class: [],

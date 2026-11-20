@@ -43,11 +43,14 @@ ADMIN_PERMISSIONS = (
     ("store", "InventoryRecord", "read"),
     ("store", "InventoryRecordReason", "list"),
     ("store", "OptionType", "list"),
+    ("store", "OrderCompositePK", "list"),
     ("store", "OrderItem", "list"),
     ("store", "OrderItem", "read"),
+    ("store", "OrderItemCompositePK", "read"),
     ("store", "OrderState", "list"),
     ("store", "Product", "list"),
     ("store", "Product", "read"),
+    ("store", "ProductCompositePK", "list"),
     ("store", "ProductOption", "list"),
     ("store", "ProductOption", "read"),
     ("store", "SpecialCare", "list"),
@@ -83,6 +86,7 @@ REGISTRATIONS = (
     (store_serializers.DistributorSerializer, store_viewsets.DistributorViewSet),
     (store_serializers.InventoryRecordSerializer, store_viewsets.InventoryRecordViewSet),
     (store_serializers.OrderItemSerializer, None),
+    (store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet),
     (store_serializers.ProductSerializer, store_viewsets.ProductViewSet),
     (store_serializers.ProductOptionSerializer, store_viewsets.ProductOptionViewSet),
 )
@@ -326,8 +330,9 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
             format="json",
         )
 
-        # Forbidden where the customer can't list the model holding the field (inventory records),
-        # or the model the field points at (users, customers, customer orders and carts).
+        # Forbidden where the customer can't read the model holding the field (inventory records and
+        # composite key order items), or can't list the model the field points at (users, customers,
+        # customer orders and carts).
         match (app_label, model_name, field_name):
             case (
                 ("store", "customer", "user")
@@ -339,6 +344,8 @@ class TestModelInfoChoicesCustomer(BaseModelInfoChoices):
                 | ("store", "inventoryrecord", "added_inventory_record")
                 | ("store", "inventoryrecord", "order_item")
                 | ("store", "cartitem", "cart")
+                | ("store", "orderitemcompositepk", "order")
+                | ("store", "orderitemcompositepk", "product")
             ):
                 assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
 
@@ -1215,3 +1222,107 @@ class TestRelationWithOverriddenGetQuerysetChoices:
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
         assert [result["label"] for result in response.data["results"]] == [f"For {user.email}"]
+
+
+@pytest.mark.django_db
+class TestModelInfoChoicesCompositePrimaryKey:
+    """
+    The relations of a model whose primary key is a ``CompositePrimaryKey``. The serializer's ``pk``
+    is then a ``CompositePrimaryKeyField``, but each relation still offers the related model's rows,
+    keyed by that model's own primary key.
+    """
+
+    @pytest.fixture(autouse=True)
+    def registration(self):
+        info.registration.get_empty_registry()
+        info.register(store_serializers.OrderItemCompositePKSerializer, store_viewsets.OrderItemCompositePKViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.fixture
+    def related_rows(self):
+        """Two rows of each related model, so that a filtered request has a row to leave out."""
+        orders = [store_models.OrderCompositePK.objects.create(order_number=number) for number in ("1234", "99")]
+        products = [store_models.ProductCompositePK.objects.create(name=name) for name in ("Widget", "Gadget")]
+        store_models.OrderItemCompositePK.objects.create(order=orders[0], product=products[0], quantity=1)
+        return {"order": orders, "product": products}
+
+    def client_with_permissions(self, api_client, *permissions):
+        """Authenticate as a new user who holds exactly the given ``(model, action)`` permissions."""
+        user = get_user_model().objects.create_user(
+            email="composite-choices@domain.invalid", name="Composite Choices", password="testpass"
+        )
+        user.user_permissions.add(
+            *(
+                Permission.objects.get(
+                    content_type=ContentType.objects.get_for_model(model),
+                    codename=f"{action}_{model._meta.model_name}",
+                )
+                for model, action in permissions
+            )
+        )
+        api_client.force_authenticate(user=user)
+        return api_client
+
+    def allowed_client(self, api_client):
+        return self.client_with_permissions(
+            api_client,
+            (store_models.OrderItemCompositePK, "read"),
+            (store_models.OrderCompositePK, "list"),
+            (store_models.ProductCompositePK, "list"),
+        )
+
+    @staticmethod
+    def choices_url(field_name):
+        return reverse("info.model_info_choices-list", args=("store", "orderitemcompositepk", field_name))
+
+    @pytest.mark.parametrize("field_name", ["order", "product"])
+    def test_relation_offers_each_related_row_keyed_by_its_primary_key(self, api_client, related_rows, field_name):
+        client = self.allowed_client(api_client)
+
+        response = client.get(self.choices_url(field_name), format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == sorted(
+            ({"label": row.formatted_name, "value": str(row.pk)} for row in related_rows[field_name]),
+            key=lambda option: option["label"],
+        )
+
+    @pytest.mark.parametrize("field_name", ["order", "product"])
+    def test_value_keeps_only_the_matching_row(self, api_client, related_rows, field_name):
+        client = self.allowed_client(api_client)
+        row = related_rows[field_name][1]
+
+        response = client.get(self.choices_url(field_name) + f"?value={row.pk}", format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == [{"label": row.formatted_name, "value": str(row.pk)}]
+
+    @pytest.mark.parametrize("field_name", ["order", "product"])
+    def test_value_that_matches_no_row_returns_no_options(self, api_client, related_rows, field_name):
+        client = self.allowed_client(api_client)
+        missing_pk = max(row.pk for row in related_rows[field_name]) + 1
+
+        response = client.get(self.choices_url(field_name) + f"?value={missing_pk}", format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["results"] == []
+
+    @pytest.mark.parametrize(
+        "field_name, related_model",
+        [("order", store_models.OrderCompositePK), ("product", store_models.ProductCompositePK)],
+    )
+    def test_relation_requires_read_on_the_model(self, api_client, related_rows, field_name, related_model):
+        client = self.client_with_permissions(api_client, (related_model, "list"))
+
+        response = client.get(self.choices_url(field_name), format="json")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    @pytest.mark.parametrize("field_name", ["order", "product"])
+    def test_relation_requires_list_on_the_related_model(self, api_client, related_rows, field_name):
+        client = self.client_with_permissions(api_client, (store_models.OrderItemCompositePK, "read"))
+
+        response = client.get(self.choices_url(field_name), format="json")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)

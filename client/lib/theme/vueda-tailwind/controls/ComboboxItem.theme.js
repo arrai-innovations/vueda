@@ -13,7 +13,15 @@ patchTheme({
      * focused; muted icon flips to `--accent-foreground` on highlight.
      */
     ComboboxItem: {
-        /** A single result row inside a {@api theme-key:ComboboxGroup.root}. The `data-highlighted` state (set by the picker on keyboard or pointer focus) paints `--accent` / `--accent-foreground`, and the muted leading icon flips to inherit on the same rule so a highlighted row reads as one tinted strip. `data-disabled` halves opacity and drops pointer events; `rounded-sm` keeps the row a chit inside the group's slab. The committed-value `data-state=checked` tint that {@api theme-key:SelectItem.root} carries is not applied here because Combobox commits by closing the popover; the trailing {@api theme-key:ComboboxItemIndicator.root} marks the selection instead. */
+        /**
+         * A single result row inside a {@api theme-key:ComboboxGroup.root}. The `data-highlighted` state (set by the
+         * picker on keyboard or pointer focus) paints `--accent` / `--accent-foreground`, and the muted leading icon
+         * flips to inherit on the same rule so a highlighted row reads as one tinted strip. `data-disabled` halves
+         * opacity and drops pointer events; `rounded-sm` keeps the row a chit inside the group's slab. The
+         * committed-value `data-state=checked` tint that {@api theme-key:SelectItem.root} carries is not applied here
+         * because Combobox commits by closing the popover; the trailing {@api theme-key:ComboboxItemIndicator.root}
+         * marks the selection instead.
+         */
         root: {
             class: [
                 // Highlight and active states.

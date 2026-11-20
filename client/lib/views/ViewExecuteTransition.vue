@@ -104,12 +104,11 @@ const handleReturnClick = () => {
 };
 
 /**
- * `ModelActionForm`'s default `run-action` targets the generic model-action endpoint, which does
- * not accept a `transition_code`. Overriding the attribute here (it is not a declared prop of
- * `ModelActionForm`, so it lands in `$attrs` and wins over the internal default binding) routes
- * submission through the workflow execute-transition endpoint instead, forwarding the same
- * dry-run and warning-acknowledgement arguments `ActionForm` already threads through every other
- * model action.
+ * `ModelActionForm`'s default request targets the generic model-action endpoint, which does not
+ * accept a `transition_code`. Passing `run-action` sends the request through the workflow
+ * execute-transition endpoint instead, with the same dry-run and warning-acknowledgement arguments
+ * that `ActionForm` passes to every other model action. A transition code is not a model action,
+ * so model info gives it no request method; `run-action` also tells the form not to require one.
  *
  * @param {{dryRun?: boolean, acknowledgeWarnings?: string}} [options] - Run options from `ActionForm`. `formValues`
  *  is not in this signature: this view submits no form values (see the component doc block above).

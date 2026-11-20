@@ -91,6 +91,9 @@ export const availableWidgets = {
     WidgetDurationReadOnly: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetDurationReadOnly.vue")).default),
     ),
+    WidgetEmailReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetEmailReadOnly.vue")).default),
+    ),
     WidgetFileReadOnly: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetFileReadOnly.vue")).default),
     ),
@@ -99,6 +102,9 @@ export const availableWidgets = {
     ),
     WidgetReadOnly: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetReadOnly.vue")).default),
+    ),
+    WidgetUrlReadOnly: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetUrlReadOnly.vue")).default),
     ),
     WidgetSelectDropdown: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/widgets/WidgetSelectDropdown.vue")).default),

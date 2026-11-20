@@ -66,7 +66,7 @@ Install VUEDA with the `redis` extra, which installs the Redis client. Django's 
 
 ```toml
 dependencies = [
-    "vueda[redis] >=3.0.0a4,<4",
+    "vueda[redis] >=3.0.0b2,<4",
 ]
 ```
 

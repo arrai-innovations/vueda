@@ -13,7 +13,8 @@ patchTheme({
      */
     ItemActions: {
         /**
-         * The trailing action group inside an item. It keeps adjacent controls aligned and evenly spaced without affecting the main content column.
+         * The trailing action group inside an item. It keeps adjacent controls aligned and evenly spaced without
+         * affecting the main content column.
          */
         root: {
             class: "flex items-center gap-2",

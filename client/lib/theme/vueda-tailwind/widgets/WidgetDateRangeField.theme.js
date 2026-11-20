@@ -17,11 +17,18 @@ patchTheme({
         field: {
             class: [],
         },
-        /** Pass-through hook for the literal separators between date segments ("/"). Segment type comes from {@api theme-key:DateRangeFieldInput.root}. */
+        /**
+         * Pass-through hook for the literal separators between date segments ("/"). Segment type comes from
+         * {@api theme-key:DateRangeFieldInput.root}.
+         */
         literal: {
             class: [],
         },
-        /** Calendar popover trigger, pinned to the field's end edge so it lands where the {@api theme-key:WidgetCombobox.trigger} chevron does. Muted at rest and inked on hover, because the segments, not this button, are the field's primary target. */
+        /**
+         * Calendar popover trigger, pinned to the field's end edge so it lands where the
+         * {@api theme-key:WidgetCombobox.trigger} chevron does. Muted at rest and inked on hover, because the segments,
+         * not this button, are the field's primary target.
+         */
         trigger: {
             class: [
                 // Layout and placement.
@@ -36,15 +43,26 @@ patchTheme({
                 "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
             ],
         },
-        /** The trigger's glyph. Applied to a registered `calendar` icon and to the built-in fallback character alike, so a registry with no `calendar` entry still gets a sized glyph that inherits the trigger's color. An icon component that carries its own sizing keeps it: Font Awesome sizes by `em`, which matches the {@api theme-key:WidgetCombobox.trigger} chevron. */
+        /**
+         * The trigger's glyph. Applied to a registered `calendar` icon and to the built-in fallback character alike, so
+         * a registry with no `calendar` entry still gets a sized glyph that inherits the trigger's color. An icon
+         * component that carries its own sizing keeps it: Font Awesome sizes by `em`, which matches the
+         * {@api theme-key:WidgetCombobox.trigger} chevron.
+         */
         triggerIcon: {
             class: ["size-4 shrink-0 text-center leading-4 select-none"],
         },
-        /** The en dash between the start and end segment groups. Muted and padded so it reads as a range connector rather than another segment. */
+        /**
+         * The en dash between the start and end segment groups. Muted and padded so it reads as a range connector
+         * rather than another segment.
+         */
         separator: {
             class: ["px-1 text-muted-foreground"],
         },
-        /** Pass-through hook for the calendar popover panel. The floating surface recipe lives on {@api theme-key:PopoverContent.root}. */
+        /**
+         * Pass-through hook for the calendar popover panel. The floating surface recipe lives on
+         * {@api theme-key:PopoverContent.root}.
+         */
         popoverContent: {
             class: [],
         },

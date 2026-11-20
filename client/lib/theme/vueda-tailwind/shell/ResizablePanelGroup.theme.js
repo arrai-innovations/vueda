@@ -13,7 +13,8 @@ patchTheme({
      */
     ResizablePanelGroup: {
         /**
-         * The flex container for resizable panels. It switches from row to column layout when the panel group orientation is vertical.
+         * The flex container for resizable panels. It switches from row to column layout when the panel group
+         * orientation is vertical.
          */
         root: {
             class: "flex h-full w-full data-[orientation=vertical]:flex-col",

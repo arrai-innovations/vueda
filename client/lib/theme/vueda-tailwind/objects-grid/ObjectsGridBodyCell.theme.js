@@ -15,7 +15,11 @@ patchTheme({
      * slot styling.
      */
     ObjectsGridBodyCell: {
-        /** The table-layout field cell. It provides density-aware row height, numeric and mono alignment hooks, and the foreground text treatment for value slots. Density tiers map default, compact, and condensed rows to progressively tighter row heights. */
+        /**
+         * The table-layout field cell. It provides density-aware row height, numeric and mono alignment hooks, and the
+         * foreground text treatment for value slots. Density tiers map default, compact, and condensed rows to
+         * progressively tighter row heights.
+         */
         root: {
             class: [
                 // Table cell layout and type.
@@ -37,7 +41,10 @@ patchTheme({
                 "data-[mono]:font-mono",
             ],
         },
-        /** Local child-theme adjustment for widgets rendered inside table cells. It removes the default {@api theme-key:WidgetLabel.root} margin so inline cell labels align with grid density. */
+        /**
+         * Local child-theme adjustment for widgets rendered inside table cells. It removes the default
+         * {@api theme-key:WidgetLabel.root} margin so inline cell labels align with grid density.
+         */
         themeOverride: {
             WidgetLabel: {
                 root: {

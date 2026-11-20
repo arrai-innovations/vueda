@@ -10,23 +10,11 @@
 						</div>
 					</div>
 					<div class="vk-page-title-actions" data-qa="page-title-actions">
-						<a
-							data-slot="button"
-							data-tone="neutral"
-							data-emphasis="outline"
-							class="vk-button-neutral-outline"
-							disabled="false"
-							href="/kitupdate/customer/create/"
-							>Create </a
-						><a
-							data-slot="button"
-							data-tone="neutral"
-							data-emphasis="outline"
-							class="vk-button-neutral-outline"
-							disabled="false"
-							href="/kitupdate/customer/list/"
-							>List
-						</a>
+						<button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							Create</button
+						><button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -121,6 +109,31 @@
 								data-orientation="vertical"
 								class="vk-field-2 group/field"
 								data-qa="form-field"
+								data-field="contactEmail"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Billing email
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="contactEmail" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<input
+											data-slot="input"
+											name="contactEmail"
+											type="email"
+											data-qa="widget-text-input"
+											class="vk-input"
+											value="billing@northwind.domain.invalid"
+										/>
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
 								data-field="owner"
 							>
 								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
@@ -161,6 +174,7 @@
 											tabindex="-1"
 											style="
 												position: absolute;
+												border: 0px;
 												width: 1px;
 												height: 1px;
 												padding: 0px;
@@ -172,7 +186,6 @@
 												word-wrap: normal;
 												top: -1px;
 												left: -1px;
-												border: 0px;
 											"
 											name="owner"
 											value="mt"
@@ -231,6 +244,7 @@
 											tabindex="-1"
 											style="
 												position: absolute;
+												border: 0px;
 												width: 1px;
 												height: 1px;
 												padding: 0px;
@@ -242,7 +256,6 @@
 												word-wrap: normal;
 												top: -1px;
 												left: -1px;
-												border: 0px;
 											"
 											name="tier"
 											value="enterprise"
@@ -329,6 +342,7 @@
 												tabindex="-1"
 												style="
 													position: absolute;
+													border: 0px;
 													width: 1px;
 													height: 1px;
 													padding: 0px;
@@ -340,7 +354,6 @@
 													word-wrap: normal;
 													top: -1px;
 													left: -1px;
-													border: 0px;
 												"
 												name="mrr"
 												type="text"
@@ -396,6 +409,7 @@
 											tabindex="-1"
 											style="
 												position: absolute;
+												border: 0px;
 												width: 1px;
 												height: 1px;
 												padding: 0px;
@@ -407,7 +421,6 @@
 												word-wrap: normal;
 												top: -1px;
 												left: -1px;
-												border: 0px;
 											"
 											name="currency"
 											value="usd"

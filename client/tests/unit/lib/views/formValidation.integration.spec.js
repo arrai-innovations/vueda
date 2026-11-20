@@ -94,6 +94,7 @@ describe("lib/{views,widgets}/*.vue", () => {
                                     detailActions: [],
                                     availableTransitions: [],
                                 }),
+                                changeNotice: reactive({ changed: false, deleted: false, reload: () => {} }),
                             };
                             return () =>
                                 h(

@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldDescription: {
         /**
-         * The helper text beneath or beside a field control. It uses supporting text size, muted color, and link styling that keeps explanatory copy readable without becoming the primary label.
+         * The helper text beneath or beside a field control. It uses supporting text size, muted color, and link
+         * styling that keeps explanatory copy readable without becoming the primary label.
          */
         root: {
             class: [

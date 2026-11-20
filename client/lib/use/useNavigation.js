@@ -1,6 +1,7 @@
 /**
  * @module use/useNavigation
- * @description Builds and reactively maintains a navigation tree from a user configuration by fetching model info and config for each app and model.
+ * @description Builds and reactively maintains a navigation tree from a user configuration by fetching model info and
+ *  config for each app and model.
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelConfig } from "@vueda/stores/storeModelConfig.js";
@@ -22,7 +23,8 @@ import { computed, reactive, watch } from "vue";
  *
  * @typedef {object} NavigationRawInstance
  * @property {Readonly<import('vue').Ref<boolean|undefined>>} loading - Whether the navigation data is loading.
- * @property {Readonly<import('vue').Ref<Error|null>>} error - The error that occurred while loading the navigation data.
+ * @property {Readonly<import('vue').Ref<Error|null>>} error - The error that occurred while loading the navigation
+ *  data.
  * @property {Readonly<import('vue').Ref<boolean>>} errored - Whether an error occurred while loading the navigation
  * @property {NavigationItem[]} navigation - The navigation data.
  */

@@ -13,7 +13,8 @@ patchTheme({
      */
     TabsTrigger: {
         /**
-         * The selectable tab segment. It handles active fill, dark-mode contrast, icon sizing, disabled state, and keyboard focus while staying within the segmented list surface.
+         * The selectable tab segment. It handles active fill, dark-mode contrast, icon sizing, disabled state, and
+         * keyboard focus while staying within the segmented list surface.
          */
         root: {
             class: [

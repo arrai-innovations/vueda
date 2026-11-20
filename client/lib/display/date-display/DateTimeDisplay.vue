@@ -18,7 +18,10 @@ const props = defineProps({
         type: [String, Object, Date], // ISO string, luxon DateTime object or js Date
         default: "",
     },
-    /** Display layout: `"inline"`, `"break"`, `"absolute"`, `"relative"`, `"default"`, or a custom Luxon format string/object. */
+    /**
+     * Display layout: `"inline"`, `"break"`, `"absolute"`, `"relative"`, `"default"`, or a custom Luxon format
+     * string/object.
+     */
     format: {
         type: [String, Object],
         default: "inline",

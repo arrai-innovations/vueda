@@ -13,7 +13,8 @@ patchTheme({
      */
     TooltipContent: {
         /**
-         * The compact floating tooltip panel. It inverts foreground and background tokens, uses control radius, and follows the tooltip surface rule.
+         * The compact floating tooltip panel. It inverts foreground and background tokens, uses control radius, and
+         * follows the tooltip surface rule.
          */
         root: {
             class: [
@@ -28,7 +29,8 @@ patchTheme({
             ],
         },
         /**
-         * The tooltip arrow. It is a small rotated square that inherits the tooltip surface color and sits behind the panel edge.
+         * The tooltip arrow. It is a small rotated square that inherits the tooltip surface color and sits behind the
+         * panel edge.
          */
         arrow: {
             class: [

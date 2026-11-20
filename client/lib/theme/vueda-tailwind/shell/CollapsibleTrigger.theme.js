@@ -13,7 +13,8 @@ patchTheme({
      */
     CollapsibleTrigger: {
         /**
-         * The trigger hook for a generic collapsible. It ships empty so callers can use links, rows, buttons, or custom controls without inheriting accordion chrome.
+         * The trigger hook for a generic collapsible. It ships empty so callers can use links, rows, buttons, or custom
+         * controls without inheriting accordion chrome.
          */
         root: { class: "" },
     },

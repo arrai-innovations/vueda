@@ -1,6 +1,7 @@
 /**
  * @module use/useSubForm
- * @description Creates a child form context that delegates submission and loading state to a parent form context, scoped to an optional parent path.
+ * @description Creates a child form context that delegates submission and loading state to a parent form context,
+ *  scoped to an optional parent path.
  */
 import { del, flattenPathsWithValues, keyDiff } from "@arrai-innovations/reactive-helpers";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
@@ -9,7 +10,8 @@ import set from "lodash-es/set.js";
 import { computed, inject, provide, reactive, readonly, toRef, unref, watch } from "vue";
 
 /**
- * Creates a child form context that delegates submission and loading state to a parent form context, scoped to an optional path prefix.
+ * Creates a child form context that delegates submission and loading state to a parent form context, scoped to an
+ * optional path prefix.
  *
  * @param {object} options - Options for the subform.
  * @param {import('vue').Ref<string>|string} [options.parentPath] - The path to the parent form.
@@ -59,6 +61,7 @@ export function useSubForm({ parentPath }) {
         // *** Ignored Fields & Reset Behavior ***
         ignored: {},
         anyIgnored: toRef(parentState, "anyIgnored"),
+        submittedAsNull: {},
 
         // *** Dependency Management ***
         dependencyValues: {},
@@ -112,6 +115,7 @@ export function useSubForm({ parentPath }) {
         "required",
         "valid",
         "ignored",
+        "submittedAsNull",
         "dependencyValues",
         "labels",
         "showsErrors",
@@ -179,6 +183,8 @@ export function useSubForm({ parentPath }) {
         // *** Ignore State Management ***
         ignore: buildFieldMethodProxy(parentFormContext.ignore),
         removeIgnore: buildFieldMethodProxy(parentFormContext.removeIgnore),
+        submitAsNull: buildFieldMethodProxy(parentFormContext.submitAsNull),
+        removeSubmitAsNull: buildFieldMethodProxy(parentFormContext.removeSubmitAsNull),
 
         // *** Hook Registrations ***
         registerIsModifiedHook: buildFieldMethodProxy(parentFormContext.registerIsModifiedHook),

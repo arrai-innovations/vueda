@@ -221,6 +221,28 @@ describe("lib/stores/storeWorkflow.js", () => {
             expect(mockedFetchHelper).not.toHaveBeenCalled();
         });
 
+        scopedIt("fetches again after forgetObjectHistory, and keeps other objects cached", async () => {
+            mockedFetchHelper.mockResolvedValue(history);
+            const store = storeWorkflow();
+            const key = getAppModelDotName({ app: "app", model: "model" });
+            await store.fetchObjectHistory("app", "model", "1");
+            await store.fetchObjectHistory("app", "model", "2");
+
+            store.forgetObjectHistory("app", "model", "1");
+
+            expect(store.objectHistories[key]["1"]).toBeUndefined();
+            expect(store.objectHistories[key]["2"]).toEqual(history);
+            mockedFetchHelper.mockClear();
+            await store.fetchObjectHistory("app", "model", "1");
+            expect(mockedFetchHelper).toHaveBeenCalledTimes(1);
+        });
+
+        scopedIt("forgets nothing when the model has no cached histories", () => {
+            const store = storeWorkflow();
+
+            expect(() => store.forgetObjectHistory("app", "other", "1")).not.toThrow();
+        });
+
         scopedIt("shares one request between concurrent calls for the same object", async () => {
             mockedFetchHelper.mockResolvedValue(history);
             const store = storeWorkflow();
@@ -243,8 +265,8 @@ describe("lib/stores/storeWorkflow.js", () => {
 
             await store.fetchObjectHistory("store", "CustomerOrder", "7");
 
-            // server/vueda/history/urls.py serves `vueda.history/workflow-state-history/<app_label>/<model>/<int:object_id>/`
-            // inside the `routes/` path.
+            // server/vueda/history/urls.py serves
+            // `vueda.history/workflow-state-history/<app_label>/<model>/<int:object_id>/` inside the `routes/` path.
             const [url, options] = mockedFetchHelper.mock.calls[0];
             expect(new URL(url).pathname).toBe("/routes/vueda.history/workflow-state-history/store/customer_order/7/");
             expect(options).toEqual({ method: "GET" });

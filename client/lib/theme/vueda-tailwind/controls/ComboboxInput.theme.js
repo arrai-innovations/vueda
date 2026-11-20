@@ -14,7 +14,12 @@ patchTheme({
      * surface inside the popover.
      */
     ComboboxInput: {
-        /** The search field at the top of a {@api theme-key:ComboboxList.root}. Sized to the large control-height tier (`h-vueda-control-lg`) so the input reads as the primary surface inside the popover; renders chrome-free (`bg-transparent`, no border or focus ring) because the surrounding popover already owns the elevation and ring contracts. The Combobox trigger that opens the popover wears the input shell instead. */
+        /**
+         * The search field at the top of a {@api theme-key:ComboboxList.root}. Sized to the large control-height tier
+         * (`h-vueda-control-lg`) so the input reads as the primary surface inside the popover; renders chrome-free
+         * (`bg-transparent`, no border or focus ring) because the surrounding popover already owns the elevation and
+         * ring contracts. The Combobox trigger that opens the popover wears the input shell instead.
+         */
         root: {
             class: [
                 // Placeholder and shell.

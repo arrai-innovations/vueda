@@ -36,6 +36,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.views import APIView
 
 from vueda.core.models import BaseModelMeta
+from vueda.core.utils import unwrap_expandable_field
 
 
 # These decorators and functions exist, so drf-spectacular can remain a
@@ -617,7 +618,7 @@ else:
             for name, definition in expandable_fields.items():
                 if name in properties:
                     continue
-                field_class, options = definition if isinstance(definition, tuple) else (definition, {})
+                field_class, options = unwrap_expandable_field(definition)
                 if isinstance(field_class, str):
                     field_class = serializer._get_serializer_class_from_lazy_string(field_class)
                 if not isinstance(field_class, type):

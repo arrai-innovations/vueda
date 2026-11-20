@@ -12,7 +12,10 @@ patchTheme({
      * SidebarInset styles the main content wrapper that sits beside or within a sidebar layout.
      */
     SidebarInset: {
-        /** Main content wrapper adjacent to the sidebar. Inset variant chrome exists in source but is not the admin-app default. */
+        /**
+         * Main content wrapper adjacent to the sidebar. Inset variant chrome exists in source but is not the admin-app
+         * default.
+         */
         root: {
             class: [
                 // Layout and surface.

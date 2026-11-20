@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldContent: {
         /**
-         * The non-label content stack inside a field. It groups controls, helper text, and validation messages into a compact flex column.
+         * The non-label content stack inside a field. It groups controls, helper text, and validation messages into a
+         * compact flex column.
          */
         root: {
             class: "group/field-content flex min-w-0 flex-1 flex-col gap-1.5 leading-snug",

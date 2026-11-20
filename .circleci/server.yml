@@ -16,6 +16,8 @@ parameters:
         type: boolean
         default: false
 
+# The pg executors also run Redis for the live websocket test. Setting VUEDA_TEST_REDIS_URL makes
+# that test fail, rather than skip, when Redis is unreachable.
 executors:
     base:
         docker:
@@ -26,15 +28,24 @@ executors:
     python312-pg:
         docker:
             - image: cimg/python:3.12
+              environment:
+                  VUEDA_TEST_REDIS_URL: redis://localhost:6379/0
             - image: cimg/postgres:15.12
+            - image: cimg/redis:7.2
     python313-pg:
         docker:
             - image: cimg/python:3.13
+              environment:
+                  VUEDA_TEST_REDIS_URL: redis://localhost:6379/0
             - image: cimg/postgres:15.12
+            - image: cimg/redis:7.2
     python314-pg:
         docker:
             - image: cimg/python:3.14
+              environment:
+                  VUEDA_TEST_REDIS_URL: redis://localhost:6379/0
             - image: cimg/postgres:15.12
+            - image: cimg/redis:7.2
 
 jobs:
     server-build:

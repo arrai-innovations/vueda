@@ -13,7 +13,12 @@ patchTheme({
      * joined to its neighbouring controls.
      */
     ButtonGroupText: {
-        /** The static-label chip used to join readable copy ("of", "to", a unit suffix) into a {@api theme-key:ButtonGroup}. Wears the button shape (2px control radius, hairline edge) but sits on `--muted` so it does not read as pressable; padding picks 16px to match the default button's `px-vueda-control-px` baseline. */
+        /**
+         * The static-label chip used to join readable copy ("of", "to", a unit suffix) into a
+         * {@api theme-key:ButtonGroup}. Wears the button shape (2px control radius, hairline edge) but sits on
+         * `--muted` so it does not read as pressable; padding picks 16px to match the default button's
+         * `px-vueda-control-px` baseline.
+         */
         root: {
             class: [
                 // Surface, layout, and type.

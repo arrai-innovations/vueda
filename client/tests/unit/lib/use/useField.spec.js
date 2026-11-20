@@ -112,6 +112,8 @@ const getFormContextMock = (vue) => {
         // *** Ignore State Management ***
         ignore: vi.fn(),
         removeIgnore: vi.fn(),
+        submitAsNull: vi.fn(),
+        removeSubmitAsNull: vi.fn(),
 
         // *** Hook Registrations ***
         registerIsModifiedHook: vi.fn(),
@@ -1807,6 +1809,32 @@ describe("lib/use/useField.js", () => {
                     field.removeIgnore();
                     expect(fc.removeIgnore).toHaveBeenCalledTimes(1);
                     expect(fc.removeIgnore).toHaveBeenCalledWith("testField");
+                });
+            });
+            describe("submitAsNull and removeSubmitAsNull", () => {
+                scopedIt("should call the fc's methods with the field's name", () => {
+                    const { fc, field } = mountFieldInContext({}, { name: "testField" });
+                    field.submitAsNull();
+                    field.removeSubmitAsNull();
+                    expect(fc.submitAsNull).toHaveBeenCalledWith("testField");
+                    expect(fc.removeSubmitAsNull).toHaveBeenCalledWith("testField");
+                });
+
+                scopedIt("should submit null and keep the value (contextless mode)", async () => {
+                    const { field } = mountFieldInContext(
+                        {},
+                        { name: "testField", modelValue: { note: "Keep" }, contextless: true },
+                    );
+                    field.submitAsNull();
+                    await flushPromises();
+                    expect(field.state.submittingValue).toBeNull();
+                    expect(field.state.value).toEqual({ note: "Keep" });
+                    expect(field.state.modified).toBe(true);
+
+                    field.removeSubmitAsNull();
+                    await flushPromises();
+                    expect(field.state.submittingValue).toEqual({ note: "Keep" });
+                    expect(field.state.modified).toBe(false);
                 });
             });
         });

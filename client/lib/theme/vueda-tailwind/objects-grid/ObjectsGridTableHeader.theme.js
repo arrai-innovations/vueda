@@ -15,11 +15,17 @@ patchTheme({
      * toolbar Sort control and the active-sort chips, not the column headers.
      */
     ObjectsGridTableHeader: {
-        /** The header content wrapper. It lays out the label and the numeric-column reversal used when the parent header cell carries `data-numeric`. */
+        /**
+         * The header content wrapper. It lays out the label and the numeric-column reversal used when the parent header
+         * cell carries `data-numeric`.
+         */
         root: {
             class: ["flex", "items-end", "justify-between", "py-1 px-2", "[[data-numeric]_&]:flex-row-reverse"],
         },
-        /** The header label text slot. It remains unstyled by default so field-specific header slots can inherit the surrounding table header rhythm. */
+        /**
+         * The header label text slot. It remains unstyled by default so field-specific header slots can inherit the
+         * surrounding table header rhythm.
+         */
         label: {
             class: {},
         },

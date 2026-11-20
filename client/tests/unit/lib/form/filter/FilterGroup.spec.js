@@ -112,6 +112,28 @@ describe("lib/form/filter/FilterGroup.vue", () => {
         expect(menu.attributes("data-count")).toBe("2");
     });
 
+    scopedIt("renders no add-filter menu when validFilterables is empty", () => {
+        const { wrapper } = mountGroup({ validFilterables: [] });
+        expect(wrapper.find('[data-qa="filter-menu"]').exists()).toBe(false);
+    });
+
+    scopedIt("keeps rendering active filter chips when validFilterables is empty", async () => {
+        const { wrapper } = mountGroup({
+            validFilterables: [],
+            modelValue: [{ field: "foo", param: "foo", value: "bar" }],
+        });
+        await vue.nextTick();
+        expect(wrapper.find('[data-qa="filter-menu"]').exists()).toBe(false);
+        expect(wrapper.get('[data-qa="filter-chip"]').attributes("data-field")).toBe("foo");
+    });
+
+    scopedIt("mounts the add-filter menu once validFilterables gains a field", async () => {
+        const { wrapper } = mountGroup({ validFilterables: [] });
+        expect(wrapper.find('[data-qa="filter-menu"]').exists()).toBe(false);
+        await wrapper.setProps({ validFilterables: ["foo"] });
+        expect(wrapper.get('[data-qa="filter-menu"]').attributes("data-count")).toBe("1");
+    });
+
     scopedIt("calls useFilter for field/widget component resolution", () => {
         mountGroup();
         expect(mockedUseFilter).toHaveBeenCalledWith(

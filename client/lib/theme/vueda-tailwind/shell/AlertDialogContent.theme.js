@@ -13,7 +13,8 @@ patchTheme({
      */
     AlertDialogContent: {
         /**
-         * The centered alert dialog surface. It uses the modal radius, overlay shadow, fixed viewport centering, and entrance or exit motion expected for blocking confirmations.
+         * The centered alert dialog surface. It uses the modal radius, overlay shadow, fixed viewport centering, and
+         * entrance or exit motion expected for blocking confirmations.
          */
         root: {
             class: [
@@ -28,7 +29,8 @@ patchTheme({
             ],
         },
         /**
-         * The alert dialog backdrop. It fills the viewport with the shared overlay color and fades with the same open or closed state as the dialog surface.
+         * The alert dialog backdrop. It fills the viewport with the shared overlay color and fades with the same open
+         * or closed state as the dialog surface.
          */
         overlay: {
             class: [

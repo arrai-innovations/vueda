@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * Avatar provides the circular media frame used by image and fallback avatar parts. It clips child content to the avatar shape.
+     * Avatar provides the circular media frame used by image and fallback avatar parts. It clips child content to the
+     * avatar shape.
      */
     Avatar: {
         /** Circular clipping frame shared by avatar image and fallback content. */

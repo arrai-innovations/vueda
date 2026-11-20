@@ -12,7 +12,10 @@ patchTheme({
      * MenubarSeparator renders a divider between menubar sections.
      */
     MenubarSeparator: {
-        /** Menubar content divider that bleeds through menu padding. See also: {@api theme-key:DropdownMenuSeparator.root}. */
+        /**
+         * Menubar content divider that bleeds through menu padding. See also:
+         * {@api theme-key:DropdownMenuSeparator.root}.
+         */
         root: {
             class: "bg-border -mx-1 my-1 h-hairline",
         },

@@ -12,7 +12,11 @@ patchTheme({
      * The 7-column day grid inside Calendar.
      */
     CalendarGrid: {
-        /** The 7-column day grid. `border-collapse` lets adjacent cell borders share one hairline rather than doubling at the seam; `w-full` lets the grid stretch to the {@api theme-key:Calendar.root} content width so cell sizing falls out of `flex-1` on {@api theme-key:CalendarCell.root}. */
+        /**
+         * The 7-column day grid. `border-collapse` lets adjacent cell borders share one hairline rather than doubling
+         * at the seam; `w-full` lets the grid stretch to the {@api theme-key:Calendar.root} content width so cell
+         * sizing falls out of `flex-1` on {@api theme-key:CalendarCell.root}.
+         */
         root: {
             class: ["w-full border-collapse space-x-1"],
         },

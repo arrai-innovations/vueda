@@ -50,12 +50,17 @@ const props = defineProps({
         type: [String, Array, Object],
         default: () => [],
     },
-    /** Field paths sent in the create request body; falls back to the model config's submitFields when omitted or empty. */
+    /**
+     * Field paths sent in the create request body; falls back to the model config's submitFields when omitted or empty.
+     */
     submitFields: {
         type: Array,
         default: undefined,
     },
-    /** Field names the server returns in the create response; falls back to the model config's fetchFields when omitted or empty. */
+    /**
+     * Field names the server returns in the create response; falls back to the model config's fetchFields when omitted
+     * or empty.
+     */
     fetchFields: {
         type: Array,
         default: undefined,

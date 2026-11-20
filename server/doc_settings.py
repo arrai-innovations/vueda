@@ -36,7 +36,7 @@ env = TomlEnv(
     prefer_env=False,
 )
 
-locals().update(get_defaults(env))
+locals().update(get_defaults(env, use_streams=True))
 
 # Override the default URLConf for documentation builds.
 ROOT_URLCONF = "doc_urls"

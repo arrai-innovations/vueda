@@ -24,21 +24,26 @@
 
 /**
  * @typedef {object} StickyStackBarLayout
- * @property {number} offset - The static sticky offset in pixels from the pinned edge (apply as `top` for the top edge, `bottom` for the bottom edge).
- * @property {number} translate - The transform offset in pixels along the scroll axis: negative pulls toward the top, positive toward the bottom. Apply as `translateY(<translate>px)`.
- * @property {number} zIndex - The stacking order; bars nearer the pinned edge sit on top so a hiding bar slides behind them.
+ * @property {number} offset - The static sticky offset in pixels from the pinned edge (apply as `top` for the top edge,
+ *  `bottom` for the bottom edge).
+ * @property {number} translate - The transform offset in pixels along the scroll axis: negative pulls toward the top,
+ *  positive toward the bottom. Apply as `translateY(<translate>px)`.
+ * @property {number} zIndex - The stacking order; bars nearer the pinned edge sit on top so a hiding bar slides behind
+ *  them.
  */
 
 /**
  * @typedef {object} StickyStackLayout
  * @property {StickyStackBarLayout[]} bars - Per-bar layout, in the same order as the input.
- * @property {number} visibleExtent - Total height in pixels of the currently-visible bars (the depth the stack occupies at the pinned edge).
+ * @property {number} visibleExtent - Total height in pixels of the currently-visible bars (the depth the stack occupies
+ *  at the pinned edge).
  */
 
 /**
  * Resolve the layout for a stack of sticky bars pinned to one edge.
  *
- * @param {StickyStackBar[]} bars - Bars in stack order from the pinned edge outward (for the top edge, top to bottom; for the bottom edge, bottom to top).
+ * @param {StickyStackBar[]} bars - Bars in stack order from the pinned edge outward (for the top edge, top to bottom;
+ *  for the bottom edge, bottom to top).
  * @param {'top' | 'bottom'} [edge] - The viewport edge the stack pins to. Defaults to `top`.
  * @returns {StickyStackLayout} The per-bar layout and the visible extent.
  */

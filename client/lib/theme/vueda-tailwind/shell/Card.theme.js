@@ -13,7 +13,8 @@ patchTheme({
      */
     Card: {
         /**
-         * The framed card surface. It owns the card background, border, radius, vertical rhythm, and non-raised shadow contract; padding on the horizontal axis belongs to child slots.
+         * The framed card surface. It owns the card background, border, radius, vertical rhythm, and non-raised shadow
+         * contract; padding on the horizontal axis belongs to child slots.
          */
         root: {
             class: [

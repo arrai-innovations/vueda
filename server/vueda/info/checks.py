@@ -47,6 +47,7 @@ from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import query_path_field
 from vueda.core.paths import query_path_multiplies_rows
 from vueda.core.serializers.fields import FormattedNameField
+from vueda.core.utils import unwrap_expandable_field
 
 
 # The column types `Sum` means something for. Numeric columns, plus `DurationField` -- an interval,
@@ -668,7 +669,7 @@ def check_formatted_name_configuration(app_configs, **kwargs):
         # related models are caught even if they are not directly registered.
         expandable = getattr(getattr(serializer_class, "Meta", None), "expandable_fields", {})
         for _field_name, field_data in expandable.items():
-            child_serializer_class = field_data[0] if isinstance(field_data, tuple) else field_data
+            child_serializer_class, _expand_options = unwrap_expandable_field(field_data)
             if isinstance(child_serializer_class, str):
                 continue  # lazy-loaded; cannot resolve at check time
             child_model = getattr(getattr(child_serializer_class, "Meta", None), "model", None)

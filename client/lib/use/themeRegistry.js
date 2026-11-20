@@ -148,7 +148,8 @@ const resolveMergeCb = (customizer) => {
  * To merge a variable number of layers, seed the call with an empty object, as `buildForm`
  * does: `mergeTheme({}, ...layers)`.
  *
- * @param {...(import('@vueda/use/useTheme.js').ThemeObject|Function)} themes - Two or more ThemeObjects to merge, optionally followed by a merge customizer.
+ * @param {...(import('@vueda/use/useTheme.js').ThemeObject|Function)} themes - Two or more ThemeObjects to merge,
+ *  optionally followed by a merge customizer.
  * @returns {import('@vueda/use/useTheme.js').ThemeObject} - The merged ThemeObject.
  * @throws {TypeError} When fewer than two theme layers are supplied.
  */
@@ -200,7 +201,8 @@ export function setTheme(newTheme) {
  * self-registration after its chunk resolves (`patchTheme({ Button: { ... } })`,
  * which overwrites the loader stub with real data).
  *
- * @param {import('@vueda/use/useTheme.js').ThemeObject} partialTheme - The partial theme to patch the default theme with.
+ * @param {import('@vueda/use/useTheme.js').ThemeObject} partialTheme - The partial theme to patch the default theme
+ *  with.
  */
 export function patchTheme(partialTheme) {
     const next = { ...defaultTheme.value };

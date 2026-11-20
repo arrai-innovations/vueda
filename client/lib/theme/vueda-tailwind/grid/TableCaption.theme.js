@@ -14,7 +14,8 @@ patchTheme({
      */
     TableCaption: {
         /**
-         * The native caption below a table. Use it for low-emphasis supporting copy tied to the table, with spacing that keeps it visually outside the bordered data surface.
+         * The native caption below a table. Use it for low-emphasis supporting copy tied to the table, with spacing
+         * that keeps it visually outside the bordered data surface.
          */
         root: {
             class: "text-muted-foreground mt-4 text-body",

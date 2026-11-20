@@ -10,15 +10,9 @@
 						</div>
 					</div>
 					<div class="vk-page-title-actions" data-qa="page-title-actions">
-						<a
-							data-slot="button"
-							data-tone="neutral"
-							data-emphasis="outline"
-							class="vk-button-neutral-outline"
-							disabled="false"
-							href="/kitcreate/customer/list/"
-							>List
-						</a>
+						<button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -83,6 +77,30 @@
 									<a name="domain" class="absolute"></a>
 									<div data-qa="field-renderer-field-inner">
 										<input data-slot="input" name="domain" type="url" data-qa="widget-text-input" class="vk-input" />
+									</div>
+								</div>
+							</div>
+							<div
+								role="group"
+								data-slot="field"
+								data-orientation="vertical"
+								class="vk-field-2 group/field"
+								data-qa="form-field"
+								data-field="contactEmail"
+							>
+								<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+									>Billing email
+								</label>
+								<div data-slot="field-content" class="vk-field-content group/field-content">
+									<a name="contactEmail" class="absolute"></a>
+									<div data-qa="field-renderer-field-inner">
+										<input
+											data-slot="input"
+											name="contactEmail"
+											type="email"
+											data-qa="widget-text-input"
+											class="vk-input"
+										/>
 									</div>
 								</div>
 							</div>

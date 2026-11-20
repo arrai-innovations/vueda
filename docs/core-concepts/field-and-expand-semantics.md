@@ -49,6 +49,10 @@ The request method alone decides which fields the body must contain. A `create` 
 
 `e` also changes how the body is read. A relation named in `e` accepts a nested object, and a relation left out of `e` accepts a primary key. [Nested Write Compatibility](./nested-write-compatibility) describes the nested body and how the serializer handles it.
 
+Only the first level of each name in `e` changes how the body of a write is read. The response follows the whole name, as on a read. `e=customer.user` reads `customer` as a nested object and its `user` as a primary key, and the response expands both. [Which Relations Accept Nested Data](./nested-write-compatibility#which-relations-accept-nested-data) says when a nested relation is required, and when it accepts `null`.
+
+A wildcard in `e` shapes only the response of a write. The response expands every relation that the write action permits, as on a read. A write without a permit list permits every relation in `expandable_fields`. In the body, a wildcard names no relation, so `e=*` alone reads every relation as a primary key. `e=customer,*` and `e=customer.*` read only `customer` as a nested object. A permit list holds names as the request writes them, so `e=customer.*` needs `customer.*` in the list.
+
 A write checks `f` and `e` names with the same rules and messages as a read, as [Validation of `f` and `e`](#validation-of-f-and-e) describes. The check runs before the body is validated, so a `400` for an invalid name means that the write saved nothing. The valid names come from the serializer that renders the write's response.
 
 ## Field Metadata Contract
@@ -115,6 +119,8 @@ On `list`, `retrieve`, `create`, `update`, and `partial_update`, [`validate_flex
 - An unknown or unpermitted `e` name returns a `400` keyed by that name. The message starts with `Invalid expands.`, then lists the permitted expands or says `No expands are permitted.`
 - `f=pk` returns a `400`, because `pk` is not a serializer field name.
 - The server does not check `om` values.
+
+A write through any other action, such as a custom action that calls `is_valid()`, checks `e` the same way, before the body is read. That holds when the action validates with the view's serializer class, or a subclass of it. The action does not check `f`.
 
 A request with any invalid name fails as a whole, and one response reports every invalid `f` and `e` name. Each name maps to a list of message strings, so a name that is invalid in both parameters carries both messages. This is the standard validation shape that [Error and Validation Contract](./error-and-validation-contract) describes. On the client, a read error raises a {@api js:class:@arrai-innovations/vueda/utils/errors#FetchError}, and a save error raises a {@api js:class:@arrai-innovations/vueda/utils/errors#FormValidationError}.
 

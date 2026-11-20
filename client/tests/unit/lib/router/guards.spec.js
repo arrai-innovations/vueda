@@ -303,7 +303,7 @@ describe("lib/router/guards.js", () => {
         const to = { params: { app: "a", model: "b", action: "c" }, fullPath: "/a/b/c" };
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
         expect(toastMock.error).toHaveBeenCalledWith("Model Not Found");
-        expect(result).toEqual({ name: "nf" });
+        expect(result).toEqual({ name: "nf", query: { redirect: "/a/b/c" } });
     });
 
     describe("Model info denial", () => {
@@ -319,7 +319,7 @@ describe("lib/router/guards.js", () => {
 
             expect(toastMock.error).toHaveBeenCalledTimes(1);
             expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
-            expect(result).toEqual({ name: "nf" });
+            expect(result).toEqual({ name: "nf", query: { redirect: "/a/b/list" } });
         });
 
         scopedIt("falls back to a generic description when the denial carries none", async () => {
@@ -348,7 +348,7 @@ describe("lib/router/guards.js", () => {
 
             expect(toastMock.error).toHaveBeenCalledTimes(1);
             expect(toastMock.error).toHaveBeenCalledWith("Model Not Found");
-            expect(result).toEqual({ name: "nf" });
+            expect(result).toEqual({ name: "nf", query: { redirect: "/a/b/list" } });
         });
     });
 
@@ -394,7 +394,7 @@ describe("lib/router/guards.js", () => {
 
             const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
 
-            expect(result).toEqual({ name: "nf" });
+            expect(result).toEqual({ name: "nf", query: { redirect: "/a/b/read/1" } });
         });
 
         scopedIt("redirects a transition route with the denial's feedback", async () => {
@@ -407,7 +407,7 @@ describe("lib/router/guards.js", () => {
             const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
 
             expect(toastMock.error).toHaveBeenCalledWith("Permission Denied", { description: "nope", duration: 15000 });
-            expect(result).toEqual({ name: "nf" });
+            expect(result).toEqual({ name: "nf", query: { redirect: "/a/b/pack_order/1" } });
         });
 
         scopedIt("falls back to a generic description when the denial carries none", async () => {
@@ -437,7 +437,7 @@ describe("lib/router/guards.js", () => {
         expect(toastMock.error).not.toHaveBeenCalled();
     });
 
-    scopedIt("requireModelInfo redirects when action not found", async () => {
+    scopedIt("requireModelInfo redirects when model info does not list the action", async () => {
         fetchWorkflowTransition.mockResolvedValue([]);
         fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
         getConfig.mockResolvedValue({ routeActions: ["list"] });
@@ -445,8 +445,20 @@ describe("lib/router/guards.js", () => {
         const instance = {};
         const to = { params: { app: "a", model: "b", action: "edit" }, fullPath: "/a/b/edit" };
         const result = await guards.requireModelInfo(instance, { name: "nf" }, to, router, {});
-        expect(toastMock.error).toHaveBeenCalledWith("Action Not Found");
-        expect(result).toEqual({ name: "nf" });
+        expect(toastMock.error).toHaveBeenCalledWith("Action Unavailable");
+        expect(result).toEqual({ name: "nf", query: { redirect: "/a/b/edit" } });
+    });
+
+    scopedIt("requireModelInfo keeps the redirect's own query values beside the refused location", async () => {
+        fetchWorkflowTransition.mockResolvedValue([]);
+        fetchModelInfo.mockResolvedValue({ actions: [{ name: "list" }] });
+        getConfig.mockResolvedValue({});
+        const router = { resolve: vi.fn((route) => ({ ...route, query: { from: "existing" } })) };
+        const to = { params: { app: "a", model: "b", action: "create" }, fullPath: "/a/b/create/?returnPath=%2F" };
+
+        const result = await guards.requireModelInfo({}, { name: "nf" }, to, router, {});
+
+        expect(result).toEqual({ name: "nf", query: { from: "existing", redirect: "/a/b/create/?returnPath=%2F" } });
     });
 
     scopedIt("requireRecentAuth confirms a recent session with the server and allows access", async () => {

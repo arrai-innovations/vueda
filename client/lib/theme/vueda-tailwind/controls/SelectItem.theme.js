@@ -14,7 +14,14 @@ patchTheme({
      * `--accent`.
      */
     SelectItem: {
-        /** A single option inside a {@api theme-key:SelectContent.viewport}. Carries the two-track selection state that distinguishes Select from Combobox: the highlighted-but-not-committed option paints `--accent` / `--accent-foreground` on `:focus`, while the committed value (`data-state=checked`) tints with `bg-primary/10` so the chosen option reads as a soft primary band even when another row is highlighted; the indicator icon alone is not a strong enough signal at rest. `pr-8` reserves trailing space for the check indicator; `rounded-sm` keeps the option a chit inside the popover slab. */
+        /**
+         * A single option inside a {@api theme-key:SelectContent.viewport}. Carries the two-track selection state that
+         * distinguishes Select from Combobox: the highlighted-but-not-committed option paints `--accent` /
+         * `--accent-foreground` on `:focus`, while the committed value (`data-state=checked`) tints with
+         * `bg-primary/10` so the chosen option reads as a soft primary band even when another row is highlighted; the
+         * indicator icon alone is not a strong enough signal at rest. `pr-8` reserves trailing space for the check
+         * indicator; `rounded-sm` keeps the option a chit inside the popover slab.
+         */
         root: {
             class: [
                 // Selection and interaction states.

@@ -14,19 +14,31 @@ patchTheme({
      * separate {@api theme-key:TimeField.root} shells around a separator.
      */
     WidgetTimeRangeField: {
-        /** The row holding both bounds and the separator. Without it the two shells are block-level and stack, so a time range reads as two unrelated fields. */
+        /**
+         * The row holding both bounds and the separator. Without it the two shells are block-level and stack, so a time
+         * range reads as two unrelated fields.
+         */
         root: {
             class: ["flex w-full items-center gap-2"],
         },
-        /** Each bound's segment shell. Shares the row evenly and may shrink, so a narrow column keeps both bounds on one line. */
+        /**
+         * Each bound's segment shell. Shares the row evenly and may shrink, so a narrow column keeps both bounds on one
+         * line.
+         */
         field: {
             class: ["flex-1 min-w-0"],
         },
-        /** Pass-through hook for the literal separators inside a bound (":"). Segment type comes from {@api theme-key:TimeFieldInput.root}. */
+        /**
+         * Pass-through hook for the literal separators inside a bound (":"). Segment type comes from
+         * {@api theme-key:TimeFieldInput.root}.
+         */
         literal: {
             class: [],
         },
-        /** The en dash between the two bounds. Muted and fixed-width so it reads as a range connector rather than a segment. */
+        /**
+         * The en dash between the two bounds. Muted and fixed-width so it reads as a range connector rather than a
+         * segment.
+         */
         separator: {
             class: ["shrink-0 text-muted-foreground"],
         },

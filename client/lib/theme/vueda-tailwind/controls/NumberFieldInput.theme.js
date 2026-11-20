@@ -13,7 +13,11 @@ patchTheme({
      * centre-aligned, so digit widths stay stable during step changes.
      */
     NumberFieldInput: {
-        /** The numeric `<input>` itself. Same hairline + focus shell as {@api theme-key:Input.root}, but renders in mono + tabular numerals and centres the value so digit widths stay stable while a stepper cycles through different-length numbers. Mono is the segment-as-token treatment shared with the date / time fields. */
+        /**
+         * The numeric `<input>` itself. Same hairline + focus shell as {@api theme-key:Input.root}, but renders in
+         * mono + tabular numerals and centres the value so digit widths stay stable while a stepper cycles through
+         * different-length numbers. Mono is the segment-as-token treatment shared with the date / time fields.
+         */
         root: {
             class: [
                 // Input shell and type.

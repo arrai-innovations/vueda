@@ -1,3 +1,4 @@
+import commentMaxLength from "./docs-tooling/js/eslint/comment-max-length.js";
 import vitest from "@vitest/eslint-plugin";
 import eslintConfigPrettier from "eslint-config-prettier";
 import pluginVue from "eslint-plugin-vue";
@@ -177,9 +178,15 @@ const eslintConfig = [
             "docs-tooling/**/*.{js,cjs,mjs,vue}",
             "*.{js,cjs,mjs}",
         ],
+        plugins: {
+            "docs-tooling": { rules: { "comment-max-length": commentMaxLength } },
+        },
         rules: {
             // eslint-config-prettier turns curly off; re-enable it so every block needs braces.
             curly: ["error", "all"],
+            // Prettier does not wrap comment text. This keeps comments within Prettier's printWidth and ruff's
+            // max-doc-length.
+            "docs-tooling/comment-max-length": ["error", { max: 120 }],
         },
     },
     {

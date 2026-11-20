@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * AspectRatio wraps content in a fixed-ratio layout box. It carries no default classes because sizing is supplied by the primitive and caller.
+     * AspectRatio wraps content in a fixed-ratio layout box. It carries no default classes because sizing is supplied
+     * by the primitive and caller.
      */
     AspectRatio: {
         /** Empty pass-through wrapper for ratio-bound media; sizing comes from the primitive and caller. */

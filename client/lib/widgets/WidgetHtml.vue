@@ -1,5 +1,4 @@
 <script setup>
-import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
 import "@vueda/theme/vueda-tailwind/widgets/WidgetHtml.theme.js";
@@ -32,23 +31,30 @@ const widgetContext = useWidget(props, emit);
 const fieldContext = inject(FieldContextSymbol, null);
 const theme = useWidgetTheme("WidgetHtml", props, widgetContext.state);
 
+/**
+ * An empty Tiptap document still holds one blank paragraph, so report it as `""` rather than `<p></p>`.
+ *
+ * @param {import('@tiptap/vue-3').Editor} ed
+ * @returns {string}
+ */
+const editorValue = (ed) => (ed.isEmpty ? "" : ed.getHTML());
+
 const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [StarterKit],
     content: widgetContext.state.combinedValue || "",
     editable: !widgetContext.state.disabled,
     onUpdate: ({ editor: ed }) => {
-        widgetContext.state.combinedValue = ed.getHTML();
+        widgetContext.state.combinedValue = editorValue(ed);
     },
 });
 
-watch(
-    () => widgetContext.state.combinedValue,
-    (value) => {
-        if (editor.value && editor.value.getHTML() !== value) {
-            editor.value.commands.setContent(value || "", { emitUpdate: false });
-        }
-    },
-);
+// `useEditor` creates the editor in `onMounted` from the setup-time content. Watching `editor` too loads a value
+// that changed between setup and mount.
+watch([() => widgetContext.state.combinedValue, editor], ([value, ed]) => {
+    if (ed && editorValue(ed) !== (value || "")) {
+        ed.commands.setContent(value || "", { emitUpdate: false });
+    }
+});
 
 watch(
     () => widgetContext.state.disabled,
@@ -76,6 +82,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
             >
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('bold') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('bold')"
                     title="Bold"
@@ -85,6 +92,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 </button>
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('italic') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('italic')"
                     title="Italic"
@@ -94,6 +102,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 </button>
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('underline') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('underline')"
                     title="Underline"
@@ -103,6 +112,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 </button>
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('strike') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('strike')"
                     title="Strikethrough"
@@ -113,6 +123,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 <span :class="theme('toolbarSeparator')" role="separator" aria-orientation="vertical" />
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('heading', { level: 1 }) && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('heading', { level: 1 })"
                     title="Heading 1"
@@ -122,6 +133,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 </button>
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('heading', { level: 2 }) && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('heading', { level: 2 })"
                     title="Heading 2"
@@ -132,6 +144,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 <span :class="theme('toolbarSeparator')" role="separator" aria-orientation="vertical" />
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('bulletList') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('bulletList')"
                     title="Bullet list"
@@ -141,6 +154,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 </button>
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('orderedList') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('orderedList')"
                     title="Ordered list"
@@ -151,6 +165,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 <span :class="theme('toolbarSeparator')" role="separator" aria-orientation="vertical" />
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('blockquote') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('blockquote')"
                     title="Blockquote"
@@ -160,6 +175,7 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
                 </button>
                 <button
                     type="button"
+                    :disabled="widgetContext.state.disabled"
                     :class="[theme('toolbarButton'), isActive('codeBlock') && theme('toolbarButtonActive')]"
                     :aria-pressed="isActive('codeBlock')"
                     title="Code block"

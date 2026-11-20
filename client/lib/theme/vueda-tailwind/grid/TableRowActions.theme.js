@@ -15,7 +15,8 @@ patchTheme({
      */
     TableRowActions: {
         /**
-         * The inline wrapper for row actions. It stays invisible until the row is hovered, focused within, or selected, keeping scan-heavy tables clear until actions are relevant.
+         * The inline wrapper for row actions. It stays invisible until the row is hovered, focused within, or selected,
+         * keeping scan-heavy tables clear until actions are relevant.
          */
         root: {
             class: [
@@ -24,7 +25,8 @@ patchTheme({
             ],
         },
         /**
-         * The canonical action button class exposed to the default slot as `actionClass`. Apply it to small icon buttons so row actions share the same hover surface, border, and focus ring as other table controls.
+         * The canonical action button class exposed to the default slot as `actionClass`. Apply it to small icon
+         * buttons so row actions share the same hover surface, border, and focus ring as other table controls.
          */
         action: {
             class: [

@@ -80,7 +80,9 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** When true, renders skeleton rows; when false, renders data rows; when undefined, inferred from objectsInOrder. */
+    /**
+     * When true, renders skeleton rows; when false, renders data rows; when undefined, inferred from objectsInOrder.
+     */
     loading: {
         type: Boolean,
         default: undefined,
@@ -90,7 +92,10 @@ const props = defineProps({
         type: String,
         default: "No records found.",
     },
-    /** Empty-state variant: `empty` (default), `loading`, `error`, or `filtered`. Drives `data-variant` on the empty content wrapper. */
+    /**
+     * Empty-state variant: `empty` (default), `loading`, `error`, or `filtered`. Drives `data-variant` on the empty
+     * content wrapper.
+     */
     emptyVariant: {
         type: String,
         default: "empty",
@@ -117,7 +122,10 @@ const props = defineProps({
         type: Number,
         default: 25,
     },
-    /** Function `(obj, rowIndex) => attrs` returning extra attributes (typically `data-*`) merged onto the body row element. */
+    /**
+     * Function `(obj, rowIndex) => attrs` returning extra attributes (typically `data-*`) merged onto the body row
+     * element.
+     */
     rowAttrs: {
         type: Function,
         default: () => null,

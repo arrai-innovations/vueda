@@ -32,7 +32,6 @@ from tests.store import models as store_models
 from tests.store import viewsets as store_viewsets
 from vueda.core.audit import audited_action
 from vueda.core.permissions import check_action_permission
-from vueda.core.permissions import permitted_extra_action_methods
 from vueda.core.utils import AvailableActionsRequest
 from vueda.workflow.models import StatePermission
 
@@ -788,6 +787,10 @@ class TestHistoryActionObjectAvailabilityUnderWorkflowState(
         assert "history-list" in response.data["available_actions"]
 
 
+AVAILABLE_ACTIONS_QUERIES_PER_ROW = 27
+"""The most queries that one ``store.customerorder`` row of ``available_actions`` may add to a list response."""
+
+
 @pytest.mark.django_db
 class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMixin, BaseTestGroupMixin):
     """
@@ -900,40 +903,26 @@ class TestAvailableActionsQueryCost(BaseTestAssertResponseMixin, BaseTestUserMix
         assert "available_actions" not in response.data["results"][0], response_body(response)
         get_value.assert_not_called()
 
-    def test_a_multi_row_list_checks_history_list_once_per_row(self, api_client):
+    def test_each_row_of_available_actions_costs_at_most_the_per_row_budget(self, api_client):
         """
-        Each row of a list response that requests ``available_actions`` decides ``history-list``
-        with one permission check, on the viewset instance that serves the response.
+        Each row of a list response that requests ``available_actions`` costs at most
+        ``AVAILABLE_ACTIONS_QUERIES_PER_ROW`` queries. Every row's ``retrieve``, ``list``,
+        ``update``, ``partial_update``, ``destroy``, and ``history-list`` checks reach the workflow
+        state tables.
         """
         order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")
-        orders = self.make_orders(5, order_state, start_at=999)
+        first_order = self.make_orders(1, order_state, start_at=999)[0]
         # Every order shares this one workflow state, so one grant on it covers every row.
-        self.grant_read_by_state(orders[0])
-        api_client.force_authenticate(user=get_user_model().objects.get(email="non_reader@domain.invalid"))
+        self.grant_read_by_state(first_order)
 
-        history_checks_by_row = {}
+        self.make_orders(1, order_state, start_at=1000)
+        small = self.count_list_queries_expecting_ok(api_client, "id,available_actions")
 
-        def spy(viewset, request, instance, extra_action):
-            if extra_action.url_name == "history-list" and instance is not None:
-                history_checks_by_row.setdefault(instance.pk, []).append(id(viewset))
-            return permitted_extra_action_methods(viewset, request, instance, extra_action)
+        added_rows = 5
+        self.make_orders(added_rows, order_state, start_at=2000)
+        large = self.count_list_queries_expecting_ok(api_client, "id,available_actions")
 
-        with mock.patch("vueda.core.viewsets.permitted_extra_action_methods", side_effect=spy):
-            response = api_client.get(
-                reverse(
-                    "store.customerorder-list",
-                    query={
-                        settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: "id,available_actions",
-                        settings.REST_FRAMEWORK["ORDERING_PARAM"]: "order_number",
-                    },
-                ),
-            )
-        self.assert_response(response, HTTPStatus.OK)
-        assert all("history-list" in row["available_actions"] for row in response.data["results"])
-
-        assert set(history_checks_by_row) == {order.pk for order in orders}
-        assert all(len(viewset_ids) == 1 for viewset_ids in history_checks_by_row.values()), history_checks_by_row
-        assert len({viewset_id for ids in history_checks_by_row.values() for viewset_id in ids}) == 1
+        assert (large - small) / added_rows <= AVAILABLE_ACTIONS_QUERIES_PER_ROW
 
     def test_a_repeated_check_is_served_from_cache(self):
         order_state = store_models.OrderState.objects.create(code="order_state_new", name="New")

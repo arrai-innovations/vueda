@@ -1,6 +1,7 @@
 /**
  * @module use/useFilteredActions
- * @description Returns the subset of model actions that the current user is permitted to perform, based on model config and user group membership.
+ * @description Returns the subset of model actions that the current user is permitted to perform, based on model config
+ *  and user group membership.
  */
 import { useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeUser } from "@vueda/stores/storeUser.js";
@@ -26,7 +27,8 @@ import { computed, readonly, toRef } from "vue";
  * @property {import('vue').Ref<string>|string} model - The model name being used.
  * @property {import('vue').Ref<string>|string|null} view - The view being used, if any.
  * @property {import('vue').Ref<import('@vueda/stores/storeModelInfo.js').ModelInfo>|object} info - The model info.
- * @property {import('vue').Ref<import('@vueda/stores/storeModelConfig.js').ModelConfig>|object} config - The model config.
+ * @property {import('vue').Ref<import('@vueda/stores/storeModelConfig.js').ModelConfig>|object} config - The model
+ *  config.
  * @property {string[]} actions - The actions that the user can perform.
  */
 

@@ -14,7 +14,11 @@ patchTheme({
      * because a configured widget name does not resolve.
      */
     WidgetUnmapped: {
-        /** The diagnostic block. Reads as a destructive notice at supporting-text size so it sits inside a field's content column without impersonating a control. The edge is a `hairline`, matching {@api theme-key:Alert.root}, because a saturated 1px border fringes at integer DPR. */
+        /**
+         * The diagnostic block. Reads as a destructive notice at supporting-text size so it sits inside a field's
+         * content column without impersonating a control. The edge is a `hairline`, matching
+         * {@api theme-key:Alert.root}, because a saturated 1px border fringes at integer DPR.
+         */
         root: {
             class: [
                 // Surface and edge.

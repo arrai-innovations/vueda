@@ -439,7 +439,9 @@ function requireEnv(name) {
 }
 
 describe("mockup kit snapshots", () => {
-    /** @type {{ file: string, title: string, action: string, width: number, modelInfo: object, snapshot: Element }[]} */
+    /**
+     * @type {{ file: string, title: string, action: string, width: number, modelInfo: object, snapshot: Element }[]}
+     */
     const captured = [];
 
     beforeAll(async () => {

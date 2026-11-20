@@ -87,6 +87,13 @@ class ModelInfoActionSerializer(serializers.Serializer):
         required=False,
         help_text="Additional parameters needed to call the action, such as `pk`.",
     )
+    url_path = serializers.CharField(
+        required=False,
+        help_text=(
+            "URL segment that the router serves an extra action at, from the `url_path` argument of `@action`. "
+            "It defaults to the action's method name. Present on extra actions only."
+        ),
+    )
 
 
 class ModelInfoFieldSerializer(serializers.Serializer):
@@ -96,6 +103,17 @@ class ModelInfoFieldSerializer(serializers.Serializer):
         allow_null=True, help_text="Django model field type, or null without a model field."
     )
     type_serializer = serializers.CharField(help_text="Django REST framework serializer field class name.")
+    type_serializer_ancestors = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text=(
+            "The serializer field classes that the `type_serializer` class inherits from, nearest first. "
+            "The list stops before Django REST framework's `Field`. It is empty when `type_serializer` "
+            "is not the field's own class name, and for a nested serializer. VUEDA sends it for every field "
+            "that it builds. A field entry "
+            "that a `get_field_model_info` or `get_expand_model_info` override writes may leave it out."
+        ),
+    )
     many = serializers.BooleanField(help_text="Whether the value is a list.")
     read_only = serializers.BooleanField()
     required = serializers.BooleanField(help_text="Whether a value is required on submit.")
@@ -319,6 +337,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                         "args",
                         "kwargs",
                     ],
+                    "url_path": "history_list",
                 },
             ],
         },
@@ -351,6 +370,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                             "type_db": "AutoField",
                             "type_model": "AutoField",
                             "type_serializer": "IntegerField",
+                            "type_serializer_ancestors": [],
                             "max_value": 2147483647,
                             "min_value": -2147483648,
                             "pk": True,
@@ -365,6 +385,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                             "type_db": "CharField",
                             "type_model": "CharField",
                             "type_serializer": "CharField",
+                            "type_serializer_ancestors": [],
                             "max_length": 255,
                         },
                         "formatted_name": {
@@ -377,6 +398,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                             "type_db": "CharField",
                             "type_model": "GeneratedField",
                             "type_serializer": "ModelField",
+                            "type_serializer_ancestors": [],
                         },
                         "object_revision": {
                             "choices": False,
@@ -388,6 +410,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                             "type_db": None,
                             "type_model": None,
                             "type_serializer": "ObjectRevisionField",
+                            "type_serializer_ancestors": [],
                         },
                     },
                 },
@@ -415,6 +438,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "AutoField",
                     "type_model": "AutoField",
                     "type_serializer": "IntegerField",
+                    "type_serializer_ancestors": [],
                     "max_value": 2147483647,
                     "min_value": -2147483648,
                     "pk": True,
@@ -429,6 +453,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "DecimalField",
                     "type_model": "DecimalField",
                     "type_serializer": "DecimalField",
+                    "type_serializer_ancestors": [],
                     "max_digits": 7,
                     "decimal_places": 0,
                 },
@@ -442,6 +467,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "DateTimeField",
                     "type_model": "DateTimeField",
                     "type_serializer": "DateTimeField",
+                    "type_serializer_ancestors": [],
                 },
                 "customer": {
                     "choices": True,
@@ -453,6 +479,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "ForeignKey",
                     "type_model": "ForeignKey",
                     "type_serializer": "PrimaryKeyRelatedField",
+                    "type_serializer_ancestors": ["RelatedField"],
                     "app_label": "store",
                     "model": "customer",
                 },
@@ -466,6 +493,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "ForeignKey",
                     "type_model": "ForeignKey",
                     "type_serializer": "PrimaryKeyRelatedField",
+                    "type_serializer_ancestors": ["RelatedField"],
                     "app_label": "store",
                     "model": "orderstate",
                 },
@@ -492,6 +520,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "CharField",
                     "type_model": "CharField",
                     "type_serializer": "ChoiceField",
+                    "type_serializer_ancestors": [],
                 },
                 "formatted_name": {
                     "choices": False,
@@ -503,6 +532,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": "CharField",
                     "type_model": "GeneratedField",
                     "type_serializer": "ModelField",
+                    "type_serializer_ancestors": [],
                 },
                 "object_revision": {
                     "choices": False,
@@ -514,6 +544,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                     "type_db": None,
                     "type_model": None,
                     "type_serializer": "ObjectRevisionField",
+                    "type_serializer_ancestors": [],
                 },
             },
         },

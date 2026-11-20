@@ -59,6 +59,30 @@ export const makeSearchParamsString = (searchParams, repeatedParams = []) => {
 };
 
 /**
+ * Encode a list's filter params for an object stream subscription, the way the list request encodes them.
+ *
+ * The server hands the values to the list's FilterSet, so each value takes the form that the list
+ * request's query string gives it. An array is one comma-separated string, and a key listed in
+ * `repeatedParams` stays an array of strings. Page, search, and column totals are not filters and
+ * are left out.
+ *
+ * @param {object} params - The list params, without ordering, fields, expand, or page size.
+ * @param {string[]} [repeatedParams] - Keys whose array elements the list request sends as repeated keys.
+ * @returns {{ [key: string]: string|string[] }} The filters for the subscribe message.
+ */
+export const subscriptionFilters = (params, repeatedParams = []) => {
+    const query = new URLSearchParams(
+        makeSearchParamsString(omit(deepUnref(params) || {}, NON_FILTER_PARAMS), repeatedParams),
+    );
+    /** @type {{ [key: string]: string|string[] }} */
+    const filters = {};
+    for (const key of new Set(query.keys())) {
+        filters[key] = repeatedParams.includes(key) ? query.getAll(key) : query.get(key);
+    }
+    return filters;
+};
+
+/**
  * The VUEDA specific implementation for reactive-helper's list crud function, for a specific page.
  * Supports fetching from a standard list or a custom detail action.
  *
@@ -69,11 +93,12 @@ export const makeSearchParamsString = (searchParams, repeatedParams = []) => {
  *     pk?: string,
  *     action?: string,
  *     resultsKey?: string,
- * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will be used.
- *  Otherwise, the non-detail list url will be used. `resultsKey` is the response key holding the array of objects
- *  (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
+ * }} args.target - The arguments for the CRUD operation. If `pk` and `action` are provided, the detail action url will
+ *     be used. Otherwise, the non-detail list url will be used. `resultsKey` is the response key holding the array of
+ *     objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {object} args.params - The arguments for the list operation.
- * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see {@link makeSearchParamsString}.
+ * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see
+ *  {@link makeSearchParamsString}.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
@@ -136,10 +161,11 @@ export function singlePagePaginatedListCrudAdaptor({
  *     pk?: string,
  *     action?: string,
  *     resultsKey?: string,
- * }} args.target - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array of
- *  objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
+ * }} args.target - VUEDA specific arguments for the CRUD operation. `resultsKey` is the response key holding the array
+ *     of objects (defaults to `"results"`); it is supplied via the registered crud `args` (see `setupDefaultListCrud`).
  * @param {{ [p]: number }} args.params - The querystring parameters for the list operation.
- * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see {@link makeSearchParamsString}.
+ * @param {string[]} [args.repeatedParams] - Params whose array elements are each sent as a repeated key; see
+ *  {@link makeSearchParamsString}.
  * @param {Function} args.pushObjects - Callback to append fetched objects to the current list.
  * @param {Function} args.clearObjects - Callback to clear existing objects when loading a new set.
  * @param {import('vue').Ref<boolean>} args.isCancelled - Reactive flag indicating the request was cancelled.
@@ -290,18 +316,22 @@ export function defaultObjectsDelete({ target, pks, formData, dryRun, acknowledg
  *    model: string,
  * }} args.target - The arguments for the CRUD operation.
  * @param {string[]} args.pks - The PKs of the objects to act on.
- * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} args.action - The action name, as model info reports it.
+ * @param {string} [args.urlPath] - The url's action segment. `useModelAction` passes the `urlPath` that model info
+ *  reports for the action. Defaults to `action`.
  * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
  * @param {object} [args.formData] - Form values submitted with the action, merged into the request body.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
  * @param {string} [args.acknowledgeWarnings] - Warnings digest from a prior 409, sent as the
  *  `Acknowledge-Warnings` header so the server lets the gated action proceed.
- * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<object|string|undefined>} - A cancellable promise.
+ * @returns {import('@arrai-innovations/reactive-helpers').CancellablePromise<object|string|undefined>} - A cancellable
+ *  promise.
  */
 export function defaultListExecuteAction({
     target,
     pks,
     action,
+    urlPath = action,
     requestMethod = "PUT",
     formData,
     dryRun,
@@ -309,7 +339,7 @@ export function defaultListExecuteAction({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model } = target;
-    const url = getListUrl({ app, model, action });
+    const url = getListUrl({ app, model, action: urlPath });
     return cancellableFetch(
         url,
         {

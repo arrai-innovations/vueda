@@ -54,15 +54,9 @@ function toggleTheme() {
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;primary&quot;
-							data-emphasis=&quot;fill&quot;
-							class=&quot;vk-button-primary-fill&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitlisttable/customer/create/&quot;
-							>Create
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;primary&quot; data-emphasis=&quot;fill&quot; class=&quot;vk-button-primary-fill&quot;>
+							Create
+						</button>
 					</div>
 				</div>
 			</div>
@@ -216,7 +210,7 @@ function toggleTheme() {
 			<div class=&quot;vk-objects-grid-root&quot; data-density=&quot;default&quot; data-qa=&quot;objects-grid-root&quot;>
 				<div class=&quot;vk-objects-grid-table&quot; data-qa=&quot;objects-grid-table&quot; role=&quot;table&quot;>
 					<div class=&quot;vk-objects-grid-header-row-group&quot; data-qa=&quot;objects-grid-header-row-group&quot; role=&quot;rowgroup&quot;>
-						<div class=&quot;!table-row [&amp;amp;>*]:border-b-hairline&quot; data-qa=&quot;objects-grid-header-row&quot; role=&quot;row&quot;>
+						<div class=&quot;!table-row [&amp;amp;&amp;gt;*]:border-b-hairline&quot; data-qa=&quot;objects-grid-header-row&quot; role=&quot;row&quot;>
 							<div
 								class=&quot;vk-objects-grid-header&quot;
 								data-header=&quot;selected_&quot;
@@ -245,6 +239,16 @@ function toggleTheme() {
 							>
 								<div class=&quot;vk-objects-grid-table-header-root&quot; data-qa=&quot;objects-grid-table-header-root&quot;>
 									<span data-qa=&quot;objects-grid-table-header-label&quot;>Primary domain</span>
+								</div>
+							</div>
+							<div
+								class=&quot;vk-objects-grid-header&quot;
+								data-header=&quot;contactEmail&quot;
+								data-qa=&quot;objects-grid-header&quot;
+								role=&quot;columnheader&quot;
+							>
+								<div class=&quot;vk-objects-grid-table-header-root&quot; data-qa=&quot;objects-grid-table-header-root&quot;>
+									<span data-qa=&quot;objects-grid-table-header-label&quot;>Billing email</span>
 								</div>
 							</div>
 							<div class=&quot;vk-objects-grid-header&quot; data-header=&quot;owner&quot; data-qa=&quot;objects-grid-header&quot; role=&quot;columnheader&quot;>
@@ -302,7 +306,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;0&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-1&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -313,12 +317,30 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Northwind Logistics</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://northwind.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://northwind.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://northwind.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>mt</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>enterprise</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@northwind.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@northwind.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Mara Tani</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Enterprise</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>18400.00</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>usd</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>USD</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
 							</div>
@@ -336,7 +358,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;1&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-2&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -347,12 +369,30 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Granger Holdings</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://granger.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://granger.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://granger.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>jr</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>enterprise</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@granger.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@granger.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Jordan Reyes</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Enterprise</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>12250.00</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>usd</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>USD</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
 							</div>
@@ -372,7 +412,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;2&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-3&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -383,10 +423,28 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Aldergrove Foods</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://aldergrove.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://aldergrove.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://aldergrove.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>ps</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>standard</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@aldergrove.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@aldergrove.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Priya Subramanian</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Standard</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>4300.00</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>cad</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
@@ -406,7 +464,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;3&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-4&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -417,12 +475,23 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Vellum Press</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://vellumpress.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://vellumpress.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://vellumpress.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>lb</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>standard</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span><span data-qa=&quot;email-display-dash&quot;>-</span></span>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Linnea Borg</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Standard</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>2875.50</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>gbp</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>GBP</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;boolean-display-value&quot;>Yes</span></div>
 							</div>
@@ -442,7 +511,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;4&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-5&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -453,12 +522,30 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Harbourline Marine</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://harbourline.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://harbourline.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://harbourline.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>mt</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>standard</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@harbourline.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@harbourline.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Mara Tani</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Standard</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>3960.00</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>eur</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>EUR</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
 							</div>
@@ -476,7 +563,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;5&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-6&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -487,12 +574,30 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Kestrel Analytics</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://kestrel.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://kestrel.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://kestrel.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>jr</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>trial</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@kestrel.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@kestrel.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Jordan Reyes</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Trial</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>0.00</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>usd</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>USD</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
 							</div>
@@ -512,7 +617,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;6&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-7&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -523,10 +628,28 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Ossington Dental</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://ossington.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://ossington.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://ossington.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>ps</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>standard</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@ossington.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@ossington.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Priya Subramanian</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Standard</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>1180.00</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>cad</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
@@ -546,7 +669,7 @@ function toggleTheme() {
 									pkkey=&quot;id&quot;
 									rowindex=&quot;7&quot;
 									rowcount=&quot;8&quot;
-									columncount=&quot;9&quot;
+									columncount=&quot;10&quot;
 									id=&quot;selected-row-8&quot;
 									role=&quot;checkbox&quot;
 									type=&quot;button&quot;
@@ -557,12 +680,30 @@ function toggleTheme() {
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;account&quot; role=&quot;cell&quot;>Brightwater Utilities</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;domain&quot; role=&quot;cell&quot;>
-								https://brightwater.domain.invalid
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;https://brightwater.domain.invalid&quot;
+										data-qa=&quot;url-display-link&quot;
+										rel=&quot;noopener noreferrer&quot;
+										>https://brightwater.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>lb</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>enterprise</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;contactEmail&quot; role=&quot;cell&quot;>
+								<span
+									><a
+										class=&quot;vk-url-display-link&quot;
+										href=&quot;mailto:billing@brightwater.domain.invalid&quot;
+										data-qa=&quot;email-display-link&quot;
+										>billing@brightwater.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;owner&quot; role=&quot;cell&quot;>Linnea Borg</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;tier&quot; role=&quot;cell&quot;>Enterprise</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot;>22100.00</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>usd</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;currency&quot; role=&quot;cell&quot;>USD</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;taxExempt&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
 							</div>
@@ -749,15 +890,9 @@ function toggleTheme() {
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;primary&quot;
-							data-emphasis=&quot;fill&quot;
-							class=&quot;vk-button-primary-fill&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitlistcards/customer/create/&quot;
-							>Create
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;primary&quot; data-emphasis=&quot;fill&quot; class=&quot;vk-button-primary-fill&quot;>
+							Create
+						</button>
 					</div>
 				</div>
 			</div>
@@ -944,6 +1079,16 @@ function toggleTheme() {
 							</div>
 							<div
 								class=&quot;vk-objects-grid-header-2&quot;
+								data-header=&quot;contactEmail&quot;
+								data-qa=&quot;objects-grid-header&quot;
+								role=&quot;columnheader&quot;
+							>
+								<div class=&quot;vk-objects-grid-table-header-root&quot; data-qa=&quot;objects-grid-table-header-root&quot;>
+									<span data-qa=&quot;objects-grid-table-header-label&quot;>Billing email</span>
+								</div>
+							</div>
+							<div
+								class=&quot;vk-objects-grid-header-2&quot;
 								data-header=&quot;owner&quot;
 								data-qa=&quot;objects-grid-header&quot;
 								role=&quot;columnheader&quot;
@@ -1019,7 +1164,7 @@ function toggleTheme() {
 										pkkey=&quot;id&quot;
 										rowindex=&quot;0&quot;
 										rowcount=&quot;4&quot;
-										columncount=&quot;9&quot;
+										columncount=&quot;10&quot;
 										id=&quot;selected-row-1&quot;
 										role=&quot;checkbox&quot;
 										type=&quot;button&quot;
@@ -1034,15 +1179,39 @@ function toggleTheme() {
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;domain&quot;>Primary domain</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;domain&quot; role=&quot;cell&quot; data-card=&quot;domain&quot;>
-									https://northwind.domain.invalid
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;https://northwind.domain.invalid&quot;
+											data-qa=&quot;url-display-link&quot;
+											rel=&quot;noopener noreferrer&quot;
+											>https://northwind.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;contactEmail&quot;>Billing email</div>
+								<div
+									class=&quot;vk-objects-grid-card-container-div-3&quot;
+									data-field=&quot;contactEmail&quot;
+									role=&quot;cell&quot;
+									data-card=&quot;contactEmail&quot;
+								>
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;mailto:billing@northwind.domain.invalid&quot;
+											data-qa=&quot;email-display-link&quot;
+											>billing@northwind.domain.invalid</a
+										></span
+									>
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;owner&quot;>Owner</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;owner&quot; role=&quot;cell&quot; data-card=&quot;owner&quot;>
-									mt
+									Mara Tani
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;tier&quot;>Plan tier</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;tier&quot; role=&quot;cell&quot; data-card=&quot;tier&quot;>
-									enterprise
+									Enterprise
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;mrr&quot;>MRR</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot; data-card=&quot;mrr&quot;>
@@ -1055,7 +1224,7 @@ function toggleTheme() {
 									role=&quot;cell&quot;
 									data-card=&quot;currency&quot;
 								>
-									usd
+									USD
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;taxExempt&quot;>Tax-exempt</div>
 								<div
@@ -1091,7 +1260,7 @@ function toggleTheme() {
 										pkkey=&quot;id&quot;
 										rowindex=&quot;1&quot;
 										rowcount=&quot;4&quot;
-										columncount=&quot;9&quot;
+										columncount=&quot;10&quot;
 										id=&quot;selected-row-2&quot;
 										role=&quot;checkbox&quot;
 										type=&quot;button&quot;
@@ -1106,15 +1275,39 @@ function toggleTheme() {
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;domain&quot;>Primary domain</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;domain&quot; role=&quot;cell&quot; data-card=&quot;domain&quot;>
-									https://granger.domain.invalid
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;https://granger.domain.invalid&quot;
+											data-qa=&quot;url-display-link&quot;
+											rel=&quot;noopener noreferrer&quot;
+											>https://granger.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;contactEmail&quot;>Billing email</div>
+								<div
+									class=&quot;vk-objects-grid-card-container-div-3&quot;
+									data-field=&quot;contactEmail&quot;
+									role=&quot;cell&quot;
+									data-card=&quot;contactEmail&quot;
+								>
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;mailto:billing@granger.domain.invalid&quot;
+											data-qa=&quot;email-display-link&quot;
+											>billing@granger.domain.invalid</a
+										></span
+									>
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;owner&quot;>Owner</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;owner&quot; role=&quot;cell&quot; data-card=&quot;owner&quot;>
-									jr
+									Jordan Reyes
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;tier&quot;>Plan tier</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;tier&quot; role=&quot;cell&quot; data-card=&quot;tier&quot;>
-									enterprise
+									Enterprise
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;mrr&quot;>MRR</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot; data-card=&quot;mrr&quot;>
@@ -1127,7 +1320,7 @@ function toggleTheme() {
 									role=&quot;cell&quot;
 									data-card=&quot;currency&quot;
 								>
-									usd
+									USD
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;taxExempt&quot;>Tax-exempt</div>
 								<div
@@ -1163,7 +1356,7 @@ function toggleTheme() {
 										pkkey=&quot;id&quot;
 										rowindex=&quot;2&quot;
 										rowcount=&quot;4&quot;
-										columncount=&quot;9&quot;
+										columncount=&quot;10&quot;
 										id=&quot;selected-row-3&quot;
 										role=&quot;checkbox&quot;
 										type=&quot;button&quot;
@@ -1178,15 +1371,39 @@ function toggleTheme() {
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;domain&quot;>Primary domain</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;domain&quot; role=&quot;cell&quot; data-card=&quot;domain&quot;>
-									https://aldergrove.domain.invalid
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;https://aldergrove.domain.invalid&quot;
+											data-qa=&quot;url-display-link&quot;
+											rel=&quot;noopener noreferrer&quot;
+											>https://aldergrove.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;contactEmail&quot;>Billing email</div>
+								<div
+									class=&quot;vk-objects-grid-card-container-div-3&quot;
+									data-field=&quot;contactEmail&quot;
+									role=&quot;cell&quot;
+									data-card=&quot;contactEmail&quot;
+								>
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;mailto:billing@aldergrove.domain.invalid&quot;
+											data-qa=&quot;email-display-link&quot;
+											>billing@aldergrove.domain.invalid</a
+										></span
+									>
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;owner&quot;>Owner</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;owner&quot; role=&quot;cell&quot; data-card=&quot;owner&quot;>
-									ps
+									Priya Subramanian
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;tier&quot;>Plan tier</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;tier&quot; role=&quot;cell&quot; data-card=&quot;tier&quot;>
-									standard
+									Standard
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;mrr&quot;>MRR</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot; data-card=&quot;mrr&quot;>
@@ -1238,7 +1455,7 @@ function toggleTheme() {
 										pkkey=&quot;id&quot;
 										rowindex=&quot;3&quot;
 										rowcount=&quot;4&quot;
-										columncount=&quot;9&quot;
+										columncount=&quot;10&quot;
 										id=&quot;selected-row-4&quot;
 										role=&quot;checkbox&quot;
 										type=&quot;button&quot;
@@ -1253,15 +1470,32 @@ function toggleTheme() {
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;domain&quot;>Primary domain</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;domain&quot; role=&quot;cell&quot; data-card=&quot;domain&quot;>
-									https://vellumpress.domain.invalid
+									<span
+										><a
+											class=&quot;vk-url-display-link&quot;
+											href=&quot;https://vellumpress.domain.invalid&quot;
+											data-qa=&quot;url-display-link&quot;
+											rel=&quot;noopener noreferrer&quot;
+											>https://vellumpress.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;contactEmail&quot;>Billing email</div>
+								<div
+									class=&quot;vk-objects-grid-card-container-div-3&quot;
+									data-field=&quot;contactEmail&quot;
+									role=&quot;cell&quot;
+									data-card=&quot;contactEmail&quot;
+								>
+									<span><span data-qa=&quot;email-display-dash&quot;>-</span></span>
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;owner&quot;>Owner</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;owner&quot; role=&quot;cell&quot; data-card=&quot;owner&quot;>
-									lb
+									Linnea Borg
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;tier&quot;>Plan tier</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;tier&quot; role=&quot;cell&quot; data-card=&quot;tier&quot;>
-									standard
+									Standard
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;mrr&quot;>MRR</div>
 								<div class=&quot;vk-objects-grid-card-container-div-3&quot; data-field=&quot;mrr&quot; role=&quot;cell&quot; data-card=&quot;mrr&quot;>
@@ -1274,7 +1508,7 @@ function toggleTheme() {
 									role=&quot;cell&quot;
 									data-card=&quot;currency&quot;
 								>
-									gbp
+									GBP
 								</div>
 								<div class=&quot;vk-objects-grid-card-container-div&quot; data-card-header=&quot;taxExempt&quot;>Tax-exempt</div>
 								<div
@@ -1470,23 +1704,11 @@ function toggleTheme() {
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitread/customer/create/&quot;
-							>Create </a
-						><a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitread/customer/list/&quot;
-							>List
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							Create</button
+						><button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -1554,8 +1776,47 @@ function toggleTheme() {
 								<div data-qa=&quot;field-renderer-field-inner&quot;>
 									<div data-qa=&quot;widget-read-only-root&quot;>
 										<div class=&quot;flex flex-col&quot; data-qa=&quot;widget-read-only-inner&quot;>
-											<div type=&quot;url&quot; class=&quot;text-[13px]/[1.5] text-foreground&quot; data-qa=&quot;widget-read-only-value&quot;>
-												<span>https://northwind.domain.invalid</span>
+											<div class=&quot;text-[13px]/[1.5] text-foreground&quot; data-qa=&quot;widget-read-only-value&quot;>
+												<span
+													><a
+														class=&quot;vk-url-display-link&quot;
+														href=&quot;https://northwind.domain.invalid&quot;
+														data-qa=&quot;url-display-link&quot;
+														rel=&quot;noopener noreferrer&quot;
+														>https://northwind.domain.invalid</a
+													></span
+												>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role=&quot;group&quot;
+							data-slot=&quot;field&quot;
+							data-orientation=&quot;read&quot;
+							class=&quot;vk-field group/field&quot;
+							data-qa=&quot;form-field&quot;
+							data-field=&quot;contactEmail&quot;
+						>
+							<label data-slot=&quot;field-label&quot; class=&quot;vk-field-label group/field-label peer/field-label&quot;
+								>Billing email
+							</label>
+							<div data-slot=&quot;field-content&quot; class=&quot;vk-field-content group/field-content&quot;>
+								<a name=&quot;contactEmail&quot; class=&quot;absolute&quot;></a>
+								<div data-qa=&quot;field-renderer-field-inner&quot;>
+									<div data-qa=&quot;widget-read-only-root&quot;>
+										<div class=&quot;flex flex-col&quot; data-qa=&quot;widget-read-only-inner&quot;>
+											<div class=&quot;text-[13px]/[1.5] text-foreground&quot; data-qa=&quot;widget-read-only-value&quot;>
+												<span
+													><a
+														class=&quot;vk-url-display-link&quot;
+														href=&quot;mailto:billing@northwind.domain.invalid&quot;
+														data-qa=&quot;email-display-link&quot;
+														>billing@northwind.domain.invalid</a
+													></span
+												>
 											</div>
 										</div>
 									</div>
@@ -1739,15 +2000,9 @@ function toggleTheme() {
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitcreate/customer/list/&quot;
-							>List
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -1812,6 +2067,30 @@ function toggleTheme() {
 									<a name=&quot;domain&quot; class=&quot;absolute&quot;></a>
 									<div data-qa=&quot;field-renderer-field-inner&quot;>
 										<input data-slot=&quot;input&quot; name=&quot;domain&quot; type=&quot;url&quot; data-qa=&quot;widget-text-input&quot; class=&quot;vk-input&quot; />
+									</div>
+								</div>
+							</div>
+							<div
+								role=&quot;group&quot;
+								data-slot=&quot;field&quot;
+								data-orientation=&quot;vertical&quot;
+								class=&quot;vk-field-2 group/field&quot;
+								data-qa=&quot;form-field&quot;
+								data-field=&quot;contactEmail&quot;
+							>
+								<label data-slot=&quot;field-label&quot; class=&quot;vk-field-label group/field-label peer/field-label&quot;
+									>Billing email
+								</label>
+								<div data-slot=&quot;field-content&quot; class=&quot;vk-field-content group/field-content&quot;>
+									<a name=&quot;contactEmail&quot; class=&quot;absolute&quot;></a>
+									<div data-qa=&quot;field-renderer-field-inner&quot;>
+										<input
+											data-slot=&quot;input&quot;
+											name=&quot;contactEmail&quot;
+											type=&quot;email&quot;
+											data-qa=&quot;widget-text-input&quot;
+											class=&quot;vk-input&quot;
+										/>
 									</div>
 								</div>
 							</div>
@@ -2237,23 +2516,11 @@ function toggleTheme() {
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitupdate/customer/create/&quot;
-							>Create </a
-						><a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitupdate/customer/list/&quot;
-							>List
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							Create</button
+						><button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -2348,6 +2615,31 @@ function toggleTheme() {
 								data-orientation=&quot;vertical&quot;
 								class=&quot;vk-field-2 group/field&quot;
 								data-qa=&quot;form-field&quot;
+								data-field=&quot;contactEmail&quot;
+							>
+								<label data-slot=&quot;field-label&quot; class=&quot;vk-field-label group/field-label peer/field-label&quot;
+									>Billing email
+								</label>
+								<div data-slot=&quot;field-content&quot; class=&quot;vk-field-content group/field-content&quot;>
+									<a name=&quot;contactEmail&quot; class=&quot;absolute&quot;></a>
+									<div data-qa=&quot;field-renderer-field-inner&quot;>
+										<input
+											data-slot=&quot;input&quot;
+											name=&quot;contactEmail&quot;
+											type=&quot;email&quot;
+											data-qa=&quot;widget-text-input&quot;
+											class=&quot;vk-input&quot;
+											value=&quot;billing@northwind.domain.invalid&quot;
+										/>
+									</div>
+								</div>
+							</div>
+							<div
+								role=&quot;group&quot;
+								data-slot=&quot;field&quot;
+								data-orientation=&quot;vertical&quot;
+								class=&quot;vk-field-2 group/field&quot;
+								data-qa=&quot;form-field&quot;
 								data-field=&quot;owner&quot;
 							>
 								<label data-slot=&quot;field-label&quot; class=&quot;vk-field-label group/field-label peer/field-label&quot;
@@ -2388,6 +2680,7 @@ function toggleTheme() {
 											tabindex=&quot;-1&quot;
 											style=&quot;
 												position: absolute;
+												border: 0px;
 												width: 1px;
 												height: 1px;
 												padding: 0px;
@@ -2399,7 +2692,6 @@ function toggleTheme() {
 												word-wrap: normal;
 												top: -1px;
 												left: -1px;
-												border: 0px;
 											&quot;
 											name=&quot;owner&quot;
 											value=&quot;mt&quot;
@@ -2458,6 +2750,7 @@ function toggleTheme() {
 											tabindex=&quot;-1&quot;
 											style=&quot;
 												position: absolute;
+												border: 0px;
 												width: 1px;
 												height: 1px;
 												padding: 0px;
@@ -2469,7 +2762,6 @@ function toggleTheme() {
 												word-wrap: normal;
 												top: -1px;
 												left: -1px;
-												border: 0px;
 											&quot;
 											name=&quot;tier&quot;
 											value=&quot;enterprise&quot;
@@ -2556,6 +2848,7 @@ function toggleTheme() {
 												tabindex=&quot;-1&quot;
 												style=&quot;
 													position: absolute;
+													border: 0px;
 													width: 1px;
 													height: 1px;
 													padding: 0px;
@@ -2567,7 +2860,6 @@ function toggleTheme() {
 													word-wrap: normal;
 													top: -1px;
 													left: -1px;
-													border: 0px;
 												&quot;
 												name=&quot;mrr&quot;
 												type=&quot;text&quot;
@@ -2623,6 +2915,7 @@ function toggleTheme() {
 											tabindex=&quot;-1&quot;
 											style=&quot;
 												position: absolute;
+												border: 0px;
 												width: 1px;
 												height: 1px;
 												padding: 0px;
@@ -2634,7 +2927,6 @@ function toggleTheme() {
 												word-wrap: normal;
 												top: -1px;
 												left: -1px;
-												border: 0px;
 											&quot;
 											name=&quot;currency&quot;
 											value=&quot;usd&quot;
@@ -2986,15 +3278,9 @@ Renewal review each March.</textarea
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;primary&quot;
-							data-emphasis=&quot;fill&quot;
-							class=&quot;vk-button-primary-fill&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitfieldslist/fieldtypes/create/&quot;
-							>Create
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;primary&quot; data-emphasis=&quot;fill&quot; class=&quot;vk-button-primary-fill&quot;>
+							Create
+						</button>
 					</div>
 				</div>
 			</div>
@@ -3148,7 +3434,7 @@ Renewal review each March.</textarea
 			<div class=&quot;vk-objects-grid-root&quot; data-density=&quot;default&quot; data-qa=&quot;objects-grid-root&quot;>
 				<div class=&quot;vk-objects-grid-table&quot; data-qa=&quot;objects-grid-table&quot; role=&quot;table&quot;>
 					<div class=&quot;vk-objects-grid-header-row-group&quot; data-qa=&quot;objects-grid-header-row-group&quot; role=&quot;rowgroup&quot;>
-						<div class=&quot;!table-row [&amp;amp;>*]:border-b-hairline&quot; data-qa=&quot;objects-grid-header-row&quot; role=&quot;row&quot;>
+						<div class=&quot;!table-row [&amp;amp;&amp;gt;*]:border-b-hairline&quot; data-qa=&quot;objects-grid-header-row&quot; role=&quot;row&quot;>
 							<div
 								class=&quot;vk-objects-grid-header&quot;
 								data-header=&quot;selected_&quot;
@@ -3296,9 +3582,9 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;leadTime&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;duration-display-value&quot;>2 days, 8 hours</span></div>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;regions&quot; role=&quot;cell&quot;>[&quot;na&quot;,&quot;eu&quot;]</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;regions&quot; role=&quot;cell&quot;>North America, Europe</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;expedited&quot; role=&quot;cell&quot;>
-								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
+								<div><span data-qa=&quot;boolean-display-value&quot;>Standard handling</span></div>
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;metadata&quot; role=&quot;cell&quot;>
 								<span class=&quot;vk-objects-grid-row-span&quot; data-inline=&quot;true&quot;
@@ -3310,7 +3596,7 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;datasheet&quot; role=&quot;cell&quot;>
 								<span
 									><a
-										class=&quot;vk-file-display-link&quot;
+										class=&quot;vk-url-display-link&quot;
 										href=&quot;https://files.domain.invalid/brg-6204.pdf&quot;
 										data-qa=&quot;file-display-link&quot;
 										>datasheets/brg-6204.pdf</a
@@ -3320,7 +3606,7 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;heroImage&quot; role=&quot;cell&quot;>
 								<span
 									><a
-										class=&quot;vk-file-display-link&quot;
+										class=&quot;vk-url-display-link&quot;
 										href=&quot;https://files.domain.invalid/brg-6204.png&quot;
 										data-qa=&quot;file-display-link&quot;
 										>hero-images/brg-6204.png</a
@@ -3332,7 +3618,7 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div&quot; data-field=&quot;selected_&quot; role=&quot;cell&quot;></div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;releaseDate&quot; role=&quot;cell&quot;>
 								<div class=&quot;flex items-center space-x-2&quot;>
-									<span class=&quot;whitespace-nowrap cursor-help&quot; title=&quot;8 months ago&quot;>2026-02-02</span>
+									<span class=&quot;whitespace-nowrap cursor-help&quot; title=&quot;9 months ago&quot;>2026-02-02</span>
 								</div>
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;publishedAt&quot; role=&quot;cell&quot;>
@@ -3348,9 +3634,9 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;leadTime&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;duration-display-value&quot;>14 days</span></div>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;regions&quot; role=&quot;cell&quot;>[&quot;apac&quot;]</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;regions&quot; role=&quot;cell&quot;>Asia Pacific</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;expedited&quot; role=&quot;cell&quot;>
-								<div><span data-qa=&quot;boolean-display-value&quot;>Yes</span></div>
+								<div><span data-qa=&quot;boolean-display-value&quot;>Expedited handling</span></div>
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;metadata&quot; role=&quot;cell&quot;>
 								<span class=&quot;vk-objects-grid-row-span&quot; data-inline=&quot;true&quot;
@@ -3386,9 +3672,9 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;leadTime&quot; role=&quot;cell&quot;>
 								<div><span data-qa=&quot;duration-display-value&quot;>4 hours, 30 minutes</span></div>
 							</div>
-							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;regions&quot; role=&quot;cell&quot;>[]</div>
+							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;regions&quot; role=&quot;cell&quot;></div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;expedited&quot; role=&quot;cell&quot;>
-								<div><span data-qa=&quot;boolean-display-value&quot;>No</span></div>
+								<div><span data-qa=&quot;boolean-display-value&quot;>Standard handling</span></div>
 							</div>
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;metadata&quot; role=&quot;cell&quot;>
 								<span class=&quot;vk-objects-grid-row-span&quot; data-inline=&quot;true&quot;
@@ -3398,7 +3684,7 @@ Renewal review each March.</textarea
 							<div class=&quot;vk-objects-grid-row-div-2&quot; data-field=&quot;datasheet&quot; role=&quot;cell&quot;>
 								<span
 									><a
-										class=&quot;vk-file-display-link&quot;
+										class=&quot;vk-url-display-link&quot;
 										href=&quot;https://files.domain.invalid/fst-8002.pdf&quot;
 										data-qa=&quot;file-display-link&quot;
 										>datasheets/fst-8002.pdf</a
@@ -3588,23 +3874,11 @@ Renewal review each March.</textarea
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitfieldsread/fieldtypes/create/&quot;
-							>Create </a
-						><a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitfieldsread/fieldtypes/list/&quot;
-							>List
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							Create</button
+						><button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -3807,7 +4081,7 @@ Renewal review each March.</textarea
 									<div data-qa=&quot;widget-read-only-root&quot;>
 										<div class=&quot;flex flex-col&quot; data-qa=&quot;widget-read-only-inner&quot;>
 											<div class=&quot;text-[13px]/[1.5] text-foreground&quot; data-qa=&quot;widget-read-only-value&quot;>
-												<span><span data-qa=&quot;boolean-display-value&quot;>No</span></span>
+												<span><span data-qa=&quot;boolean-display-value&quot;>Standard handling</span></span>
 											</div>
 										</div>
 									</div>
@@ -3862,7 +4136,7 @@ Renewal review each March.</textarea
 											<div class=&quot;text-[13px]/[1.5] text-foreground&quot; data-qa=&quot;widget-read-only-value&quot;>
 												<span
 													><a
-														class=&quot;vk-file-display-link&quot;
+														class=&quot;vk-url-display-link&quot;
 														href=&quot;https://files.domain.invalid/brg-6204.pdf&quot;
 														data-qa=&quot;file-display-link&quot;
 														>datasheets/brg-6204.pdf</a
@@ -3893,7 +4167,7 @@ Renewal review each March.</textarea
 											<div class=&quot;text-[13px]/[1.5] text-foreground&quot; data-qa=&quot;widget-read-only-value&quot;>
 												<span
 													><a
-														class=&quot;vk-file-display-link&quot;
+														class=&quot;vk-url-display-link&quot;
 														href=&quot;https://files.domain.invalid/brg-6204.png&quot;
 														data-qa=&quot;file-display-link&quot;
 														>hero-images/brg-6204.png</a
@@ -4275,23 +4549,11 @@ Renewal review each March.</textarea
 						</div>
 					</div>
 					<div class=&quot;vk-page-title-actions&quot; data-qa=&quot;page-title-actions&quot;>
-						<a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitfieldsupdate/fieldtypes/create/&quot;
-							>Create </a
-						><a
-							data-slot=&quot;button&quot;
-							data-tone=&quot;neutral&quot;
-							data-emphasis=&quot;outline&quot;
-							class=&quot;vk-button-neutral-outline&quot;
-							disabled=&quot;false&quot;
-							href=&quot;/kitfieldsupdate/fieldtypes/list/&quot;
-							>List
-						</a>
+						<button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							Create</button
+						><button data-slot=&quot;button&quot; data-tone=&quot;neutral&quot; data-emphasis=&quot;outline&quot; class=&quot;vk-button-neutral-outline&quot;>
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -4504,7 +4766,7 @@ Renewal review each March.</textarea
 												aria-label=&quot;month, &quot;
 												aria-valuemin=&quot;1&quot;
 												aria-valuemax=&quot;12&quot;
-												aria-valuenow=&quot;10&quot;
+												aria-valuenow=&quot;11&quot;
 												aria-valuetext=&quot;Empty&quot;
 												data-placeholder=&quot;&quot;
 												data-reka-date-field-segment=&quot;month&quot;
@@ -4534,8 +4796,8 @@ Renewal review each March.</textarea
 												style=&quot;caret-color: transparent&quot;
 												aria-label=&quot;day,&quot;
 												aria-valuemin=&quot;1&quot;
-												aria-valuemax=&quot;31&quot;
-												aria-valuenow=&quot;27&quot;
+												aria-valuemax=&quot;30&quot;
+												aria-valuenow=&quot;11&quot;
 												aria-valuetext=&quot;Empty&quot;
 												data-placeholder=&quot;&quot;
 												data-reka-date-field-segment=&quot;day&quot;
@@ -4644,9 +4906,7 @@ Renewal review each March.</textarea
 												data-reka-date-field-segment=&quot;literal&quot;
 												data-slot=&quot;date-field-input&quot;
 												class=&quot;vk-date-field-input&quot;
-											>
-												 
-											</div>
+											></div>
 											<div
 												role=&quot;spinbutton&quot;
 												contenteditable=&quot;true&quot;
@@ -5042,9 +5302,7 @@ Renewal review each March.</textarea
 												data-reka-time-field-segment=&quot;literal&quot;
 												data-slot=&quot;time-field-input&quot;
 												class=&quot;vk-time-field-input&quot;
-											>
-												 
-											</div>
+											></div>
 											<div
 												role=&quot;spinbutton&quot;
 												contenteditable=&quot;true&quot;
@@ -5171,9 +5429,7 @@ Renewal review each March.</textarea
 													data-reka-time-field-segment=&quot;literal&quot;
 													data-slot=&quot;time-field-input&quot;
 													class=&quot;vk-date-field-input&quot;
-												>
-													 
-												</div>
+												></div>
 												<div
 													role=&quot;spinbutton&quot;
 													contenteditable=&quot;true&quot;
@@ -5283,9 +5539,7 @@ Renewal review each March.</textarea
 													data-reka-time-field-segment=&quot;literal&quot;
 													data-slot=&quot;time-field-input&quot;
 													class=&quot;vk-date-field-input&quot;
-												>
-													 
-												</div>
+												></div>
 												<div
 													role=&quot;spinbutton&quot;
 													contenteditable=&quot;true&quot;

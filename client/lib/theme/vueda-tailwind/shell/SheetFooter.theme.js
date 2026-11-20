@@ -13,7 +13,8 @@ patchTheme({
      */
     SheetFooter: {
         /**
-         * The trailing action area inside a sheet. It sits after the body content and stacks actions with the standard inset.
+         * The trailing action area inside a sheet. It sits after the body content and stacks actions with the standard
+         * inset.
          */
         root: {
             class: "mt-auto flex flex-col gap-2 p-4",

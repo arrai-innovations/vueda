@@ -13,7 +13,8 @@ patchTheme({
      */
     DialogScrollContent: {
         /**
-         * The scrollable dialog surface. It stays centered inside the scroll overlay while preserving the modal radius, border, and overlay shadow used by dialog surfaces.
+         * The scrollable dialog surface. It stays centered inside the scroll overlay while preserving the modal radius,
+         * border, and overlay shadow used by dialog surfaces.
          */
         root: {
             class: [
@@ -28,7 +29,8 @@ patchTheme({
             ],
         },
         /**
-         * The scrollable dialog overlay. It both paints the backdrop and provides a grid centering context with vertical overflow for tall modal content.
+         * The scrollable dialog overlay. It both paints the backdrop and provides a grid centering context with
+         * vertical overflow for tall modal content.
          */
         overlay: {
             class: [
@@ -40,7 +42,9 @@ patchTheme({
             ],
         },
         /**
-         * The close control for scrollable dialog content. It is positioned inside the modal surface and uses the canonical `--accent` hover fill (the same ghost-icon-button affordance used elsewhere) instead of changing layout.
+         * The close control for scrollable dialog content. It is positioned inside the modal surface and uses the
+         * canonical `--accent` hover fill (the same ghost-icon-button affordance used elsewhere) instead of changing
+         * layout.
          */
         close: {
             class: [

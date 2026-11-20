@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * AlertTitle renders the primary alert heading. It aligns with alert content columns and clamps long titles to one line.
+     * AlertTitle renders the primary alert heading. It aligns with alert content columns and clamps long titles to one
+     * line.
      */
     AlertTitle: {
         /**
-         * The primary message heading inside the alert grid. It starts in the content column created by {@api theme-key:Alert.root} and clamps to one line so status banners do not grow from long labels.
+         * The primary message heading inside the alert grid. It starts in the content column created by
+         * {@api theme-key:Alert.root} and clamps to one line so status banners do not grow from long labels.
          */
         root: {
             class: "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",

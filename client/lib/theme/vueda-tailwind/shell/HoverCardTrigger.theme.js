@@ -13,7 +13,8 @@ patchTheme({
      */
     HoverCardTrigger: {
         /**
-         * The trigger hook for hover-card content. It ships empty so the trigger can inherit the semantics and visual treatment of the element that owns the hover affordance.
+         * The trigger hook for hover-card content. It ships empty so the trigger can inherit the semantics and visual
+         * treatment of the element that owns the hover affordance.
          */
         root: { class: "" },
     },

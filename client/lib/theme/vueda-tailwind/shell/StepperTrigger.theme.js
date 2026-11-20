@@ -13,7 +13,8 @@ patchTheme({
      */
     StepperTrigger: {
         /**
-         * The selectable control for a step. It stacks indicator and label content in a compact centered column with a modest focusable radius.
+         * The selectable control for a step. It stacks indicator and label content in a compact centered column with a
+         * modest focusable radius.
          */
         root: {
             class: "p-1 flex flex-col items-center text-center gap-1 rounded-md",

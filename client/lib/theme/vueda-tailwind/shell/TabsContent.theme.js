@@ -13,7 +13,8 @@ patchTheme({
      */
     TabsContent: {
         /**
-         * The active tab panel. It flexes to fill remaining space and removes default outline chrome so focus treatment can be handled by child content when needed.
+         * The active tab panel. It flexes to fill remaining space and removes default outline chrome so focus treatment
+         * can be handled by child content when needed.
          */
         root: {
             class: "flex-1 outline-none",

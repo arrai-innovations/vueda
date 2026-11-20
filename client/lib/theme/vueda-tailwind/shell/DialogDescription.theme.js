@@ -13,7 +13,8 @@ patchTheme({
      */
     DialogDescription: {
         /**
-         * The supporting copy below a dialog title. It uses muted small text so detail remains subordinate to the title and body content.
+         * The supporting copy below a dialog title. It uses muted small text so detail remains subordinate to the title
+         * and body content.
          */
         root: {
             class: "text-muted-foreground text-sm",

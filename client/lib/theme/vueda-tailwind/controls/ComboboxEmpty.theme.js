@@ -12,7 +12,11 @@ patchTheme({
      * Placeholder shown inside ComboboxList when the search has zero results.
      */
     ComboboxEmpty: {
-        /** The zero-result placeholder shown inside {@api theme-key:ComboboxList.root} when the search has no matches. Centred sm text inside 24px vertical padding so the empty state reads as a deliberate pause rather than a collapsed popover; consumers supply their own copy. */
+        /**
+         * The zero-result placeholder shown inside {@api theme-key:ComboboxList.root} when the search has no matches.
+         * Centred sm text inside 24px vertical padding so the empty state reads as a deliberate pause rather than a
+         * collapsed popover; consumers supply their own copy.
+         */
         root: {
             class: ["py-6 text-center text-sm"],
         },

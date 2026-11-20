@@ -13,7 +13,11 @@ patchTheme({
      * manages focus; the active character slot is highlighted by the ring.
      */
     InputOTP: {
-        /** The container for character groups and separators. The `group/input-otp` marker lets visible slots read invalid and disabled state from the native input. Each active slot owns its focus ring. Disabled inputs use disabled text colors without fading the container or separator. */
+        /**
+         * The container for character groups and separators. The `group/input-otp` marker lets visible slots read
+         * invalid and disabled state from the native input. Each active slot owns its focus ring. Disabled inputs use
+         * disabled text colors without fading the container or separator.
+         */
         root: {
             class: "group/input-otp flex items-center gap-2 has-disabled:text-disabled-foreground",
         },

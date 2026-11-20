@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * UserAvatar renders initials with selectable tone recipes for user identity displays. The component controls physical size while the theme key owns color and typography.
+     * UserAvatar renders initials with selectable tone recipes for user identity displays. The component controls
+     * physical size while the theme key owns color and typography.
      */
     UserAvatar: {
         /**
-         * Initials chip frame. The component supplies size inline from its size prop, while tone selects the primary or sidebar color recipe.
+         * Initials chip frame. The component supplies size inline from its size prop, while tone selects the primary or
+         * sidebar color recipe.
          */
         root: ({ tone }) => ({
             class: [

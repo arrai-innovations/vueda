@@ -1,6 +1,8 @@
 /**
  * @module utils/columnLookups
- * @description Registry of all available list column adapter components. Mirrors `formLookups.js` (fields/widgets). String-keyed so model config and the `columnComponents` prop can reference an adapter by name without importing the component.
+ * @description Registry of all available list column adapter components. Mirrors `formLookups.js` (fields/widgets).
+ *  String-keyed so model config and the `columnComponents` prop can reference an adapter by name without importing the
+ *  component.
  */
 import ColumnText from "@vueda/objects-grid/ColumnText.vue";
 import { defineAsyncComponent, markRaw } from "vue";
@@ -32,9 +34,16 @@ export const availableColumns = {
     ColumnDuration: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnDuration.vue")).default),
     ),
+    ColumnEmail: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnEmail.vue")).default),
+    ),
     ColumnFile: markRaw(defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnFile.vue")).default)),
     ColumnJson: markRaw(defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnJson.vue")).default)),
     ColumnModelLink: markRaw(
         defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLink.vue")).default),
     ),
+    ColumnModelLinks: markRaw(
+        defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnModelLinks.vue")).default),
+    ),
+    ColumnUrl: markRaw(defineAsyncComponent(async () => (await import("@vueda/objects-grid/ColumnUrl.vue")).default)),
 };

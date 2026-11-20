@@ -6,7 +6,9 @@ module.exports = {
     },
     rules: {
         "vitest/no-conditional-expect": "off",
-        "vitest/valid-expect": "off", // we want to use expect(value, message).toBe(expected), which is not supported by this rule
-        "vitest/valid-describe-callback": "off", // we want to use async describe blocks, they are now supported by vitest
+        // we want to use expect(value, message).toBe(expected), which is not supported by this rule
+        "vitest/valid-expect": "off",
+        // we want to use async describe blocks, they are now supported by vitest
+        "vitest/valid-describe-callback": "off",
     },
 };

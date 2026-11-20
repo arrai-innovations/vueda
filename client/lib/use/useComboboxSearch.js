@@ -71,7 +71,8 @@ function groupByField(objects, groupKey) {
  * @property {import('vue').ComputedRef<string>} optionValue - The value field name (model PK).
  * @property {import('vue').ComputedRef<string>} placeholder - Effective placeholder text.
  * @property {import('vue').Ref<string>} query - Search term; bind to ComboboxInput v-model.
- * @property {import('vue').ComputedRef<string>} singleSelectedLabel - Display label for a single selected value (closed state).
+ * @property {import('vue').ComputedRef<string>} singleSelectedLabel - Display label for a single selected value (closed
+ *  state).
  * @property {import('vue').ComputedRef<string>} emptyMessage - Text shown when no options match.
  * @property {import('vue').ComputedRef<boolean>} isGrouped - Whether options are returned as group buckets.
  * @property {import('vue').ComputedRef<string|undefined>} groupByField - The field used for grouping headings.

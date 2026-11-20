@@ -16,7 +16,8 @@ const TINTED_VARIANTS = new Set(["info", "success", "warning"]);
 
 patchTheme({
     /**
-     * Badge renders compact status, category, or count labels. Variants provide semantic fills while the numeric mode switches to tabular mono sizing.
+     * Badge renders compact status, category, or count labels. Variants provide semantic fills while the numeric mode
+     * switches to tabular mono sizing.
      */
     Badge: {
         /**

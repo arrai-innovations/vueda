@@ -14,7 +14,14 @@ patchTheme({
      * one slab; supports horizontal (default) and vertical orientation.
      */
     ButtonGroup: {
-        /** The segmented-cluster shell. Strips inner radii between adjacent children so a row (or column when `orientation` is `vertical`) of buttons, inputs, and Select triggers reads as one slab. Outline buttons use DPR-aware inset hairlines rather than layout borders, so adjacent outline buttons overlap by exactly `--vueda-hairline-width` to share one visible seam. Focus z-index promotion keeps the focus ring from being clipped by neighbours. Nested {@api theme-key:ButtonGroup} children retain an 8px gap. The icon-only-stays-seamless / text-or-mixed-keeps-seams rule is applied by the component, not this slot. */
+        /**
+         * The segmented-cluster shell. Strips inner radii between adjacent children so a row (or column when
+         * `orientation` is `vertical`) of buttons, inputs, and Select triggers reads as one slab. Outline buttons use
+         * DPR-aware inset hairlines rather than layout borders, so adjacent outline buttons overlap by exactly
+         * `--vueda-hairline-width` to share one visible seam. Focus z-index promotion keeps the focus ring from being
+         * clipped by neighbours. Nested {@api theme-key:ButtonGroup} children retain an 8px gap. The
+         * icon-only-stays-seamless / text-or-mixed-keeps-seams rule is applied by the component, not this slot.
+         */
         root: ({ orientation }) => ({
             class: [
                 // Layout and child focus handling.

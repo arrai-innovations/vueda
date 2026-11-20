@@ -14,20 +14,32 @@ patchTheme({
      * chrome before delegating the actual form controls.
      */
     ViewDestroy: {
-        /** Outer wrapper. Empty; the embedded {@api theme-key:ModelActionForm} renders the page in its danger tone: the sticky action bar, the gutter, and the selected-records panel. */
+        /**
+         * Outer wrapper. Empty; the embedded {@api theme-key:ModelActionForm} renders the page in its danger tone: the
+         * sticky action bar, the gutter, and the selected-records panel.
+         */
         root: {
             class: [],
         },
-        /** Unframed banner row at the top of the page body: the destructive icon tile beside the title and the description or cascade list. Matches {@api theme-key:ModelActionForm.banner} on a page. */
+        /**
+         * Unframed banner row at the top of the page body: the destructive icon tile beside the title and the
+         * description or cascade list. Matches {@api theme-key:ModelActionForm.banner} on a page.
+         */
         banner: {
             class: ["flex items-start gap-3"],
         },
-        /** 36 px destructive icon tile leading the banner. Fixed destructive recipe (no tone routing) since ViewDestroy is the danger specialization; matches {@api theme-key:ModelActionForm.bannerIcon} under the danger tone. */
+        /**
+         * 36 px destructive icon tile leading the banner. Fixed destructive recipe (no tone routing) since ViewDestroy
+         * is the danger specialization; matches {@api theme-key:ModelActionForm.bannerIcon} under the danger tone.
+         */
         bannerIcon: {
             composes: ["_ActionBanner.bannerIcon"],
             class: ["bg-destructive text-destructive-foreground"],
         },
-        /** Inner column beside the icon: title above description. `min-w-0` lets long titles ellipsize instead of pushing the banner wider. */
+        /**
+         * Inner column beside the icon: title above description. `min-w-0` lets long titles ellipsize instead of
+         * pushing the banner wider.
+         */
         bannerBody: {
             composes: ["_ActionBanner.bannerBody"],
             class: [],
@@ -37,7 +49,10 @@ patchTheme({
             composes: ["_ActionBanner.bannerTitle"],
             class: [],
         },
-        /** One-line description beneath the title (typically the `ConsequencesBullets` fallback or its leading sentence). 12 px / muted-foreground per the headline / supporting-copy hierarchy. */
+        /**
+         * One-line description beneath the title (typically the `ConsequencesBullets` fallback or its leading
+         * sentence). 12 px / muted-foreground per the headline / supporting-copy hierarchy.
+         */
         bannerDescription: {
             composes: ["_ActionBanner.bannerDesc"],
             class: [],

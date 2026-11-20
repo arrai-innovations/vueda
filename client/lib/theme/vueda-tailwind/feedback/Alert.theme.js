@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * Alert renders a contextual message container with optional icon content and semantic tone variants. It provides the grid structure that positions title, description, and actions together.
+     * Alert renders a contextual message container with optional icon content and semantic tone variants. It provides
+     * the grid structure that positions title, description, and actions together.
      */
     Alert: {
         /**
-         * The outer alert surface and layout grid. It owns the optional icon column, card radius, and semantic status recipe, with variant colors flowing into {@api theme-key:AlertDescription.root}.
+         * The outer alert surface and layout grid. It owns the optional icon column, card radius, and semantic status
+         * recipe, with variant colors flowing into {@api theme-key:AlertDescription.root}.
          */
         root: ({ variant }) => ({
             class: [

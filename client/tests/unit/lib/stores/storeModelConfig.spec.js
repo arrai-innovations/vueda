@@ -757,6 +757,41 @@ describe("lib/stores/storeModelConfig.js", () => {
             expect(config.fieldDetails).toHaveProperty("timesheet_days.day");
         });
 
+        describe("readOnly of an expanded relation", () => {
+            // The form renders an expanded relation as an inline fieldset, and the inline reads
+            // `fieldDetails[<name>].readOnly`. For a name in `expand`, that entry is the plain field merged
+            // with the expand descriptor, and the descriptor's `readOnly` wins.
+            for (const [plainReadOnly, expandReadOnly] of [
+                [true, true],
+                [true, false],
+                [false, true],
+            ]) {
+                scopedIt(
+                    `is ${expandReadOnly} when the plain field says ${plainReadOnly} and the expand says ${expandReadOnly}`,
+                    async () => {
+                        const store = storeModelConfig();
+                        store.builtConfigs = {};
+                        store.initialized = {};
+
+                        const customModelInfo = JSON.parse(JSON.stringify(dummyModelInfo));
+                        customModelInfo.fields.employee = {
+                            label: "Employee",
+                            many: false,
+                            readOnly: plainReadOnly,
+                            required: false,
+                            typeSerializer: "PrimaryKeyRelatedField",
+                        };
+                        customModelInfo.expand.find((expand) => expand.name === "employee").readOnly = expandReadOnly;
+                        mockedFetchModelInfo.mockResolvedValue(customModelInfo);
+                        store.setConfig({ app: "testApp", model: "testModel" }, { expand: ["employee"] });
+
+                        const config = await store.getConfig({ app: "testApp", model: "testModel", view: "update" });
+                        expect(config.fieldDetails.employee.readOnly).toBe(expandReadOnly);
+                    },
+                );
+            }
+        });
+
         scopedIt("keeps a view-specific expand to that view", async () => {
             const store = storeModelConfig();
             store.builtConfigs = {};
@@ -1025,7 +1060,8 @@ describe("lib/stores/storeModelConfig.js", () => {
 
     describe("per-view field defaults", () => {
         // A workflow model as model info reaches the store: camelCased, with server-maintained
-        // fields read-only and the server's `listDefault: false` on columns a list leaves out.
+        // fields read-only and the server's `listDefault: false` on columns a list leaves out. The
+        // server marks `valid_transitions` hidden, as it marks `formatted_name`.
         const field = (label, extra = {}) => ({ label, many: false, readOnly: false, required: false, ...extra });
         const workflowModelInfo = {
             ...dummyModelInfo,
@@ -1037,7 +1073,7 @@ describe("lib/stores/storeModelConfig.js", () => {
                 total_value: field("Total Value", { readOnly: true }),
                 workflow_state_code: field("Workflow State Code", { readOnly: true, listDefault: false }),
                 workflow_state_name: field("Workflow State Name", { readOnly: true }),
-                valid_transitions: field("Valid Transitions", { readOnly: true, many: true, listDefault: false }),
+                valid_transitions: field("Valid Transitions", { readOnly: true, many: true, hidden: true }),
                 created_at: field("Created At", { readOnly: true, listDefault: false }),
                 updated_at: field("Updated At", { readOnly: true, listDefault: false }),
             },
@@ -1048,7 +1084,6 @@ describe("lib/stores/storeModelConfig.js", () => {
             "total_value",
             "workflow_state_code",
             "workflow_state_name",
-            "valid_transitions",
             "created_at",
             "updated_at",
         ];
@@ -1086,6 +1121,19 @@ describe("lib/stores/storeModelConfig.js", () => {
                 expect(config.displayFields).toEqual(allFields);
                 expect(config.fetchFields).toEqual(allFields);
             }
+        });
+
+        scopedIt("leaves the hidden valid_transitions out of every default field list", async () => {
+            for (const view of ["create", "read", "update", "list", null]) {
+                const config = await getConfig(view);
+                expect(config.displayFields).not.toContain("valid_transitions");
+                expect(config.fetchFields).not.toContain("valid_transitions");
+            }
+        });
+
+        scopedIt("shows valid_transitions on the read view when displayFields lists it", async () => {
+            const config = await getConfig("read", { displayFields: ["reference", "valid_transitions"] });
+            expect(config.displayFields).toEqual(["reference", "valid_transitions"]);
         });
 
         scopedIt("defaults list columns to fields the server does not flag, and fetches only those", async () => {

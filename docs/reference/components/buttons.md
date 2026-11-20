@@ -413,6 +413,12 @@ button with a trash icon and a visible Delete label for unsaved rows. Create
 uses a small neutral outline button. The icon is decorative; the label provides
 the button's accessible name.
 
+A saved row in a singular stacked inline uses a small outline
+{@api vue:component:Toggle} with the trash icon and the visible label "Delete
+on save". Its pressed state shows a row that the user marked for removal. For layout
+or extra classes on it, override
+{@api theme-key:FieldSetStackedInlineRow.destroyToggle}.
+
 The inline component selects `tone`, `emphasis`, and `size`. `useTheme` resolves
 the classes that draw those choices. Choose the customization point by what you
 need to change:

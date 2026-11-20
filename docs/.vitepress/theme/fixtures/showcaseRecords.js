@@ -45,6 +45,7 @@ export const CUSTOMER_RECORDS = [
         id: 1,
         account: "Northwind Logistics",
         domain: "https://northwind.domain.invalid",
+        contactEmail: "billing@northwind.domain.invalid",
         owner: "mt",
         tier: "enterprise",
         mrr: "18400.00",
@@ -56,6 +57,7 @@ export const CUSTOMER_RECORDS = [
         id: 2,
         account: "Granger Holdings",
         domain: "https://granger.domain.invalid",
+        contactEmail: "billing@granger.domain.invalid",
         owner: "jr",
         tier: "enterprise",
         mrr: "12250.00",
@@ -67,6 +69,7 @@ export const CUSTOMER_RECORDS = [
         id: 3,
         account: "Aldergrove Foods",
         domain: "https://aldergrove.domain.invalid",
+        contactEmail: "billing@aldergrove.domain.invalid",
         owner: "ps",
         tier: "standard",
         mrr: "4300.00",
@@ -78,6 +81,7 @@ export const CUSTOMER_RECORDS = [
         id: 4,
         account: "Vellum Press",
         domain: "https://vellumpress.domain.invalid",
+        contactEmail: null,
         owner: "lb",
         tier: "standard",
         mrr: "2875.50",
@@ -89,6 +93,7 @@ export const CUSTOMER_RECORDS = [
         id: 5,
         account: "Harbourline Marine",
         domain: "https://harbourline.domain.invalid",
+        contactEmail: "billing@harbourline.domain.invalid",
         owner: "mt",
         tier: "standard",
         mrr: "3960.00",
@@ -100,6 +105,7 @@ export const CUSTOMER_RECORDS = [
         id: 6,
         account: "Kestrel Analytics",
         domain: "https://kestrel.domain.invalid",
+        contactEmail: "billing@kestrel.domain.invalid",
         owner: "jr",
         tier: "trial",
         mrr: "0.00",
@@ -111,6 +117,7 @@ export const CUSTOMER_RECORDS = [
         id: 7,
         account: "Ossington Dental",
         domain: "https://ossington.domain.invalid",
+        contactEmail: "billing@ossington.domain.invalid",
         owner: "ps",
         tier: "standard",
         mrr: "1180.00",
@@ -122,6 +129,7 @@ export const CUSTOMER_RECORDS = [
         id: 8,
         account: "Brightwater Utilities",
         domain: "https://brightwater.domain.invalid",
+        contactEmail: "billing@brightwater.domain.invalid",
         owner: "lb",
         tier: "enterprise",
         mrr: "22100.00",
@@ -133,6 +141,7 @@ export const CUSTOMER_RECORDS = [
         id: 9,
         account: "Fennimore Textiles",
         domain: "https://fennimore.domain.invalid",
+        contactEmail: "billing@fennimore.domain.invalid",
         owner: "mt",
         tier: "standard",
         mrr: "5420.00",
@@ -144,6 +153,7 @@ export const CUSTOMER_RECORDS = [
         id: 10,
         account: "Calderwood Legal",
         domain: "https://calderwood.domain.invalid",
+        contactEmail: "billing@calderwood.domain.invalid",
         owner: "jr",
         tier: "standard",
         mrr: "6100.00",
@@ -155,6 +165,7 @@ export const CUSTOMER_RECORDS = [
         id: 11,
         account: "Pelham Transit Authority",
         domain: "https://pelhamtransit.domain.invalid",
+        contactEmail: "billing@pelhamtransit.domain.invalid",
         owner: "ps",
         tier: "enterprise",
         mrr: "15750.00",
@@ -166,6 +177,7 @@ export const CUSTOMER_RECORDS = [
         id: 12,
         account: "Sablefish Cold Storage",
         domain: "https://sablefish.domain.invalid",
+        contactEmail: "billing@sablefish.domain.invalid",
         owner: "lb",
         tier: "trial",
         mrr: "0.00",
@@ -177,6 +189,7 @@ export const CUSTOMER_RECORDS = [
         id: 13,
         account: "Marlowe & Finch",
         domain: "https://marlowefinch.domain.invalid",
+        contactEmail: "billing@marlowefinch.domain.invalid",
         owner: "mt",
         tier: "standard",
         mrr: "3200.00",
@@ -188,6 +201,7 @@ export const CUSTOMER_RECORDS = [
         id: 14,
         account: "Ridgeway Composites",
         domain: "https://ridgeway.domain.invalid",
+        contactEmail: "billing@ridgeway.domain.invalid",
         owner: "jr",
         tier: "standard",
         mrr: "7640.00",
@@ -199,6 +213,7 @@ export const CUSTOMER_RECORDS = [
         id: 15,
         account: "Tullamore Distributing",
         domain: "https://tullamore.domain.invalid",
+        contactEmail: "billing@tullamore.domain.invalid",
         owner: "ps",
         tier: "trial",
         mrr: "0.00",
@@ -210,6 +225,7 @@ export const CUSTOMER_RECORDS = [
         id: 16,
         account: "Wexford Instruments",
         domain: "https://wexford.domain.invalid",
+        contactEmail: "billing@wexford.domain.invalid",
         owner: "lb",
         tier: "enterprise",
         mrr: "19300.00",
@@ -221,6 +237,7 @@ export const CUSTOMER_RECORDS = [
         id: 17,
         account: "Bellhaven Clinics",
         domain: "https://bellhaven.domain.invalid",
+        contactEmail: "billing@bellhaven.domain.invalid",
         owner: "mt",
         tier: "standard",
         mrr: "8850.00",
@@ -232,6 +249,7 @@ export const CUSTOMER_RECORDS = [
         id: 18,
         account: "Currant Hill Vineyard",
         domain: "https://curranthill.domain.invalid",
+        contactEmail: "billing@curranthill.domain.invalid",
         owner: "jr",
         tier: "standard",
         mrr: "2410.00",
@@ -243,6 +261,7 @@ export const CUSTOMER_RECORDS = [
         id: 19,
         account: "Oakbank Freight",
         domain: "https://oakbank.domain.invalid",
+        contactEmail: "billing@oakbank.domain.invalid",
         owner: "ps",
         tier: "standard",
         mrr: "5100.00",
@@ -254,6 +273,7 @@ export const CUSTOMER_RECORDS = [
         id: 20,
         account: "Stonecroft Insurance",
         domain: "https://stonecroft.domain.invalid",
+        contactEmail: "billing@stonecroft.domain.invalid",
         owner: "lb",
         tier: "enterprise",
         mrr: "26500.00",
@@ -265,6 +285,7 @@ export const CUSTOMER_RECORDS = [
         id: 21,
         account: "Larkspur Media",
         domain: "https://larkspur.domain.invalid",
+        contactEmail: "billing@larkspur.domain.invalid",
         owner: "mt",
         tier: "trial",
         mrr: "0.00",
@@ -276,6 +297,7 @@ export const CUSTOMER_RECORDS = [
         id: 22,
         account: "Dunmore Aggregates",
         domain: "https://dunmore.domain.invalid",
+        contactEmail: "billing@dunmore.domain.invalid",
         owner: "jr",
         tier: "standard",
         mrr: "4780.00",
@@ -287,6 +309,7 @@ export const CUSTOMER_RECORDS = [
         id: 23,
         account: "Ashgrove Nurseries",
         domain: "https://ashgrove.domain.invalid",
+        contactEmail: "billing@ashgrove.domain.invalid",
         owner: "ps",
         tier: "standard",
         mrr: "1990.00",
@@ -298,6 +321,7 @@ export const CUSTOMER_RECORDS = [
         id: 24,
         account: "Kingsmere Robotics",
         domain: "https://kingsmere.domain.invalid",
+        contactEmail: "billing@kingsmere.domain.invalid",
         owner: "lb",
         tier: "enterprise",
         mrr: "31200.00",
@@ -309,6 +333,7 @@ export const CUSTOMER_RECORDS = [
         id: 25,
         account: "Thornbury Rail",
         domain: "https://thornbury.domain.invalid",
+        contactEmail: "billing@thornbury.domain.invalid",
         owner: "mt",
         tier: "standard",
         mrr: "9400.00",
@@ -320,6 +345,7 @@ export const CUSTOMER_RECORDS = [
         id: 26,
         account: "Priorswood Chemicals",
         domain: "https://priorswood.domain.invalid",
+        contactEmail: "billing@priorswood.domain.invalid",
         owner: "jr",
         tier: "standard",
         mrr: "6720.00",
@@ -331,6 +357,7 @@ export const CUSTOMER_RECORDS = [
         id: 27,
         account: "Halloway Print Group",
         domain: "https://halloway.domain.invalid",
+        contactEmail: "billing@halloway.domain.invalid",
         owner: "ps",
         tier: "trial",
         mrr: "0.00",
@@ -342,6 +369,7 @@ export const CUSTOMER_RECORDS = [
         id: 28,
         account: "Merrivale Grain",
         domain: "https://merrivale.domain.invalid",
+        contactEmail: "billing@merrivale.domain.invalid",
         owner: "lb",
         tier: "standard",
         mrr: "3540.00",
@@ -717,12 +745,30 @@ export const FIELD_TYPE_RECORDS = [
  * Seed the demo model metadata under a given app label so `getConfig` resolves offline.
  * Idempotent: re-seeding overwrites the same key.
  *
+ * Each demo action gets a model info entry, as a server reports an extra action. The action
+ * views send an action only with a write method that its `methodNames` lists.
+ *
  * @param {import('pinia').Pinia} pinia - The pinia instance to seed.
  * @param {string} [app] - App label to register under; defaults to the showcase app.
+ * @param {{[view: string]: object}} [viewConfigs] - Per-view model config overrides.
+ * @param {DemoModelAction[]} [actions] - Model actions to report in model info.
  * @returns {void}
  */
-export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app, viewConfigs = null) {
-    const info = app === SHOWCASE_CUSTOMER.app ? customerModelInfo : { ...customerModelInfo, appLabel: app };
+export function seedCustomerModel(pinia, app = SHOWCASE_CUSTOMER.app, viewConfigs = null, actions = []) {
+    const actionInfos = actions.map(({ name, method = "PUT" }) => ({
+        name,
+        description: `${name} ${app}.${SHOWCASE_CUSTOMER.model}`,
+        detail: true,
+        bulk: true,
+        methodNames: [method.toLowerCase()],
+        urlPath: routePart(name),
+        parameters: ["pk"],
+    }));
+    const info = {
+        ...customerModelInfo,
+        appLabel: app,
+        actions: [...customerModelInfo.actions, ...actionInfos],
+    };
     storeModelInfo(pinia).infos[getAppModelDotName({ app, model: SHOWCASE_CUSTOMER.model })] = info;
     if (viewConfigs) {
         // The same call an integrator makes at bootstrap to narrow a view: config overrides are
@@ -765,7 +811,7 @@ export function customerScenario({
     return {
         app,
         model,
-        seed: (pinia) => seedCustomerModel(pinia, app, viewConfigs),
+        seed: (pinia) => seedCustomerModel(pinia, app, viewConfigs, actions),
         api: modelRoutes({
             app,
             model,

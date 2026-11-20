@@ -14,9 +14,16 @@ patchTheme({
      * owns the geometry.
      */
     CommandDialog: {
-        /** The {@api theme-key:DialogContent.root} pane that hosts a {@api theme-key:Command.root} at modal scale. Drops all padding so Command's own card radius, fill, and inner geometry own the dialog box, and `overflow-hidden` keeps the inner list's scroll edges clipped to the rounded corners. */
+        /**
+         * The {@api theme-key:DialogContent.root} pane that hosts a {@api theme-key:Command.root} at modal scale. Drops
+         * all padding so Command's own card radius, fill, and inner geometry own the dialog box, and `overflow-hidden`
+         * keeps the inner list's scroll edges clipped to the rounded corners.
+         */
         content: { class: "overflow-hidden p-0" },
-        /** The dialog header. Hidden with `sr-only` because the Command's own {@api theme-key:CommandInput.root} acts as the visible label; the header still ships so accessible-name requirements are met for screen readers. */
+        /**
+         * The dialog header. Hidden with `sr-only` because the Command's own {@api theme-key:CommandInput.root} acts as
+         * the visible label; the header still ships so accessible-name requirements are met for screen readers.
+         */
         header: { class: "sr-only" },
     },
 });

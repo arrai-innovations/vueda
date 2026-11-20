@@ -13,7 +13,11 @@ patchTheme({
      * PaginationItem styles a numbered pagination control and its active state.
      */
     PaginationItem: {
-        /** Numbered page control. Composes the Button base and switches between outline active and ghost inactive variants, with Button size tiers (defaulting to an icon square). The active item keeps a foreground-colored edge at rest so the current page stands apart from the lighter navigation buttons. */
+        /**
+         * Numbered page control. Composes the Button base and switches between outline active and ghost inactive
+         * variants, with Button size tiers (defaulting to an icon square). The active item keeps a foreground-colored
+         * edge at rest so the current page stands apart from the lighter navigation buttons.
+         */
         root: ({ isActive, size }) => ({
             composes: ["_ButtonBase.root", isActive ? "_ButtonOutline.root" : "_ButtonGhost.root"],
             class: [

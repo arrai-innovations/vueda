@@ -17,6 +17,11 @@ describe("lib/utils/objectGridSkeletonClass.js", () => {
         expect(getSkeletonClassForField({ typeSerializer: "BooleanField" })).toBe("h-3.5 w-12 rounded-full");
     });
 
+    it("returns pill for a BooleanField subclass", () => {
+        const field = { typeSerializer: "ActiveField", typeSerializerAncestors: ["BooleanField"] };
+        expect(getSkeletonClassForField(field)).toBe("h-3.5 w-12 rounded-full");
+    });
+
     it("returns narrow width for choices", () => {
         expect(getSkeletonClassForField({ choices: ["a", "b"] })).toBe("h-3 w-24");
     });

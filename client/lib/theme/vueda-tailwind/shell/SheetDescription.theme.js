@@ -13,7 +13,8 @@ patchTheme({
      */
     SheetDescription: {
         /**
-         * The supporting copy inside a sheet. It uses muted small text to stay subordinate to the sheet title and body content.
+         * The supporting copy inside a sheet. It uses muted small text to stay subordinate to the sheet title and body
+         * content.
          */
         root: {
             class: "text-muted-foreground text-sm",

@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * TriedUrlCallout renders the attempted URL as a compact system callout. It separates the label, value, and faded non-error path segments so the bad segment can stand out.
+     * TriedUrlCallout renders the attempted URL as a compact system callout. It separates the label, value, and faded
+     * non-error path segments so the bad segment can stand out.
      */
     TriedUrlCallout: {
         /** Two-column callout wrapper for the attempted URL. */

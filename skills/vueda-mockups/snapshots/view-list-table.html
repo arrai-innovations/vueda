@@ -10,15 +10,9 @@
 						</div>
 					</div>
 					<div class="vk-page-title-actions" data-qa="page-title-actions">
-						<a
-							data-slot="button"
-							data-tone="primary"
-							data-emphasis="fill"
-							class="vk-button-primary-fill"
-							disabled="false"
-							href="/kitlisttable/customer/create/"
-							>Create
-						</a>
+						<button data-slot="button" data-tone="primary" data-emphasis="fill" class="vk-button-primary-fill">
+							Create
+						</button>
 					</div>
 				</div>
 			</div>
@@ -172,7 +166,7 @@
 			<div class="vk-objects-grid-root" data-density="default" data-qa="objects-grid-root">
 				<div class="vk-objects-grid-table" data-qa="objects-grid-table" role="table">
 					<div class="vk-objects-grid-header-row-group" data-qa="objects-grid-header-row-group" role="rowgroup">
-						<div class="!table-row [&amp;>*]:border-b-hairline" data-qa="objects-grid-header-row" role="row">
+						<div class="!table-row [&amp;&gt;*]:border-b-hairline" data-qa="objects-grid-header-row" role="row">
 							<div
 								class="vk-objects-grid-header"
 								data-header="selected_"
@@ -201,6 +195,16 @@
 							>
 								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
 									<span data-qa="objects-grid-table-header-label">Primary domain</span>
+								</div>
+							</div>
+							<div
+								class="vk-objects-grid-header"
+								data-header="contactEmail"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Billing email</span>
 								</div>
 							</div>
 							<div class="vk-objects-grid-header" data-header="owner" data-qa="objects-grid-header" role="columnheader">
@@ -258,7 +262,7 @@
 									pkkey="id"
 									rowindex="0"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-1"
 									role="checkbox"
 									type="button"
@@ -269,12 +273,30 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Northwind Logistics</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://northwind.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://northwind.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://northwind.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">mt</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">enterprise</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@northwind.domain.invalid"
+										data-qa="email-display-link"
+										>billing@northwind.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Mara Tani</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Enterprise</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">18400.00</div>
-							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">USD</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
 								<div><span data-qa="boolean-display-value">No</span></div>
 							</div>
@@ -292,7 +314,7 @@
 									pkkey="id"
 									rowindex="1"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-2"
 									role="checkbox"
 									type="button"
@@ -303,12 +325,30 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Granger Holdings</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://granger.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://granger.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://granger.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">jr</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">enterprise</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@granger.domain.invalid"
+										data-qa="email-display-link"
+										>billing@granger.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Jordan Reyes</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Enterprise</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">12250.00</div>
-							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">USD</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
 								<div><span data-qa="boolean-display-value">No</span></div>
 							</div>
@@ -328,7 +368,7 @@
 									pkkey="id"
 									rowindex="2"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-3"
 									role="checkbox"
 									type="button"
@@ -339,10 +379,28 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Aldergrove Foods</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://aldergrove.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://aldergrove.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://aldergrove.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">ps</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@aldergrove.domain.invalid"
+										data-qa="email-display-link"
+										>billing@aldergrove.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Priya Subramanian</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Standard</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">4300.00</div>
 							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">cad</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
@@ -362,7 +420,7 @@
 									pkkey="id"
 									rowindex="3"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-4"
 									role="checkbox"
 									type="button"
@@ -373,12 +431,23 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Vellum Press</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://vellumpress.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://vellumpress.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://vellumpress.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">lb</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span><span data-qa="email-display-dash">-</span></span>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Linnea Borg</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Standard</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">2875.50</div>
-							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">gbp</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">GBP</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
 								<div><span data-qa="boolean-display-value">Yes</span></div>
 							</div>
@@ -398,7 +467,7 @@
 									pkkey="id"
 									rowindex="4"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-5"
 									role="checkbox"
 									type="button"
@@ -409,12 +478,30 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Harbourline Marine</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://harbourline.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://harbourline.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://harbourline.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">mt</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@harbourline.domain.invalid"
+										data-qa="email-display-link"
+										>billing@harbourline.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Mara Tani</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Standard</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">3960.00</div>
-							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">eur</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">EUR</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
 								<div><span data-qa="boolean-display-value">No</span></div>
 							</div>
@@ -432,7 +519,7 @@
 									pkkey="id"
 									rowindex="5"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-6"
 									role="checkbox"
 									type="button"
@@ -443,12 +530,30 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Kestrel Analytics</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://kestrel.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://kestrel.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://kestrel.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">jr</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">trial</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@kestrel.domain.invalid"
+										data-qa="email-display-link"
+										>billing@kestrel.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Jordan Reyes</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Trial</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">0.00</div>
-							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">USD</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
 								<div><span data-qa="boolean-display-value">No</span></div>
 							</div>
@@ -468,7 +573,7 @@
 									pkkey="id"
 									rowindex="6"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-7"
 									role="checkbox"
 									type="button"
@@ -479,10 +584,28 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Ossington Dental</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://ossington.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://ossington.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://ossington.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">ps</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">standard</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@ossington.domain.invalid"
+										data-qa="email-display-link"
+										>billing@ossington.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Priya Subramanian</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Standard</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">1180.00</div>
 							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">cad</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
@@ -502,7 +625,7 @@
 									pkkey="id"
 									rowindex="7"
 									rowcount="8"
-									columncount="9"
+									columncount="10"
 									id="selected-row-8"
 									role="checkbox"
 									type="button"
@@ -513,12 +636,30 @@
 							</div>
 							<div class="vk-objects-grid-row-div-2" data-field="account" role="cell">Brightwater Utilities</div>
 							<div class="vk-objects-grid-row-div-2" data-field="domain" role="cell">
-								https://brightwater.domain.invalid
+								<span
+									><a
+										class="vk-url-display-link"
+										href="https://brightwater.domain.invalid"
+										data-qa="url-display-link"
+										rel="noopener noreferrer"
+										>https://brightwater.domain.invalid</a
+									></span
+								>
 							</div>
-							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">lb</div>
-							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">enterprise</div>
+							<div class="vk-objects-grid-row-div-2" data-field="contactEmail" role="cell">
+								<span
+									><a
+										class="vk-url-display-link"
+										href="mailto:billing@brightwater.domain.invalid"
+										data-qa="email-display-link"
+										>billing@brightwater.domain.invalid</a
+									></span
+								>
+							</div>
+							<div class="vk-objects-grid-row-div-2" data-field="owner" role="cell">Linnea Borg</div>
+							<div class="vk-objects-grid-row-div-2" data-field="tier" role="cell">Enterprise</div>
 							<div class="vk-objects-grid-row-div-2" data-field="mrr" role="cell">22100.00</div>
-							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">usd</div>
+							<div class="vk-objects-grid-row-div-2" data-field="currency" role="cell">USD</div>
 							<div class="vk-objects-grid-row-div-2" data-field="taxExempt" role="cell">
 								<div><span data-qa="boolean-display-value">No</span></div>
 							</div>

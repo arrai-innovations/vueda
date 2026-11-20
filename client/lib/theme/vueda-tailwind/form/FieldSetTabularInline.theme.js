@@ -14,7 +14,10 @@ patchTheme({
      * controls.
      */
     FieldSetTabularInline: {
-        /** Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance comes from {@api theme-key:Button}. */
+        /**
+         * Class hook for the unsaved-row Delete button. Tone, emphasis, and size come from the component; appearance
+         * comes from {@api theme-key:Button}.
+         */
         destroyButton: {
             class: [],
         },
@@ -34,7 +37,9 @@ patchTheme({
         hr: {
             class: "hidden",
         },
-        /** Eyebrow title bar for tabular inline fieldsets. See also: {@api theme-key:FieldSetStackedInline.titleBar}. */
+        /**
+         * Eyebrow title bar for tabular inline fieldsets. See also: {@api theme-key:FieldSetStackedInline.titleBar}.
+         */
         titleBar: {
             class: [
                 "flex items-center gap-2 2xs:gap-3 px-3 py-2 border-b-hairline",
@@ -49,7 +54,10 @@ patchTheme({
                 "flex flex-1 min-w-0 items-center gap-2 2xs:gap-3 text-left [font:inherit] [text-transform:inherit] tracking-[inherit] -ml-3 -my-2 px-3 py-2 self-stretch",
             ],
         },
-        /** Interactive state layer for a hidable tabular title bar. See also: {@api theme-key:FieldSetStackedInline.titleBarToggle}. */
+        /**
+         * Interactive state layer for a hidable tabular title bar. See also:
+         * {@api theme-key:FieldSetStackedInline.titleBarToggle}.
+         */
         titleBarToggle: {
             class: [
                 "cursor-pointer select-none",
@@ -131,7 +139,10 @@ patchTheme({
                 "flex flex-col gap-1",
             ],
         },
-        /** Dashed invitation block used when no tabular rows exist. See also: {@api theme-key:FieldSetStackedInline.emptyState}. */
+        /**
+         * Dashed invitation block used when no tabular rows exist. See also:
+         * {@api theme-key:FieldSetStackedInline.emptyState}.
+         */
         emptyState: {
             class: [
                 "flex flex-col items-center justify-center gap-2",
@@ -158,7 +169,9 @@ patchTheme({
                 "text-muted-foreground max-w-[44ch]",
             ],
         },
-        /** Embedded cells keep controls top-aligned when messages add height and allow help and validation text to wrap. */
+        /**
+         * Embedded cells keep controls top-aligned when messages add height and allow help and validation text to wrap.
+         */
         themeOverride: {
             ObjectsGridBodyCell: {
                 root: {

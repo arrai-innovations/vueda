@@ -10,23 +10,11 @@
 						</div>
 					</div>
 					<div class="vk-page-title-actions" data-qa="page-title-actions">
-						<a
-							data-slot="button"
-							data-tone="neutral"
-							data-emphasis="outline"
-							class="vk-button-neutral-outline"
-							disabled="false"
-							href="/kitread/customer/create/"
-							>Create </a
-						><a
-							data-slot="button"
-							data-tone="neutral"
-							data-emphasis="outline"
-							class="vk-button-neutral-outline"
-							disabled="false"
-							href="/kitread/customer/list/"
-							>List
-						</a>
+						<button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							Create</button
+						><button data-slot="button" data-tone="neutral" data-emphasis="outline" class="vk-button-neutral-outline">
+							List
+						</button>
 					</div>
 				</div>
 			</div>
@@ -94,8 +82,47 @@
 								<div data-qa="field-renderer-field-inner">
 									<div data-qa="widget-read-only-root">
 										<div class="flex flex-col" data-qa="widget-read-only-inner">
-											<div type="url" class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
-												<span>https://northwind.domain.invalid</span>
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span
+													><a
+														class="vk-url-display-link"
+														href="https://northwind.domain.invalid"
+														data-qa="url-display-link"
+														rel="noopener noreferrer"
+														>https://northwind.domain.invalid</a
+													></span
+												>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div
+							role="group"
+							data-slot="field"
+							data-orientation="read"
+							class="vk-field group/field"
+							data-qa="form-field"
+							data-field="contactEmail"
+						>
+							<label data-slot="field-label" class="vk-field-label group/field-label peer/field-label"
+								>Billing email
+							</label>
+							<div data-slot="field-content" class="vk-field-content group/field-content">
+								<a name="contactEmail" class="absolute"></a>
+								<div data-qa="field-renderer-field-inner">
+									<div data-qa="widget-read-only-root">
+										<div class="flex flex-col" data-qa="widget-read-only-inner">
+											<div class="text-[13px]/[1.5] text-foreground" data-qa="widget-read-only-value">
+												<span
+													><a
+														class="vk-url-display-link"
+														href="mailto:billing@northwind.domain.invalid"
+														data-qa="email-display-link"
+														>billing@northwind.domain.invalid</a
+													></span
+												>
 											</div>
 										</div>
 									</div>

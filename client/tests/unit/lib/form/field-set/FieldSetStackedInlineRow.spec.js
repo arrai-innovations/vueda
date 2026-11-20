@@ -96,6 +96,9 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
                 fieldSetContextState,
                 pk: options.pk,
                 readOnly: options.readOnly,
+                ...(options.removable === undefined ? {} : { removable: options.removable }),
+                ...(options.savedRowRemoval === undefined ? {} : { savedRowRemoval: options.savedRowRemoval }),
+                markedForRemoval: options.markedForRemoval ?? false,
             },
             global: {
                 provide: { [FormModelSymbol]: formModel },
@@ -161,6 +164,47 @@ describe("lib/form/field-set/FieldSetStackedInlineRow.vue", () => {
         cb.vm.$emit("update:model-value", true);
         await wrapper.vm.$nextTick();
         expect(wrapper.emitted("update:selected")[0]).toEqual([true]);
+    });
+
+    scopedIt("offers no removal on a row that is not removable", () => {
+        const destroy = [{ fieldName: "destroy", label: "Delete" }];
+        for (const [pk, savedRowRemoval] of [
+            [undefined, "checkbox"],
+            [1, "checkbox"],
+            [1, "toggle"],
+        ]) {
+            const wrapper = mountWithContext({ pk, actions: destroy, removable: false, savedRowRemoval });
+            expect(wrapper.findComponent(ButtonStub).exists()).toBe(false);
+            expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+            expect(wrapper.find('[data-slot="toggle"]').exists()).toBe(false);
+            expect(wrapper.find('[data-qa="field-set-tabular-inline-item-action-bar"]').exists()).toBe(false);
+        }
+    });
+
+    scopedIt("shows a destroy toggle instead of the checkbox on a saved row in toggle mode", async () => {
+        const wrapper = mountWithContext({
+            pk: 1,
+            actions: [{ fieldName: "destroy", label: "Delete" }],
+            savedRowRemoval: "toggle",
+        });
+        expect(wrapper.findComponent(WidgetCheckboxStub).exists()).toBe(false);
+        const toggle = wrapper.get('[data-slot="toggle"]');
+        expect(toggle.attributes("type")).toBe("button");
+        expect(toggle.attributes("aria-pressed")).toBe("false");
+        expect(toggle.text()).toBe("Delete on save");
+        expect(wrapper.find("[data-state=selected-for-destroy]").exists()).toBe(false);
+
+        await toggle.trigger("click");
+        expect(wrapper.emitted("update:markedForRemoval")).toEqual([[true]]);
+
+        await wrapper.setProps({ markedForRemoval: true });
+        expect(wrapper.get('[data-slot="toggle"]').attributes("aria-pressed")).toBe("true");
+        expect(wrapper.attributes("data-state")).toBe("selected-for-destroy");
+    });
+
+    scopedIt("shows no destroy toggle on a saved row without a destroy action", () => {
+        const wrapper = mountWithContext({ pk: 1, savedRowRemoval: "toggle" });
+        expect(wrapper.find('[data-slot="toggle"]').exists()).toBe(false);
     });
 
     scopedIt("invokes the custom action with the current row and click event", async () => {

@@ -39,10 +39,12 @@ export function actionTone(actionName, actionDetail) {
 /**
  * @typedef {object} ActionVariantInput
  * @property {string} actionName - The action / view name being rendered.
- * @property {import('@vueda/stores/storeModelInfo.js').ActionInfo} [actionDetail] - The action's metadata, when available.
+ * @property {import('@vueda/stores/storeModelInfo.js').ActionInfo} [actionDetail] - The action's metadata, when
+ *  available.
  * @property {boolean} [primary] - Promote this action to the filled hero CTA for the current view.
  * @property {'neutral' | 'primary' | 'destructive'} [tone] - Explicit tone override; wins over the intrinsic tone.
- * @property {'fill' | 'outline' | 'ghost' | 'link'} [emphasis] - Placement emphasis when not promoted; defaults to `outline`.
+ * @property {'fill' | 'outline' | 'ghost' | 'link'} [emphasis] - Placement emphasis when not promoted; defaults to
+ *  `outline`.
  */
 
 /**
@@ -53,7 +55,8 @@ export function actionTone(actionName, actionDetail) {
  * `tone` overrides the action's intrinsic tone.
  *
  * @param {ActionVariantInput} [input] - The action and its placement context.
- * @returns {{ tone: 'neutral' | 'primary' | 'destructive', emphasis: 'fill' | 'outline' | 'ghost' | 'link' }} The resolved Button axes.
+ * @returns {{ tone: 'neutral' | 'primary' | 'destructive', emphasis: 'fill' | 'outline' | 'ghost' | 'link' }} The
+ *  resolved Button axes.
  */
 export function resolveActionVariant({ actionName, actionDetail, primary = false, tone, emphasis = "outline" } = {}) {
     const intrinsic = actionTone(actionName, actionDetail);

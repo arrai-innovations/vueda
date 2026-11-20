@@ -16,7 +16,13 @@ patchTheme({
      * hover.
      */
     RangeCalendarCellTrigger: {
-        /** The pressable day button inside a {@api theme-key:RangeCalendarCell.root}. See also: {@api theme-key:CalendarCellTrigger.root}; delta is that the single `data-selected` state is replaced by paired `data-selection-start` / `data-selection-end` states that paint `--primary` only at the two endpoints, leaving the middle of the range to read through the `--accent` fill that {@api theme-key:RangeCalendarCell.root} paints on its cell. */
+        /**
+         * The pressable day button inside a {@api theme-key:RangeCalendarCell.root}. See also:
+         * {@api theme-key:CalendarCellTrigger.root}; delta is that the single `data-selected` state is replaced by
+         * paired `data-selection-start` / `data-selection-end` states that paint `--primary` only at the two endpoints,
+         * leaving the middle of the range to read through the `--accent` fill that
+         * {@api theme-key:RangeCalendarCell.root} paints on its cell.
+         */
         root: {
             composes: ["_ButtonBase.root", "_ButtonGhost.root"],
             class: [

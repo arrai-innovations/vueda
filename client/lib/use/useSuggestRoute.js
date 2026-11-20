@@ -1,6 +1,7 @@
 /**
  * @module use/useSuggestRoute
- * @description Suggests the best matching route for the current path using string similarity against all registered routes.
+ * @description Suggests the best matching route for the current path using string similarity against all registered
+ *  routes.
  */
 import { stringSimilarity } from "string-similarity-js";
 import { onActivated, readonly, ref } from "vue";

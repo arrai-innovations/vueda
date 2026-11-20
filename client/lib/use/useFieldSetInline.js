@@ -1,6 +1,7 @@
 /**
  * @module use/useFieldSetInline
- * @description Manages an inline field-set (repeatable child rows) within a form, handling row addition, deletion, reordering, and slot resolution.
+ * @description Manages an inline field-set (repeatable child rows) within a form, handling row addition, deletion,
+ *  reordering, and slot resolution.
  */
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
 import { FIELD_PROPS } from "@vueda/use/useField.js";
@@ -57,7 +58,10 @@ const emptyFieldObject = (state) => {
     return emptyObject;
 };
 
-/** Vue component props definition for inline field-set components. Extends FIELD_PROPS with field override maps, visibility controls, and theme override support for repeatable child-row layouts. */
+/**
+ * Vue component props definition for inline field-set components. Extends FIELD_PROPS with field override maps,
+ * visibility controls, and theme override support for repeatable child-row layouts.
+ */
 export const FIELD_SET_INLINE_PROPS = {
     ...FIELD_PROPS,
     fieldComponents: {
@@ -157,7 +161,8 @@ const handleSelected = (state, fieldSetContext, isSelected, rowIndex) => {
  * @property {import('vue').ComputedRef<FieldSetInlineFieldObject[]>} fieldObjects - The field objects to display.
  * @property {import('vue').ComputedRef<boolean>} isVisibleByDefault - Whether the fieldset is visible by default.
  * @property {import('vue').ComputedRef<string[]>} remainingSlotNames - The slot names that have not been resolved.
- * @property {import('@vueuse/core').Ref<boolean>} greaterOrEqualHiddenBreakpoint - Whether the fieldset is at or above the hiddenByDefault breakpoint.
+ * @property {import('@vueuse/core').Ref<boolean>} greaterOrEqualHiddenBreakpoint - Whether the fieldset is at or above
+ *  the hiddenByDefault breakpoint.
  */
 
 /**
@@ -294,10 +299,11 @@ const refFn = (state, el) => {
  * @property {import('vue').Readonly<FieldSetInlineState>} state - The reactive state of the FieldSetInline.
  * @property {import('@vueuse/core').Breakpoints} breakpoints - The breakpoints object.
  * @property {import('@vueda/use/useFormModel.js').UseFormModelState} formModel - The form model's reactive state.
- * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames - The resolved slot
- *  name instances by original slot name.
+ * @property {{[slotName: string]: import('@vueda/use/useSlotNameResolver.js').ResolvedSlotName}} resolvedSlotNames -
+ *  The resolved slot name instances by original slot name.
  * @property {BoundDoCreate} doCreate - The method to create a new object in the fieldset.
- * @property {() => {[fieldName: string]: any}} getEmptyFieldObject - Returns an empty object with initial values for each field.
+ * @property {() => {[fieldName: string]: any}} getEmptyFieldObject - Returns an empty object with initial values for
+ *  each field.
  * @property {BoundHandleSelected} handleSelected - The method to handle selected items.
  * @property {BoundRefFn} refFn - The method to add a reference to an item.
  * @property {BoundRemoveObject} removeObject - The method to remove an object from the fieldset.

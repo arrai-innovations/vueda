@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldLabel: {
         /**
-         * The label text or label-card wrapper for a field. It handles disabled opacity, nested control-card framing, and checked-state tint for label-wrapped choices.
+         * The label text or label-card wrapper for a field. It handles disabled opacity, nested control-card framing,
+         * and checked-state tint for label-wrapped choices.
          */
         root: {
             class: [

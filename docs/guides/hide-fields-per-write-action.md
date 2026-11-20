@@ -32,6 +32,8 @@ The mixin marks each `exclude_create_fields` entry read-only when the view's act
 
 The mixin only adds read-only markings. A field that is read-only through `read_only_fields` or `extra_kwargs` stays read-only for every action. Excluded fields stay in `Meta.fields` and in every response.
 
+An expand cannot unlock an excluded field. When a write names the field in the `e` parameter, the field gets a read-only nested serializer, and the write ignores the field's data. An expand whose `source` names the excluded field is locked in the same way. Responses still expand the field. The lock matches the field by name, so it also applies to the expand of a field that the serializer class declares, although that field's plain form stays writable. A `read_only: False` option on the expand does not unlock an excluded field.
+
 The markings go through DRF's `extra_kwargs`, which reach only the fields that the serializer builds from the model. A field declared on the serializer class ignores both lists and stays writable. List only generated fields.
 
 Exclude only fields that the database can leave empty: nullable columns, or columns with a default. A `create` that leaves a required column unset raises {@api ext:django:django.db.IntegrityError} on insert, and the client gets a `500`.

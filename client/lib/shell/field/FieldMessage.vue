@@ -18,7 +18,10 @@ const props = defineProps({
      * @type {import('vue').HTMLAttributes['class']}
      */
     class: { type: [String, Array, Object], default: undefined },
-    /** One or more message strings, arrays of message strings, or objects with a message property to display beneath the field. */
+    /**
+     * One or more message strings, arrays of message strings, or objects with a message property to display beneath the
+     * field.
+     */
     messages: { type: Array, default: undefined },
     /** Controls color and ARIA role. */
     severity: {

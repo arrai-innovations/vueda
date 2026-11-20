@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * KbdGroup aligns multiple keyboard key hints as one shortcut sequence. It keeps adjacent key chips tight without adding its own visual chrome.
+     * KbdGroup aligns multiple keyboard key hints as one shortcut sequence. It keeps adjacent key chips tight without
+     * adding its own visual chrome.
      */
     KbdGroup: {
         /** Inline shortcut sequence wrapper that clusters adjacent {@api theme-key:Kbd.root} chips into one chord. */

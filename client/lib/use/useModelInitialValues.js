@@ -1,9 +1,11 @@
 /**
  * @module use/useModelInitialValues
- * @description Derives sensible initial values for each field of a model based on field type mappings, supporting both create and edit scenarios.
+ * @description Derives sensible initial values for each field of a model based on field type mappings, supporting both
+ *  create and edit scenarios.
  */
 import { useModelInfo } from "@vueda/use/useModelInfo.js";
 import { filterExpressions } from "@vueda/utils/filterLookups.js";
+import { getSerializerTypes } from "@vueda/utils/getTypeMapping.js";
 import isEqual from "lodash-es/isEqual.js";
 import merge from "lodash-es/merge.js";
 import { readonly, ref, watch } from "vue";
@@ -108,6 +110,9 @@ export function mergeModelInitialValuesMappings(customMappings) {
 /**
  * Returns the initial value for a field based on its type and model, or undefined for many-relations.
  *
+ * A field whose own serializer type has no initial value takes the value of the nearest serializer class in its
+ * `typeSerializerAncestors` that has one.
+ *
  * @param {import('@vueda/stores/storeModelInfo.js').FieldDetail} fieldDetail - The field detail object.
  * @returns {unknown} The initial value for the field, or undefined.
  */
@@ -115,7 +120,14 @@ export const getFieldInitialValue = (fieldDetail) => {
     if (fieldDetail.many) {
         return undefined;
     }
-    return fieldInitialValueMappings[fieldDetail.typeSerializer]?.[fieldDetail.typeModel];
+    // A falsy value such as `false` or `""` is a real initial value, so the lookup checks for the key.
+    for (const typeSerializer of getSerializerTypes(fieldDetail)) {
+        const byTypeModel = fieldInitialValueMappings[typeSerializer];
+        if (byTypeModel && Object.hasOwn(byTypeModel, fieldDetail.typeModel)) {
+            return byTypeModel[fieldDetail.typeModel];
+        }
+    }
+    return undefined;
 };
 /**
  * @typedef {import("vue").DeepReadonly<import("vue").Ref<{[key: string]: any}>>} InitialValues
@@ -167,8 +179,8 @@ export function useModelInitialValues(app, model, fields) {
  */
 
 /**
- * Returns the initial values for the filters of a model, so that a blank form can be created, without fields being mutated
- *  immediately by coercion of values, causing a form to be dirty.
+ * Returns the initial values for the filters of a model, so that a blank form can be created, without fields being
+ *  mutated immediately by coercion of values, causing a form to be dirty.
  *
  * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.

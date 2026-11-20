@@ -12,7 +12,11 @@ patchTheme({
      * Native `<option>` styled to inherit the popover surface.
      */
     NativeSelectOption: {
-        /** The native `<option>` tinted to inherit the popover surface. Per-row layout, highlight, and check indicator are all owned by the OS; for richer option chrome (icons, sub-labels, highlighted-vs-checked distinction) use {@api theme-key:SelectItem} or {@api theme-key:ComboboxItem}. */
+        /**
+         * The native `<option>` tinted to inherit the popover surface. Per-row layout, highlight, and check indicator
+         * are all owned by the OS; for richer option chrome (icons, sub-labels, highlighted-vs-checked distinction) use
+         * {@api theme-key:SelectItem} or {@api theme-key:ComboboxItem}.
+         */
         root: {
             class: ["bg-popover text-popover-foreground"],
         },

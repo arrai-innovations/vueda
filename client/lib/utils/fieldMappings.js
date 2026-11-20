@@ -11,10 +11,13 @@ import pick from "lodash-es/pick.js";
  * Describes how a DRF serializer field type maps to a Vue field component and widget.
  *
  * @typedef {object} FieldMappingEntry
- * @property {import('vue').Component|null} [component] - The field component override. Only used by filterFieldMapping; defaultFieldMappings and choiceFieldMappings rely on FormField as the hardcoded default.
+ * @property {import('vue').Component|null} [component] - The field component override. Only used by filterFieldMapping;
+ *  defaultFieldMappings and choiceFieldMappings rely on FormField as the hardcoded default.
  * @property {import('vue').Component|null} widget - The widget component, or null if none.
- * @property {import('vue').Component} [readOnlyWidget] - The widget component used when the field renders read-only. Falls back to `WidgetReadOnly` when absent.
- * @property {object} [readOnlyWidgetProps] - Extra props forwarded to `readOnlyWidget`, used in place of `widgetProps` when the field renders read-only.
+ * @property {import('vue').Component} [readOnlyWidget] - The widget component used when the field renders read-only.
+ *  Falls back to `WidgetReadOnly` when absent.
+ * @property {object} [readOnlyWidgetProps] - Extra props forwarded to `readOnlyWidget`, used in place of `widgetProps`
+ *  when the field renders read-only.
  * @property {object} [fieldProps] - Extra props forwarded to the field component.
  * @property {object} [widgetProps] - Extra props forwarded to the widget component.
  * @property {import('vue').Component} [manyComponent] - Component for many-field wrappers.
@@ -103,11 +106,24 @@ export const defaultFieldMappings = {
             default: true,
         },
     },
+    // A serializer EmailField or URLField can sit over a model CharField or TextField, so the
+    // mapping covers those model types as well as its own.
     EmailField: {
         EmailField: {
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { type: "email" },
+            readOnlyWidget: availableWidgets.WidgetEmailReadOnly,
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "email" },
+            readOnlyWidget: availableWidgets.WidgetEmailReadOnly,
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "email" },
+            readOnlyWidget: availableWidgets.WidgetEmailReadOnly,
         },
     },
     FileField: {
@@ -323,7 +339,18 @@ export const defaultFieldMappings = {
         URLField: {
             widget: availableWidgets.WidgetTextInput,
             widgetProps: { type: "url" },
+            readOnlyWidget: availableWidgets.WidgetUrlReadOnly,
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "url" },
+            readOnlyWidget: availableWidgets.WidgetUrlReadOnly,
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            widgetProps: { type: "url" },
+            readOnlyWidget: availableWidgets.WidgetUrlReadOnly,
         },
     },
     UUIDField: {
@@ -376,8 +403,20 @@ export const choiceFieldMappings = {
             manyWidgetProps: { multiple: true },
         },
     },
+    // The CharField and TextField entries match the CharField choice entries, for a serializer
+    // EmailField or URLField over those model types.
     EmailField: {
         EmailField: { widget: availableWidgets.WidgetTextInput, widgetProps: { type: "email" }, default: true },
+        CharField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
     },
     ManyRelatedField: {
         ManyToManyField: {
@@ -432,6 +471,16 @@ export const choiceFieldMappings = {
             manyWidget: availableWidgets.WidgetCombobox,
             manyWidgetProps: { multiple: true },
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetSelectDropdown,
+            manyWidget: availableWidgets.WidgetCombobox,
+            manyWidgetProps: { multiple: true },
         },
     },
 };
@@ -501,6 +550,14 @@ export const manyFieldMappings = {
             widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FormField },
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     FileField: {
@@ -600,6 +657,14 @@ export const manyFieldMappings = {
             widget: availableWidgets.WidgetTextInput,
             fieldProps: { manyComponent: availableFields.FormField },
             default: true,
+        },
+        CharField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
+        },
+        TextField: {
+            widget: availableWidgets.WidgetTextInput,
+            fieldProps: { manyComponent: availableFields.FormField },
         },
     },
     UUIDField: {
@@ -807,9 +872,9 @@ export function mergeDefaultFieldMappings(customMappings) {
  * starts from, whether it is a range (suffix pair) or an array filter, and how
  * the list request encodes an array value. The live filter form
  * (`useFilterField`) and URL→filter restoration (`buildFilterFromQuery`) both
- * read it, so query values coerce the same way in each. {@link filterFieldMapping} holds the components for the same types. A
- * custom filter type registers its entry here through
- * {@link mergeFilterFieldMapping}, alongside its components.
+ * read it, so query values coerce the same way in each. {@link filterFieldMapping} holds the components for the same
+ * types. A custom filter type registers its entry here through {@link mergeFilterFieldMapping}, alongside its
+ * components.
  *
  * @type {{[typeFilter: string]: FilterValueMapping}}
  */

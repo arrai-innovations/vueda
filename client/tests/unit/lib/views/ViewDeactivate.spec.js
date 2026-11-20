@@ -264,7 +264,7 @@ describe("lib/views/ViewDeactivate.vue", () => {
             const form = wrapper.findComponent(ModelActionFormStub);
 
             expect(form.props("runAction")).toBeUndefined();
-            expect(form.props("requestMethod")).toBe("PATCH");
+            expect(form.props("requestMethod")).toBeUndefined();
             expect(form.props("tone")).toBe("warning");
             expect(form.props("pk")).toBe("1");
         });

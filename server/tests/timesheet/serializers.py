@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
+from tests.employee.models import Employee
 from tests.employee.serializers import EmployeeSerializer
+from tests.employee.serializers import UserWithGroupsSerializer
 from tests.timesheet import models
 from vueda.core.serializers import ExcludeFieldsSerializerMixin
 from vueda.core.serializers import VuedaReadonlySerializer
@@ -73,3 +75,85 @@ class TimesheetSerializerExclude(ExcludeFieldsSerializerMixin, VuedaSerializer):
         ] + VuedaSerializer.Meta.fields
         exclude_update_fields = ["employee"]
         exclude_create_fields = ["supervisor"]
+
+
+class TimesheetEntryForTimesheetSerializer(VuedaSerializer):
+    """A timesheet entry written through its timesheet's expand, which sets the entry's timesheet."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.TimesheetEntry
+        fields = ["id", "date", "hours"] + VuedaSerializer.Meta.fields
+
+
+class TimesheetLockedExpandsSerializer(ExcludeFieldsSerializerMixin, VuedaSerializer):
+    """
+    Expands each field that a write may not set, plus a reverse relation that only its plain field locks.
+
+    ``exclude_update_fields`` locks ``employee`` and ``exclude_create_fields`` locks ``supervisor``.
+    ``manager`` expands ``supervisor`` under another name. ``approved_by`` and the many-to-many ``reviewers``
+    are ``editable=False``. ``approver`` expands ``approved_by`` with ``read_only: False``, which unlocks it.
+    ``timesheet_entries`` is in ``Meta.read_only_fields``, which locks only its list of primary keys. It is also
+    in ``exclude_create_fields``, which locks its expand on a create.
+    """
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Timesheet
+        fields = [
+            "id",
+            "period_start",
+            "period_end",
+            "employee",
+            "supervisor",
+            "approved_by",
+            "reviewers",
+            "timesheet_entries",
+        ] + VuedaSerializer.Meta.fields
+        read_only_fields = ["timesheet_entries"]
+        exclude_update_fields = ["employee"]
+        exclude_create_fields = ["supervisor", "timesheet_entries"]
+        expandable_fields = {
+            "employee": (EmployeeSerializer, {}),
+            "supervisor": (EmployeeSerializer, {}),
+            "manager": (EmployeeSerializer, {"source": "supervisor"}),
+            "approved_by": (EmployeeSerializer, {}),
+            "approver": (EmployeeSerializer, {"source": "approved_by", "read_only": False}),
+            "reviewers": (EmployeeSerializer, {"many": True}),
+            "timesheet_entries": (TimesheetEntryForTimesheetSerializer, {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class EmployeeWithUserSerializer(VuedaSerializer):
+    """An employee that expands its user, so a write can name a dotted expand such as ``supervisor.user``."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = Employee
+        fields = ["id", "user", "employee_number"] + VuedaSerializer.Meta.fields
+        expandable_fields = {
+            "user": (UserWithGroupsSerializer, {}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)
+
+
+class TimesheetWildcardWriteSerializer(VuedaSerializer):
+    """A timesheet whose expands all name a real relation, plus ``manager``, an alias of ``supervisor``."""
+
+    class Meta(VuedaSerializer.Meta):
+        model = models.Timesheet
+        fields = [
+            "id",
+            "period_start",
+            "period_end",
+            "employee",
+            "supervisor",
+            "timesheet_entries",
+        ] + VuedaSerializer.Meta.fields
+        read_only_fields = ["timesheet_entries"]
+        expandable_fields = {
+            "employee": (EmployeeSerializer, {}),
+            "supervisor": (EmployeeWithUserSerializer, {}),
+            # An alias of `supervisor`. A response with `e=*` expands it beside `supervisor`.
+            "manager": (EmployeeSerializer, {"source": "supervisor"}),
+            "timesheet_entries": (TimesheetEntryForTimesheetSerializer, {"many": True}),
+        }
+        expandable_fields.update(VuedaSerializer.Meta.expandable_fields)

@@ -20,7 +20,10 @@ defineOptions({
 });
 
 const props = defineProps({
-    /** The confirmation controller (`objectForm.confirmation` from `useObjectForm`, or `confirmation` from `useActionForm`). */
+    /**
+     * The confirmation controller (`objectForm.confirmation` from `useObjectForm`, or `confirmation` from
+     * `useActionForm`).
+     */
     controller: { type: Object, required: true },
     /** Dialog heading. */
     title: { type: String, default: "Confirm action" },

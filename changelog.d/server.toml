@@ -68,3 +68,7 @@ path = "vdq"
 [[tool.towncrier.section]]
 name = "Setup and dependencies"
 path = "setup"
+
+[[tool.towncrier.section]]
+name = "Live updates"
+path = "live-updates"

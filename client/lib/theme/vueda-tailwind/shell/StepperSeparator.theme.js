@@ -13,7 +13,8 @@ patchTheme({
      */
     StepperSeparator: {
         /**
-         * The connector line between steps. It stays muted for upcoming or disabled steps and switches to accent after completion.
+         * The connector line between steps. It stays muted for upcoming or disabled steps and switches to accent after
+         * completion.
          */
         root: {
             class: [

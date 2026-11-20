@@ -6,6 +6,7 @@ import { reactive } from "vue";
 
 const mocks = vi.hoisted(() => {
     const modelConfig = {
+        loading: false,
         info: { verboseName: "person", verboseNamePlural: "people" },
         config: { actionRedirects: { default: "detail" } },
     };
@@ -72,7 +73,15 @@ function createFetchState(objectsInOrder = [{ id: 1 }, { id: 2 }]) {
 
 describe("lib/use/useModelAction.js", () => {
     beforeEach(() => {
-        modelConfig.info = { verboseName: "person", verboseNamePlural: "people" };
+        modelConfig.loading = false;
+        modelConfig.info = {
+            verboseName: "person",
+            verboseNamePlural: "people",
+            actions: [
+                { name: "archive", detail: true, bulk: true, methodNames: ["put", "patch"], urlPath: "archive" },
+                { name: "destroy", detail: true, bulk: true, methodNames: ["delete"] },
+            ],
+        };
         modelConfig.config = { actionRedirects: { default: "detail" } };
         mocks.fallbackList = createInstanceStub();
         mocks.instanceObject = createInstanceStub();
@@ -169,6 +178,7 @@ describe("lib/use/useModelAction.js", () => {
 
             expect(instanceList.executeAction).toHaveBeenCalledWith({
                 action: "archive",
+                urlPath: "archive",
                 pks: [4, 7],
                 requestMethod: "PATCH",
                 formData: { reason: "stale" },
@@ -188,10 +198,129 @@ describe("lib/use/useModelAction.js", () => {
 
             expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith({
                 action: "archive",
-                requestMethod: undefined,
+                urlPath: "archive",
+                requestMethod: "PUT",
                 formData: undefined,
                 dryRun: false,
                 acknowledgeWarnings: undefined,
+            });
+        });
+
+        describe("URL segment and method from model info", () => {
+            beforeEach(() => {
+                modelConfig.info = {
+                    verboseName: "invoice",
+                    verboseNamePlural: "invoices",
+                    actions: [
+                        { name: "send", detail: true, bulk: false, methodNames: ["post"], urlPath: "send" },
+                        { name: "mark-paid", detail: true, bulk: false, methodNames: ["put"], urlPath: "mark_paid" },
+                        {
+                            name: "settle",
+                            detail: true,
+                            bulk: true,
+                            methodNames: ["get", "patch"],
+                            urlPath: "settle-up",
+                        },
+                    ],
+                };
+            });
+
+            scopedIt("sends POST, for the dry run and the confirmed request, to a POST-only action", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(reactive({ app: "billing", model: "invoice", action: "send", pk: "9" })),
+                );
+
+                await modelAction.runAction({ dryRun: true });
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledTimes(2);
+                for (const [args] of mocks.instanceObject.executeAction.mock.calls) {
+                    expect(args).toMatchObject({ action: "send", urlPath: "send", requestMethod: "POST" });
+                }
+            });
+
+            scopedIt("sends a detail action to its reported urlPath", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(reactive({ app: "billing", model: "invoice", action: "mark-paid", pk: "9" })),
+                );
+
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({ action: "mark-paid", urlPath: "mark_paid", requestMethod: "PUT" }),
+                );
+            });
+
+            scopedIt("sends an action without a reported urlPath to its name with dashes as underscores", async () => {
+                modelConfig.info.actions.push({ name: "write-off", detail: true, bulk: false, methodNames: ["put"] });
+                const modelAction = await withSetup(() =>
+                    useModelAction(reactive({ app: "billing", model: "invoice", action: "write-off", pk: "9" })),
+                );
+
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({ action: "write-off", urlPath: "write_off", requestMethod: "PUT" }),
+                );
+            });
+
+            scopedIt("sends a bulk action to its reported urlPath with its first write method", async () => {
+                const instanceList = createInstanceStub();
+                const modelAction = await withSetup(() =>
+                    useModelAction(
+                        reactive({
+                            app: "billing",
+                            model: "invoice",
+                            action: "settle",
+                            instanceList,
+                            fetchState: createFetchState([{ id: 4 }, { id: 7 }]),
+                        }),
+                    ),
+                );
+
+                await modelAction.runAction({});
+
+                expect(instanceList.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        action: "settle",
+                        urlPath: "settle-up",
+                        pks: [4, 7],
+                        requestMethod: "PATCH",
+                    }),
+                );
+            });
+
+            scopedIt("sends the requestMethod prop when methodNames lists it", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(
+                        reactive({
+                            app: "billing",
+                            model: "invoice",
+                            action: "settle",
+                            pk: "9",
+                            requestMethod: "patch",
+                        }),
+                    ),
+                );
+
+                await modelAction.runAction({});
+
+                expect(mocks.instanceObject.executeAction).toHaveBeenCalledWith(
+                    expect.objectContaining({ urlPath: "settle-up", requestMethod: "PATCH" }),
+                );
+            });
+
+            scopedIt("sends no request when methodNames does not list the requestMethod prop", async () => {
+                const modelAction = await withSetup(() =>
+                    useModelAction(
+                        reactive({ app: "billing", model: "invoice", action: "send", pk: "9", requestMethod: "PUT" }),
+                    ),
+                );
+
+                expect(modelAction.state.requestMethod.value).toBeNull();
+                expect(modelAction.state.viewOnly.value).toBe(true);
+                await expect(modelAction.runAction({})).rejects.toThrow();
+                expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
             });
         });
 
@@ -249,6 +378,96 @@ describe("lib/use/useModelAction.js", () => {
         });
     });
 
+    describe("View-only actions", () => {
+        beforeEach(() => {
+            modelConfig.info.actions = [
+                { name: "close", detail: true, bulk: true, methodNames: ["get"], urlPath: "close" },
+            ];
+        });
+
+        scopedIt("sends no request when methodNames lists no write method", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "close", pk: "9" })),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
+            await expect(modelAction.runAction({})).rejects.toThrow(
+                "Only viewing is permitted. You cannot close this record.",
+            );
+            expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("sends no request for an action that model info does not list", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "reopen", pk: "9" })),
+            );
+
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            await expect(modelAction.runAction({})).rejects.toThrow();
+            expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("reports view-only only after model info loads", async () => {
+            modelConfig.loading = true;
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "close", pk: "9" })),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(false);
+        });
+
+        scopedIt("is ready to dry run with a host runAction for an action that model info does not list", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "approve", pk: "9", runAction: vi.fn() }),
+                ),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(false);
+            expect(modelAction.state.readyToDryRun.value).toBe(true);
+        });
+
+        scopedIt("stays view-only with a requestMethod prop that methodNames does not list", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "close", pk: "9", requestMethod: "POST" }),
+                ),
+            );
+
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            await expect(modelAction.runAction({})).rejects.toThrow();
+            expect(mocks.instanceObject.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("runs destroy through the delete handler when model info lists it", async () => {
+            modelConfig.info.actions.push({ name: "destroy", detail: true, bulk: true, methodNames: ["delete"] });
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "destroy", pk: "9" })),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBe("DELETE");
+            await modelAction.runAction({});
+            expect(mocks.instanceObject.delete).toHaveBeenCalled();
+        });
+
+        scopedIt("blocks destroy when model info does not list it, even with the requestMethod prop", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({ app: "app", model: "person", action: "destroy", pk: "9", requestMethod: "DELETE" }),
+                ),
+            );
+
+            expect(modelAction.state.requestMethod.value).toBeNull();
+            expect(modelAction.state.viewOnly.value).toBe(true);
+            await expect(modelAction.runAction({})).rejects.toThrow();
+            expect(mocks.instanceObject.delete).not.toHaveBeenCalled();
+        });
+    });
+
     describe("readyToDryRun", () => {
         scopedIt("waits for the instance to finish loading", async () => {
             const instanceList = createInstanceStub();
@@ -276,6 +495,14 @@ describe("lib/use/useModelAction.js", () => {
             expect(modelAction.state.readyToDryRun.value).toBe(true);
             await modelAction.runAction({ dryRun: true });
             expect(modelAction.state.readyToDryRun.value).toBe(true);
+        });
+
+        scopedIt("waits for model info to load", async () => {
+            modelConfig.loading = true;
+            const modelAction = await withSetup(() =>
+                useModelAction(reactive({ app: "app", model: "person", action: "archive", pk: "9" })),
+            );
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
         });
 
         scopedIt("stays false when dry runs are disabled", async () => {

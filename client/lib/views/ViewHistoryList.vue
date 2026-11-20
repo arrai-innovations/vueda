@@ -72,7 +72,9 @@ const props = defineProps({
         type: Array,
         default: () => ["recorded_at", "actor", "kind", "label", "model", "type", "field", "old", "new"],
     },
-    /** Rows-per-page options offered by the pagination footer; the final `"all"` entry loads every history page at once. */
+    /**
+     * Rows-per-page options offered by the pagination footer; the final `"all"` entry loads every history page at once.
+     */
     pageSizeOptions: {
         type: Array,
         default: () => [...DEFAULT_PAGE_SIZE_OPTIONS],

@@ -1,6 +1,7 @@
 /**
  * @module utils/case
- * @description Memoized case-conversion utilities for deriving route parts, CRUD names, and display titles from app and model names.
+ * @description Memoized case-conversion utilities for deriving route parts, CRUD names, and display titles from app and
+ *  model names.
  */
 import { unwrapNested } from "@arrai-innovations/reactive-helpers";
 import camelCase from "lodash-es/camelCase.js";
@@ -135,14 +136,6 @@ export const getCRUDName = memoize(
     ({ app, model, view, bulk }) =>
         unwrapNested(app) + "." + unwrapNested(model) + "-" + unwrapNested(view) + (bulk ? "-bulk" : ""),
 );
-
-/**
- * Converts a dashed URL name to an underscored action name and returns it.
- *
- * @param {string} params - The url name.
- * @returns {string} The action name.
- */
-export const getServerActionName = memoize((urlName) => urlName?.replace?.(/-/g, "_") || "", unwrapNested);
 
 /**
  * For turning various `dev_strs` or `DevStrs` or `devStrs` into a human-readable titles (`Dev Strs`).

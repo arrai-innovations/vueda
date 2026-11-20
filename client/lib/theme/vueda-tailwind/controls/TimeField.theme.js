@@ -13,7 +13,10 @@ patchTheme({
      * optional second / period). Shares the input shell with DateField.
      */
     TimeField: {
-        /** The input-shell variant for editable time segments (hour / minute, plus optional second / period). See also: {@api theme-key:DateField.root}; identical shell and size-tier recipe, only the segment set inside differs. */
+        /**
+         * The input-shell variant for editable time segments (hour / minute, plus optional second / period). See also:
+         * {@api theme-key:DateField.root}; identical shell and size-tier recipe, only the segment set inside differs.
+         */
         root: ({ size }) => ({
             class: [
                 // Shell and surface.

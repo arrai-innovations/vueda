@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * ErrorDisplay renders error text and optional diagnostic code in a scroll-safe block. It keeps links and code content readable in narrow layouts.
+     * ErrorDisplay renders error text and optional diagnostic code in a scroll-safe block. It keeps links and code
+     * content readable in narrow layouts.
      */
     ErrorDisplay: {
         /** Full-width error block wrapper for message, code, and links. */

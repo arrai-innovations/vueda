@@ -13,7 +13,8 @@ patchTheme({
      */
     AccordionContent: {
         /**
-         * The animated collapsible content region. It owns the open and closed height animations and applies body text sizing while leaving padding to {@api theme-key:AccordionContent.inner}.
+         * The animated collapsible content region. It owns the open and closed height animations and applies body text
+         * sizing while leaving padding to {@api theme-key:AccordionContent.inner}.
          */
         root: {
             class: [
@@ -25,7 +26,8 @@ patchTheme({
             ],
         },
         /**
-         * The inner content inset for an accordion panel. It adds only bottom padding so content aligns with the trigger start while leaving the item divider visible.
+         * The inner content inset for an accordion panel. It adds only bottom padding so content aligns with the
+         * trigger start while leaving the item divider visible.
          */
         inner: {
             class: "pt-0 pb-4",

@@ -18,6 +18,14 @@ import { useRouter } from "vue-router";
  * from the closest matching route, a `SuggestionList(shape="route")` of N-best
  * scored matches, a `DiagnosticStrip` debug footer, and a `Back` + `Go to home`
  * actions row.
+ *
+ * A route guard that refuses a route can send it here with the refused route's
+ * full path as a `redirect` query value, as `requireModelInfo` does for the
+ * `actionRedirect` passed to `makeCRUDRoutes`. When that value is a path, the
+ * view describes that location instead of its own path. The crest reads "Page
+ * unavailable" with no status code, and the blurb says the page may not exist
+ * or the account may not have access to it. The view shows no suggestions in
+ * that case, since the refused path matched a registered route.
  */
 defineOptions({ inheritAttrs: false });
 
@@ -47,12 +55,27 @@ const suggestedRoutes = useSuggestRoutes({ limit: props.suggestionLimit });
 const theme = useTheme("ViewNotFound", props);
 useIconsOverride(toRef(props, "iconOverride"));
 
-const currentPath = computed(() => router.currentRoute.value.path);
+// A guard that refused a route passes its full path here. Only a path is accepted, and the value is only
+// displayed, never navigated to.
+const requestedLocation = computed(() => {
+    const redirect = router.currentRoute.value.query?.redirect;
+    return typeof redirect === "string" && redirect.startsWith("/") ? redirect : null;
+});
+
+const refused = computed(() => requestedLocation.value !== null);
+
+const currentPath = computed(() =>
+    refused.value ? requestedLocation.value.split(/[?#]/)[0] : router.currentRoute.value.path,
+);
 
 const triedSegments = computed(() => {
     const path = currentPath.value;
     const bestMatch = suggestedRoutes.value[0]?.matchedPath;
     const currentParts = path.split("/").filter(Boolean);
+    if (refused.value) {
+        // the refused path matched a registered route, so no segment of it is wrong
+        return currentParts.map((text) => ({ text: "/" + text, bad: false }));
+    }
     if (!bestMatch) {
         return currentParts.map((text) => ({ text: "/" + text, bad: true }));
     }
@@ -73,7 +96,10 @@ const suggestionItems = computed(() =>
     })),
 );
 
-const diagnosticRows = computed(() => [{ label: "route", value: currentPath.value }, ...props.diagnostics]);
+const diagnosticRows = computed(() => [
+    { label: "route", value: requestedLocation.value ?? currentPath.value },
+    ...props.diagnostics,
+]);
 
 function handleBack() {
     router.back();
@@ -92,13 +118,16 @@ function handleHome() {
             :icon-override="props.iconOverride"
             data-qa="view-not-found-card"
         >
-            <template #crest-eyebrow>Route not found</template>
+            <template #crest-eyebrow>{{ refused ? "Page unavailable" : "Route not found" }}</template>
             <template #crest-kind>{{ currentPath }}</template>
-            <template #crest-code>404</template>
+            <template v-if="!refused" #crest-code>404</template>
 
             <!-- @slot blurb Override the default explanatory paragraph beneath the crest. -->
             <slot name="blurb">
-                <p :class="theme('blurb')" data-qa="view-not-found-blurb">
+                <p v-if="refused" :class="theme('blurb')" data-qa="view-not-found-blurb">
+                    This page is not available. It may not exist, or your account may not have access to it.
+                </p>
+                <p v-else :class="theme('blurb')" data-qa="view-not-found-blurb">
                     No registered route matched this path. The closest matches in the router are listed below.
                 </p>
             </slot>
@@ -106,7 +135,7 @@ function handleHome() {
             <tried-url-callout :segments="triedSegments" label="You tried" data-qa="view-not-found-tried" />
 
             <suggestion-list
-                v-if="suggestionItems.length"
+                v-if="!refused && suggestionItems.length"
                 :items="suggestionItems"
                 head="Did you mean"
                 source="router.suggest()"

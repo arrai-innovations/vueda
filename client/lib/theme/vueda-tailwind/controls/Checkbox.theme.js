@@ -17,7 +17,20 @@ patchTheme({
      * fill and ring to destructive.
      */
     Checkbox: {
-        /** The boolean-chit shell. 24px square at a 4px corner (one step softer than the 2px control radius) so it reads as a chit rather than a miniature slab control. Default state paints a `hairline` edge on the input-tinted surface and carries the standard focus + `aria-invalid` ring contract. In dark mode the rest edge swaps to `--border-strong` (`dark:hairline-border-strong`) so an unchecked box stays visible on hovered list rows, where the opaque `--input` edge would sink into the `bg-accent/50` hover band. Checked and indeterminate states fill with `--primary` and drop the hairline (the `--vueda-hairline-color:transparent` override on the same selectors) so the surface reads as a single solid swatch; `aria-invalid` swaps both the fill and the painted edge to `--destructive`. The `inline-flex` centring and `align-middle` hold the box to a fixed `size-6` square with a stable baseline whether or not it is checked; keep them when overriding this slot, or toggling a checkbox can reflow baseline-aligned parents (for example the card-layout {@api theme-key:ObjectsGrid} grid). Disabled controls use `--disabled` fill, `--border` edge, and `--disabled-foreground` indicators at full opacity, including when invalid. */
+        /**
+         * The boolean-chit shell. 24px square at a 4px corner (one step softer than the 2px control radius) so it reads
+         * as a chit rather than a miniature slab control. Default state paints a `hairline` edge on the input-tinted
+         * surface and carries the standard focus + `aria-invalid` ring contract. In dark mode the rest edge swaps to
+         * `--border-strong` (`dark:hairline-border-strong`) so an unchecked box stays visible on hovered list rows,
+         * where the opaque `--input` edge would sink into the `bg-accent/50` hover band. Checked and indeterminate
+         * states fill with `--primary` and drop the hairline (the `--vueda-hairline-color:transparent` override on the
+         * same selectors) so the surface reads as a single solid swatch; `aria-invalid` swaps both the fill and the
+         * painted edge to `--destructive`. The `inline-flex` centring and `align-middle` hold the box to a fixed
+         * `size-6` square with a stable baseline whether or not it is checked; keep them when overriding this slot, or
+         * toggling a checkbox can reflow baseline-aligned parents (for example the card-layout
+         * {@api theme-key:ObjectsGrid} grid). Disabled controls use `--disabled` fill, `--border` edge, and
+         * `--disabled-foreground` indicators at full opacity, including when invalid.
+         */
         root: {
             class: [
                 // Checked and indeterminate states.
@@ -48,7 +61,14 @@ patchTheme({
                 "aria-invalid:hairline-destructive aria-invalid:focus-visible:focus-ring-shadow-destructive aria-invalid:data-[state=checked]:bg-destructive aria-invalid:data-[state=checked]:text-destructive-foreground aria-invalid:data-[state=indeterminate]:bg-destructive aria-invalid:data-[state=indeterminate]:text-destructive-foreground",
             ],
         },
-        /** The centring grid for the indicator glyph (the check or indeterminate-dash icon rendered inside {@api theme-key:Checkbox.root}). `grid place-content-center` parks the icon dead-centre regardless of font-size or zoom; `text-current` lets the glyph inherit the root's `--primary-foreground` (or destructive-foreground on `aria-invalid`) so a custom icon picks up the correct fill without a second class hook. `transition-none` because the surrounding root owns the state-change tones; an animated indicator would lag the surface flip. */
+        /**
+         * The centring grid for the indicator glyph (the check or indeterminate-dash icon rendered inside
+         * {@api theme-key:Checkbox.root}). `grid place-content-center` parks the icon dead-centre regardless of
+         * font-size or zoom; `text-current` lets the glyph inherit the root's `--primary-foreground` (or
+         * destructive-foreground on `aria-invalid`) so a custom icon picks up the correct fill without a second class
+         * hook. `transition-none` because the surrounding root owns the state-change tones; an animated indicator would
+         * lag the surface flip.
+         */
         indicator: {
             class: ["grid place-content-center text-current transition-none"],
         },

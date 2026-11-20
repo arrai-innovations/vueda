@@ -10,7 +10,8 @@ const durationRegExp = /^(?:(\d+)\s+)?(\d{2}):(\d{2}):(\d{2})$/;
  * Parses a Django-style duration string (D HH:MM:SS) into a plain object.
  *
  * @param {string} durationString - The duration string to parse.
- * @returns {{days: number, hours: number, minutes: number, seconds: number}|null} The parsed duration, or null if the string is invalid.
+ * @returns {{days: number, hours: number, minutes: number, seconds: number}|null} The parsed duration, or null if the
+ *  string is invalid.
  */
 export function parseDuration(durationString) {
     const match = durationString.match(durationRegExp);
@@ -31,7 +32,8 @@ export function parseDuration(durationString) {
  * negative total carries its sign on the day count while the clock part stays positive, as Django
  * writes it: minus one hour is `-1 23:00:00`. Sub-second precision is dropped.
  *
- * @param {{days?: number, hours?: number, minutes?: number, seconds?: number}} durationObject - The duration to serialize.
+ * @param {{days?: number, hours?: number, minutes?: number, seconds?: number}} durationObject - The duration to
+ *  serialize.
  * @returns {string} The formatted duration string.
  */
 export function convertDurationToString(durationObject) {
@@ -63,7 +65,8 @@ export function convertDurationToString(durationObject) {
  * Sub-second precision is dropped: the seconds component truncates toward zero.
  *
  * @param {string|number|null|undefined} value - A Django duration string, a number of seconds, or an empty value.
- * @returns {{negative: boolean, days: number, hours: number, minutes: number, seconds: number, totalSeconds: number}|null} The normalized parts, or null when the value is empty or unparseable.
+ * @returns {{negative: boolean, days: number, hours: number, minutes: number, seconds: number, totalSeconds: number}|null}
+ *  The normalized parts, or null when the value is empty or unparseable.
  */
 export function normalizeDuration(value) {
     let totalSeconds;

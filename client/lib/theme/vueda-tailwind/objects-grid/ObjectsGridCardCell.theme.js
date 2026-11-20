@@ -15,7 +15,10 @@ patchTheme({
      * participate directly in the parent card grid.
      */
     ObjectsGridCardCell: {
-        /** The card-layout field label fragment. It renders as a compact muted micro-label that participates directly in {@api theme-key:ObjectsGrid.cardContainer}. */
+        /**
+         * The card-layout field label fragment. It renders as a compact muted micro-label that participates directly in
+         * {@api theme-key:ObjectsGrid.cardContainer}.
+         */
         header: {
             class: [
                 "self-baseline whitespace-nowrap",
@@ -24,7 +27,10 @@ patchTheme({
                 "select-none",
             ],
         },
-        /** The card-layout field value fragment. It aligns on the same baseline as the header and uses foreground body text for the row's readable data. */
+        /**
+         * The card-layout field value fragment. It aligns on the same baseline as the header and uses foreground body
+         * text for the row's readable data.
+         */
         value: {
             class: ["self-baseline", "text-[13px] font-normal text-foreground"],
         },

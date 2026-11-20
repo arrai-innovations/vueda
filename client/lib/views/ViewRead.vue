@@ -1,5 +1,8 @@
 <script setup>
 import ErrorDisplay from "@vueda/display/error-display/ErrorDisplay.vue";
+import Alert from "@vueda/feedback/alert/Alert.vue";
+import AlertDescription from "@vueda/feedback/alert/AlertDescription.vue";
+import AlertTitle from "@vueda/feedback/alert/AlertTitle.vue";
 import Skeleton from "@vueda/feedback/skeleton/Skeleton.vue";
 import FormModel from "@vueda/form/form-model/FormModel.vue";
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
@@ -12,6 +15,7 @@ import { VIEW_FORM_PROPS } from "@vueda/use/useFormModelProps.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
+import omit from "lodash-es/omit.js";
 import { onMounted, reactive, readonly, toRef, useSlots } from "vue";
 
 /**
@@ -46,7 +50,10 @@ const props = defineProps({
         type: Array,
         default: undefined,
     },
-    /** Field names to request from the API when fetching the object; falls back to the model config's fetchFields when omitted or empty. */
+    /**
+     * Field names to request from the API when fetching the object; falls back to the model config's fetchFields when
+     * omitted or empty.
+     */
     fetchFields: {
         type: Array,
         default: undefined,
@@ -65,12 +72,17 @@ const internalOptions = reactive({
     model: toRef(props, "model"),
     viewName: "read",
     pk: toRef(props, "pk"),
+    // A read view shows no edits, so it can take pushed changes when live updates are set up.
+    subscribe: true,
     primaryActions: toRef(props, "primaryActions"),
     fetchFields: toRef(props, "fetchFields"),
     ...Object.fromEntries(Object.keys(VIEW_FORM_PROPS).map((key) => [key, toRef(props, key)])),
 });
 
-const { instanceObject, instance, actions } = useDetailView(internalOptions, formContextProps.initialValues);
+const { modelConfig, instanceObject, instance, actions } = useDetailView(
+    internalOptions,
+    formContextProps.initialValues,
+);
 
 const theme = useTheme("ViewRead", props);
 
@@ -187,8 +199,21 @@ onMounted(() => {
                 :ignore-form-validation-errors="true"
                 :while-text="instance.combinedWhileText"
             />
+            <!-- @slot [deleted-notice] Override the notice shown when someone deletes the record while it is open; receives `verboseName` (the model config's verbose name, if any). The last values stay on screen. Appears only after `setupObjectStreams()`. -->
+            <slot
+                v-if="instanceObject.state.deleted"
+                name="deleted-notice"
+                :verbose-name="modelConfig.config?.verboseName"
+            >
+                <Alert data-qa="read-deleted-notice" variant="destructive">
+                    <AlertTitle>Deleted by someone else</AlertTitle>
+                    <AlertDescription>
+                        This {{ modelConfig.config?.verboseName || "record" }} was deleted after you opened it.
+                    </AlertDescription>
+                </Alert>
+            </slot>
             <form-model v-bind="instance.combinedFormProps">
-                <template v-for="(_, slot) in slots" #[slot]="slotProps">
+                <template v-for="(_, slot) in omit(slots, ['deleted-notice'])" #[slot]="slotProps">
                     <slot :name="slot" v-bind="slotProps || {}" />
                 </template>
             </form-model>

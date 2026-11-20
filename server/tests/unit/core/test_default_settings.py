@@ -198,3 +198,54 @@ def test_account_reauthentication_timeout_defaults_to_five_minutes():
     defaults = get_defaults(_env())
 
     assert defaults["ACCOUNT_REAUTHENTICATION_TIMEOUT"] == 300  # noqa PLR2004
+
+
+STREAMS_BASE_APPS = "vueda.core,vueda.history,vueda.info,vueda.user,vueda.release,vueda.streams"
+
+
+def test_streams_adds_the_object_streams_app():
+    defaults = get_defaults(_env(VUEDA_APPS=STREAMS_BASE_APPS))
+
+    assert "object_streams" in defaults["THIRD_PARTY_APPS"]
+    assert "vueda.workflow.streams" not in defaults["VUEDA_APPS"]
+
+
+def test_streams_with_workflow_adds_workflow_capture():
+    defaults = get_defaults(_env(VUEDA_APPS=f"{STREAMS_BASE_APPS},vueda.workflow"))
+
+    assert "vueda.workflow.streams" in defaults["VUEDA_APPS"]
+
+
+def test_workflow_without_streams_adds_no_stream_apps():
+    defaults = get_defaults(_env(VUEDA_APPS="vueda.core,vueda.history,vueda.info,vueda.user,vueda.workflow"))
+
+    assert "object_streams" not in defaults["THIRD_PARTY_APPS"]
+    assert "vueda.workflow.streams" not in defaults["VUEDA_APPS"]
+
+
+def test_use_streams_adds_streams_to_the_default_apps():
+    defaults = get_defaults(_env(), use_streams=True)
+    default_apps = get_defaults(_env())["VUEDA_APPS"]
+
+    assert defaults["VUEDA_APPS"] == [*default_apps, "vueda.streams", "vueda.workflow.streams"]
+    assert "object_streams" in defaults["THIRD_PARTY_APPS"]
+    assert "vueda.streams" in defaults["INSTALLED_APPS"]
+
+
+def test_use_streams_does_not_duplicate_a_listed_streams_app():
+    defaults = get_defaults(_env(VUEDA_APPS=STREAMS_BASE_APPS), use_streams=True)
+
+    assert defaults["VUEDA_APPS"].count("vueda.streams") == 1
+
+
+def test_streams_does_not_duplicate_listed_stream_apps():
+    defaults = get_defaults(
+        _env(
+            VUEDA_APPS=f"{STREAMS_BASE_APPS},vueda.workflow,vueda.workflow.streams",
+            THIRD_PARTY_APPS="rest_framework,object_streams",
+        )
+    )
+
+    assert defaults["THIRD_PARTY_APPS"].count("object_streams") == 1
+    assert defaults["VUEDA_APPS"].count("vueda.workflow.streams") == 1
+    assert len(defaults["INSTALLED_APPS"]) == len(set(defaults["INSTALLED_APPS"]))

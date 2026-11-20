@@ -13,7 +13,11 @@ patchTheme({
      * so the InputGroup shell owns the chrome.
      */
     InputGroupTextarea: {
-        /** The textarea child inside an {@api theme-key:InputGroup.root}. Same chrome-strip recipe as {@api theme-key:InputGroupInput.root} plus `resize-none` so the textarea grows with content rather than offering a corner drag handle that would fight the group's shared shell. */
+        /**
+         * The textarea child inside an {@api theme-key:InputGroup.root}. Same chrome-strip recipe as
+         * {@api theme-key:InputGroupInput.root} plus `resize-none` so the textarea grows with content rather than
+         * offering a corner drag handle that would fight the group's shared shell.
+         */
         root: {
             class: [
                 // Chrome reset.

@@ -14,7 +14,14 @@ patchTheme({
      * with the selected item).
      */
     SelectContent: {
-        /** The floating popover surface that holds the {@api theme-key:SelectItem.root} options. Reads as a popover (2px radius, a hairline edge with popover elevation via `overlay-hairline`) capped at the viewport-available height that Reka exposes via `--reka-select-content-available-height`; the `popper`-position-only translate nudges (`translate-y-1`, etc.) sit the popover one 4px step off the trigger so the surface does not crash into the chip that opened it. The `item-aligned` legacy mode (the popover aligns itself to the selected item rather than anchoring to the trigger) skips those nudges and shares all other chrome. */
+        /**
+         * The floating popover surface that holds the {@api theme-key:SelectItem.root} options. Reads as a popover (2px
+         * radius, a hairline edge with popover elevation via `overlay-hairline`) capped at the viewport-available
+         * height that Reka exposes via `--reka-select-content-available-height`; the `popper`-position-only translate
+         * nudges (`translate-y-1`, etc.) sit the popover one 4px step off the trigger so the surface does not crash
+         * into the chip that opened it. The `item-aligned` legacy mode (the popover aligns itself to the selected item
+         * rather than anchoring to the trigger) skips those nudges and shares all other chrome.
+         */
         root: ({ position }) => ({
             class: [
                 // Surface and motion.
@@ -30,7 +37,13 @@ patchTheme({
                 },
             ],
         }),
-        /** The padded inner region inside {@api theme-key:SelectContent.root} that wraps the option list. In `popper` mode the viewport pins to the trigger's height and width (`--reka-select-trigger-height` / `--reka-select-trigger-width`) so the popover footprint matches the chip that opened it; `scroll-my-1` keeps the highlighted item from crashing into the viewport edge as keyboard navigation crosses long lists. The legacy `item-aligned` mode skips the pin and lets the viewport size to its content. */
+        /**
+         * The padded inner region inside {@api theme-key:SelectContent.root} that wraps the option list. In `popper`
+         * mode the viewport pins to the trigger's height and width (`--reka-select-trigger-height` /
+         * `--reka-select-trigger-width`) so the popover footprint matches the chip that opened it; `scroll-my-1` keeps
+         * the highlighted item from crashing into the viewport edge as keyboard navigation crosses long lists. The
+         * legacy `item-aligned` mode skips the pin and lets the viewport size to its content.
+         */
         viewport: ({ position }) => ({
             class: [
                 "p-1",

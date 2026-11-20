@@ -264,7 +264,7 @@ describe("lib/views/ViewActivate.vue", () => {
             const form = wrapper.findComponent(ModelActionFormStub);
 
             expect(form.props("runAction")).toBeUndefined();
-            expect(form.props("requestMethod")).toBe("PATCH");
+            expect(form.props("requestMethod")).toBeUndefined();
             expect(form.props("tone")).toBe("success");
             expect(form.props("pk")).toBe("1");
         });

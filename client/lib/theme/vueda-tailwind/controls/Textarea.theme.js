@@ -13,7 +13,12 @@ patchTheme({
      * expands vertically via `field-sizing: content`.
      */
     Textarea: {
-        /** The multi-line counterpart to {@api theme-key:Input.root}. Same field fill, bottom `field-line`, recoloured focus and `aria-invalid` line, and read-only recipe; grows vertically via `field-sizing: content` so the field expands with the typed text rather than holding a fixed `min-height`. Horizontal padding moves to `px-3 py-2` (both axes) because a textarea's content box is two-dimensional. */
+        /**
+         * The multi-line counterpart to {@api theme-key:Input.root}. Same field fill, bottom `field-line`, recoloured
+         * focus and `aria-invalid` line, and read-only recipe; grows vertically via `field-sizing: content` so the
+         * field expands with the typed text rather than holding a fixed `min-height`. Horizontal padding moves to
+         * `px-3 py-2` (both axes) because a textarea's content box is two-dimensional.
+         */
         root: {
             class: [
                 // Placeholder and surface.

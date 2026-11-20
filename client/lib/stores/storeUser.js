@@ -1,6 +1,7 @@
 /**
  * @module stores/storeUser
- * @description Pinia store for managing authentication state, including login, logout, password reset, and two-factor auth.
+ * @description Pinia store for managing authentication state, including login, logout, password reset, and two-factor
+ *  auth.
  */
 import { clearAuthScopedStores } from "@vueda/stores/authScope.js";
 import { httpOrHttpsHostname } from "@vueda/utils/connectionHostname.js";
@@ -201,7 +202,8 @@ export const storeUser = defineStore("user", {
     actions: {
         /**
          * Fetches the current user from the who-is endpoint and updates the login state and `currentUserRequestStatus`.
-         * When the authenticated user changes, clears the authorization-dependent stores and increments `identityGeneration`.
+         * When the authenticated user changes, clears the authorization-dependent stores and increments
+         * `identityGeneration`.
          *
          * Only the newest request writes the user fields and `currentUserRequestStatus`. The promise of an older
          * request settles with the newest request's outcome, so a caller that awaits it reads the newest answer.
@@ -277,12 +279,14 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Signs the user in, then refetches the current user.
-         * When the server answers with a pending flow, such as two-factor authentication, the refetch sets `authPendingFlow` and the call resolves instead of rejecting.
+         * When the server answers with a pending flow, such as two-factor authentication, the refetch sets
+         * `authPendingFlow` and the call resolves instead of rejecting.
          *
          * @param {object} payload - The credentials to send.
          * @param {string} payload.email - The user's email address.
          * @param {string} payload.password - The user's password.
-         * @returns {Promise<void>} Resolves when signed in or a flow is pending; rejects with the request error otherwise.
+         * @returns {Promise<void>} Resolves when signed in or a flow is pending; rejects with the request error
+         *  otherwise.
          */
         login(payload) {
             this.loading = true;
@@ -319,7 +323,8 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Signs the user out, then refetches the current user.
-         * When the store does not think the user is signed in, refetches first and skips the request if the server agrees.
+         * When the store does not think the user is signed in, refetches first and skips the request if the server
+         * agrees.
          *
          * @returns {Promise<void>}
          */
@@ -370,9 +375,9 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Confirms the signed-in user's password again, then refetches the current user, which clears `authPendingFlow`.
-         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
-         * that the server now requires.
+         * Confirms the signed-in user's password again, then refetches the current user, which clears
+         * `authPendingFlow`. Before rejecting with an `UnauthorizedError`, refetches the current user, so
+         * `authPendingFlow` names the flow that the server now requires.
          *
          * Completes the `reauthenticate` flow. The server does not count a password confirmation for a user with a
          * two-factor device; their flow is `mfa_reauthenticate`, which `twoFactorReauthenticate` completes.
@@ -498,14 +503,15 @@ export const storeUser = defineStore("user", {
         },
         /**
          * Starts setting up a two-factor device for the signed-in user.
-         * For `email` and `sms`, the server sends a code to the destination; for `totp`, it returns the secret and a QR code.
-         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
-         * that the server now requires.
+         * For `email` and `sms`, the server sends a code to the destination; for `totp`, it returns the secret and a QR
+         * code. Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names
+         * the flow that the server now requires.
          *
          * @param {object} payload - The request body.
          * @param {string} payload.method - The device method: `totp`, `email`, or `sms`.
          * @param {string} [payload.destination] - The email address or phone number; required for `email` and `sms`.
-         * @returns {Promise<{[key: string]: *}|string|undefined>} For `totp`, an object whose `meta` holds `totp_secret` and `totp_svg_data_uri`.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} For `totp`, an object whose `meta` holds
+         *  `totp_secret` and `totp_svg_data_uri`.
          */
         setupTOTPDevice(payload) {
             this.loading = true;
@@ -617,9 +623,9 @@ export const storeUser = defineStore("user", {
                 });
         },
         /**
-         * Confirms the signed-in user's second factor with a code, then refetches the current user, which clears `authPendingFlow`.
-         * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
-         * that the server now requires.
+         * Confirms the signed-in user's second factor with a code, then refetches the current user, which clears
+         * `authPendingFlow`. Before rejecting with an `UnauthorizedError`, refetches the current user, so
+         * `authPendingFlow` names the flow that the server now requires.
          *
          * Completes the `mfa_reauthenticate` flow, which the server requires from a user with a two-factor device
          * before a reauthentication-guarded action.
@@ -744,7 +750,8 @@ export const storeUser = defineStore("user", {
          * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
          * that the server now requires.
          *
-         * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods, such as `totp`, `email`, or `sms`.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} An object whose `methods` lists the device methods,
+         *  such as `totp`, `email`, or `sms`.
          */
         getTwoFactorAuthMethod() {
             this.loading = true;
@@ -812,7 +819,8 @@ export const storeUser = defineStore("user", {
          * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
          * that the server now requires.
          *
-         * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the new codes.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists
+         *  the new codes.
          */
         generateRecoveryCode() {
             this.loading = true;
@@ -850,7 +858,8 @@ export const storeUser = defineStore("user", {
          * Before rejecting with an `UnauthorizedError`, refetches the current user, so `authPendingFlow` names the flow
          * that the server now requires.
          *
-         * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists the unused codes.
+         * @returns {Promise<{[key: string]: *}|string|undefined>} The allauth response, whose `data.unused_codes` lists
+         *  the unused codes.
          */
         getRecoveryCodes() {
             this.loading = true;

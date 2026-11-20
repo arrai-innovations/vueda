@@ -13,7 +13,8 @@ patchTheme({
      */
     CardContent: {
         /**
-         * The body content inset for a card. It provides the horizontal padding that Card itself omits so full-width header or footer borders can span cleanly.
+         * The body content inset for a card. It provides the horizontal padding that Card itself omits so full-width
+         * header or footer borders can span cleanly.
          */
         root: {
             class: "px-6",

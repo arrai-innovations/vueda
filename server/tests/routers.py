@@ -3,7 +3,10 @@ from tests.employee.viewsets import UserWithGroupsViewSet
 from tests.employee.viewsets import UserWithPermissionsViewSet
 from tests.product.viewsets import ProductViewSet
 from tests.timesheet.viewsets import TimesheetEntryViewSet
+from tests.timesheet.viewsets import TimesheetLockedExpandsViewSet
+from tests.timesheet.viewsets import TimesheetPermittedWildcardWriteViewSet
 from tests.timesheet.viewsets import TimesheetViewSet
+from tests.timesheet.viewsets import TimesheetWildcardWriteViewSet
 from tests.timesheet.viewsets import TimesheetWithAliasedEntriesViewSet
 from tests.timesheet.viewsets import TimesheetWithAliasedSupervisorViewSet
 from tests.timesheet.viewsets import TimesheetWithDeeperPrefetchedEntriesViewSet
@@ -36,6 +39,21 @@ tests_router.register(
     "timesheets_with_to_attr_prefetched_entries",
     TimesheetWithToAttrPrefetchedEntriesViewSet,
     basename="timesheet.timesheettoattrprefetched",
+)
+tests_router.register(
+    "timesheets_with_locked_expands",
+    TimesheetLockedExpandsViewSet,
+    basename="timesheet.timesheetlockedexpands",
+)
+tests_router.register(
+    "timesheets_with_wildcard_write",
+    TimesheetWildcardWriteViewSet,
+    basename="timesheet.timesheetwildcardwrite",
+)
+tests_router.register(
+    "timesheets_with_permitted_wildcard_write",
+    TimesheetPermittedWildcardWriteViewSet,
+    basename="timesheet.timesheetpermittedwildcardwrite",
 )
 tests_router.register("products", ProductViewSet)
 tests_router.register("timesheetentries", TimesheetEntryViewSet)

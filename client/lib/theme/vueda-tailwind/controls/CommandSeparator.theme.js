@@ -12,7 +12,10 @@ patchTheme({
      * 1px divider between sections inside Command.
      */
     CommandSeparator: {
-        /** A 1px horizontal divider between groups inside {@api theme-key:CommandList.root}. See also: {@api theme-key:ComboboxSeparator.root}; identical recipe. */
+        /**
+         * A 1px horizontal divider between groups inside {@api theme-key:CommandList.root}. See also:
+         * {@api theme-key:ComboboxSeparator.root}; identical recipe.
+         */
         root: {
             class: ["bg-border -mx-1 h-hairline"],
         },

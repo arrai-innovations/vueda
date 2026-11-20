@@ -303,7 +303,7 @@ A route opens only when its action is one of the user's {@term Model Actions}. [
 
 ## Grant Permissions
 
-Model info filters `model_actions` by the requesting user's permissions, and the client guard admits only listed actions. A user without grants sees "Action Not Found" on every route.
+Model info filters `model_actions` by the requesting user's permissions, and the client guard admits only listed actions. A user without grants sees "Action Unavailable" on every route.
 
 Grant `myapp.list_widget`, `myapp.read_widget`, `myapp.create_widget`, `myapp.update_widget`, and `myapp.delete_widget` to a group, then add your test user to that group. Use the group management page described in [Manage Groups and Generate Group Migrations](./manage-groups.md), or run this in `python manage.py shell`:
 
@@ -341,7 +341,7 @@ Sign in as the test user and check each piece:
 
 **The list view shows a `404` error.** The server does not serve the model API path. Check the router prefix and where the app's URL module is mounted, as [Router and URL Wiring](#router-and-url-wiring) describes.
 
-**Every route shows "Action Not Found".** The user lacks the model's permissions, so `model_actions` is empty. Grant them as [Grant Permissions](#grant-permissions) describes. If the model config sets `routeActions`, check that it uses `retrieve` for the read route, as [Configure CRUD Views](./configure-crud-views.md#limit-which-routes-open) describes.
+**Every route shows "Action Unavailable".** The user lacks the model's permissions, so `model_actions` is empty. Grant them as [Grant Permissions](#grant-permissions) describes. If the model config sets `routeActions`, check that it uses `retrieve` for the read route, as [Configure CRUD Views](./configure-crud-views.md#limit-which-routes-open) describes.
 
 **Rows show no label.** The serializer declares its own `formatted_name` field, and that field reads no value. An example is a `source` that names a relation that the model does not have. Remove the declaration, so that `VuedaSerializer` builds the field from the model.
 

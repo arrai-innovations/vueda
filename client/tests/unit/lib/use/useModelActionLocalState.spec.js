@@ -20,7 +20,12 @@ import { reactive } from "vue";
  */
 
 const modelConfig = {
-    info: { pk: "id", verboseName: "customer", verboseNamePlural: "customers" },
+    info: {
+        pk: "id",
+        verboseName: "customer",
+        verboseNamePlural: "customers",
+        actions: [{ name: "destroy", detail: true, bulk: true, methodNames: ["delete"] }],
+    },
     config: { actionRedirects: { default: "update" } },
 };
 vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => modelConfig }));

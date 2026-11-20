@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * Sonner provides the theme hook for the toast viewport integration. The root class establishes the toaster group consumed by the Sonner library.
+     * Sonner provides the theme hook for the toast viewport integration. The root class establishes the toaster group
+     * consumed by the Sonner library.
      */
     Sonner: {
         /**
-         * The toast viewport theme hook passed to vue-sonner. It establishes the toaster group while toast surface, type tint, and icon resolution stay controlled by the wrapper component and Sonner rules.
+         * The toast viewport theme hook passed to vue-sonner. It establishes the toaster group while toast surface,
+         * type tint, and icon resolution stay controlled by the wrapper component and Sonner rules.
          */
         root: {
             class: "toaster group",

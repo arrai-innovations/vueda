@@ -13,7 +13,8 @@ patchTheme({
      */
     SheetOverlay: {
         /**
-         * The sheet backdrop layer. It fills the viewport with the shared overlay token and fades with sheet state changes.
+         * The sheet backdrop layer. It fills the viewport with the shared overlay token and fades with sheet state
+         * changes.
          */
         root: {
             class: [

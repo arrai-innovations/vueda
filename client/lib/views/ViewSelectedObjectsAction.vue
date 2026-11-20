@@ -126,7 +126,6 @@ const handleReturnClick = () => {
             :pk="pk"
             :fetch-state="instanceList.state"
             :instance-list="instanceList"
-            request-method="PATCH"
             page
             v-bind="$attrs"
         >

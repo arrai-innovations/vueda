@@ -138,7 +138,8 @@ const collectPeerDependencies = (packageJsonPaths) => {
  * @param {object} [options] - Configuration options.
  * @param {string} [options.root] - The project root directory. Defaults to process.cwd().
  * @param {boolean} [options.enableDedupe] - Whether to de-duplicate shared peer dependencies. Defaults to true.
- * @param {boolean} [options.enableRuntimeAliases] - Whether to pin vue/pinia/vue-router to their bundler builds. Defaults to true.
+ * @param {boolean} [options.enableRuntimeAliases] - Whether to pin vue/pinia/vue-router to their bundler builds.
+ *  Defaults to true.
  * @param {string[]} [options.excludeFromDedupe] - Peer dependency names to leave out of `resolve.dedupe`.
  * @param {string[]} [options.extraDedupe] - Additional package names to add to `resolve.dedupe`.
  * @param {object} [options.extraAliases] - Additional aliases to include. An alias here replaces the fragment's

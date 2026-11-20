@@ -44,6 +44,7 @@ from vueda.info.serializers import ModelInfoChoicesSerializer
 from vueda.info.serializers import ModelInfoFilterSetChoicesSerializer
 from vueda.info.serializers import ModelInfoSerializer
 from vueda.info.serializers import model_info_is_permitted
+from vueda.info.serializers import routed_viewset_instance
 
 
 class ModelInfoPermission(BasePermission):
@@ -100,7 +101,7 @@ class ModelInfoViewSet(FlexFieldsMixin, ReadOnlyModelViewSet):
         answers on the instance, so a check that decided access is not run again for the response.
         """
         if viewset_class not in self._called_viewsets:
-            self._called_viewsets[viewset_class] = viewset_class()
+            self._called_viewsets[viewset_class] = routed_viewset_instance(viewset_class, self.request)
         return self._called_viewsets[viewset_class]
 
     def initial(self, request, *args, **kwargs):

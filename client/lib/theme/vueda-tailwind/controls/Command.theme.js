@@ -15,7 +15,13 @@ patchTheme({
      * not a slab control.
      */
     Command: {
-        /** The outer Command surface (a search + categorised result list). 4px card radius rather than the 2px control radius the rest of the picker family wears, because Command is a shell surface, not a slab control. The flex-column layout stacks {@api theme-key:CommandInput.root}, {@api theme-key:CommandList.root}, and optional {@api theme-key:CommandFooter.root} into one chip, and `overflow-hidden` lets the inner list scroll without escaping the rounded corners. Used inline or hosted inside a {@api theme-key:CommandDialog.content}. */
+        /**
+         * The outer Command surface (a search + categorised result list). 4px card radius rather than the 2px control
+         * radius the rest of the picker family wears, because Command is a shell surface, not a slab control. The
+         * flex-column layout stacks {@api theme-key:CommandInput.root}, {@api theme-key:CommandList.root}, and optional
+         * {@api theme-key:CommandFooter.root} into one chip, and `overflow-hidden` lets the inner list scroll without
+         * escaping the rounded corners. Used inline or hosted inside a {@api theme-key:CommandDialog.content}.
+         */
         root: {
             class: [
                 "bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-vueda-card",

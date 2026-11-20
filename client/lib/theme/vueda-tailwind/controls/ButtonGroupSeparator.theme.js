@@ -13,7 +13,11 @@ patchTheme({
      * ButtonGroup.
      */
     ButtonGroupSeparator: {
-        /** The explicit divider used inside a {@api theme-key:ButtonGroup} when the segmented cluster needs a visible split between text segments. Uses the `--input` token so the divider matches the surrounding hairline color in both modes, and stretches to the group's cross-axis. */
+        /**
+         * The explicit divider used inside a {@api theme-key:ButtonGroup} when the segmented cluster needs a visible
+         * split between text segments. Uses the `--input` token so the divider matches the surrounding hairline color
+         * in both modes, and stretches to the group's cross-axis.
+         */
         root: {
             class: ["bg-input relative !m-0 self-stretch data-[orientation=vertical]:h-auto"],
         },

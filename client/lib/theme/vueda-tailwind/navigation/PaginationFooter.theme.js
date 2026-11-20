@@ -12,31 +12,56 @@ patchTheme({
      * PaginationFooter styles the composed pagination widget used by higher-level data views.
      */
     PaginationFooter: {
-        /** Class forwarded to the embedded {@api theme-key:NavigationPaginationBar} root. Empty by default: the bar supplies the footer chrome (border, surface, radius caps) and the inner {@api theme-key:PaginationFooter.layout} owns the responsive arrangement. */
+        /**
+         * Class forwarded to the embedded {@api theme-key:NavigationPaginationBar} root. Empty by default: the bar
+         * supplies the footer chrome (border, surface, radius caps) and the inner
+         * {@api theme-key:PaginationFooter.layout} owns the responsive arrangement.
+         */
         root: {
             class: [],
         },
-        /** Footer arrangement inside the bar. Read-out group and navigation cluster sit on one row split to the edges from `sm` up (`justify-between`); below `sm` they wrap and center so the read-out and selector form a centered row above the navigation row. */
+        /**
+         * Footer arrangement inside the bar. Read-out group and navigation cluster sit on one row split to the edges
+         * from `sm` up (`justify-between`); below `sm` they wrap and center so the read-out and selector form a
+         * centered row above the navigation row.
+         */
         layout: {
             class: ["flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:justify-between"],
         },
-        /** Read-out group: the {@api theme-key:PaginationMeta} range string and the rows-per-page selector, grouped together (the mockup's left cluster). Wraps and centers on narrow viewports. */
+        /**
+         * Read-out group: the {@api theme-key:PaginationMeta} range string and the rows-per-page selector, grouped
+         * together (the mockup's left cluster). Wraps and centers on narrow viewports.
+         */
         summary: {
             class: ["flex flex-wrap items-center justify-center gap-x-4 gap-y-1"],
         },
-        /** Rows-per-page label wrapping the `NativeSelect`. Supporting-size muted label so the selector reads as secondary chrome beside the read-out. */
+        /**
+         * Rows-per-page label wrapping the `NativeSelect`. Supporting-size muted label so the selector reads as
+         * secondary chrome beside the read-out.
+         */
         rowsPerPage: {
             class: ["flex items-center gap-1.5 text-[length:var(--vueda-text-supporting)] text-muted-foreground"],
         },
-        /** Class forwarded to the embedded {@api theme-key:Pagination} navigation cluster (first / previous / page-report / next / last). `shrink-0` keeps the cluster intact; the component strips the primitive's `w-full` via a theme override so it sizes to its content rather than claiming a full row. */
+        /**
+         * Class forwarded to the embedded {@api theme-key:Pagination} navigation cluster (first / previous /
+         * page-report / next / last). `shrink-0` keeps the cluster intact; the component strips the primitive's
+         * `w-full` via a theme override so it sizes to its content rather than claiming a full row.
+         */
         paginator: {
             class: ["shrink-0"],
         },
-        /** Emphasis span wrapping the numeric figures in the range read-out (the row range and the total record count). Lifts those figures from the read-out's muted tone to `text-foreground` at `font-medium` so the meaningful counts pop against the muted label, matching the weight of the `Page N of M` report. */
+        /**
+         * Emphasis span wrapping the numeric figures in the range read-out (the row range and the total record count).
+         * Lifts those figures from the read-out's muted tone to `text-foreground` at `font-medium` so the meaningful
+         * counts pop against the muted label, matching the weight of the `Page N of M` report.
+         */
         rangeEmphasis: {
             class: ["font-medium text-foreground"],
         },
-        /** Mono "Page N of M" indicator between the previous and next controls; tabular for stable numeric width. `font-medium` so the figures carry the same weight as the emphasized range read-out. */
+        /**
+         * Mono "Page N of M" indicator between the previous and next controls; tabular for stable numeric width.
+         * `font-medium` so the figures carry the same weight as the emphasized range read-out.
+         */
         pageReport: {
             class: [
                 "px-2 font-mono text-[length:var(--vueda-text-supporting)] font-medium tabular-nums text-foreground",

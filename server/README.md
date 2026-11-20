@@ -61,7 +61,7 @@ inventory model from end to end.
 To add the server to an existing project, install from public PyPI with uv:
 
 ```console
-uv add "vueda>=3.0.0b1,<4" "psycopg[binary]"
+uv add "vueda>=3.0.0b2,<4" "psycopg[binary]"
 ```
 
 The v3 series is currently a prerelease. The version range selects it, and

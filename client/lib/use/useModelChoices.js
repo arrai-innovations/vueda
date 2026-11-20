@@ -1,6 +1,7 @@
 /**
  * @module use/useModelChoices
- * @description Provides a reactive composable for fetching and tracking field-level model choices, preserving deep references across app, model, or field changes.
+ * @description Provides a reactive composable for fetching and tracking field-level model choices, preserving deep
+ *  references across app, model, or field changes.
  */
 import { keyDiff, useLoadingError, useProxyLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelChoices } from "@vueda/stores/storeModelChoices.js";
@@ -42,14 +43,15 @@ import { computed, effectScope, reactive, readonly, toRef, unref, watch } from "
  */
 
 /**
- * Provides a reactive object for a given app, model, and field. This composition function is designed to preserve deep references
- * within the `choices` object, preventing them from breaking when the app, model, or field changes.
+ * Provides a reactive object for a given app, model, and field. This composition function is designed to preserve deep
+ * references within the `choices` object, preventing them from breaking when the app, model, or field changes.
  *
- * This function deeply mirrors (watches and clones) the model choices, which assumes that the choices data has low churn.
- * Frequent updates could have performance implications due to the deep cloning process.
+ * This function deeply mirrors (watches and clones) the model choices, which assumes that the choices data has low
+ * churn. Frequent updates could have performance implications due to the deep cloning process.
  *
  * @param {import('vue').Reactive<ChoicesOptions>|ChoicesOptions} fields - Field name(s) to fetch choices for.
- * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
+ * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be
+ *  reused.
  * @returns {UseModelChoices} An object containing reactive fields and actions for model choices.
  */
 export function useModelChoices(fields, isActive) {

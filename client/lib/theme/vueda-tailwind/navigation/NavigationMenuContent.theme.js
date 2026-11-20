@@ -12,7 +12,10 @@ patchTheme({
      * NavigationMenuContent styles the panel that appears under an open navigation menu item.
      */
     NavigationMenuContent: {
-        /** Panel content area with motion-aware slide transitions. When the viewport is disabled, this slot becomes its own popover surface. */
+        /**
+         * Panel content area with motion-aware slide transitions. When the viewport is disabled, this slot becomes its
+         * own popover surface.
+         */
         root: {
             class: [
                 // Motion and animation.

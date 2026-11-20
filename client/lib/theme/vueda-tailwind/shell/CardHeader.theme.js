@@ -13,7 +13,8 @@ patchTheme({
      */
     CardHeader: {
         /**
-         * The leading card header grid. It creates title and description rows and switches to a two-column layout when {@api theme-key:CardAction.root} is present.
+         * The leading card header grid. It creates title and description rows and switches to a two-column layout when
+         * {@api theme-key:CardAction.root} is present.
          */
         root: {
             class: [

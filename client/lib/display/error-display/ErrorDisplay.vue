@@ -11,7 +11,8 @@ import isEmpty from "lodash-es/isEmpty.js";
 import { ref, toRef, watch } from "vue";
 
 /**
- * Displays a dismissible error message card, reports the error to Sentry, and optionally renders a router-link for navigation.
+ * Displays a dismissible error message card, reports the error to Sentry, and optionally renders a router-link for
+ * navigation.
  */
 defineOptions({});
 

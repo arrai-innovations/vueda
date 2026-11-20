@@ -24,6 +24,7 @@ from django.core.exceptions import ImproperlyConfigured
 # not exist". Core deliberately does not know any section's defaults. The owning app declares those.
 FIRST_PARTY_SECTION_APPS = {
     "History": "vueda.history",
+    "Streams": "vueda.streams",
     "Workflow": "vueda.workflow",
 }
 

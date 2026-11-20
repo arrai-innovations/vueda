@@ -12,7 +12,10 @@ patchTheme({
      * DropdownMenuSubContent styles the floating surface for nested dropdown menu content.
      */
     DropdownMenuSubContent: {
-        /** Child popover surface for nested menu content. Mirrors {@api theme-key:DropdownMenuContent.root} without the scroll height cap. */
+        /**
+         * Child popover surface for nested menu content. Mirrors {@api theme-key:DropdownMenuContent.root} without the
+         * scroll height cap.
+         */
         root: {
             class: [
                 // Surface and color.

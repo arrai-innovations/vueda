@@ -12,7 +12,10 @@ patchTheme({
      * Increment stepper button anchored to the right of NumberFieldInput.
      */
     NumberFieldIncrement: {
-        /** The increment stepper anchored to the right edge of {@api theme-key:NumberFieldInput.root}. Mirror of {@api theme-key:NumberFieldDecrement.root}; same overlay positioning and same upper-bound fade. */
+        /**
+         * The increment stepper anchored to the right edge of {@api theme-key:NumberFieldInput.root}. Mirror of
+         * {@api theme-key:NumberFieldDecrement.root}; same overlay positioning and same upper-bound fade.
+         */
         root: {
             class: [
                 // Positioning and disabled state.

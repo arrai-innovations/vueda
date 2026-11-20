@@ -18,7 +18,10 @@ const props = defineProps({
         default: "top",
         validator: (value) => ["top", "bottom"].includes(value),
     },
-    /** Sort order of this bar within its zone's stack (ascending, top to bottom). Reactive: changing it re-sorts the stack. */
+    /**
+     * Sort order of this bar within its zone's stack (ascending, top to bottom). Reactive: changing it re-sorts the
+     * stack.
+     */
     order: {
         type: Number,
         default: 0,

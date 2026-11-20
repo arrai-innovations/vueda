@@ -14,7 +14,9 @@ patchTheme({
      */
     TableRow: {
         /**
-         * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting, the leading selected rail, and the standard divider. The divider sits on the row's cells rather than the `<tr>`: {@api theme-key:Table.table} uses the separated border model, which does not paint borders on rows.
+         * The row slot shared by header, body, and footer sections. It provides hover feedback, selected-row tinting,
+         * the leading selected rail, and the standard divider. The divider sits on the row's cells rather than the
+         * `<tr>`: {@api theme-key:Table.table} uses the separated border model, which does not paint borders on rows.
          */
         root: {
             class: [

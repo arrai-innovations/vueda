@@ -16,7 +16,9 @@ patchTheme({
         wrapper: {
             class: "absolute top-full left-0 isolate z-50 flex justify-center",
         },
-        /** Shared animated popover surface for navigation panels. See also: {@api theme-key:NavigationMenuContent.root}. */
+        /**
+         * Shared animated popover surface for navigation panels. See also: {@api theme-key:NavigationMenuContent.root}.
+         */
         root: {
             class: [
                 // Surface and color.

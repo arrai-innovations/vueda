@@ -142,6 +142,7 @@ const mockedUseTheme = makeUseThemeMock({ slotResolver: () => "theme" });
 vi.mock("@vueda/use/useTheme.js", () => ({ useTheme: mockedUseTheme, THEME_OVERRIDE_PROPS: {} }));
 
 const modelConfig = {
+    loading: false,
     info: { verboseName: "Person", verboseNamePlural: "People" },
     config: { actionRedirects: { default: "detail" } },
 };
@@ -255,7 +256,20 @@ describe("lib/views/ModelActionForm.vue", () => {
         instanceStubs.fallbackList = createInstanceStub();
         instanceStubs.instanceObject = createInstanceStub();
         routeQuery = {};
-        modelConfig.info = { verboseName: "Person", verboseNamePlural: "People" };
+        modelConfig.info = {
+            verboseName: "Person",
+            verboseNamePlural: "People",
+            actions: [
+                {
+                    name: "activate",
+                    detail: true,
+                    bulk: true,
+                    methodNames: ["post", "put", "patch"],
+                    urlPath: "activate",
+                },
+                { name: "archive", detail: true, bulk: true, methodNames: ["put"], urlPath: "archive" },
+            ],
+        };
         modelConfig.config = { actionRedirects: { default: "detail" } };
         actionFormWarnings = {};
         actionFormBulk = false;
@@ -513,6 +527,93 @@ describe("lib/views/ModelActionForm.vue", () => {
             mountModelActionForm({ props: { page: true } });
             const [, , context] = mockedUseTheme.mock.calls.at(-1);
             expect(context.page).toBe(true);
+        });
+    });
+
+    describe("View-only actions", () => {
+        beforeEach(() => {
+            modelConfig.info.actions = [
+                { name: "activate", detail: true, bulk: true, methodNames: ["get"], urlPath: "activate" },
+            ];
+        });
+
+        scopedIt("tells the user they only have view permission instead of asking to confirm", () => {
+            const { wrapper } = mountModelActionForm();
+            expect(wrapper.get('[data-qa="action-form-view-only-message"]').text()).toBe(
+                "Only viewing is permitted. You cannot activate these records.",
+            );
+            expect(wrapper.text()).not.toContain("Are you sure");
+        });
+
+        scopedIt("renders the view-only-message slot with the default text", () => {
+            const { wrapper } = mountModelActionForm({
+                slots: {
+                    "view-only-message": `<template #view-only-message="{ message }">
+                        <strong data-qa="custom-view-only">Custom: {{ message }}</strong>
+                    </template>`,
+                },
+            });
+            expect(wrapper.get('[data-qa="custom-view-only"]').text()).toBe(
+                "Custom: Only viewing is permitted. You cannot activate these records.",
+            );
+            expect(wrapper.find('[data-qa="action-form-view-only-message"]').exists()).toBe(false);
+        });
+
+        scopedIt("disables the confirm button and the dry run", () => {
+            const { wrapper } = mountModelActionForm();
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.attributes("disabled")).toBeDefined();
+            expect(wrapper.findComponent(ActionFormStub).props("readyToDryRun")).toBe(false);
+        });
+
+        scopedIt("passes requestMethod to the confirm-button slot so a host can hide the button", async () => {
+            const { wrapper } = mountModelActionForm({
+                slots: {
+                    "confirm-button": `<template #confirm-button="{ requestMethod, label }">
+                        <button v-if="requestMethod" data-qa="custom-confirm">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(wrapper.find('[data-qa="custom-confirm"]').exists()).toBe(false);
+
+            modelConfig.info.actions = [
+                { name: "activate", detail: true, bulk: true, methodNames: ["patch"], urlPath: "activate" },
+            ];
+            const { wrapper: permitted } = mountModelActionForm({
+                slots: {
+                    "confirm-button": `<template #confirm-button="{ requestMethod, label }">
+                        <button v-if="requestMethod" data-qa="custom-confirm">{{ label }}</button>
+                    </template>`,
+                },
+            });
+            expect(permitted.find('[data-qa="custom-confirm"]').exists()).toBe(true);
+        });
+
+        scopedIt("runs a host runAction for an action that model info does not list", async () => {
+            const runAction = vi.fn(() => Promise.resolve({ ok: true }));
+            const { wrapper } = mountModelActionForm({ props: { action: "approve", runAction } });
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            const actionForm = wrapper.findComponent(ActionFormStub);
+
+            expect(button.attributes("disabled")).toBeUndefined();
+            expect(actionForm.props("readyToDryRun")).toBe(true);
+            expect(wrapper.find('[data-qa="action-form-view-only-message"]').exists()).toBe(false);
+            await actionForm.props("runAction")({ dryRun: true });
+            expect(runAction).toHaveBeenCalledWith({ dryRun: true });
+            expect(instanceStubs.instanceObject.executeAction).not.toHaveBeenCalled();
+            expect(instanceStubs.fallbackList.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("blocks a requestMethod prop that methodNames does not list", async () => {
+            const { wrapper } = mountModelActionForm({ requestMethod: "PATCH" });
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            const actionForm = wrapper.findComponent(ActionFormStub);
+
+            expect(button.attributes("disabled")).toBeDefined();
+            expect(actionForm.props("readyToDryRun")).toBe(false);
+            expect(wrapper.find('[data-qa="action-form-view-only-message"]').exists()).toBe(true);
+            await expect(actionForm.props("runAction")({})).rejects.toThrow();
+            expect(instanceStubs.fallbackList.executeAction).not.toHaveBeenCalled();
         });
     });
 

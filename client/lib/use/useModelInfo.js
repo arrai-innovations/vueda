@@ -1,6 +1,7 @@
 /**
  * @module use/useModelInfo
- * @description Provides a reactive, deep-referenced model info object that updates when the app or model changes without breaking existing reactive references.
+ * @description Provides a reactive, deep-referenced model info object that updates when the app or model changes
+ *  without breaking existing reactive references.
  */
 import { useLoadingError } from "@arrai-innovations/reactive-helpers";
 import { storeModelInfo } from "@vueda/stores/storeModelInfo.js";
@@ -26,12 +27,12 @@ import { onScopeDispose, reactive, readonly, ref, toRef, unref, watch } from "vu
  */
 
 /**
- * Provides a reactive object for a given app and model. This composition function is designed to preserve deep references
- * within the `info` object, preventing them from breaking when the app or model changes. If `info` were simply a ref,
- * deep references would not update automatically with changes to the app or model.
+ * Provides a reactive object for a given app and model. This composition function is designed to preserve deep
+ * references within the `info` object, preventing them from breaking when the app or model changes. If `info` were
+ * simply a ref, deep references would not update automatically with changes to the app or model.
  *
- * This function deeply mirrors (watches and clones) the model information, which assumes that the model info has low churn.
- * Frequent updates could have performance implications due to the deep cloning process.
+ * This function deeply mirrors (watches and clones) the model information, which assumes that the model info has low
+ * churn. Frequent updates could have performance implications due to the deep cloning process.
  *
  * @param {import('vue').Ref<string>|string} app - A ref containing the app name that is being watched.
  * @param {import('vue').Ref<string>|string} model - A ref containing the model name that is being watched.

@@ -13,7 +13,8 @@ patchTheme({
      */
     StepperItem: {
         /**
-         * The wrapper for one step and its connector context. It opens the state group used by indicator and separator slots and suppresses pointer events when disabled.
+         * The wrapper for one step and its connector context. It opens the state group used by indicator and separator
+         * slots and suppresses pointer events when disabled.
          */
         root: {
             class: "flex items-center gap-2 group data-[disabled]:pointer-events-none",

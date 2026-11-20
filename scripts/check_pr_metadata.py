@@ -2,9 +2,12 @@
 """Check a pull request's labels and changelog fragments, adding labels it can infer.
 
 The `pull-request-metadata` workflow runs this on `pull_request_target`, which
-holds a write token. The script therefore never reads files from the pull
-request's branch. It learns the changed paths from the GitHub API and checks
-them against the configuration on the base branch.
+holds a write token. The script therefore never checks out or runs code from
+the pull request's branch. It learns the changed paths from the GitHub API and
+checks them against the configuration on the base branch. When the pull request
+changes a package's towncrier config, such as to add a topic, the script
+fetches that file from the pull request's head through the API and parses it as
+TOML instead.
 
 - Area labels: adds each `area:*` label whose package the pull request changes.
   It never removes one, and never adds `area:docs`.
@@ -25,6 +28,7 @@ would do without changing labels.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -58,13 +62,19 @@ AREA_PREFIXES = (
 )
 
 
-def fragment_rules() -> tuple[dict[str, set[str]], set[str]]:
-    """Return each package's topic directories and the fragment types, from the base branch's configs."""
+def fragment_rules(configs: dict[str, str]) -> tuple[dict[str, set[str]], set[str]]:
+    """Return each package's topic directories and the fragment types.
+
+    `configs` maps a package to the text of its towncrier config from the pull request's head. A package
+    that it leaves out uses the base branch's config.
+    """
     topics: dict[str, set[str]] = {}
     types: set[str] = set()
     for package in PACKAGES:
-        config = tomllib.loads((ROOT / CHANGELOG_DIR / f"{package}.toml").read_text(encoding="utf-8"))
-        towncrier = config["tool"]["towncrier"]
+        text = configs.get(package)
+        if text is None:
+            text = (ROOT / CHANGELOG_DIR / f"{package}.toml").read_text(encoding="utf-8")
+        towncrier = tomllib.loads(text)["tool"]["towncrier"]
         topics[package] = {section["path"] for section in towncrier["section"]}
         types |= {kind["directory"] for kind in towncrier["type"]}
     return topics, types
@@ -97,9 +107,9 @@ class GitHub:
         self.repository = repository
         self.token = token
 
-    def request(self, method: str, path: str, body: object | None = None) -> object:
+    def request(self, method: str, path: str, body: object | None = None, repository: str | None = None) -> object:
         request = urllib.request.Request(
-            f"https://api.github.com/repos/{self.repository}{path}",
+            f"https://api.github.com/repos/{repository or self.repository}{path}",
             method=method,
             data=None if body is None else json.dumps(body).encode(),
             headers={
@@ -120,6 +130,25 @@ class GitHub:
                 return files
             page += 1
 
+    def file_text(self, pull: dict, path: str) -> str:
+        """Return a file's text at the pull request's head commit. Nothing from it runs."""
+        head = pull["head"]
+        # A fork's head commit lives in the fork. GitHub reports no repository once the fork is deleted.
+        repository = head["repo"]["full_name"] if head["repo"] else None
+        content = self.request("GET", f"/contents/{path}?ref={head['sha']}", repository=repository)
+        return base64.b64decode(content["content"]).decode("utf-8")
+
+
+def head_configs(github: GitHub, pull: dict, files: list[dict]) -> dict[str, str]:
+    """Return the text of each towncrier config that the pull request changes, keyed by package."""
+    statuses = {changed["filename"]: changed["status"] for changed in files}
+    configs: dict[str, str] = {}
+    for package in PACKAGES:
+        path = f"{CHANGELOG_DIR}/{package}.toml"
+        if statuses.get(path, "removed") != "removed":
+            configs[package] = github.file_text(pull, path)
+    return configs
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -136,7 +165,12 @@ def main() -> int:
     pull = github.request("GET", f"/pulls/{number}")
     labels = {label["name"] for label in pull["labels"]}
     files = github.changed_files(number)
-    topics, types = fragment_rules()
+
+    try:
+        topics, types = fragment_rules(head_configs(github, pull, files))
+    except (tomllib.TOMLDecodeError, KeyError) as error:
+        print(f"::error::The pull request's towncrier config is not valid: {error!r}")
+        return 1
 
     errors: list[str] = []
     areas: set[str] = set()

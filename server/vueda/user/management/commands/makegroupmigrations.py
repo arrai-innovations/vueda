@@ -347,11 +347,12 @@ def get_group_migration_sources(import_instead=False, as_mapping=False):
 
 class Command(BaseCommand):
     help = (
-        "In the appropriate app, two files will get created. "
-        "`sql/view-view_name-0000.sql` - contains the SQL for the view. "
-        "`migrations/0000_view_name.py` - a migration that reads the appropriate files in the sql folder. "
-        "If the `migrations` and `sql` folder do not exist, they will be created, along with the apps initial "
-        "migration, and an empty migration for the view."
+        "Write a migration with the group permission changes that no group migration has recorded yet. "
+        "The command reads the GroupChange rows that VUEDA records for each change. It skips the rows that an "
+        "existing group migration already holds. It runs makemigrations --empty in the app of AUTH_USER_MODEL. "
+        "It then fills that migration with the remaining changes in the order that VUEDA recorded them, and with "
+        "functions that apply them forwards and backwards. Fake the new migration locally, because the local "
+        "database already has the changes."
     )
 
     def add_arguments(self, parser):

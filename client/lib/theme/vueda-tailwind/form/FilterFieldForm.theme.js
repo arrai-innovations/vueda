@@ -15,7 +15,10 @@ patchTheme({
      * {@api theme-key:FormModel}.
      */
     FilterFieldForm: {
-        /** Submit row at the foot of the form. Apply alone (right-aligned) when adding; Remove + Apply split apart when editing an active filter. */
+        /**
+         * Submit row at the foot of the form. Apply alone (right-aligned) when adding; Remove + Apply split apart when
+         * editing an active filter.
+         */
         actions: {
             class: ({ showRemove }) => ["mt-1 flex items-center gap-2", showRemove ? "justify-between" : "justify-end"],
         },

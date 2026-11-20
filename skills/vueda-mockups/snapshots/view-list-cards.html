@@ -10,15 +10,9 @@
 						</div>
 					</div>
 					<div class="vk-page-title-actions" data-qa="page-title-actions">
-						<a
-							data-slot="button"
-							data-tone="primary"
-							data-emphasis="fill"
-							class="vk-button-primary-fill"
-							disabled="false"
-							href="/kitlistcards/customer/create/"
-							>Create
-						</a>
+						<button data-slot="button" data-tone="primary" data-emphasis="fill" class="vk-button-primary-fill">
+							Create
+						</button>
 					</div>
 				</div>
 			</div>
@@ -205,6 +199,16 @@
 							</div>
 							<div
 								class="vk-objects-grid-header-2"
+								data-header="contactEmail"
+								data-qa="objects-grid-header"
+								role="columnheader"
+							>
+								<div class="vk-objects-grid-table-header-root" data-qa="objects-grid-table-header-root">
+									<span data-qa="objects-grid-table-header-label">Billing email</span>
+								</div>
+							</div>
+							<div
+								class="vk-objects-grid-header-2"
 								data-header="owner"
 								data-qa="objects-grid-header"
 								role="columnheader"
@@ -280,7 +284,7 @@
 										pkkey="id"
 										rowindex="0"
 										rowcount="4"
-										columncount="9"
+										columncount="10"
 										id="selected-row-1"
 										role="checkbox"
 										type="button"
@@ -295,15 +299,39 @@
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="domain">Primary domain</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="domain" role="cell" data-card="domain">
-									https://northwind.domain.invalid
+									<span
+										><a
+											class="vk-url-display-link"
+											href="https://northwind.domain.invalid"
+											data-qa="url-display-link"
+											rel="noopener noreferrer"
+											>https://northwind.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class="vk-objects-grid-card-container-div" data-card-header="contactEmail">Billing email</div>
+								<div
+									class="vk-objects-grid-card-container-div-3"
+									data-field="contactEmail"
+									role="cell"
+									data-card="contactEmail"
+								>
+									<span
+										><a
+											class="vk-url-display-link"
+											href="mailto:billing@northwind.domain.invalid"
+											data-qa="email-display-link"
+											>billing@northwind.domain.invalid</a
+										></span
+									>
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="owner">Owner</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="owner" role="cell" data-card="owner">
-									mt
+									Mara Tani
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="tier">Plan tier</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="tier" role="cell" data-card="tier">
-									enterprise
+									Enterprise
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="mrr">MRR</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="mrr" role="cell" data-card="mrr">
@@ -316,7 +344,7 @@
 									role="cell"
 									data-card="currency"
 								>
-									usd
+									USD
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="taxExempt">Tax-exempt</div>
 								<div
@@ -352,7 +380,7 @@
 										pkkey="id"
 										rowindex="1"
 										rowcount="4"
-										columncount="9"
+										columncount="10"
 										id="selected-row-2"
 										role="checkbox"
 										type="button"
@@ -367,15 +395,39 @@
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="domain">Primary domain</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="domain" role="cell" data-card="domain">
-									https://granger.domain.invalid
+									<span
+										><a
+											class="vk-url-display-link"
+											href="https://granger.domain.invalid"
+											data-qa="url-display-link"
+											rel="noopener noreferrer"
+											>https://granger.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class="vk-objects-grid-card-container-div" data-card-header="contactEmail">Billing email</div>
+								<div
+									class="vk-objects-grid-card-container-div-3"
+									data-field="contactEmail"
+									role="cell"
+									data-card="contactEmail"
+								>
+									<span
+										><a
+											class="vk-url-display-link"
+											href="mailto:billing@granger.domain.invalid"
+											data-qa="email-display-link"
+											>billing@granger.domain.invalid</a
+										></span
+									>
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="owner">Owner</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="owner" role="cell" data-card="owner">
-									jr
+									Jordan Reyes
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="tier">Plan tier</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="tier" role="cell" data-card="tier">
-									enterprise
+									Enterprise
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="mrr">MRR</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="mrr" role="cell" data-card="mrr">
@@ -388,7 +440,7 @@
 									role="cell"
 									data-card="currency"
 								>
-									usd
+									USD
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="taxExempt">Tax-exempt</div>
 								<div
@@ -424,7 +476,7 @@
 										pkkey="id"
 										rowindex="2"
 										rowcount="4"
-										columncount="9"
+										columncount="10"
 										id="selected-row-3"
 										role="checkbox"
 										type="button"
@@ -439,15 +491,39 @@
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="domain">Primary domain</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="domain" role="cell" data-card="domain">
-									https://aldergrove.domain.invalid
+									<span
+										><a
+											class="vk-url-display-link"
+											href="https://aldergrove.domain.invalid"
+											data-qa="url-display-link"
+											rel="noopener noreferrer"
+											>https://aldergrove.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class="vk-objects-grid-card-container-div" data-card-header="contactEmail">Billing email</div>
+								<div
+									class="vk-objects-grid-card-container-div-3"
+									data-field="contactEmail"
+									role="cell"
+									data-card="contactEmail"
+								>
+									<span
+										><a
+											class="vk-url-display-link"
+											href="mailto:billing@aldergrove.domain.invalid"
+											data-qa="email-display-link"
+											>billing@aldergrove.domain.invalid</a
+										></span
+									>
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="owner">Owner</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="owner" role="cell" data-card="owner">
-									ps
+									Priya Subramanian
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="tier">Plan tier</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="tier" role="cell" data-card="tier">
-									standard
+									Standard
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="mrr">MRR</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="mrr" role="cell" data-card="mrr">
@@ -499,7 +575,7 @@
 										pkkey="id"
 										rowindex="3"
 										rowcount="4"
-										columncount="9"
+										columncount="10"
 										id="selected-row-4"
 										role="checkbox"
 										type="button"
@@ -514,15 +590,32 @@
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="domain">Primary domain</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="domain" role="cell" data-card="domain">
-									https://vellumpress.domain.invalid
+									<span
+										><a
+											class="vk-url-display-link"
+											href="https://vellumpress.domain.invalid"
+											data-qa="url-display-link"
+											rel="noopener noreferrer"
+											>https://vellumpress.domain.invalid</a
+										></span
+									>
+								</div>
+								<div class="vk-objects-grid-card-container-div" data-card-header="contactEmail">Billing email</div>
+								<div
+									class="vk-objects-grid-card-container-div-3"
+									data-field="contactEmail"
+									role="cell"
+									data-card="contactEmail"
+								>
+									<span><span data-qa="email-display-dash">-</span></span>
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="owner">Owner</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="owner" role="cell" data-card="owner">
-									lb
+									Linnea Borg
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="tier">Plan tier</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="tier" role="cell" data-card="tier">
-									standard
+									Standard
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="mrr">MRR</div>
 								<div class="vk-objects-grid-card-container-div-3" data-field="mrr" role="cell" data-card="mrr">
@@ -535,7 +628,7 @@
 									role="cell"
 									data-card="currency"
 								>
-									gbp
+									GBP
 								</div>
 								<div class="vk-objects-grid-card-container-div" data-card-header="taxExempt">Tax-exempt</div>
 								<div

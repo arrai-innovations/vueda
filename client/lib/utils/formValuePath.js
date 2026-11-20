@@ -1,6 +1,7 @@
 /**
  * @module utils/formValuePath
- * @description Converts a dotted public field/filter identity into the literal, non-nesting path `useForm`'s lodash-based value storage addresses it by.
+ * @description Converts a dotted public field/filter identity into the literal, non-nesting path `useForm`'s
+ *  lodash-based value storage addresses it by.
  */
 
 /**

@@ -1,6 +1,7 @@
 /**
  * @module use/useFormModelFieldSlots
- * @description Forwards a `FormModel`'s per-field slots to the `FormModelField` components inside it, and reports per-field slots that cannot reach a field.
+ * @description Forwards a `FormModel`'s per-field slots to the `FormModelField` components inside it, and reports
+ *  per-field slots that cannot reach a field.
  */
 import { reportDevError } from "@vueda/utils/dev.js";
 import { FormModelFieldSlotsSymbol } from "@vueda/utils/symbols.js";
@@ -28,7 +29,8 @@ const topLevelField = (path) => path.replace(/^\['(.*?)'\]/, "$1").split(/[.[]/)
 /**
  * @typedef {object} FormModelFieldSlotsContext
  * @property {() => import('vue').Slots} slots - Returns the per-field slots that the form model received.
- * @property {() => () => void} register - Records a mounted `FormModelField`. Returns a function that removes the record.
+ * @property {() => () => void} register - Records a mounted `FormModelField`. Returns a function that removes the
+ *  record.
  */
 
 /**

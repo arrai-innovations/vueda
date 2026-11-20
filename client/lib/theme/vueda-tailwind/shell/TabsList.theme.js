@@ -13,7 +13,8 @@ patchTheme({
      */
     TabsList: {
         /**
-         * The segmented tab-list surface. It uses muted fill, compact height, and a small internal padding so active triggers read as selected slabs.
+         * The segmented tab-list surface. It uses muted fill, compact height, and a small internal padding so active
+         * triggers read as selected slabs.
          */
         root: {
             class: [

@@ -13,7 +13,9 @@ patchTheme({
      */
     PopoverContent: {
         /**
-         * The positioned popover panel. Uses the shared floating surface recipe. Width is not set here — the element uses `width: auto` (shrink-to-fit) by default; pass a `class` prop to the `PopoverContent` component to set a specific width or minimum if the content needs one.
+         * The positioned popover panel. Uses the shared floating surface recipe. Width is not set here — the element
+         * uses `width: auto` (shrink-to-fit) by default; pass a `class` prop to the `PopoverContent` component to set a
+         * specific width or minimum if the content needs one.
          */
         root: {
             class: [

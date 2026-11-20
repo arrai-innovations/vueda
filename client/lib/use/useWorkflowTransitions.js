@@ -16,7 +16,8 @@ import { onScopeDispose, reactive, readonly, ref, toRef, unref, watch } from "vu
  * @property {import('vue').Ref<Error|null>} error - The error encountered, if any.
  * @property {import('vue').Ref<boolean>} errored - Whether an error has occurred.
  * @property {() => void} clearError - Clears the error.
- * @property {import('vue').Ref<import('@vueda/stores/storeWorkflow.js').WorkflowTransition[]>} transitions - The list of transitions for the model.
+ * @property {import('vue').Ref<import('@vueda/stores/storeWorkflow.js').WorkflowTransition[]>} transitions - The list
+ *  of transitions for the model.
  */
 
 /**
@@ -30,7 +31,8 @@ import { onScopeDispose, reactive, readonly, ref, toRef, unref, watch } from "vu
  *
  * @param {import('vue').Ref<string>} app - A ref containing the app name that is being watched.
  * @param {import('vue').Ref<string>} model - A ref containing the model name that is being watched.
- * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be reused.
+ * @param {import('@vueda/use/useIsActive.js').IsActive|undefined} [isActive] - An IsActive instance, if one can be
+ *  reused.
  * @returns {WorkflowTransitions} An object containing transitions.
  */
 export function useWorkflowTransitions(app, model, isActive) {

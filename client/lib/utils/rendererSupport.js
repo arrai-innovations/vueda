@@ -46,7 +46,8 @@ export const getSlotNamesFor = (
     const baseSlots = getPrefixedSlots(slots, basePrefix, false, exclude, keepEmptySuffix);
 
     if (checkExpanded) {
-        const expandedSlots = getPrefixedSlots(slots, expandedPrefix, true, exclude, keepEmptySuffix); // retain full name
+        // retain full name
+        const expandedSlots = getPrefixedSlots(slots, expandedPrefix, true, exclude, keepEmptySuffix);
         return [...baseSlots, ...expandedSlots].filter(([slotName]) => slots[slotName]);
     }
     return baseSlots.filter(([slotName]) => slots[slotName]);

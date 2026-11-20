@@ -13,7 +13,8 @@ patchTheme({
      */
     Tabs: {
         /**
-         * The root stack for tabbed content. It keeps the tab list and active panel separated by a compact vertical gap.
+         * The root stack for tabbed content. It keeps the tab list and active panel separated by a compact vertical
+         * gap.
          */
         root: {
             class: "flex flex-col gap-2",

@@ -13,7 +13,8 @@ patchTheme({
      */
     FieldSet: {
         /**
-         * The stack for a fieldset's child fields. It uses the default field rhythm and tightens spacing when the direct child is a checkbox or radio group.
+         * The stack for a fieldset's child fields. It uses the default field rhythm and tightens spacing when the
+         * direct child is a checkbox or radio group.
          */
         root: {
             class: [

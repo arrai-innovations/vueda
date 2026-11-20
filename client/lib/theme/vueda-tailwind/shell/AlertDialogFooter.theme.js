@@ -13,7 +13,8 @@ patchTheme({
      */
     AlertDialogFooter: {
         /**
-         * The action row for an alert dialog. It stacks buttons in reverse order on narrow screens and aligns them to the end once horizontal space is available.
+         * The action row for an alert dialog. It stacks buttons in reverse order on narrow screens and aligns them to
+         * the end once horizontal space is available.
          */
         root: {
             class: "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",

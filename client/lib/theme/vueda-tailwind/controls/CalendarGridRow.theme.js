@@ -12,7 +12,10 @@ patchTheme({
      * A single week row inside a CalendarGrid.
      */
     CalendarGridRow: {
-        /** A single week row inside a {@api theme-key:CalendarGrid.root}. Flex row; cell width comes from `flex-1` on the children, not from a column template. */
+        /**
+         * A single week row inside a {@api theme-key:CalendarGrid.root}. Flex row; cell width comes from `flex-1` on
+         * the children, not from a column template.
+         */
         root: {
             class: ["flex"],
         },

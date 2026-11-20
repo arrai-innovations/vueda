@@ -13,7 +13,8 @@ patchTheme({
      */
     DrawerFooter: {
         /**
-         * The trailing action area inside a drawer. It pins itself after drawer body content and stacks actions with the standard 4px-grid gap.
+         * The trailing action area inside a drawer. It pins itself after drawer body content and stacks actions with
+         * the standard 4px-grid gap.
          */
         root: {
             class: "mt-auto flex flex-col gap-2 p-4",

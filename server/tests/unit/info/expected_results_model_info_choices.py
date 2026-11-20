@@ -252,4 +252,16 @@ EXPECTED_RESULTS = [
             "White",
         ),
     ),
+    (
+        "store",
+        "orderitemcompositepk",
+        "order",
+        ("1234",),
+    ),
+    (
+        "store",
+        "orderitemcompositepk",
+        "product",
+        ("Test Composite PK Product",),
+    ),
 ]

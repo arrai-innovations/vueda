@@ -1,6 +1,7 @@
 /**
  * @module utils/objectCrud
- * @description VUEDA-specific object CRUD functions (retrieve, create, update, patch, delete) for a single model instance.
+ * @description VUEDA-specific object CRUD functions (retrieve, create, update, patch, delete) for a single model
+ *  instance.
  */
 import { cancellableFetch, setObjectCrud } from "@arrai-innovations/reactive-helpers";
 import { deepUnref } from "@arrai-innovations/reactive-helpers";
@@ -45,7 +46,8 @@ const makeSearchParamsString = (searchParams) => {
  * }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {string} args.pk - The primary key of the object to retrieve.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
- * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} -
+ *  A cancellable promise.
  */
 export function defaultObjectRetrieve({ target, pk, params }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -81,7 +83,8 @@ export function defaultObjectRetrieve({ target, pk, params }) {
  * }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {object} args.object - The object to create.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
- * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} -
+ *  A cancellable promise.
  */
 export function defaultObjectCreate({ target, object, params, acknowledgeWarnings }) {
     const { app, model, action, pk } = target;
@@ -140,7 +143,8 @@ export function defaultObjectCreate({ target, object, params, acknowledgeWarning
  * @param {import("@arrai-innovations/reactive-helpers").CrudObject} args.object - The object to update.
  * @param {string} args.pkKey - The primary key field name on the object. Defaults to `id`.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
- * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} -
+ *  A cancellable promise.
  */
 export function defaultObjectUpdate({ target, object, pkKey = "id", params, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -197,7 +201,8 @@ export function defaultObjectUpdate({ target, object, pkKey = "id", params, ackn
  * @param {object} args.partialObject - The partial object to patch.
  * @param {object} args.params - The arguments to be passed as querystring to the retrieve action.
  * @param {string} [args.acknowledgeWarnings] - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
- * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<import("@arrai-innovations/reactive-helpers").CrudObject>} -
+ *  A cancellable promise.
  */
 export function defaultObjectPatch({ target, pk, partialObject, params, acknowledgeWarnings }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
@@ -282,17 +287,21 @@ export function defaultObjectDelete({ target, pk, deleteArgs, formData, dryRun, 
  * @param {object} args - The arguments object.
  * @param {{ app:string, model:string }} args.target - VUEDA specific arguments for the CRUD operation.
  * @param {string} args.pk - The primary key of the object to act on.
- * @param {string} args.action - The action name, used as the url's action segment.
+ * @param {string} args.action - The action name, as model info reports it.
+ * @param {string} [args.urlPath] - The url's action segment. `useModelAction` passes the `urlPath` that model info
+ *  reports for the action. Defaults to `action`.
  * @param {string} [args.requestMethod] - The HTTP method for the request. Defaults to `"PUT"`.
  * @param {object} [args.formData] - Form values submitted with the action, sent as the request body.
  * @param {boolean} [args.dryRun] - When true, sends the request in dry-run mode.
  * @param {string} [args.acknowledgeWarnings] - Warning digest from a prior 409, sent as `Acknowledge-Warnings`.
- * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<object|string|undefined>} - A cancellable promise.
+ * @returns {import("@arrai-innovations/reactive-helpers").CancellablePromise<object|string|undefined>} - A cancellable
+ *  promise.
  */
 export function defaultObjectExecuteAction({
     target,
     pk,
     action,
+    urlPath = action,
     requestMethod = "PUT",
     formData,
     dryRun,
@@ -300,7 +309,7 @@ export function defaultObjectExecuteAction({
 }) {
     // ### This function cannot be async, or we'll lose the ability to cancel the request. ###
     const { app, model } = target;
-    const url = getDetailUrl({ app, model, pk, action });
+    const url = getDetailUrl({ app, model, pk, action: urlPath });
 
     return cancellableFetch(
         url,

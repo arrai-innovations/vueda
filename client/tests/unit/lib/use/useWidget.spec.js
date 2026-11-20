@@ -433,6 +433,15 @@ describe("lib/use/useWidget.js", () => {
                     );
                     expect(widget.state.combinedValue).toBe("contextValue");
                 });
+                scopedIt("exposes fieldContext.state.initialValue as initialValue", () => {
+                    const { widget } = mountWidgetInContext({ initialValue: 4 }, { contextless: false });
+                    expect(widget.state.initialValue).toBe(4);
+                });
+                scopedIt("has no initialValue without a context or when contextless", () => {
+                    expect(mountWidgetNoContext({ modelValue: 4 }).widget.state.initialValue).toBeUndefined();
+                    const { widget } = mountWidgetInContext({ initialValue: 4 }, { contextless: true });
+                    expect(widget.state.initialValue).toBeUndefined();
+                });
                 scopedIt("uses props.modelValue if context is absent", () => {
                     const { widget } = mountWidgetNoContext({ modelValue: "propValue" });
                     expect(widget.state.combinedValue).toBe("propValue");

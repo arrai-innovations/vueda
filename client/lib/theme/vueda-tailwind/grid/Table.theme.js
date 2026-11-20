@@ -15,7 +15,9 @@ patchTheme({
      */
     Table: {
         /**
-         * The card surface around the scroll container: fill, radius, and {@api css-token:vueda-hairline-width} edge. Its padding matches the edge width, so the scroll container sits inside the painted edge and no row or sticky header cell can cover it.
+         * The card surface around the scroll container: fill, radius, and {@api css-token:vueda-hairline-width} edge.
+         * Its padding matches the edge width, so the scroll container sits inside the painted edge and no row or sticky
+         * header cell can cover it.
          */
         frame: {
             class: [
@@ -24,7 +26,9 @@ patchTheme({
             ],
         },
         /**
-         * The scroll container around the native table, inside {@api theme-key:Table.frame}. It owns horizontal overflow and the sticky-table height cap used when `Table` receives `sticky`. Its radius is the card radius less the edge width, so scrolled content clips to the inside of the frame's corners.
+         * The scroll container around the native table, inside {@api theme-key:Table.frame}. It owns horizontal
+         * overflow and the sticky-table height cap used when `Table` receives `sticky`. Its radius is the card radius
+         * less the edge width, so scrolled content clips to the inside of the frame's corners.
          */
         container: {
             class: [
@@ -34,7 +38,9 @@ patchTheme({
             ],
         },
         /**
-         * The native `<table>` element. It carries the numeric font features, border model, and `data-density` hook that {@api theme-key:TableHead.root} and {@api theme-key:TableCell.root} read. Density tiers map default, compact, and condensed rows to progressively tighter row heights.
+         * The native `<table>` element. It carries the numeric font features, border model, and `data-density` hook
+         * that {@api theme-key:TableHead.root} and {@api theme-key:TableCell.root} read. Density tiers map default,
+         * compact, and condensed rows to progressively tighter row heights.
          */
         table: {
             class: [

@@ -9,11 +9,13 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * Progress renders a determinate or indeterminate progress track. Size and tone options adjust the track height and semantic fill treatment.
+     * Progress renders a determinate or indeterminate progress track. Size and tone options adjust the track height and
+     * semantic fill treatment.
      */
     Progress: {
         /**
-         * The progress track surface and clipping frame. It sets the canonical 8px default height, optional compact or large heights, and status track tints.
+         * The progress track surface and clipping frame. It sets the canonical 8px default height, optional compact or
+         * large heights, and status track tints.
          */
         root: ({ size, tone }) => ({
             class: [
@@ -30,7 +32,8 @@ patchTheme({
             ],
         }),
         /**
-         * The moving progress fill. Determinate values are translated by the component inline style, while indeterminate progress narrows the fill and uses the `--animate-vueda-progress-slide` animation.
+         * The moving progress fill. Determinate values are translated by the component inline style, while
+         * indeterminate progress narrows the fill and uses the `--animate-vueda-progress-slide` animation.
          */
         indicator: ({ tone }) => ({
             class: [

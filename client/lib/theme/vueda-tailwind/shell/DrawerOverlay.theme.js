@@ -13,7 +13,8 @@ patchTheme({
      */
     DrawerOverlay: {
         /**
-         * The drawer backdrop layer. It fills the viewport with the shared overlay token and fades with drawer state changes.
+         * The drawer backdrop layer. It fills the viewport with the shared overlay token and fades with drawer state
+         * changes.
          */
         root: {
             class: [

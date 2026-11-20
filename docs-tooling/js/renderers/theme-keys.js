@@ -33,13 +33,22 @@ function familyPagePath(familyName) {
     return `theming/keys/family/${familySlug(familyName)}.md`;
 }
 
-function firstSentence(text) {
+/**
+ * Returns the first paragraph of a description, joined onto one line for a table cell. A JSDoc paragraph can span
+ * several source lines, so the paragraph ends at the first blank line.
+ *
+ * @param {string|null|undefined} text - The description.
+ * @returns {string} The first paragraph. The result is empty when there is no description.
+ */
+function firstParagraph(text) {
     if (!text) {
         return "";
     }
-    const trimmed = String(text).trim();
-    const firstLine = trimmed.split(/\r?\n/, 1)[0] || "";
-    return firstLine.trim();
+    const paragraph =
+        String(text)
+            .trim()
+            .split(/\r?\n\s*\r?\n/, 1)[0] || "";
+    return paragraph.replace(/\s+/g, " ").trim();
 }
 
 function formatSourceLine(source) {
@@ -193,14 +202,14 @@ function renderComponentPage(component, family, options) {
 
 function componentSummaryRow(component) {
     const slotCount = component.slots.length;
-    const description = firstSentence(component.description);
+    const description = firstParagraph(component.description);
     return [`[${component.name}](../${component.name}.md)`, component.kind, String(slotCount), description];
 }
 
 function componentSummaryRowFromIndex(component) {
     // Linked from the global index at theming/keys.md → theming/keys/<Component>.md
     const slotCount = component.slots.length;
-    const description = firstSentence(component.description);
+    const description = firstParagraph(component.description);
     return [`[${component.name}](./keys/${component.name}.md)`, component.kind, String(slotCount), description];
 }
 

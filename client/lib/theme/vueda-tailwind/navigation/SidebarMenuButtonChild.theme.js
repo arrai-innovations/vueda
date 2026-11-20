@@ -12,7 +12,10 @@ patchTheme({
      * SidebarMenuButtonChild styles the interactive button content used by sidebar menu items.
      */
     SidebarMenuButtonChild: {
-        /** Primary sidebar menu button content. Active state uses a rail and icon tint, not a type-weight bump, so hover does not shift label width. */
+        /**
+         * Primary sidebar menu button content. Active state uses a rail and icon tint, not a type-weight bump, so hover
+         * does not shift label width.
+         */
         root: ({ variant, size }) => ({
             class: [
                 // Layout and spacing.

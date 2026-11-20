@@ -9,7 +9,8 @@ import { patchTheme } from "@vueda/theme/vueda-tailwind/registry.js";
 
 patchTheme({
     /**
-     * DateRangeDisplay formats a start and end date with a stable separator. Its slots keep each date segment individually addressable.
+     * DateRangeDisplay formats a start and end date with a stable separator. Its slots keep each date segment
+     * individually addressable.
      */
     DateRangeDisplay: {
         /** Inline date-range wrapper that prevents the paired dates and separator from wrapping apart. */

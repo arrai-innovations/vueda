@@ -223,6 +223,9 @@
         }
     },
     "settings": {
+        "ALLOWED_HOSTS": {
+            "configKey": "ALLOWED_HOSTS"
+        },
         "AUTH_USER_MODEL": {
             "configKey": "AUTH_USER_MODEL"
         },

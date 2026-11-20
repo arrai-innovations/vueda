@@ -10,6 +10,8 @@ from rest_framework.fields import Field
 from rest_framework.serializers import BaseSerializer
 from rest_framework.serializers import ListSerializer
 
+from vueda.core.utils import unwrap_expandable_field
+
 
 def _resolve_lazy_serializer_string(lazy_path):
     """Resolve a flex-fields lazy serializer string, using flex-fields' own resolver.
@@ -22,20 +24,6 @@ def _resolve_lazy_serializer_string(lazy_path):
         return resolver._get_serializer_class_from_lazy_string(lazy_path), None
     except Exception as exc:  # flex-fields raises a bare Exception on failed resolution
         return None, str(exc)
-
-
-def _unwrap_expandable_field(field_data):
-    """Split an ``expandable_fields`` value into ``(field_serializer, expand_options)``.
-
-    An empty tuple carries no serializer, so it unwraps to ``None``. ``_validate_expandable_field``
-    reports it as a malformed entry before it reaches here; graph traversal skips it.
-    """
-    if isinstance(field_data, tuple):
-        return (
-            field_data[0] if field_data else None,
-            field_data[1] if len(field_data) > 1 else {},
-        )
-    return field_data, {}
 
 
 def _validate_expandable_field(serializer_class, field_name, field_data):
@@ -69,7 +57,7 @@ def _validate_expandable_field(serializer_class, field_name, field_data):
         )
         return errors, None
 
-    field_serializer, expand_options = _unwrap_expandable_field(field_data)
+    field_serializer, expand_options = unwrap_expandable_field(field_data)
 
     if isinstance(field_data, tuple) and not isinstance(expand_options, dict):
         errors.append(
@@ -178,7 +166,7 @@ def _resolve_expandable_field_serializer_class(field_data):
     Structural validity (tuple shape, resolvable strings, etc.) is ``check_expandable_fields_configuration``'s
     job; this simply returns ``None`` when the entry can't be resolved to a class, so the caller can skip it.
     """
-    field_serializer, _expand_options = _unwrap_expandable_field(field_data)
+    field_serializer, _expand_options = unwrap_expandable_field(field_data)
 
     if isinstance(field_serializer, str):
         field_serializer, _error = _resolve_lazy_serializer_string(field_serializer)
@@ -308,12 +296,13 @@ def check_exclude_fields_serializer_usage(app_configs, **kwargs):
     entry (``vueda_core.E007``, ``E008``), or as the ``serializer_class`` of a routed DRF view that is not
     a ViewSet (``vueda_core.E021``).
 
-    ``ExcludeFieldsSerializerMixin.get_extra_kwargs()`` picks its exclusions from the action of the view in
-    the serializer's context. A nested serializer shares its root serializer's context, so a nested copy of
-    the mixin would apply its exclusions for the parent view's action. That behavior is not supported, so
-    these uses are rejected. Only a ViewSet has an action, so the mixin raises ``ImproperlyConfigured``
-    whenever any other DRF view builds its fields. A serializer registered with ``register_serializer()`` is
-    not reported for having no ViewSet of its own. Without a view in context, the mixin excludes no fields.
+    ``ExcludeFieldsSerializerMixin.excluded_fields_for_action()`` picks its exclusions from the action of the view
+    in the serializer's context. ``get_extra_kwargs()`` and the expand lock both use it. A nested serializer shares
+    its root serializer's context, so a nested copy of the mixin would apply its exclusions for the parent view's
+    action. That behavior is not supported, so these uses are rejected. Only a ViewSet has an action, so the mixin
+    raises ``ImproperlyConfigured`` whenever any other DRF view builds its fields. A serializer registered with
+    ``register_serializer()`` is not reported for having no ViewSet of its own. Without a view in context, the
+    mixin excludes no fields.
     """
     from rest_framework.viewsets import ViewSetMixin
 

@@ -12,7 +12,11 @@ patchTheme({
      * The remove (x) button at the trailing edge of a TagsInputItem.
      */
     TagsInputItemDelete: {
-        /** The remove (x) button at the trailing edge of a {@api theme-key:TagsInputItem.root}. Transparent fill so the button rides on the chip's secondary surface rather than punching its own swatch; the trailing 4px margin separates the glyph from the chip's pill end so the hit target does not run into the rounded edge. */
+        /**
+         * The remove (x) button at the trailing edge of a {@api theme-key:TagsInputItem.root}. Transparent fill so the
+         * button rides on the chip's secondary surface rather than punching its own swatch; the trailing 4px margin
+         * separates the glyph from the chip's pill end so the hit target does not run into the rounded edge.
+         */
         root: {
             class: ["flex rounded bg-transparent mr-1"],
         },

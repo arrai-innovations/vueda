@@ -96,7 +96,10 @@ const mergeRegistry = (base, override) => {
  * @vueda-spread props
  */
 export const ICON_OVERRIDE_PROPS = {
-    /** A partial icon registry (`{ [componentName]: { [iconName]: { component, props } } }`) merged with inherited and default icon entries; scopes icon overrides to this component and its descendants. */
+    /**
+     * A partial icon registry (`{ [componentName]: { [iconName]: { component, props } } }`) merged with inherited and
+     * default icon entries; scopes icon overrides to this component and its descendants.
+     */
     iconOverride: {
         type: Object,
         default: null,
@@ -143,7 +146,8 @@ export function useIconsOverride(localOverride) {
  * consumed directly. Without `props`, resolution reads the injected ancestor override as before.
  *
  * @param {string} componentName - The name of the component.
- * @param {import('vue').UnwrapNestedRefs<IconOverrideProps>} [props] - Reactive props carrying `iconOverride` (from `ICON_OVERRIDE_PROPS`).
+ * @param {import('vue').UnwrapNestedRefs<IconOverrideProps>} [props] - Reactive props carrying `iconOverride` (from
+ *  `ICON_OVERRIDE_PROPS`).
  * @returns {UseIconsReturnFunction}
  */
 export function useIcons(componentName, props) {
