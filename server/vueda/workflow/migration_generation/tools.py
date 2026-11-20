@@ -247,10 +247,6 @@ WORKFLOW_MIGRATION_KIND = MigrationKind(
         "forwards_migrate_workflow": "forwards_migrate_workflow_through_imports",
         "backwards_migrate_workflow": "backwards_migrate_workflow_through_imports",
     },
-    current_module="vueda.workflow.migration_generation.operations",
-    entry_functions=frozenset(
-        ("forwards_migrate_workflow", "backwards_migrate_workflow", "make_sure_permissions_exist")
-    ),
     get_sources=get_migration_sources,
     get_imports=get_migration_imports,
     obsolete_names=OBSOLETE_WORKFLOW_NAMES,

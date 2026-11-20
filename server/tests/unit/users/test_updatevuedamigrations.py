@@ -247,18 +247,88 @@ def test_changed_data_that_a_refresh_cannot_read_names_the_reason(changed_data_s
     assert read_changed_data(changed_data_source, "unreadable.py") == (None, problem)
 
 
-def test_a_migration_that_imports_its_functions_is_refused():
-    """Only VUEDA's own tests write migrations that import their functions instead of copying them."""
+def test_an_import_that_a_copied_function_replaces_is_removed():
+    """Some group migrations import two helpers instead of holding copies of them. The copies replace the imports."""
+    source = (OLD_MIGRATIONS / "group_imported_helpers_2026_04.py.txt").read_text()
+
+    result = refresh_migration(source, GROUP_MIGRATION_KIND)
+
+    assert result.replaced_imports == (
+        "vueda.user.management.commands.utils.create_group_change",
+        "vueda.user.management.commands.utils.get_matching_record",
+    )
+    assert "from vueda.user.management.commands.utils import" not in result.source
+    assert "\ndef create_group_change(change, group_change_model):" in result.source
+    assert "\ndef get_matching_record(change, group_change_model):" in result.source
+    assert not refresh_migration(result.source, GROUP_MIGRATION_KIND).changed
+
+
+def test_functions_imported_from_a_module_that_no_longer_exists_are_copied_in():
+    """A migration can import the functions that it runs. The copies replace those imports, even from a module that
+    VUEDA has removed."""
+    source = (OLD_MIGRATIONS / "group_copied_2026_06.py.txt").read_text()
+    source = source.replace(
+        "from django.db import migrations\n",
+        "from django.db import migrations\n"
+        "from vueda.user.management.commands.makegroupmigrations import backwards_migrate_groups\n"
+        "from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups\n",
+    )
+
+    result = refresh_migration(source, GROUP_MIGRATION_KIND)
+
+    assert result.replaced_imports == (
+        "vueda.user.management.commands.makegroupmigrations.backwards_migrate_groups",
+        "vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups",
+    )
+    assert "commands.makegroupmigrations import" not in result.source
+
+
+def test_an_import_statement_keeps_the_names_that_are_not_copied():
+    source = (OLD_MIGRATIONS / "group_imported_helpers_2026_04.py.txt").read_text()
     source = (
-        "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow\n\n"
-        'history_change_reason = "Workflow Migration - x"\n'
-        "changed_data = []\n"
+        source.replace(
+            "from vueda.user.management.commands.utils import create_group_change\n",
+            "from vueda.user.management.commands.utils import NEWLINE, create_group_change\n",
+        )
+        + "\n\nSEPARATOR = NEWLINE\n"
+    )
+
+    result = refresh_migration(source, GROUP_MIGRATION_KIND)
+
+    assert "from vueda.user.management.commands.utils import NEWLINE\n" in result.source
+    assert "import create_group_change" not in result.source
+
+
+def test_a_name_from_a_module_that_no_longer_exists_is_refused():
+    """The migration would fail when it runs, and nothing can copy a name that VUEDA no longer has."""
+    source = (OLD_MIGRATIONS / "group_copied_2026_06.py.txt").read_text()
+    source = (
+        source.replace(
+            "from django.db import migrations\n",
+            "from django.db import migrations\n"
+            "from vueda.user.management.commands.makegroupmigrations import retired_helper\n",
+        )
+        + "\n\ndef my_own_step(apps, schema_editor):\n    return retired_helper()\n"
     )
 
     with pytest.raises(
-        RefreshError, match=r"imports its functions from vueda\.workflow\.migration_generation\.operations"
+        RefreshError, match=r"uses vueda\.user\.management\.commands\.makegroupmigrations\.retired_helper"
     ):
-        refresh_migration(source, WORKFLOW_MIGRATION_KIND)
+        refresh_migration(source, GROUP_MIGRATION_KIND)
+
+
+def test_an_unused_import_from_a_module_that_no_longer_exists_is_removed():
+    source = (OLD_MIGRATIONS / "group_copied_2026_06.py.txt").read_text()
+    source = source.replace(
+        "from django.db import migrations\n",
+        "from django.db import migrations\n"
+        "from vueda.user.management.commands.makegroupmigrations import retired_helper\n",
+    )
+
+    result = refresh_migration(source, GROUP_MIGRATION_KIND)
+
+    assert result.removed_missing_imports == ("vueda.user.management.commands.makegroupmigrations.retired_helper",)
+    assert "commands.makegroupmigrations import" not in result.source
 
 
 def test_a_workflow_migration_without_its_history_change_reason_is_refused():
@@ -274,6 +344,12 @@ def test_a_workflow_migration_without_its_history_change_reason_is_refused():
             "group_copied_direct_runpython_2026_06.py.txt",
             GROUP_MIGRATION_KIND,
             "code=forwards_migrate_groups_through_imports,",
+            (),
+        ),
+        (
+            "group_imported_helpers_2026_04.py.txt",
+            GROUP_MIGRATION_KIND,
+            "def forwards_migrate_groups(apps, changed_items):",
             (),
         ),
         (
@@ -349,6 +425,7 @@ def test_a_function_inserted_before_an_existing_one_keeps_two_blank_lines_on_eac
     [
         ("group_copied_2026_06.py.txt", GROUP_MIGRATION_KIND),
         ("group_copied_direct_runpython_2026_06.py.txt", GROUP_MIGRATION_KIND),
+        ("group_imported_helpers_2026_04.py.txt", GROUP_MIGRATION_KIND),
         ("workflow_copied_2026_06.py.txt", WORKFLOW_MIGRATION_KIND),
     ],
 )
@@ -528,7 +605,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert "Would update 1 workflow migration(s)." in out
             assert path.read_text() == before
 
-    def test_a_workflow_migration_that_runs_before_the_workflow_events_is_left_unchanged(self, settings):
+    def test_a_workflow_migration_that_runs_before_the_workflow_events_is_skipped(self, settings):
+        """The migration has to keep the functions that it was written with, so the run does not count it as a
+        failure."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -543,9 +622,10 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             out, err, status = run_update()
 
-            assert status == 1
-            assert f"Cannot update {path}: its dependencies do not include vueda_workflow.0008_" in err
-            assert "Failed updating 1 migration(s)." in out
+            assert (status, err) == (0, "")
+            assert f"Skipping: {path}\n  Its dependencies do not include vueda_workflow.0008_" in out
+            assert "Keep its existing functions; review the migration graph before changing dependencies." in out
+            assert "Skipped 1 migration(s) that must keep their functions." in out
             assert path.read_text() == before
 
     def test_a_migration_that_is_not_valid_python_fails_and_the_others_are_still_refreshed(self, settings):

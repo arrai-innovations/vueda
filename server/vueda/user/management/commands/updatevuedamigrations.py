@@ -37,6 +37,13 @@ class _GeneratedFile:
     read_problem: str | None = None
 
 
+# What happened to one migration in a run.
+_UPDATED = "updated"
+_UP_TO_DATE = "up to date"
+_SKIPPED = "skipped"
+_FAILED = "failed"
+
+
 class Command(BaseCommand):
     help = (
         "Refresh every generated group and workflow migration in your project with the functions and imports that "
@@ -70,17 +77,19 @@ class Command(BaseCommand):
             workflow = self._prepare_workflow(files)
 
         updated = {}
-        up_to_date = 0
+        up_to_date = skipped = 0
         for generated in writable:
             outcome = self._refresh_file(generated, workflow)
-            if outcome is None:
+            if outcome == _FAILED:
                 failed += 1
-            elif outcome:
+            elif outcome == _UPDATED:
                 updated[generated.kind.name] = updated.get(generated.kind.name, 0) + 1
+            elif outcome == _SKIPPED:
+                skipped += 1
             else:
                 up_to_date += 1
 
-        self._write_summary(updated, up_to_date, failed)
+        self._write_summary(updated, up_to_date, skipped, failed)
         if failed:
             sys.exit(1)
 
@@ -178,15 +187,15 @@ class Command(BaseCommand):
         }
 
     def _refresh_file(self, generated, workflow):
-        """Refresh one migration, and return True when it changed.
+        """Refresh one migration, and return what happened to it.
 
-        The result is False when the migration was already up to date. It is None when the refresh failed.
+        The result is ``_UPDATED``, ``_UP_TO_DATE``, ``_SKIPPED`` or ``_FAILED``.
         """
         update_changed_data = None
-        blocked = None
+        blocked = skip = None
         if generated.kind.name == "workflow":
-            blocked = self._workflow_blocker(generated, workflow)
-            if blocked is None:
+            blocked, skip = self._workflow_blocker(generated, workflow)
+            if blocked is None and skip is None:
                 update_changed_data = workflow["module"].changed_data_updater(
                     workflow["identities"], generated.path, stderr=self.stderr, dry_run=self.dry_run
                 )
@@ -201,53 +210,71 @@ class Command(BaseCommand):
             self.stderr.write(
                 self.style.ERROR(f"  Could not update {generated.path}: {error} Leaving the file unchanged.")
             )
-            return None
+            return _FAILED
         if blocked is not None:
             self.stderr.write(
                 self.style.ERROR(f"  Cannot update {generated.path}: {blocked} Leaving the file unchanged.")
             )
-            return None
+            return _FAILED
+        if skip is not None:
+            self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
+            self.stdout.write(f"  Its {skip}")
+            return _SKIPPED
 
         if not result.changed:
             self.stdout.write(f"Already up to date: {generated.path}")
-            return False
+            return _UP_TO_DATE
 
         self.stdout.write(f"{'Would update' if self.dry_run else 'Updating'}: {generated.path}")
         for name in result.removed_names:
             self.stdout.write(f"  Removed {name}, which VUEDA no longer writes and nothing uses.")
+        for name in result.replaced_imports:
+            self.stdout.write(f"  Replaced the import of {name} with a copy.")
+        for name in result.removed_missing_imports:
+            self.stdout.write(f"  Removed the import of {name}, whose module no longer exists.")
         if not self.dry_run:
             try:
                 _write_atomically(generated.path, result.source)
             except OSError as error:
                 self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
-                return None
-        return True
+                return _FAILED
+        return _UPDATED
 
     def _workflow_blocker(self, generated, workflow):
-        """Return why the migration graph stops a workflow migration from being refreshed. It is None when
-        nothing does."""
+        """Return why the migration graph stops a workflow migration from being refreshed, as a pair.
+
+        The first value says why the refresh fails. The second says why the migration is skipped on purpose. Each
+        is None when it does not apply.
+        """
         workflow_refresh = workflow["module"]
         if workflow["loader"] is None:
-            return f"{workflow['loader_problem']}."
+            return f"{workflow['loader_problem']}.", None
         migration_key = (generated.app_label, generated.path.stem)
         try:
             has_workflow_events = workflow_refresh.requires_workflow_events(workflow["loader"], migration_key)
         except NodeNotFoundError:
-            return "the migration graph does not include it, for example because a squashed migration replaces it."
-        if not has_workflow_events:
-            required = workflow_refresh.REQUIRED_WORKFLOW_MIGRATION
             return (
-                f"its dependencies do not include {required[0]}.{required[1]}, which the current workflow "
-                "functions require."
+                "the migration graph does not include it, for example because a squashed migration replaces it.",
+                None,
             )
-        return None
+        if not has_workflow_events:
+            # Such a migration ran before the event tables existed, so its own copies are the ones that it needs.
+            required = workflow_refresh.REQUIRED_WORKFLOW_MIGRATION
+            return None, (
+                f"dependencies do not include {required[0]}.{required[1]}, which the current workflow "
+                "functions require. Keep its existing functions; review the migration graph before changing "
+                "dependencies."
+            )
+        return None, None
 
-    def _write_summary(self, updated, up_to_date, failed):
+    def _write_summary(self, updated, up_to_date, skipped, failed):
         for kind_name, count in sorted(updated.items()):
             verb = "Would update" if self.dry_run else "Updated"
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}{verb} {count} {kind_name} migration(s)."))
         if up_to_date:
             self.stdout.write(self.style.SUCCESS(f"Already up to date: {up_to_date} migration(s)."))
+        if skipped:
+            self.stdout.write(self.style.WARNING(f"Skipped {skipped} migration(s) that must keep their functions."))
         if failed:
             verb = "Would have failed updating" if self.dry_run else "Failed updating"
             self.stdout.write(self.style.ERROR(f"{verb} {failed} migration(s)."))

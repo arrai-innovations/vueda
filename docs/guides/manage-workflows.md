@@ -222,7 +222,7 @@ The previous release does not know that the model has workflow. Objects that it 
 python manage.py updatevuedamigrations
 ```
 
-For each migration, it prints `Updating:` when it rewrote the file, or `Already up to date:` when nothing needed to change. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, and how many failed. It exits with status 1 if any file fails.
+For each migration, it prints `Updating:` when it rewrote the file, `Already up to date:` when nothing needed to change, or `Skipping:` for a migration that must keep its functions. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, how many it skipped, and how many failed. It exits with status 1 if any file fails.
 
 `--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update.
 
@@ -262,6 +262,8 @@ For each workflow migration that passes the dependency check, the command:
 
 - Replaces the embedded functions, matched by name, with the current versions, and adds any that the file lacks.
 - Updates the imports that it recognizes, and adds the ones that the current functions need.
+- Removes an import of a function that it now copies into the file. The copy replaces the import, so the migration holds every function that it runs.
+- Removes an import from a module that no longer exists when nothing in the file uses it. When the file still uses such a name, the command reports the file and leaves it unchanged.
 - Updates stale function names in the `operations` list.
 - Adds the app label and model to each workflow that `changed_data` names by code alone.
 - Removes functions and imports that earlier versions wrote and the current version does not, such as `add_history_to_data`, when nothing else in the file uses them. The command reports each one that it removes.
@@ -285,7 +287,7 @@ When the command cannot read the `changed_data` of a migration that it does not 
 
 The current functions need the event models and triggers that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. Before it rewrites a migration, the command checks that `0008` comes before that migration in the migration graph. The check follows indirect dependencies, and it accepts a squashed migration that replaces `0008`. It reads the migration files, not the database's migration records, because the rewritten file must also apply to an empty database.
 
-When the check fails, the command names the file and the required migration. It leaves the file unchanged. It counts the file as a failure, continues with the other files, and exits with status 1.
+When the check fails, the command reports the file as skipped and names the required migration. It leaves the file unchanged, and a skipped file does not change the exit status. The migration has to keep the functions that it was written with.
 
 Any workflow migration generated with VUEDA v3.0.0a0 or earlier fails this check. Handle each one by hand, as the steps below describe.
 

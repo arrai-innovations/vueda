@@ -168,8 +168,6 @@ GROUP_MIGRATION_KIND = MigrationKind(
         "forwards_migrate_groups": "forwards_migrate_groups_through_imports",
         "backwards_migrate_groups": "backwards_migrate_groups_through_imports",
     },
-    current_module="vueda.user.migration_generation.operations",
-    entry_functions=frozenset(("forwards_migrate_groups", "backwards_migrate_groups", "make_sure_permissions_exist")),
     get_sources=get_group_migration_sources,
     get_imports=get_group_migration_imports,
     obsolete_names=OBSOLETE_GROUP_NAMES,

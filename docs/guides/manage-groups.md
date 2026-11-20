@@ -182,6 +182,8 @@ The command finds group migrations in every app by their marker comment, includi
 
 - Replaces each copied function, and `GroupChangeTypes`, with the current version, matched by name. It adds any that the file lacks.
 - Updates the import lines that it recognizes, and leaves other imports in place.
+- Removes an import of a function that it now copies into the file, such as `create_group_change` or `get_matching_record`. The copy replaces the import.
+- Removes an import from a module that no longer exists when nothing in the file uses it. When the file still uses such a name, the command reports the file and leaves it unchanged.
 - Removes imports that earlier versions wrote and the current version does not, such as `settings`, when nothing else in the file uses them.
 - Keeps `changed_data` and the `Migration` class. In the class's `operations` list, it renames references to functions that earlier releases named differently.
 
