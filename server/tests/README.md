@@ -115,6 +115,10 @@ rely on. Then run the suite with `-n2 --dist loadgroup` to check that the group 
 - Use `+1800555` followed by `0100` to `0199` for phone numbers.
 - Test viewset behavior with real requests through the `api_client` fixture.
   `test_get_queryset_limits_to_authenticated_user` in `unit/users/test_viewsets.py` is an example.
+- Command output that a test reads has no color. Django colors a management command's output only when it writes to
+  a terminal, so `conftest.py` sets `DJANGO_COLORS=nocolor` for every test, and a test reads the same output in a
+  terminal as in CI. pytest's own output keeps its colors, and CircleCI runs pytest with `--color=yes` so that its
+  log shows them too.
 
 ## Regenerate the test apps' migrations
 
