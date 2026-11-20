@@ -265,9 +265,9 @@ def read_changed_data(source, filepath):
     module, rather than parsed, because a change records real datetimes and a literal parser cannot build them.
     It runs the given text, not the file, so a refresh can read a migration before writing anything.
 
-    Everything at the top level runs, apart from class bodies and imports of VUEDA code that no longer exists. So
-    ``changed_data`` can be built up in steps, or by the migration's own functions, while a ``Migration`` class body
-    that names a function from such an import cannot stop the read.
+    Everything at the top level runs, apart from the ``Migration`` class and imports of VUEDA code that no longer
+    exists. So ``changed_data`` can be built up in steps, or with the migration's own functions and classes, while a
+    ``Migration`` class body that names a function from such an import cannot stop the read.
     """
     module = types.ModuleType("workflow_migration_being_updated")
     module.__file__ = str(filepath)
@@ -279,7 +279,7 @@ def read_changed_data(source, filepath):
                 node.names = [alias for alias in node.names if not imports_code_that_vueda_no_longer_has(node, alias)]
                 if node.names:
                     body.append(node)
-            elif not isinstance(node, ast.ClassDef):
+            elif not (isinstance(node, ast.ClassDef) and node.name == "Migration"):
                 body.append(node)
         exec(compile(ast.Module(body=body, type_ignores=[]), str(filepath), "exec"), module.__dict__)
         changed_data = module.changed_data

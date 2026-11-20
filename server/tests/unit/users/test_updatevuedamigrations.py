@@ -567,6 +567,20 @@ def test_changed_data_built_up_in_steps_is_read_whole():
     assert [change["history_date"].day for change in changed_data] == [29, 30]
 
 
+def test_changed_data_can_use_a_class_that_the_migration_defines():
+    source = (
+        "import datetime\nimport enum\n\n\n"
+        "class Model(enum.Enum):\n    STATE = 'state'\n\n\n"
+        "changed_data = [{'model_name': Model.STATE.value, 'history_date': datetime.datetime(2026, 6, 29), "
+        "'changes': {}}]\n"
+    )
+
+    changed_data, problem = read_changed_data(source, "with_class.py")
+
+    assert problem is None
+    assert changed_data[0]["model_name"] == "state"
+
+
 def test_changed_data_that_cannot_be_read_is_reported_with_the_reason():
     source = 'history_change_reason = "Workflow Migration - x"\nchanged_data = [{"model_name": "state"}]\n'
 
