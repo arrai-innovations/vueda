@@ -421,7 +421,3 @@ class _StrippedMigrationFinder(importlib.abc.MetaPathFinder, importlib.abc.Loade
         # The stripped text keeps every import that the module needs while it loads, so an error here comes from an
         # import that stays, and it is the error that the graph reports.
         exec(compile(text, str(path), "exec"), module.__dict__)
-
-    def get_source(self, fullname):
-        """Return the text that the module runs, so a traceback shows the lines that ran."""
-        return self.stripped[fullname][1]

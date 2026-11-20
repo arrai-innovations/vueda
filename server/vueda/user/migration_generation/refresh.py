@@ -192,10 +192,9 @@ def _gone_import_rule(tree, copied):
         if alias.name == "*":
             return False
         binding = _alias_binding(alias)
-        if binding in usage.read_before_bound:
-            return False
-        is_copied = copied is None or binding in copied
-        return (binding in usage.bound or binding not in usage.used or is_copied) and _vueda_no_longer_has(node, alias)
+        # A copied name that is not read while the module loads is copied in before anything calls it.
+        is_copied = (copied is None or binding in copied) and binding not in usage.read_before_bound
+        return (not usage.needs_import(binding) or is_copied) and _vueda_no_longer_has(node, alias)
 
     return removable
 
@@ -223,12 +222,36 @@ def _module_usage(tree):
     used = set()
     bound = set()
     read_before_bound = set()
+    functions = {}
     for node in tree.body:
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             continue
         used |= _used_names(node)
-        read_before_bound |= _names_read_on_import(node) - bound
+        parts = tuple(_load_time_parts(node))
+        reads = set().union(*(_used_names(part) for part in parts))
+        # A function that the module calls while it loads runs then, so the names that it reads count too.
+        pending = [
+            child.func.id
+            for part in parts
+            for child in ast.walk(part)
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id in functions
+        ]
+        called = set()
+        while pending:
+            name = pending.pop()
+            if name in called:
+                continue
+            called.add(name)
+            reads |= _used_names(functions[name])
+            pending.extend(
+                child.func.id
+                for child in ast.walk(functions[name])
+                if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id in functions
+            )
+        read_before_bound |= reads - bound
         bound |= _defined_names(node)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            functions[node.name] = node
     return _ModuleUsage(frozenset(used), frozenset(bound), frozenset(read_before_bound))
 
 
@@ -259,30 +282,33 @@ def _assigned_names(target):
     return set()
 
 
-def _names_read_on_import(node):
-    """Return the names that a top-level ``node`` reads while its module is imported.
+def _load_time_parts(node):
+    """Yield the parts of a top-level ``node`` that run while its module is imported.
 
     A function's body runs only when the function is called, so only its decorators, defaults and annotations
     count. A class body runs on import, so its statements count, apart from the bodies of its methods.
     """
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-        parts = [*node.decorator_list, *node.args.defaults, *node.args.kw_defaults]
+        yield from node.decorator_list
+        yield from node.args.defaults
+        yield from (default for default in node.args.kw_defaults if default is not None)
         arguments = (
             *node.args.posonlyargs,
             *node.args.args,
             *node.args.kwonlyargs,
             *(arg for arg in (node.args.vararg, node.args.kwarg) if arg is not None),
         )
-        parts += [arg.annotation for arg in arguments if arg.annotation is not None]
+        yield from (arg.annotation for arg in arguments if arg.annotation is not None)
         if node.returns is not None:
-            parts.append(node.returns)
-        return set().union(*(_used_names(part) for part in parts if part is not None))
-    if isinstance(node, ast.ClassDef):
-        names = set().union(*(_used_names(part) for part in (*node.decorator_list, *node.bases, *node.keywords)))
+            yield node.returns
+    elif isinstance(node, ast.ClassDef):
+        yield from node.decorator_list
+        yield from node.bases
+        yield from node.keywords
         for child in node.body:
-            names |= _names_read_on_import(child)
-        return names
-    return _used_names(node)
+            yield from _load_time_parts(child)
+    else:
+        yield node
 
 
 def without_imports_that_vueda_no_longer_has(source):
@@ -377,8 +403,18 @@ def _is_vueda_module(name):
 
 
 def _used_names(node):
-    """Return the names that ``node`` uses, including the first name of each attribute chain."""
-    return {child.id for child in ast.walk(node) if isinstance(child, ast.Name)}
+    """Return the names that ``node`` reads, including the first name of each attribute chain.
+
+    A name that ``node`` only assigns is not read, so it does not count. An augmented assignment such as
+    ``x += 1`` reads its name first, so that name counts.
+    """
+    names = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name) and not isinstance(child.ctx, ast.Store):
+            names.add(child.id)
+        elif isinstance(child, ast.AugAssign) and isinstance(child.target, ast.Name):
+            names.add(child.target.id)
+    return names
 
 
 def _bound_names(node):

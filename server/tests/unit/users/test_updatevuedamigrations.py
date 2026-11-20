@@ -342,6 +342,10 @@ def test_a_gone_import_that_the_migration_shadows_with_its_own_definition_can_go
         pytest.param("helper += 1\n", id="augmented-assignment"),
         pytest.param("helper: int\nX = helper\n", id="annotation-without-value"),
         pytest.param("X = helper\n\n\ndef helper():\n    pass\n", id="read-before-its-definition"),
+        pytest.param(
+            "def f():\n    return helper()\n\n\nX = f()\n\n\ndef helper():\n    pass\n",
+            id="called-while-the-module-loads",
+        ),
     ],
 )
 def test_a_gone_import_that_the_migration_still_needs_while_it_loads_is_refused(code):
@@ -355,6 +359,22 @@ def test_a_gone_import_that_the_migration_still_needs_while_it_loads_is_refused(
         remove_imports_that_vueda_no_longer_has(source)
     assert "import helper" in without_imports_that_vueda_no_longer_has(source)
     assert remove_imports_that_stop_the_graph(source, WORKFLOW_MIGRATION_KIND) == (source, ())
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        pytest.param("helper = 5\nX = helper\n", id="assignment"),
+        pytest.param("helper, other = 1, 2\n", id="unpacking"),
+    ],
+)
+def test_a_gone_import_that_an_assignment_replaces_can_go(code):
+    source = "from vueda.workflow.management.commands.makeworkflowmigrations import helper\n\n" + code
+
+    result, removed = remove_imports_that_vueda_no_longer_has(source)
+
+    assert removed == ("vueda.workflow.management.commands.makeworkflowmigrations.helper",)
+    assert "import helper" not in result
 
 
 def test_reading_a_migration_keeps_a_gone_import_that_it_reads_while_it_loads():
