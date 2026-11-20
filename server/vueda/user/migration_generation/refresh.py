@@ -152,9 +152,10 @@ def remove_imports_that_stop_the_graph(source, kind):
 
     Django imports every migration when it builds the migration graph, so one such import stops the graph for the
     whole project. This runs before the graph is built. An import goes when nothing in the migration uses the name,
-    or when the name is one that a refresh of ``kind`` copies in: such a name is only called inside the copied
-    functions, which a refresh replaces. A used name that is not copied stays, because removing it would only turn
-    the import error into a ``NameError`` later.
+    or when the name is one that a refresh of ``kind`` copies in and nothing reads while the migration is imported.
+    Such a name is only called inside functions, and the refresh copies it in before they run. An import stays
+    when removing it would only turn the import error into a ``NameError``: a used name that is not copied, or a
+    name that the ``Migration`` class body reads, as an operation that names the function directly does.
 
     Returns the new source and the sorted ``module.name`` of each import that was removed. The source is returned
     unchanged when it cannot be read.
@@ -163,18 +164,41 @@ def remove_imports_that_stop_the_graph(source, kind):
         tree = ast.parse(source)
         copied = {name for names in kind.get_sources(False, as_mapping=True) for name in names}
         used = set()
+        read_on_import = set()
         for node in tree.body:
             if not isinstance(node, (ast.Import, ast.ImportFrom)):
                 used |= _used_names(node)
+                read_on_import |= _names_read_on_import(node)
 
         def removable(node, alias):
             binding = _alias_binding(alias)
-            return (binding not in used or binding in copied) and _vueda_no_longer_has(node, alias)
+            safe = binding not in used or (binding in copied and binding not in read_on_import)
+            return safe and _vueda_no_longer_has(node, alias)
 
         return _drop_imports(source, removable)
     except (SyntaxError, RefreshError):
         # The refresh reports the file.
         return source, ()
+
+
+def _names_read_on_import(node):
+    """Return the names that a top-level ``node`` reads while its module is imported.
+
+    A function's body runs only when the function is called, so only its decorators, defaults and annotations
+    count. A class body runs on import, so its statements count, apart from the bodies of its methods.
+    """
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        parts = [*node.decorator_list, *node.args.defaults, *node.args.kw_defaults]
+        parts += [arg.annotation for arg in (*node.args.args, *node.args.kwonlyargs) if arg.annotation is not None]
+        if node.returns is not None:
+            parts.append(node.returns)
+        return set().union(*(_used_names(part) for part in parts if part is not None))
+    if isinstance(node, ast.ClassDef):
+        names = set().union(*(_used_names(part) for part in (*node.decorator_list, *node.bases, *node.keywords)))
+        for child in node.body:
+            names |= _names_read_on_import(child)
+        return names
+    return _used_names(node)
 
 
 def _drop_imports(source, should_drop):
