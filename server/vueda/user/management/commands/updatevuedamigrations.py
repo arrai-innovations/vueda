@@ -20,6 +20,7 @@ from django.db.migrations.loader import MigrationLoader
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.migration_generation.refresh import RefreshError
+from vueda.user.migration_generation.refresh import imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
 from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
@@ -75,6 +76,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No generated migrations found to update."))
             return
 
+        self.refreshed_texts = {}
         # Group migrations need no migration graph, so they are refreshed first.
         writable.sort(key=lambda generated: generated.kind.name == "workflow")
         workflow = None
@@ -202,11 +204,13 @@ class Command(BaseCommand):
         for generated in files:
             if not generated.writable or generated.read_problem:
                 continue
-            # A group migration may already be refreshed, so read the current text.
-            try:
-                current = generated.path.read_text("utf-8-sig")
-            except (OSError, UnicodeDecodeError):
-                continue
+            # A group migration may already be refreshed: on disk in a real run, in memory in a dry run.
+            current = self.refreshed_texts.get(generated.path)
+            if current is None:
+                try:
+                    current = generated.path.read_text("utf-8-sig")
+                except (OSError, UnicodeDecodeError):
+                    continue
             fixed, removed = remove_imports_that_stop_the_graph(current, generated.kind)
             seen[generated.path] = fixed
             if not removed:
@@ -269,7 +273,19 @@ class Command(BaseCommand):
         if generated.kind.name == "workflow":
             blocked, skipped = self._workflow_blocker(generated, workflow)
             if skipped:
-                # The migration keeps the functions that it was written with, so nothing in it is refreshed.
+                # The migration keeps the functions that it was written with, so nothing in it is refreshed. An
+                # import of VUEDA code that no longer exists still stops migrate, so that needs a hand fix.
+                gone = imports_that_vueda_no_longer_has(generated.text)
+                if gone:
+                    self.stderr.write(
+                        self.style.ERROR(
+                            f"  Cannot update {generated.path}: it has to keep its existing functions, because its "
+                            f"{blocked[0].lower()}{blocked[1:]} It also imports {', '.join(gone)}, which VUEDA no "
+                            "longer has, so migrate fails until that import is fixed by hand. Leaving the file "
+                            "unchanged."
+                        )
+                    )
+                    return _FAILED
                 self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
                 self.stdout.write(f"  Its {blocked}")
                 return _SKIPPED
@@ -306,6 +322,8 @@ class Command(BaseCommand):
             self.stdout.write(f"  Replaced the import of {name} with a copy.")
         for name in result.removed_missing_imports:
             self.stdout.write(f"  Removed the import of {name}, which VUEDA no longer has.")
+        # A dry run writes nothing, so the migration graph reads this text instead of the file.
+        self.refreshed_texts[generated.path] = result.source
         if not self.dry_run:
             try:
                 _write_atomically(generated.path, result.source)

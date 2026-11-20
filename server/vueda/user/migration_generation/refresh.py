@@ -4,6 +4,7 @@ __all__ = (
     "MigrationKind",
     "Refresh",
     "RefreshError",
+    "imports_that_vueda_no_longer_has",
     "refresh_migration",
     "remove_imports_that_stop_the_graph",
     "remove_obsolete_names",
@@ -229,13 +230,15 @@ def _module_usage(tree):
         used |= _used_names(node)
         parts = tuple(_load_time_parts(node))
         reads = set().union(*(_used_names(part) for part in parts))
-        # A function that the module calls while it loads runs then, so the names that it reads count too.
+        # A function that the module calls while it loads runs then, so the names that it reads count too. A
+        # function used as a decorator is called when the decorated definition runs.
         pending = [
             child.func.id
             for part in parts
             for child in ast.walk(part)
             if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id in functions
         ]
+        pending += [name for name in _decorator_names(node) if name in functions]
         called = set()
         while pending:
             name = pending.pop()
@@ -253,6 +256,17 @@ def _module_usage(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             functions[node.name] = node
     return _ModuleUsage(frozenset(used), frozenset(bound), frozenset(read_before_bound))
+
+
+def _decorator_names(node):
+    """Return the names of the functions that decorate a top-level ``node`` or its methods, as ``@name``."""
+    if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return set()
+    names = {decorator.id for decorator in node.decorator_list if isinstance(decorator, ast.Name)}
+    if isinstance(node, ast.ClassDef):
+        for child in node.body:
+            names |= _decorator_names(child)
+    return names
 
 
 def _defined_names(node):
@@ -309,6 +323,26 @@ def _load_time_parts(node):
             yield from _load_time_parts(child)
     else:
         yield node
+
+
+def imports_that_vueda_no_longer_has(source):
+    """Return the sorted ``module.name`` of each top-level import in ``source`` of VUEDA code that no longer exists.
+
+    The result is empty when there are none, or when the source cannot be read.
+    """
+    try:
+        tree = ast.parse(source)
+        return tuple(
+            sorted(
+                _import_label(node, alias)
+                for node in tree.body
+                if isinstance(node, (ast.Import, ast.ImportFrom))
+                for alias in node.names
+                if _vueda_no_longer_has(node, alias)
+            )
+        )
+    except (SyntaxError, RefreshError):
+        return ()
 
 
 def without_imports_that_vueda_no_longer_has(source):

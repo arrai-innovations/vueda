@@ -377,6 +377,17 @@ def test_a_gone_import_that_an_assignment_replaces_can_go(code):
     assert "import helper" not in result
 
 
+def test_a_function_used_as_a_decorator_runs_while_the_migration_loads():
+    """The decorator reads the imported name when the decorated function is defined, so the import has to stay."""
+    source = (
+        "from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups\n\n\n"
+        "def register(function):\n    forwards_migrate_groups\n    return function\n\n\n"
+        "@register\ndef step():\n    pass\n"
+    )
+
+    assert remove_imports_that_stop_the_graph(source, GROUP_MIGRATION_KIND) == (source, ())
+
+
 def test_reading_a_migration_keeps_a_gone_import_that_it_reads_while_it_loads():
     """Removing it would turn the import error into a NameError, which says less about what to fix."""
     source = (
@@ -846,6 +857,49 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert {item: item.read_bytes() for item in originals} == originals
             assert "Updating:" not in out
 
+    def test_a_dry_run_builds_the_graph_from_the_refreshed_group_migrations(self, settings):
+        """A real run writes the refreshed group migrations before it builds the graph. A dry run writes nothing,
+        so the graph reads their refreshed text from memory, and the dry run reports what the real run does."""
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            group = write_old_migration(
+                employee_dir,
+                "0002_group_permission_migrations_2026_06_29",
+                "group_copied_2026_06.py.txt",
+                (("employee", "0001_initial"), USER_SCHEMA),
+            )
+            source = group.read_text()
+            forwards = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name == "forwards_migrate_groups"
+            )
+            lines = source.splitlines(keepends=True)
+            del lines[forwards.lineno - 1 : forwards.end_lineno]
+            # The operations name the imported function, so the import has to stay while the file loads.
+            imported = "from vueda.user.management.commands.makegroupmigrations import forwards_migrate_groups\n"
+            group.write_text(
+                "".join(lines).replace(
+                    "from django.db import migrations\n", f"from django.db import migrations\n{imported}", 1
+                )
+            )
+            workflow = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            before = {path: path.read_text() for path in (group, workflow)}
+
+            out, err, status = run_update("--dry-run")
+
+            assert (status, err) == (0, "")
+            assert f"Would update: {group}" in out
+            assert f"Would update: {workflow}" in out
+            assert {path: path.read_text() for path in before} == before
+
     def test_a_graph_that_a_missing_import_stops_names_the_migration_that_imports_it(self, settings):
         """The graph cannot load, so the command cannot fix the import itself, but it can say which file to fix."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
@@ -923,7 +977,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert (status, err) == (0, "")
             assert f"Already up to date: {path}" in out
 
-    def test_a_skipped_migration_with_an_import_that_vueda_no_longer_has_is_left_unchanged(self, settings):
+    def test_a_migration_that_must_keep_its_functions_but_imports_gone_vueda_code_fails(self, settings):
         """The graph loads the migration without the import, and nothing is written. Nothing copies the function
         into a skipped migration, so removing the import for good would leave it calling a name it never defines."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
@@ -951,10 +1005,15 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             )
             before = path.read_text()
 
-            out, err, status = run_update()
+            _out, err, status = run_update()
 
-            assert (status, err) == (0, "")
-            assert f"Skipping: {path}" in out
+            # The command cannot refresh it, and migrate would fail on its import, so it needs a hand fix.
+            assert status == 1
+            assert f"Cannot update {path}: it has to keep its existing functions" in err
+            assert (
+                "It also imports vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow"
+                in err
+            )
             assert imported in path.read_text()
             assert path.read_text() == before
 
