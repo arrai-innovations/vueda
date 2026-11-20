@@ -255,6 +255,12 @@ def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
             "'changes': {'workflow_id': {'code': ['a']}}}]",
             "change 0 has a workflow code that is not a single value",
         ),
+        (
+            "import datetime\n"
+            "changed_data = [{'model_name': 'workflow', 'history_date': datetime.datetime(2026, 6, 29), "
+            "'changes': {'code': ('a',)}}]",
+            "change 0 has a workflow code that is not a single value",
+        ),
         ("raise RuntimeError('the migration fails to import')", "the migration fails to import"),
     ],
 )
@@ -519,6 +525,24 @@ def test_a_workflow_reference_gains_its_app_and_model_and_a_second_refresh_chang
 
     assert once.source.count("historical_app_label") > source.count("historical_app_label")
     assert not refresh_migration(once.source, WORKFLOW_MIGRATION_KIND, update_changed_data=update).changed
+
+
+def test_a_workflow_reference_inside_a_list_gains_its_app_and_model():
+    """A hand-edited change can hold its references in a list instead of a tuple."""
+    source = (OLD_MIGRATIONS / "workflow_copied_2026_06.py.txt").read_text()
+    changed_data, _problem = read_changed_data(source, "workflow_copied_2026_06.py")
+    identities = collect_workflow_identities([changed_data])
+    change = next(
+        item for item in changed_data if "workflow_id" in item["changes"] and "code" in item["changes"]["workflow_id"]
+    )
+    reference = {"workflow_id": {"code": change["changes"]["workflow_id"]["code"]}}
+    recorded_at = workflow_refresh.recorded_at_utc(change["history_date"])
+
+    from_tuple = workflow_refresh.add_workflow_identities((reference,), identities, recorded_at)
+    from_list = workflow_refresh.add_workflow_identities([reference], identities, recorded_at)
+
+    assert "historical_app_label" in from_tuple[0]["workflow_id"]
+    assert from_list == [from_tuple[0]]
 
 
 def test_changed_data_that_cannot_be_read_is_reported_with_the_reason():

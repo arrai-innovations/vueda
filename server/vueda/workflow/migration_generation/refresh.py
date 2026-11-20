@@ -85,10 +85,13 @@ def _workflow_codes(changed_item):
 
 
 def _is_single_value(code):
-    """Return whether a recorded ``code`` can be looked up, which needs a hashable value."""
+    """Return whether a recorded ``code`` can be looked up, which needs a hashable value.
+
+    A hand-edited code can have any shape, so any error while reading it means that it cannot be looked up.
+    """
     try:
         hash(get_id_values_from_item(code, reversing=True))
-    except TypeError:
+    except Exception:
         return False
     return True
 
@@ -207,8 +210,8 @@ def workflow_identity_at(identities, code, recorded_at):
 
 def add_workflow_identities(value, identities, recorded_at, *, names_a_workflow=False):
     """Copy a change, adding the app and model to every workflow it names by code alone."""
-    if isinstance(value, tuple):
-        return tuple(
+    if isinstance(value, (tuple, list)):
+        return type(value)(
             add_workflow_identities(item, identities, recorded_at, names_a_workflow=names_a_workflow) for item in value
         )
 

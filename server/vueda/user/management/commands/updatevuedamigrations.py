@@ -19,7 +19,6 @@ from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
-from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
 from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
@@ -287,9 +286,8 @@ class Command(BaseCommand):
         # changed by hand is the more useful report. An import that is still used also stops the graph.
         try:
             result = refresh_migration(generated.text, generated.kind, update_changed_data=update_changed_data)
-        # A hand-edited migration can also fail a merge or the formatter in ways that raise TypeError or
-        # SyntaxError. Each one fails only its own file.
-        except (RefreshError, ValueError, TypeError, SyntaxError) as error:
+        # A hand-edited migration can fail any step in its own way. Each one fails only its own file.
+        except Exception as error:
             self.stderr.write(
                 self.style.ERROR(f"  Could not update {generated.path}: {error} Leaving the file unchanged.")
             )
@@ -331,7 +329,8 @@ class Command(BaseCommand):
         """
         try:
             fixed, removed = remove_imports_that_vueda_no_longer_has(generated.text)
-        except (RefreshError, ValueError, TypeError, SyntaxError) as error:
+        except Exception as error:
+            # A hand-edited migration can fail in its own way. It fails only its own file.
             self.stderr.write(
                 self.style.ERROR(
                     f"  Cannot update {generated.path}: {error} The command keeps its existing functions, because "
