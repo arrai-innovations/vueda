@@ -1078,9 +1078,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert path.read_text() == before
 
     @pytest.mark.parametrize("dry_run", [False, True])
-    def test_a_migration_that_keeps_its_functions_loses_a_gone_import_that_nothing_uses(self, settings, dry_run):
-        """migrate would fail on the import, and removing it cannot break the migration, so it goes even though the
-        migration keeps its functions. The file then counts as updated."""
+    def test_a_kept_migration_with_an_unused_gone_import_is_left_as_it_is(self, settings, dry_run):
+        """The command never changes a migration that keeps its functions. migrate would fail on the import, so the
+        run fails and says to remove it by hand."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -1089,20 +1089,18 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 (("erring", "0001_initial"), WORKFLOW_SCHEMA_BEFORE_EVENTS),
             )
             stale = "from vueda.workflow.management.commands.makeworkflowmigrations import retired_helper\n"
-            original = path.read_text()
-            path.write_text(original.replace("import copy\n", f"import copy\n{stale}", 1))
+            path.write_text(path.read_text().replace("import copy\n", f"import copy\n{stale}", 1))
             before = path.read_text()
 
-            out, err, status = run_update(*(("--dry-run",) if dry_run else ()))
+            _out, err, status = run_update(*(("--dry-run",) if dry_run else ()))
 
-            assert (status, err) == (0, "")
-            assert f"{'Would update' if dry_run else 'Updating'}: {path}" in out
-            assert "  Its functions stay as they are, because its dependencies do not include" in out
+            assert status == 1
             assert (
-                "  Removed the import of vueda.workflow.management.commands.makeworkflowmigrations.retired_helper, "
-                "which VUEDA no longer has."
-            ) in out
-            assert path.read_text() == (before if dry_run else original)
+                f"Cannot update {path}: It needs a change by hand: it imports "
+                "vueda.workflow.management.commands.makeworkflowmigrations.retired_helper, which VUEDA no longer has"
+            ) in err
+            assert "Remove each such import that nothing in the migration uses." in err
+            assert path.read_text() == before
 
     def test_a_kept_migration_that_imports_todays_functions_needs_copies(self, settings):
         """The module still exists, but the migration would run today's functions, which need the tables that it

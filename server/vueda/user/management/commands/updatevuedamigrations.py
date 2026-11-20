@@ -23,7 +23,6 @@ from vueda.user.migration_generation.refresh import imports_of_copied_vueda_func
 from vueda.user.migration_generation.refresh import imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
-from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.registration import get_migration_tools
 from vueda.user.migration_generation.utils import is_generated_migration
 from vueda.user.migration_generation.utils import is_installed_package_app
@@ -315,58 +314,34 @@ class Command(BaseCommand):
         return _UPDATED
 
     def _keep_functions(self, generated, reason):
-        """Leave a migration that has to keep its functions as it is, apart from imports that stop migrate.
+        """Leave a migration that has to keep the functions that it was written with exactly as it is.
 
-        ``reason`` says why the migration keeps its functions. An import of VUEDA code that no longer exists would
-        still stop ``migrate``, so it goes when nothing in the migration needs it, and the file counts as updated.
-        When something needs it, the file fails and needs a hand fix.
+        ``reason`` says why the migration keeps its functions. The command never changes such a migration. It is
+        skipped, unless it imports a function that VUEDA copies, or imports VUEDA code that no longer exists. Then
+        it would not run as it was written, and it fails with the change to make by hand.
         """
-        # A migration that imports a function that VUEDA copies runs today's version, which it cannot keep.
         imported = imports_of_copied_vueda_functions(generated.text, generated.kind)
         if imported:
+            # It would run today's version of the function, which it cannot use.
             self._ask_for_copies(generated, reason, f"it imports {', '.join(imported)} instead of holding copies")
             return _FAILED
-        try:
-            fixed, removed = remove_imports_that_vueda_no_longer_has(generated.text)
-        except Exception as error:
-            # A hand-edited migration can fail in its own way. It fails only its own file.
-            gone = imports_that_vueda_no_longer_has(generated.text)
-            if gone:
-                self._ask_for_copies(generated, reason, f"it imports {', '.join(gone)}, which VUEDA no longer has")
-            else:
-                self.stderr.write(
-                    self.style.ERROR(
-                        f"  Cannot update {generated.path}: {_sentence(error)} The command keeps its existing "
-                        f"functions, because its {reason} Leaving the file unchanged."
-                    )
-                )
+        gone = imports_that_vueda_no_longer_has(generated.text)
+        if gone:
+            # migrate fails on such an import.
+            self._ask_for_copies(generated, reason, f"it imports {', '.join(gone)}, which VUEDA no longer has")
             return _FAILED
-        if not removed:
-            self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
-            self.stdout.write(f"  Its {reason}")
-            return _SKIPPED
-
-        self.stdout.write(f"{'Would update' if self.dry_run else 'Updating'}: {generated.path}")
-        self.stdout.write(f"  Its functions stay as they are, because its {reason}")
-        for name in removed:
-            self.stdout.write(f"  Removed the import of {name}, which VUEDA no longer has.")
-        if not self.dry_run:
-            try:
-                _write_atomically(generated.path, fixed)
-            except OSError as error:
-                self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
-                return _FAILED
-        return _UPDATED
+        self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
+        self.stdout.write(f"  Its {reason}")
+        return _SKIPPED
 
     def _ask_for_copies(self, generated, reason, problem):
-        """Report that a migration that keeps its functions needs copies of them made by hand."""
-        # Today's functions cannot run in a migration that has to keep its own, so the fix is by hand.
+        """Report that a migration that keeps its functions needs its imports changed by hand."""
         self.stderr.write(
             self.style.ERROR(
-                f"  Cannot update {generated.path}: It needs a change by hand: {problem}, and its {reason} Replace "
-                "each such import with a copy of the function as it was when the migration was made, for example "
-                "from version control, so that the migration holds everything that it runs. Leaving the file "
-                "unchanged."
+                f"  Cannot update {generated.path}: It needs a change by hand: {problem}, and its {reason} Remove "
+                "each such import that nothing in the migration uses. Replace each other one with a copy of the "
+                "function as it was when the migration was made, for example from version control, so that the "
+                "migration holds everything that it runs. Leaving the file unchanged."
             )
         )
 
