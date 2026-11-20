@@ -201,6 +201,18 @@ def _names_read_on_import(node):
     return _used_names(node)
 
 
+def without_imports_that_vueda_no_longer_has(source):
+    """Return ``source`` without its top-level imports of VUEDA modules and names that no longer exist.
+
+    The result is for running the migration's text to read its data, never for writing. Running it no longer
+    fails on those imports. The source is returned unchanged when it cannot be read.
+    """
+    try:
+        return _drop_imports(source, _vueda_no_longer_has)[0]
+    except (SyntaxError, RefreshError):
+        return source
+
+
 def _drop_imports(source, should_drop):
     """Remove each name of a top-level import in ``source`` for which ``should_drop(node, alias)`` is true.
 

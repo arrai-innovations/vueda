@@ -26,6 +26,7 @@ import datetime
 import types
 
 from vueda.user.management.commands.utils import format_changed_data
+from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_item
 
@@ -281,7 +282,8 @@ def changed_data_updater(identities, filepath, *, stderr, dry_run):
     """
 
     def update(source):
-        changed_data, problem = read_changed_data(source, filepath)
+        # The refresh removes imports of code that VUEDA no longer has, so they must not stop the read either.
+        changed_data, problem = read_changed_data(without_imports_that_vueda_no_longer_has(source), filepath)
         if problem:
             raise ValueError(f"Could not read changed_data: {problem}")
 
