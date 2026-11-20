@@ -20,9 +20,9 @@ from django.db.migrations.loader import MigrationLoader
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.migration_generation.refresh import RefreshError
-from vueda.user.migration_generation.refresh import imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
+from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.registration import get_migration_tools
 from vueda.user.migration_generation.utils import is_generated_migration
@@ -214,8 +214,7 @@ class Command(BaseCommand):
             fixed, removed = remove_imports_that_stop_the_graph(current, generated.kind)
             seen[generated.path] = fixed
             # A dry run refreshed this migration in memory only, so the graph has to load that text, not the file.
-            refreshed_in_memory = self.dry_run and generated.path in self.refreshed_texts
-            if not removed and not refreshed_in_memory:
+            if not removed and generated.path not in self.refreshed_texts:
                 continue
             package, _explicit = MigrationLoader.migrations_module(generated.app_label)
             if package is not None:
@@ -276,20 +275,30 @@ class Command(BaseCommand):
             blocked, skipped = self._workflow_blocker(generated, workflow)
             if skipped:
                 # The migration keeps the functions that it was written with, so nothing in it is refreshed. An
-                # import of VUEDA code that no longer exists still stops migrate, so that needs a hand fix.
-                gone = imports_that_vueda_no_longer_has(generated.text)
-                if gone:
+                # import of VUEDA code that no longer exists would still stop migrate, so it goes when nothing needs
+                # it. When something does, the file needs a hand fix.
+                try:
+                    fixed, removed = remove_imports_that_vueda_no_longer_has(generated.text)
+                except RefreshError as error:
+                    required = workflow["module"].REQUIRED_WORKFLOW_MIGRATION
                     self.stderr.write(
                         self.style.ERROR(
-                            f"  Cannot update {generated.path}: it has to keep its existing functions, because its "
-                            f"{blocked[0].lower()}{blocked[1:]} It also imports {', '.join(gone)}, which VUEDA no "
-                            "longer has, so migrate fails until that import is fixed by hand. Leaving the file "
-                            "unchanged."
+                            f"  Cannot update {generated.path}: {error} The command keeps its existing functions, "
+                            f"because it runs before {required[0]}.{required[1]}. Leaving the file unchanged."
                         )
                     )
                     return _FAILED
+                if removed and not self.dry_run:
+                    try:
+                        _write_atomically(generated.path, fixed)
+                    except OSError as error:
+                        self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
+                        return _FAILED
                 self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
                 self.stdout.write(f"  Its {blocked}")
+                for name in removed:
+                    verb = "Would remove" if self.dry_run else "Removed"
+                    self.stdout.write(f"  {verb} the import of {name}, which VUEDA no longer has.")
                 return _SKIPPED
             if blocked is None:
                 update_changed_data = workflow["module"].changed_data_updater(
@@ -324,9 +333,10 @@ class Command(BaseCommand):
             self.stdout.write(f"  Replaced the import of {name} with a copy.")
         for name in result.removed_missing_imports:
             self.stdout.write(f"  Removed the import of {name}, which VUEDA no longer has.")
-        # A dry run writes nothing, so the migration graph reads this text instead of the file.
-        self.refreshed_texts[generated.path] = result.source
-        if not self.dry_run:
+        if self.dry_run:
+            # A dry run writes nothing, so the migration graph reads this text instead of the file.
+            self.refreshed_texts[generated.path] = result.source
+        else:
             try:
                 _write_atomically(generated.path, result.source)
             except OSError as error:

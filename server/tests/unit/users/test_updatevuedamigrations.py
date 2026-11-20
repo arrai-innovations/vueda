@@ -978,8 +978,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert f"Already up to date: {path}" in out
 
     def test_a_migration_that_must_keep_its_functions_but_imports_gone_vueda_code_fails(self, settings):
-        """The graph loads the migration without the import, and nothing is written. Nothing copies the function
-        into a skipped migration, so removing the import for good would leave it calling a name it never defines."""
+        """The migration runs before vueda_workflow 0008, so the command keeps its functions and copies nothing in.
+        Its wrappers still call a name that only the gone import supplies, so migrate would fail on it, and the
+        file needs a hand fix."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -1009,13 +1010,38 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             # The command cannot refresh it, and migrate would fail on its import, so it needs a hand fix.
             assert status == 1
-            assert f"Cannot update {path}: it has to keep its existing functions" in err
             assert (
-                "It also imports vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow"
-                in err
-            )
+                f"Cannot update {path}: The migration uses "
+                "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow"
+            ) in err
+            assert "The command keeps its existing functions, because it runs before vueda_workflow.0008_" in err
             assert imported in path.read_text()
             assert path.read_text() == before
+
+    def test_a_skipped_migration_loses_a_gone_import_that_nothing_uses(self, settings):
+        """migrate would fail on the import, and removing it cannot break the migration, so it goes even though the
+        migration keeps its functions."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0001_initial"), WORKFLOW_SCHEMA_BEFORE_EVENTS),
+            )
+            stale = "from vueda.workflow.management.commands.makeworkflowmigrations import retired_helper\n"
+            original = path.read_text()
+            path.write_text(original.replace("import copy\n", f"import copy\n{stale}", 1))
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Skipping: {path}" in out
+            assert (
+                "  Removed the import of vueda.workflow.management.commands.makeworkflowmigrations.retired_helper, "
+                "which VUEDA no longer has."
+            ) in out
+            assert stale not in path.read_text()
+            assert path.read_text() == original
 
     def test_a_failed_refresh_keeps_the_import_that_the_graph_loaded_without(self, settings):
         """The graph loads the migration without the import, and nothing is written. The refresh then fails for

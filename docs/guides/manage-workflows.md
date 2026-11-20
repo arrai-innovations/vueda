@@ -222,7 +222,7 @@ The previous release does not know that the model has workflow. Objects that it 
 python manage.py updatevuedamigrations
 ```
 
-For each migration, it prints `Updating:` when it rewrote the file, `Already up to date:` when nothing needed to change, or `Skipping:` for a migration that must keep its functions. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, how many it skipped, and how many failed. It exits with status 1 if any file fails.
+For each migration, it prints `Updating:` when it rewrote the file, `Already up to date:` when nothing needed to change, or `Skipping:` for a migration that must keep its functions. A skipped migration that still needs VUEDA code that no longer exists is reported as `Cannot update` instead. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, how many it skipped, and how many failed. It exits with status 1 if any file fails.
 
 `--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update.
 
@@ -288,7 +288,7 @@ When the command cannot read the `changed_data` of a migration that it does not 
 
 The current functions need the event models and triggers that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. Before it rewrites a migration, the command checks that `0008` comes before that migration in the migration graph. The check follows indirect dependencies, and it accepts a squashed migration that replaces `0008`. It reads the migration files, not the database's migration records, because the rewritten file must also apply to an empty database.
 
-When the check fails, the command reports the file as skipped and names the required migration. It leaves the file unchanged, and a skipped file does not change the exit status. The migration has to keep the functions that it was written with. When such a migration also imports VUEDA code that no longer exists, the command reports it as a failure instead, because `migrate` fails on that import until you fix it by hand.
+When the check fails, the command reports the file as skipped and names the required migration. It leaves the file unchanged, and a skipped file does not change the exit status. The migration has to keep the functions that it was written with. Its functions stay, but the command removes an import of VUEDA code that no longer exists when nothing in the migration uses it, because `migrate` would fail on that import. When the migration still uses such a name, the command reports it as a failure and leaves it unchanged. Copy the code that it needs into the migration by hand, then run the command again.
 
 Any workflow migration generated with VUEDA v3.0.0a0 or earlier fails this check. Handle each one by hand, as the steps below describe.
 

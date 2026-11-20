@@ -4,9 +4,9 @@ __all__ = (
     "MigrationKind",
     "Refresh",
     "RefreshError",
-    "imports_that_vueda_no_longer_has",
     "refresh_migration",
     "remove_imports_that_stop_the_graph",
+    "remove_imports_that_vueda_no_longer_has",
     "remove_obsolete_names",
     "without_imports_that_vueda_no_longer_has",
 )
@@ -323,26 +323,6 @@ def _load_time_parts(node):
             yield from _load_time_parts(child)
     else:
         yield node
-
-
-def imports_that_vueda_no_longer_has(source):
-    """Return the sorted ``module.name`` of each top-level import in ``source`` of VUEDA code that no longer exists.
-
-    The result is empty when there are none, or when the source cannot be read.
-    """
-    try:
-        tree = ast.parse(source)
-        return tuple(
-            sorted(
-                _import_label(node, alias)
-                for node in tree.body
-                if isinstance(node, (ast.Import, ast.ImportFrom))
-                for alias in node.names
-                if _vueda_no_longer_has(node, alias)
-            )
-        )
-    except (SyntaxError, RefreshError):
-        return ()
 
 
 def without_imports_that_vueda_no_longer_has(source):
