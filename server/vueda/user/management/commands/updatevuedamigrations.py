@@ -202,8 +202,10 @@ class Command(BaseCommand):
         """
         seen = {}
         stripped = {}
+        # A package's migrations are stripped too: nothing is written here, so the graph loads even when an old
+        # package migration has such an import.
         for generated in files:
-            if not generated.writable or generated.read_problem:
+            if generated.read_problem or generated.text is None:
                 continue
             # A group migration may already be refreshed: on disk in a real run, in memory in a dry run.
             current = self.refreshed_texts.get(generated.path)

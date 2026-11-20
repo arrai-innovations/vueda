@@ -522,14 +522,14 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     text, replaced = replace_imports_with_copies(text, {name for names in sources for name in names})
     text = merge_migration_imports(text, kind.get_imports(False, direct_runpython_import, as_mapping=True))
     text, removed = remove_obsolete_names(text, kind.obsolete_names)
-    text, missing = remove_imports_that_vueda_no_longer_has(text)
+    text, removed_missing_imports = remove_imports_that_vueda_no_longer_has(text)
 
     return Refresh(
         source=text,
         changed=text != source,
         removed_names=removed,
         replaced_imports=replaced,
-        removed_missing_imports=missing,
+        removed_missing_imports=removed_missing_imports,
     )
 
 

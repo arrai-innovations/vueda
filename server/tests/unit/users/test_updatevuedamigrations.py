@@ -187,6 +187,18 @@ def test_an_app_whose_migration_modules_entry_is_a_single_module_is_judged_by_it
     assert migration_utils.is_installed_package_app("erring")
 
 
+def test_a_module_whose_package_fails_on_its_own_import_still_exists(monkeypatch):
+    """A package that cannot import an optional dependency is broken, not missing, so its modules are not gone."""
+
+    def find_spec(name):
+        raise ModuleNotFoundError("No module named 'optional_dependency'", name="optional_dependency")
+
+    monkeypatch.setattr(migration_utils.importlib.util, "find_spec", find_spec)
+
+    with pytest.raises(ModuleNotFoundError):
+        migration_utils.module_exists("vueda.user.migration_generation.tools")
+
+
 def test_a_path_with_a_site_packages_part_counts_as_installed(monkeypatch):
     """A package installed with pip install --target, or kept on PYTHONPATH, is outside this interpreter's own
     package directories."""
@@ -1205,6 +1217,39 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             assert (status, err) == (0, "")
             assert f"Updating: {path}" in out
+
+    def test_a_package_migration_with_a_gone_import_does_not_stop_the_graph(self, settings, monkeypatch):
+        """No run rewrites a package's file, but the graph can still load it without the import."""
+        with (
+            self.temporary_migration_module(settings, app_label="store") as store_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            project = write_old_migration(
+                store_dir,
+                "0012_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("store", "0011_customerorder_object_stream"), WORKFLOW_SCHEMA),
+            )
+            packaged = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            stale = "from vueda.workflow.management.commands.makeworkflowmigrations import retired_helper\n"
+            packaged.write_text(packaged.read_text().replace("import copy\n", f"import copy\n{stale}", 1))
+            before = packaged.read_text()
+            monkeypatch.setattr(
+                migration_utils,
+                "INSTALLED_PACKAGE_PATHS",
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+            )
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {project}" in out
+            assert packaged.read_text() == before
 
     def test_a_reference_takes_the_app_and_model_of_a_workflow_that_only_a_package_records(self, settings):
         """queueitem's workflow is recorded only in vueda_vdq's migrations, which these tests treat as a package."""

@@ -174,9 +174,13 @@ def module_exists(module_name):
     """
     try:
         return importlib.util.find_spec(module_name) is not None
-    except ModuleNotFoundError:
-        # A parent package is missing too.
-        return False
+    except ModuleNotFoundError as error:
+        # A missing parent package means the module is missing too. A module that a parent package imports for
+        # itself, such as an optional dependency, is a failure of that package, not a missing module.
+        parts = module_name.split(".")
+        if error.name in {".".join(parts[: index + 1]) for index in range(len(parts))}:
+            return False
+        raise
 
 
 def _names_a_missing_module(module_name):
