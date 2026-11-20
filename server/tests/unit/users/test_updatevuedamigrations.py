@@ -816,11 +816,11 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 path.read_text().replace(
                     "import copy\n",
                     "import copy\n\n"
-                    "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n",
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import retired_helper\n",
                     1,
                 )
-                # A name that the migration uses and that no refresh copies in has to stay imported.
-                + "\n\ndef my_own_step(apps, schema_editor):\n    return add_history_to_data({})\n"
+                # A name that the migration uses, defines nowhere, and no refresh copies in has to stay imported.
+                + "\n\ndef my_own_step(apps, schema_editor):\n    return retired_helper()\n"
             )
 
             _out, err, status = run_update()

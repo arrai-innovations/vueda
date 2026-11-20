@@ -146,7 +146,15 @@ def remove_imports_that_vueda_no_longer_has(source):
             "has. The names that it supplies cannot be checked, so replace that import by hand, then run the command "
             "again."
         )
-    still_used = sorted(_import_label(node, alias) for node, alias in gone if _alias_binding(alias) in used)
+    # A name that the migration defines itself is what it uses, so its import is unused.
+    shadowed = set().union(
+        *(_defined_names(node) for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom)))
+    )
+    still_used = sorted(
+        _import_label(node, alias)
+        for node, alias in gone
+        if _alias_binding(alias) in used and _alias_binding(alias) not in shadowed
+    )
     if still_used:
         raise RefreshError(
             f"The migration uses {', '.join(still_used)}, which VUEDA no longer has. Copy that code into the "
