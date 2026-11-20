@@ -213,7 +213,9 @@ class Command(BaseCommand):
                     continue
             fixed, removed = remove_imports_that_stop_the_graph(current, generated.kind)
             seen[generated.path] = fixed
-            if not removed:
+            # A dry run refreshed this migration in memory only, so the graph has to load that text, not the file.
+            refreshed_in_memory = self.dry_run and generated.path in self.refreshed_texts
+            if not removed and not refreshed_in_memory:
                 continue
             package, _explicit = MigrationLoader.migrations_module(generated.app_label)
             if package is not None:
