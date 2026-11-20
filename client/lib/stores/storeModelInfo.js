@@ -265,6 +265,9 @@ const camelCaseObject = (obj, skipKeys = []) => {
  *  requests transitions, states, and history only for a model that reports `true`. The workflow endpoints
  *  still decide what the user may see and do.
  * @property {string} pk - The primary key field of the model.
+ * @property {string} lookupField - The field whose value identifies an object in the model's URLs, client routes, and
+ *  bulk `pks` bodies: the `lookup_field` of the model's registered viewset, or the primary key field. Rows carry the
+ *  value under this field name.
  * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo`
  *  objects.
  * @property {ActionInfo[]} actions - The actions that can be performed on the model.
@@ -384,6 +387,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                         "verbose_name",
                         "verbose_name_plural",
                         "workflow_enabled",
+                        "lookup_field",
                         "model_fields",
                         "model_actions",
                         "model_expands",

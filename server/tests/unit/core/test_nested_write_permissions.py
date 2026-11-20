@@ -267,6 +267,16 @@ def test_related_object_denial_is_enforced(case, monkeypatch):
     assert rows(type(case.related)) == before
 
 
+def test_nested_update_finds_the_related_row_through_a_renamed_url_keyword(case, monkeypatch):
+    class RenamedKeywordViewSet(case.related_view):
+        lookup_url_kwarg = "related_key"
+
+    register_view(monkeypatch, case.related_serializer, RenamedKeywordViewSet)
+    grant(case.user, type(case.related), "update")
+    response = submit(case, "patch", {"id": case.related.pk, **case.mutation})
+    assert response.status_code == status.HTTP_200_OK, response.data
+
+
 def test_related_viewset_selects_permissions_for_its_own_action(case, monkeypatch):
     class DenyUpdate(BasePermission):
         def has_permission(self, request, view):

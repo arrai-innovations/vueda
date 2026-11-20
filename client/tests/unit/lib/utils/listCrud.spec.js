@@ -1,5 +1,5 @@
 import { scopedIt } from "@tests/unit/utils.js";
-import { COLUMN_TOTALS_PARAM, PAGE_PARAM } from "@vueda/utils/constants.js";
+import { COLUMN_TOTALS_PARAM, LOOKUP_PARAM, PAGE_PARAM } from "@vueda/utils/constants.js";
 
 const getDetailUrl = vi.fn();
 const getListUrl = vi.fn();
@@ -58,6 +58,12 @@ describe("lib/utils/listCrud.js", () => {
         const { makeSearchParamsString } = listCrud;
         const result = makeSearchParamsString({ a: ["x, y", undefined, "z"], b: ["2", "3"], c: [] }, ["a", "c"]);
         expect(result).toBe("?a=x%2C+y&a=z&b=2%2C3");
+    });
+
+    scopedIt("makeSearchParamsString repeats the lookup param once for each object key", () => {
+        const { makeSearchParamsString } = listCrud;
+        const result = makeSearchParamsString({ [LOOKUP_PARAM]: ["SAGE,2", "SAGE-3"], b: ["2", "3"] });
+        expect(result).toBe("?lookup=SAGE%2C2&lookup=SAGE-3&b=2%2C3");
     });
 
     scopedIt("singlePagePaginatedListCrudAdaptor fetches one page", async () => {
@@ -250,6 +256,12 @@ describe("lib/utils/listCrud.js", () => {
                     kept: "1",
                 }),
             ).toEqual({ kept: "1" });
+        });
+
+        it("keeps every object key of the lookup filter", () => {
+            expect(listCrud.subscriptionFilters({ lookup: ["SAGE-1", "SAGE,2", "SAGE-3"] })).toEqual({
+                lookup: ["SAGE-1", "SAGE,2", "SAGE-3"],
+            });
         });
 
         it("returns no filters for no params", () => {

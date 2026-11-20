@@ -89,7 +89,7 @@ The client does not map these paths onto the form's field tree. A key matches a 
 
 An entry object with a `detail` key is a structured feedback object. It stays whole under the path that holds it, so its other properties reach the renderer with it. An object without a `detail` key splits into one path per value, as the last table row shows. [Handle Form Validation and Server Errors](../guides/form-validation-and-errors.md) shows how to render structured objects.
 
-A key can name something other than a field. A bulk delete answers `{"9": ["Object with pk=9 does not exist."]}` for a pk that is missing or that the user may not delete.
+A key can name something other than a field. A bulk delete answers `{"9": ["Object with key 9 does not exist."]}` for an object key that is missing or that the user may not delete.
 
 ## {@term Warning Confirmation} Semantics
 

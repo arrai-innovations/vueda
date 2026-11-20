@@ -26,8 +26,7 @@ from vueda.core.exceptions import VuedaValidationError
 from vueda.core.open_api import conditional_extend_schema_decorator
 from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
-from vueda.core.serializers import PrimaryKeyListSerializer
-from vueda.core.viewsets import VuedaViewSet
+from vueda.core.serializers import ObjectKeyListSerializer
 from vueda.user.adapters import get_adapter as vueda_get_adapter
 from vueda.user.filtersets import TOTPDeviceFilterSet
 from vueda.user.models import TOTPDevice
@@ -53,7 +52,6 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
     queryset = TOTPDevice.objects.all()
     filterset_class = TOTPDeviceFilterSet
     TOTP_SESSION_KEY = "mfa_totp_meta_data"
-    detail_args = VuedaViewSet.detail_args
 
     def get_queryset(self):
         if hasattr(self, "request") and getattr(self.request, "user", None):
@@ -230,7 +228,7 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
         pk = kwargs.get("pk")
         serializer_data = {"pks": [pk]} if pk else request.data
-        serializer = PrimaryKeyListSerializer(data=serializer_data)
+        serializer = ObjectKeyListSerializer(data=serializer_data)
         serializer.is_valid(raise_exception=True)
         pks = serializer.validated_data["pks"]
         if not dry_run:

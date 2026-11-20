@@ -99,6 +99,17 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
 };
 
 /**
+ * Encode an object key as one segment of a URL path.
+ *
+ * An object key is the value of the model's lookup field (`lookupField` in model info). It can hold characters that
+ * a URL path reserves, such as a space or `?`, so the path carries it percent-encoded.
+ *
+ * @param {string|number|import('vue').Ref<string|number>} key - The object key.
+ * @returns {string} The encoded path segment.
+ */
+export const encodeObjectKey = (key) => encodeURIComponent(unwrapNested(key));
+
+/**
  * Get a VUEDA detail or detail action URL.
  *
  * A detail action URL comes from the `modelDetailAction` template. The action's URL segment replaces the template's
@@ -106,7 +117,8 @@ export const getListUrl = ({ app, model, action, query = "" }) => {
  *
  * @param {string} app - The app name.
  * @param {string} model - The model name.
- * @param {string} pk - The primary key.
+ * @param {string} pk - The object key: the value of the model's lookup field (`lookupField` in model info). The URL
+ *  carries it as {@link encodeObjectKey} encodes it.
  * @param {string} [action] - The action's URL segment, if any. The URL uses it as given. For an extra action, pass
  *  the `urlPath` that model info reports for it.
  * @param {string} [query] - The query string, if any. If provided, it should start with a "?".
@@ -116,7 +128,7 @@ export const getDetailUrl = ({ app, model, pk, action, query = "" }) => {
     const urlTemplate = getUrl(action ? "modelDetailAction" : "modelDetail");
     const appStr = app.toLowerCase();
     const modelStr = getServerRoutePart(model);
-    const pkStr = unwrapNested(pk);
+    const pkStr = encodeObjectKey(pk);
     const actionStr = unwrapNested(action);
     let url = urlTemplate.replace(":app", appStr).replace(":model", modelStr).replace(":pk", pkStr);
     if (actionStr) {

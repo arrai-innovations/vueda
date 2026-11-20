@@ -54,7 +54,7 @@ describe("lib/use/useDetailView.js", () => {
         formInitialValue = reactive({});
 
         mockModelConfig = reactive({
-            info: { pk: "id", verboseName: "widget" },
+            info: { pk: "id", lookupField: "id", verboseName: "widget" },
             config: {
                 fetchFields: ["id", "name"],
                 verboseName: "widget",
@@ -176,6 +176,16 @@ describe("lib/use/useDetailView.js", () => {
         scopedIt("does not subscribe before live updates are set up", async () => {
             objectStreamsEnabled.mockReturnValue(false);
             props.subscribe = true;
+
+            const { subscribe } = await mountWithSubscribe();
+
+            expect(subscribe).not.toHaveBeenCalled();
+        });
+
+        scopedIt("does not subscribe to a record of a model whose lookup field is not its primary key", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            mockModelConfig.info.lookupField = "code";
 
             const { subscribe } = await mountWithSubscribe();
 
@@ -647,8 +657,16 @@ describe("lib/use/useDetailView.js", () => {
             );
         });
 
-        scopedIt("pkKey falls back to 'id' when modelConfig.info.pk is missing", async () => {
-            delete mockModelConfig.info.pk;
+        scopedIt("keys the object by the model's lookup field and requests that field", async () => {
+            mockModelConfig.info.lookupField = "invoice_sage_id";
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.pkKey).toBe("invoice_sage_id");
+            expect(objectProps.params[FIELDS_PARAM].flat()).toContain("invoice_sage_id");
+        });
+
+        scopedIt("pkKey falls back to 'id' when modelConfig.info.lookupField is missing", async () => {
+            delete mockModelConfig.info.lookupField;
             await withSetup(() => useDetailView(props, formInitialValue));
             const objectProps = useObject.mock.calls[0][0].props;
             expect(objectProps.pkKey).toBe("id");

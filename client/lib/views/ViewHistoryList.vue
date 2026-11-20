@@ -48,7 +48,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the instance whose history is displayed. */
+    /** Object key of the instance whose history is displayed. */
     pk: {
         type: String,
         required: true,

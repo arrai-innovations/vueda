@@ -16,7 +16,7 @@ import { useRouter } from "vue-router";
 
 /**
  * Full-page view for executing a model action. Renders a page title with a "Go Back" button and embeds a
- * ModelActionForm for the specified app, model, and action. Accepts an optional primary key and initial form
+ * ModelActionForm for the specified app, model, and action. Accepts an optional object key and initial form
  * values to pre-populate the form.
  */
 
@@ -34,7 +34,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key(s) of the object(s) to act on; pass an array for multi-object actions. */
+    /** Object key(s) of the object(s) to act on; pass an array for multi-object actions. */
     pk: {
         type: [String, Number, Array],
         default: undefined,

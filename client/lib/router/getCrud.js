@@ -10,7 +10,7 @@
  * @param {object} params - The parameters.
  * @param {string} params.app - The app name.
  * @param {string} params.model - The model name.
- * @param {string|string[]} [params.pk] - One primary key, which targets the detail route, or an array
+ * @param {string|string[]} [params.pk] - One object key, which targets the detail route, or an array
  *     of keys, which targets the list route with one repeated `pk` query value per key. An empty array
  *     is no selection.
  * @param {string} params.view - The view name.

@@ -428,6 +428,14 @@ A validation error or warning that belongs to the whole form, sent under the `no
 - Described in: [Error and Validation Contract](../core-concepts/error-and-validation-contract.md#non-field-and-nested-path-semantics)
 - Upstream: [DRF: `ValidationError`]{@api ext:drf:rest_framework.exceptions.ValidationError}; [Django: `NON_FIELD_ERRORS`]{@api ext:django:django.core.exceptions.NON_FIELD_ERRORS}
 
+## Object Key
+
+The value that identifies one object in a model's detail URLs, client routes, and bulk `pks` bodies: the value of the model's lookup field. The lookup field is the `lookup_field` of the model's {@term Canonical Viewset}, or the primary key when the viewset keeps DRF's default. {@term Model Info} reports the field's name as `lookup_field`.
+
+- Names: [`ModelInfo.lookupField`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.lookupField}; [`get_lookup_field`]{@api py:function:vueda.info.registration.get_lookup_field}; [`LookupInFilterSet`]{@api py:class:vueda.core.filters.LookupInFilterSet}
+- Described in: [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline.md#lookup-field-and-object-key)
+- Upstream: [DRF: `lookup_field`]{@api ext:drf:rest_framework.generics.GenericAPIView.lookup_field}
+
 ## Object State
 
 The record that stores which workflow state one object is in. VUEDA creates it in the workflow's initial state when a save of a {@term Workflow-Enabled Model} object finds none. A raw save, such as a fixture load, creates none. `backfillworkflowstates` creates any that are missing.

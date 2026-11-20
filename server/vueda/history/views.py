@@ -51,7 +51,7 @@ class WorkflowStateHistoryView(DynamicObjectView):
             ),
             conditional_open_api_parameter(
                 name="object_id",
-                type=int,
+                type=str,
                 location="path",
                 required=True,
             ),

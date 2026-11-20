@@ -20,7 +20,7 @@ import { onMounted, reactive, readonly, toRef, useSlots } from "vue";
 
 /**
  * Read-only detail view that fetches and displays a single model instance identified by its
- * primary key.
+ * object key, the value of the model's lookup field.
  */
 
 defineOptions({
@@ -40,7 +40,7 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the object instance to fetch and display. */
+    /** Object key of the object instance to fetch and display. */
     pk: {
         type: String,
         required: true,

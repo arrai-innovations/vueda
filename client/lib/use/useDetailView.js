@@ -69,6 +69,7 @@ import { useObjectChangeNotice } from "@vueda/use/useObjectChangeNotice.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { lookupFieldOf, objectKeyIsPrimaryKey } from "@vueda/utils/objectKeys.js";
 import { objectStreamsEnabled } from "@vueda/utils/objectStreams.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
@@ -83,7 +84,7 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string} model - Django model name.
  * @property {string} viewName - View identifier used to load model config and build the form ID (e.g. `"read"` or
  *  `"update"`).
- * @property {string} pk - Primary key of the instance to fetch.
+ * @property {string} pk - Object key of the instance to fetch.
  *
  * Optional data-fetching overrides.
  * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default when
@@ -111,10 +112,12 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {boolean} [noticeChanges] - For a view that holds unsaved edits, such as update. After
  *  `setupObjectStreams()`, the object subscription keeps the record current, the form keeps the values that it loaded,
  *  and the returned `changeNotice` reports the difference. `currentActionAvailable` reads the actions that the record
- *  allowed when the form took its values, with or without live updates.
+ *  allowed when the form took its values, with or without live updates. A model whose lookup field is not its primary
+ *  key has no live updates for one record, so the view does not subscribe.
  * @property {boolean} [subscribe] - For a view that shows no edits, such as read. After `setupObjectStreams()`, the
  *  view fetches the record again when the server reports a change, and the form values follow it. Without live updates,
- *  the option has no effect.
+ *  the option has no effect. A model whose lookup field is not its primary key has no live updates for one record, so
+ *  the view does not subscribe.
  *
  * Optional submit state (needed when the view has a submit button, e.g. update).
  * @property {{ state: { loading: boolean, submitErrored: boolean, error: Error|null } }} [objectForm] - The
@@ -248,12 +251,12 @@ export function useDetailView(options, formInitialValue) {
             app: toRef(options, "app"),
             model: toRef(options, "model"),
         },
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        pkKey: computed(() => lookupFieldOf(modelConfig.info)),
         pk: toRef(options, "pk"),
         params: {
             [FIELDS_PARAM]: computed(() =>
                 [
-                    modelConfig.info?.pk ?? "id",
+                    lookupFieldOf(modelConfig.info),
                     fetchFields.value,
                     addsFormattedName.value ? "formatted_name" : null,
                     "available_actions",
@@ -264,7 +267,11 @@ export function useDetailView(options, formInitialValue) {
         },
         intendToRetrieve,
         intendToSubscribe: computed(
-            () => (!!options.subscribe || !!options.noticeChanges) && objectStreamsEnabled() && validAndActive.value,
+            () =>
+                (!!options.subscribe || !!options.noticeChanges) &&
+                objectStreamsEnabled() &&
+                objectKeyIsPrimaryKey(modelConfig.info) &&
+                validAndActive.value,
         ),
         relatedObjectRules: toRef(options, "relatedObjectRules"),
         calculatedObjectRules: toRef(options, "calculatedObjectRules"),

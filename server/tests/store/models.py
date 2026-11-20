@@ -152,7 +152,7 @@ class OrderState(Lookup):
 
 
 class CustomerOrder(VuedaModel):
-    order_number = models.DecimalField(max_digits=7, decimal_places=0)
+    order_number = models.DecimalField(max_digits=7, decimal_places=0, unique=True)
     when = models.DateTimeField(auto_now_add=True, verbose_name="Date / Time", db_index=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
     order_state = models.ForeignKey(OrderState, on_delete=models.PROTECT)
@@ -190,9 +190,9 @@ class CustomerOrder(VuedaModel):
     @classmethod
     def get_next_order_number(cls):
         # Reads the highest order number and adds one. Do not copy this into a real application:
-        # two concurrent requests can read the same maximum and save duplicate numbers, because
-        # order_number has no unique constraint. It also fails on an empty table (Max returns None)
-        # and reuses the number of a deleted latest order. Production code should use a database
+        # two concurrent requests can read the same maximum, and the second save then fails on
+        # order_number's unique constraint. It also fails on an empty table (Max returns None) and
+        # reuses the number of a deleted latest order. Production code should use a database
         # sequence or a locked counter row. The tests run one request at a time against fixtures
         # that already contain orders, so this simple version is enough here.
         customer_order_data = CustomerOrder.objects.aggregate(last_order_number=Max("order_number"))

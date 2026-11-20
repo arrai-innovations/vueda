@@ -82,6 +82,17 @@ describe("lib/stores/storeModelInfo.js", () => {
         expect(store.promises[key]).toBeUndefined();
     });
 
+    scopedIt("requests lookup_field and exposes it as lookupField", async () => {
+        const args = { app: "billing", model: "invoice" };
+        fetchHelper.mockResolvedValue({ ...serverData("CharField"), lookup_field: "invoice_sage_id" });
+
+        const result = await store.fetchModelInfo(args);
+
+        const query = fetchHelper.mock.calls[0][0].split("?")[1];
+        expect(new URLSearchParams(query).get("f").split(",")).toContain("lookup_field");
+        expect(result.lookupField).toBe("invoice_sage_id");
+    });
+
     scopedIt("requests the column totals section and exposes it as columnTotals", async () => {
         const args = { app: "blog", model: "post" };
         fetchHelper.mockResolvedValue({
@@ -110,6 +121,7 @@ describe("lib/stores/storeModelInfo.js", () => {
             verbose_name: "purchase order",
             verbose_name_plural: "purchase orders",
             workflow_enabled: true,
+            lookup_field: "id",
             model_fields: { id: { pk: true, type_db: "AutoField" } },
             model_actions: [],
             model_expands: [],
@@ -129,6 +141,7 @@ describe("lib/stores/storeModelInfo.js", () => {
                 "expand",
                 "fields",
                 "filtering",
+                "lookupField",
                 "model",
                 "ordering",
                 "permissions",

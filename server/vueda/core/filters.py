@@ -8,6 +8,8 @@ __all__ = (
     "BaseArrayInFilter",
     "FormattedNamePathFilterSetMixin",
     "IdInFilterSet",
+    "LookupInFilter",
+    "LookupInFilterSet",
     "ModelChoiceArrayFilter",
     "NumberArrayFilter",
     "PublicFilterAliasMixin",
@@ -40,6 +42,7 @@ from django.db.models.functions import Greatest
 from django.utils.translation import gettext_lazy as _
 from django_filters import ModelChoiceFilter
 from django_filters import rest_framework
+from django_filters.constants import EMPTY_VALUES
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.filters import SearchFilter
@@ -62,6 +65,8 @@ from vueda.core.paths import path_annotation_name
 from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import reject_wildcard
 from vueda.core.paths import split_ordering_direction
+from vueda.core.widgets import RepeatedHiddenArrayInput
+from vueda.info.registration import get_lookup_field
 
 
 class BaseArrayFilter(rest_framework.Filter):
@@ -231,8 +236,68 @@ class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
+class LookupInFilter(BaseArrayInFilter, rest_framework.CharFilter):
+    """
+    Matches the rows whose ``field_name`` holds one of the given object keys.
+
+    The query string repeats the parameter once for each key, as in ``?lookup=A&lookup=B``. Each
+    value is one whole key, so a key that contains a comma stays intact. Each value converts through
+    :class:`~vueda.core.serializers.ObjectKeyField`, the converter that bulk ``pks`` bodies use, so a
+    value that the field cannot hold answers 400 instead of failing in the database.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", RepeatedHiddenArrayInput)
+        kwargs.setdefault("label", _("Object key"))
+        kwargs.setdefault("help_text", _("Repeat the parameter once for each object key."))
+        super().__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        if value in EMPTY_VALUES:
+            return qs
+        from vueda.core.serializers import ObjectKeyField
+
+        key_field = ObjectKeyField(qs.model, self.field_name)
+        try:
+            keys = [key_field.to_internal_value(key) for key in value]
+        except ValidationError as exc:
+            raise ValidationError({"lookup": exc.detail}) from exc
+        return self.get_method(qs)(**{f"{self.field_name}__{self.lookup_expr}": keys})
+
+
+class LookupInFilterSet(rest_framework.FilterSet):
+    """
+    Adds a hidden ``lookup`` filter that matches object keys, as in ``?lookup=SAGE-0042&lookup=SAGE-0043``.
+
+    An object key is the value of the lookup field: the model field whose value the viewset puts in
+    its detail URLs and reads from bulk ``pks`` bodies. A client uses the filter to load the rows that
+    a route or a selection names. The filter matches the ``lookup_field`` of the viewset that serves
+    the request. A filterset built outside a viewset request matches the lookup field of the model's
+    registered viewset, or the primary key of a model without one.
+    """
+
+    lookup = LookupInFilter()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        lookup_filter = self.filters.get("lookup")
+        if isinstance(lookup_filter, LookupInFilter):
+            lookup_filter.field_name = self.get_lookup_field()
+
+    def get_lookup_field(self):
+        """Return the name of the model field whose values the ``lookup`` filter matches."""
+        view = (getattr(self.request, "parser_context", None) or {}).get("view")
+        if hasattr(view, "get_lookup_model_field"):
+            return view.get_lookup_model_field()
+        return get_lookup_field(self.queryset.model)
+
+
 class VuedaFilterSet(
-    PublicFilterAliasMixin, WorkflowStateFilterSetMixin, FormattedNamePathFilterSetMixin, IdInFilterSet
+    PublicFilterAliasMixin,
+    WorkflowStateFilterSetMixin,
+    FormattedNamePathFilterSetMixin,
+    LookupInFilterSet,
+    IdInFilterSet,
 ):
     pass
 

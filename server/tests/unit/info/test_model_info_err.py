@@ -137,7 +137,7 @@ class TestModelInfoInvalidChoices:
                 data={},
             )
         assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
-        assert "Invalid filter 'tangible_type'. Valid filters are id, no_name." == response.data["detail"]
+        assert "Invalid filter 'tangible_type'. Valid filters are id, lookup, no_name." == response.data["detail"]
 
 
 class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
@@ -160,7 +160,9 @@ class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
     }
 
 
-RESULT_KEYS = frozenset({"id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled"})
+RESULT_KEYS = frozenset(
+    {"id", "app_label", "model", "verbose_name", "verbose_name_plural", "workflow_enabled", "lookup_field"}
+)
 
 
 @pytest.mark.django_db

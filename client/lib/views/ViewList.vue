@@ -270,7 +270,7 @@ const themedSearchSlotProps = computed(() => ({
 }));
 
 const emit = defineEmits([
-    /** Emitted once on mount with a live ref to the selected primary keys (`actions.selectedObjects`). */
+    /** Emitted once on mount with a live ref to the selected object keys (`actions.selectedObjects`). */
     "selected",
     /** Emitted once on mount with a live ref to the active sort order (`sort.sorting.state.sorted`). */
     "sorted",
@@ -514,7 +514,7 @@ onMounted(() => {
                 ...(hideEmptySelectionCard ? { selected_: 'hidden' } : {}),
             }"
             :field-props="{
-                pkKey: modelConfig.info?.pk ?? 'id',
+                pkKey: list.pkKey,
                 modelInfo: modelConfig.info,
                 modelConfig: modelConfig.config,
             }"

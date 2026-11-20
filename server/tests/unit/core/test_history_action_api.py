@@ -21,6 +21,8 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import NoReverseMatch
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 from tests.conftest import BaseTestAssertResponseMixin
 from tests.conftest import BaseTestGroupMixin
@@ -280,6 +282,26 @@ class TestHistoryActionGroups(BaseTestAssertResponseMixin, BaseTestUserMixin, Ba
             f"store.Distributor:{earlier_id.pgh_id}",
             f"store.Product:{product_event.pgh_id}",
         ]
+
+    def test_history_resolves_the_object_by_the_viewset_lookup_field(self, reader, written):
+        distributor, _ = written
+
+        class DistributorByNameViewSet(store_viewsets.DistributorViewSet):
+            lookup_field = "name"
+
+        view = DistributorByNameViewSet.as_view({"get": "history_list"}, detail=True)
+
+        def get_history(key):
+            request = APIRequestFactory().get("/")
+            force_authenticate(request, user=reader)
+            return view(request, name=key)
+
+        by_key = get_history(distributor.name)
+        by_primary_key = get_history(str(distributor.pk))
+
+        assert by_key.status_code == HTTPStatus.OK, response_body(by_key)
+        assert by_key.data["totalRecords"] == 2  # noqa: PLR2004
+        assert by_primary_key.status_code == HTTPStatus.NOT_FOUND, response_body(by_primary_key)
 
     def test_history_requires_authentication(self, api_client, written):
         distributor, _ = written

@@ -24,3 +24,9 @@ class CompositeKeyGadgetSerializer(VuedaSerializer):
     class Meta(VuedaSerializer.Meta):
         model = models.CompositeKeyGadget
         fields = ["pk", "batch", "number", "name", "is_active"] + VuedaSerializer.Meta.fields
+
+
+class LookupKeyGadgetSerializer(VuedaSerializer):
+    class Meta(VuedaSerializer.Meta):
+        model = models.LookupKeyGadget
+        fields = ["id", "sage_id", "name", "is_active"] + VuedaSerializer.Meta.fields

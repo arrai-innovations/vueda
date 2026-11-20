@@ -44,7 +44,7 @@ The widget alone decides whether a filter is hidden. {@term Model Info} reports 
 - never becomes an editable filter chip,
 - needs no client input mapping for its type, so a hidden [`UUIDFilter`]{@api ext:django-filter:django_filters.filters.UUIDFilter} works without a registered UUID input.
 
-{@api py:class:vueda.core.filters.VuedaFilterSet} inherits a hidden `id` filter from {@api py:class:vueda.core.filters.IdInFilterSet}, so an `?id=1,2` link scopes any list to those records. A composite-key filterset has no `id` filter (see [Set Up CRUD for a Composite Primary Key Model](./composite-primary-keys)).
+{@api py:class:vueda.core.filters.VuedaFilterSet} inherits a hidden `id` filter from {@api py:class:vueda.core.filters.IdInFilterSet}, so an `?id=1,2` link scopes any list to those records. It also inherits a hidden `lookup` filter from {@api py:class:vueda.core.filters.LookupInFilterSet}, which matches the model's {@term Object Key}. A link such as `?lookup=SAGE-0042&lookup=SAGE-0043` scopes a list to the records whose detail URLs carry those keys. Repeat `lookup` once for each key, because the filter reads each value as one whole key. A composite-key filterset has neither filter (see [Set Up CRUD for a Composite Primary Key Model](./composite-primary-keys)).
 
 The server validates a hidden filter's value like any other filter value. [Filtering and Ordering Semantics](../core-concepts/filtering-and-ordering-semantics#query-namespace-and-validation-boundary) describes that validation and how the server rejects a bad query.
 

@@ -7,8 +7,10 @@ import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useLookupContext } from "@vueda/use/useLookupContext.js";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
+import { LOOKUP_PARAM } from "@vueda/utils/constants.js";
 import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { lookupFieldOf } from "@vueda/utils/objectKeys.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef } from "vue";
 
@@ -56,9 +58,9 @@ export function useViewDestroy(props) {
             app: toRef(props, "app"),
             model: toRef(props, "model"),
         },
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        pkKey: computed(() => lookupFieldOf(modelConfig.info)),
         params: {
-            id: computed(() => {
+            [LOOKUP_PARAM]: computed(() => {
                 const pk = props.pk;
                 return Array.isArray(pk) ? pk : [pk];
             }),

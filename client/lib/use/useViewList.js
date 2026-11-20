@@ -31,7 +31,7 @@
  *     :objects-in-order="list.instanceList.state.objectsInOrder"
  *     :related-objects="list.instanceList.state.relatedObjects"
  *     :calculated-objects="list.instanceList.state.calculatedObjects"
- *     :field-props="{ pkKey: modelConfig.info?.pk, modelInfo: modelConfig.info, modelConfig: modelConfig.config }"
+ *     :field-props="{ pkKey: modelConfig.info?.lookupField, modelInfo: modelConfig.info, modelConfig: modelConfig.config }"
  *     :sortables="sort.sorting.state.sortables"
  *     :sorted="sort.sorting.state.sorted"
  *     @update:sorted="sort.sorting.updateSorted"
@@ -147,6 +147,7 @@ import {
     singlePagePaginatedListCrudAdaptor,
     subscriptionFilters,
 } from "@vueda/utils/listCrud.js";
+import { lookupFieldOf } from "@vueda/utils/objectKeys.js";
 import { objectStreamsEnabled, subscribeToListChanges } from "@vueda/utils/objectStreams.js";
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
@@ -252,7 +253,7 @@ const VIEW_NAME = "list";
  *  visible-filter, sort, and search changes until the URL itself drops it (for example through `scope.clearUrlScopes`).
  *  When `params` carries any key a filter owns, visible or hidden, `params` supplies that filter's value: the URL value
  *  stays in the URL but is not sent, restored as a filter, shown as a scope, or saved to preferences.
- * @property {string} pkKey - The primary key field name (auto-unwrapped).
+ * @property {string} pkKey - The lookup field name, whose value is each row's object key (auto-unwrapped).
  * @property {object[]} computedFieldObjects - Ordered field descriptors for the grid, with column visibility applied.
  * @property {string[]} specialSlots - Slot name strings for extra field objects (e.g. `"field(selected_)"`); used to
  *  exclude them from generic slot forwarding.
@@ -285,9 +286,9 @@ const VIEW_NAME = "list";
  * @property {Set<string>} primaryActions - Targetless action names promoted to the filled hero CTA.
  * @property {{[actionName: string]: object}} buttonSlotProps - Ready-to-spread slot props for each action button; keyed
  *  by action name. Does not include a `class` property — shells supply their own.
- * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected primary keys (auto-unwrapped in
+ * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected object keys (auto-unwrapped in
  *  templates).
- * @property {(pk: string|number) => void} toggleSelectedObject - Adds or removes a primary key from the selection.
+ * @property {(pk: string|number) => void} toggleSelectedObject - Adds or removes an object key from the selection.
  */
 
 /**
@@ -503,7 +504,7 @@ export function useViewList(options) {
         },
     });
 
-    const pkKey = computed(() => modelConfig.info?.pk ?? "id");
+    const pkKey = computed(() => lookupFieldOf(modelConfig.info));
     const calculatedListFields = computed(() => {
         let fields = [];
         const fetchFields = unref(options.fetchFields);
@@ -950,7 +951,7 @@ export function useViewList(options) {
             app: appRef,
             model: modelRef,
         },
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        pkKey,
         params: toRef(listState, "params"),
         intendToList: validAndActive,
         intendToSubscribe: computed(() => validAndActive.value && objectStreamsEnabled()),

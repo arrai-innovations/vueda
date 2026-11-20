@@ -163,8 +163,8 @@ describe("lib/{views,widgets}/*.vue", () => {
                     } else if (View === ViewCreate) {
                         expected = { object: values };
                     } else {
-                        // Update forms carry the route pk in the saved object.
-                        expected = { object: { ...values, id: "1" } };
+                        // Update forms name the saved object by the route's object key.
+                        expected = { object: values, pk: "1" };
                     }
                     expect(send.mock.calls[0][0]).toEqual(expect.objectContaining(expected));
                 } finally {

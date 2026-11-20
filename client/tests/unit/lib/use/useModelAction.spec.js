@@ -115,6 +115,24 @@ describe("lib/use/useModelAction.js", () => {
         expect(fromPk.state.bulk.value).toBe(false);
     });
 
+    scopedIt("reads each selected object's key from the model's lookup field", async () => {
+        modelConfig.info = { ...modelConfig.info, lookupField: "invoice_sage_id" };
+        const { state } = await withSetup(() =>
+            useModelAction(
+                reactive({
+                    app: "billing",
+                    model: "invoice",
+                    action: "archive",
+                    fetchState: createFetchState([
+                        { id: 4, invoice_sage_id: "SAGE-4" },
+                        { id: 7, invoice_sage_id: "SAGE-7" },
+                    ]),
+                }),
+            ),
+        );
+        expect(state.pks.value).toEqual(["SAGE-4", "SAGE-7"]);
+    });
+
     describe("Model naming", () => {
         scopedIt("names the model by its verbose name when the slug differs", async () => {
             modelConfig.info = { verboseName: "purchase order", verboseNamePlural: "purchase orders" };

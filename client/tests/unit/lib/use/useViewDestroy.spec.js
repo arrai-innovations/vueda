@@ -45,6 +45,7 @@ describe("lib/use/useViewDestroy.js", () => {
         mockModelConfig = reactive({
             info: {
                 pk: "id",
+                lookupField: "id",
             },
             loading: false,
         });
@@ -84,8 +85,9 @@ describe("lib/use/useViewDestroy.js", () => {
         const listArgs = useList.mock.calls[0][0];
         expect(listArgs.props.intendToList).toBe(result.validAndActive.value);
         const params = listArgs.props.params;
-        expect(params.id).toEqual(["123"]);
-        expect(Array.isArray(params.id)).toBe(true);
+        expect(params.lookup).toEqual(["123"]);
+        expect(Array.isArray(params.lookup)).toBe(true);
+        expect(params.id).toBeUndefined();
 
         expect(result.modelConfig).toBe(mockModelConfig);
         expect(result.instanceList).toBe(mockInstanceList);
@@ -181,8 +183,15 @@ describe("lib/use/useViewDestroy.js", () => {
         expect(result.validAndActive.value).toBe(false);
     });
 
-    scopedIt("falls back to 'id' if modelConfig.info.pk is missing", async () => {
-        delete mockModelConfig.info.pk;
+    scopedIt("keys the list by the model's lookup field", async () => {
+        mockModelConfig.info.lookupField = "code";
+        await withSetup(() => useViewDestroy(props));
+        const listProps = useList.mock.calls[0][0].props;
+        expect(listProps.pkKey).toBe("code");
+    });
+
+    scopedIt("falls back to 'id' if modelConfig.info.lookupField is missing", async () => {
+        delete mockModelConfig.info.lookupField;
         await withSetup(() => useViewDestroy(props));
         const listProps = useList.mock.calls[0][0].props;
         expect(listProps.pkKey).toBe("id");

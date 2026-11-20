@@ -122,7 +122,7 @@ let ViewActivate, vue, mockInstanceList, modelConfig;
 beforeEach(async () => {
     vue = await vi.importActual("vue");
     modelConfig = vue.reactive({
-        info: { pk: "id" },
+        info: { pk: "id", lookupField: "id" },
         config: { verboseName: "", verboseNamePlural: "" },
         loading: false,
     });
@@ -184,6 +184,13 @@ describe("lib/views/ViewActivate.vue", () => {
             expect(af.attributes("data-app")).toBe("myApp");
             expect(af.attributes("data-model")).toBe("myModel");
             expect(af.attributes("data-action")).toBe("activate");
+        });
+
+        scopedIt("keys the selected objects by the model's lookup field", () => {
+            mockedInject.mockReturnValueOnce({});
+            modelConfig.info = { pk: "id", lookupField: "invoice_sage_id" };
+            mount(ViewActivate, { props: { app: "billing", model: "invoice", pk: ["SAGE-4", "SAGE-7"] } });
+            expect(mockedUseList.mock.calls[0][0].props.pkKey).toBe("invoice_sage_id");
         });
 
         scopedIt("applies theme root and registers the theme entry", () => {
@@ -269,14 +276,14 @@ describe("lib/views/ViewActivate.vue", () => {
             expect(form.props("pk")).toBe("1");
         });
 
-        scopedIt("passes scalar and array primary keys to the preview list params", () => {
+        scopedIt("passes scalar and array object keys to the preview list lookup filter", () => {
             mockedInject.mockReturnValueOnce({});
             mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
-            expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1"]);
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params.lookup).toEqual(["1"]);
 
             mockedInject.mockReturnValueOnce({});
             mount(ViewActivate, { props: { app: "app", model: "model", pk: ["1", "2"] } });
-            expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1", "2"]);
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params.lookup).toEqual(["1", "2"]);
         });
     });
 });

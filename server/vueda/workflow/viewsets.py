@@ -22,6 +22,9 @@ from vueda.core.open_api import conditional_extend_schema_func
 from vueda.core.open_api import conditional_extend_schema_view_decorator
 from vueda.core.open_api import conditional_open_api_response
 from vueda.history.revision import object_revision
+from vueda.info.registration import get_lookup_field
+from vueda.info.registration import get_object_by_key
+from vueda.info.registration import object_key_of
 from vueda.workflow import schema as workflow_schema
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
@@ -96,7 +99,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
     def get_object(self):
         """Return the target object, checking its permissions, or the workflow the request names."""
         if "object_id" in self.request_kwargs:
-            instance = get_object_or_404(self.get_workflow().content_type.model_class(), pk=self.kwargs["object_id"])
+            instance = get_object_by_key(self.get_workflow().content_type.model_class(), self.kwargs["object_id"])
             self.check_object_permissions(self.request, instance)
             return instance
         elif "app_label" in self.request_kwargs:
@@ -260,19 +263,20 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         else:
             object_ids = request.data.get("object_ids", [])
             if not isinstance(object_ids, list):
-                raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
+                raise VuedaValidationError({"object_ids": ["Must be a list of object keys."]})
 
             model_class = self.get_workflow().content_type.model_class()
-            # Key every dict below off the resolved instance's own pk (cast to str), not the raw
-            # request value. object_ids is client-supplied JSON, which may mix numeric and string
+            lookup_field = get_lookup_field(model_class)
+            # Key every dict below off the resolved instance's own object key (cast to str), not the
+            # raw request value. object_ids is client-supplied JSON, which may mix numeric and string
             # types (or the same ids typed differently across a gate/retry round trip); either of
             # those would corrupt gate_warnings' digest -- mixed key types make
             # json.dumps(sort_keys=True) raise TypeError, and same-value-different-type keys sort
             # differently (numeric vs lexicographic), changing the digest for identical warnings.
-            # The resolved pk is authoritative and always the same type, so this is stable regardless
+            # The resolved key is authoritative and always the same type, so this is stable regardless
             # of what the request sent.
             id_instances = [
-                (str(instance.pk), instance)
+                (str(object_key_of(instance, lookup_field)), instance)
                 for instance in (self._get_readable_object(model_class, object_id) for object_id in object_ids)
             ]
 
@@ -314,7 +318,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         never reports which of its ids exist. Every configured permission class decides, so a
         permission the viewset adds beyond the workflow gates stays authoritative here too.
         """
-        instance = get_object_or_404(model_class, pk=object_id)
+        instance = get_object_by_key(model_class, object_id)
         self.check_object_permissions(self.request, instance)
         return instance
 
