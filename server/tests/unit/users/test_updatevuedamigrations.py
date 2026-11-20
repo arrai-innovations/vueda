@@ -1073,7 +1073,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow instead of "
                 "holding copies"
             ) in err
-            assert "Replace each such import with a copy of the function as it was when the migration was made" in err
+            assert "Replace each other one with a copy of the function as it was when the migration was made" in err
             assert imported in path.read_text()
             assert path.read_text() == before
 
