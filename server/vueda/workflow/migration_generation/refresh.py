@@ -79,8 +79,11 @@ def _workflow_codes(changed_item):
             pending.extend(value)
         elif isinstance(value, dict):
             for key, item in value.items():
-                if key == "workflow_id" and isinstance(item, dict) and "code" in item:
-                    yield item["code"]
+                if key == "workflow_id":
+                    # A reference is a dict, or an (old, new) pair of them in an altered field.
+                    for reference in item if isinstance(item, tuple | list) else (item,):
+                        if isinstance(reference, dict) and "code" in reference:
+                            yield reference["code"]
                 pending.append(item)
 
 
@@ -262,9 +265,9 @@ def read_changed_data(source, filepath):
     module, rather than parsed, because a change records real datetimes and a literal parser cannot build them.
     It runs the given text, not the file, so a refresh can read a migration before writing anything.
 
-    Only the module's imports and top-level assignments run, which is all that ``changed_data`` can need. Its
-    functions and its ``Migration`` class are left out, so a class body that names a function from an import that
-    VUEDA no longer has cannot stop the read. Those imports are left out too.
+    Everything at the top level runs, apart from class bodies and imports of VUEDA code that no longer exists. So
+    ``changed_data`` can be built up in steps, or by the migration's own functions, while a ``Migration`` class body
+    that names a function from such an import cannot stop the read.
     """
     module = types.ModuleType("workflow_migration_being_updated")
     module.__file__ = str(filepath)
@@ -276,7 +279,7 @@ def read_changed_data(source, filepath):
                 node.names = [alias for alias in node.names if not imports_code_that_vueda_no_longer_has(node, alias)]
                 if node.names:
                     body.append(node)
-            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            elif not isinstance(node, ast.ClassDef):
                 body.append(node)
         exec(compile(ast.Module(body=body, type_ignores=[]), str(filepath), "exec"), module.__dict__)
         changed_data = module.changed_data

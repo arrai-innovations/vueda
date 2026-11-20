@@ -260,6 +260,12 @@ def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
             "'changes': {'code': ('a',)}}]",
             "change 0 has a workflow code that is not a single value",
         ),
+        (
+            "import datetime\n"
+            "changed_data = [{'model_name': 'state', 'history_date': datetime.datetime(2026, 6, 29), "
+            "'changes': {'workflow_id': ({'code': ['a']}, {'code': 'b'})}}]",
+            "change 0 has a workflow code that is not a single value",
+        ),
         ("changed_data = 1 / 0", "division by zero"),
     ],
 )
@@ -546,6 +552,19 @@ def test_a_workflow_reference_inside_a_list_gains_its_app_and_model():
 
     assert "historical_app_label" in from_tuple[0]["workflow_id"]
     assert from_list == [from_tuple[0]]
+
+
+def test_changed_data_built_up_in_steps_is_read_whole():
+    source = (
+        "import datetime\n\n"
+        "changed_data = [{'model_name': 'state', 'history_date': datetime.datetime(2026, 6, 29), 'changes': {}}]\n"
+        "changed_data += [{'model_name': 'state', 'history_date': datetime.datetime(2026, 6, 30), 'changes': {}}]\n"
+    )
+
+    changed_data, problem = read_changed_data(source, "steps.py")
+
+    assert problem is None
+    assert [change["history_date"].day for change in changed_data] == [29, 30]
 
 
 def test_changed_data_that_cannot_be_read_is_reported_with_the_reason():
@@ -1051,8 +1070,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert status == 1
             assert (
                 f"Cannot update {path}: It needs a change by hand: it imports "
-                "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow, which VUEDA no "
-                "longer has"
+                "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow instead of "
+                "holding copies"
             ) in err
             assert "Replace each such import with a copy of the function as it was when the migration was made" in err
             assert imported in path.read_text()
@@ -1084,6 +1103,41 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 "which VUEDA no longer has."
             ) in out
             assert path.read_text() == (before if dry_run else original)
+
+    def test_a_kept_migration_that_imports_todays_functions_needs_copies(self, settings):
+        """The module still exists, but the migration would run today's functions, which need the tables that it
+        runs before."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0001_initial"), WORKFLOW_SCHEMA_BEFORE_EVENTS),
+            )
+            source = path.read_text()
+            forwards = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name == "forwards_migrate_workflow"
+            )
+            lines = source.splitlines(keepends=True)
+            del lines[forwards.lineno - 1 : forwards.end_lineno]
+            imported = "from vueda.workflow.migration_generation.operations import forwards_migrate_workflow\n"
+            path.write_text(
+                "".join(lines).replace(
+                    "from django.db import migrations\n", f"from django.db import migrations\n{imported}", 1
+                )
+            )
+            before = path.read_text()
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert (
+                f"Cannot update {path}: It needs a change by hand: it imports "
+                "vueda.workflow.migration_generation.operations.forwards_migrate_workflow instead of holding copies"
+            ) in err
+            assert path.read_text() == before
 
     def test_a_failed_refresh_keeps_the_import_that_the_graph_loaded_without(self, settings):
         """The graph loads the migration without the import, and nothing is written. The refresh then fails for

@@ -5,6 +5,7 @@ __all__ = (
     "Refresh",
     "RefreshError",
     "imports_code_that_vueda_no_longer_has",
+    "imports_of_copied_vueda_functions",
     "imports_that_vueda_no_longer_has",
     "refresh_migration",
     "remove_imports_that_stop_the_graph",
@@ -185,7 +186,7 @@ def _gone_import_rule(tree, copied):
     An import goes when it names VUEDA code that no longer exists, and the module does not read the name while it
     loads before binding it itself. Then removing the import cannot break the module while it loads. It also has
     to be safe once the module has loaded: nothing uses the name, the module binds the name itself, or the name is
-    in ``copied``, so the refresh copies it in. ``copied`` of None counts every name as copied. A star import never
+    in ``copied``, so the refresh copies it in. A star import never
     goes, because the names that it supplies are unknown.
     """
     usage = _module_usage(tree)
@@ -195,7 +196,7 @@ def _gone_import_rule(tree, copied):
             return False
         binding = _alias_binding(alias)
         # A copied name that is not read while the module loads is copied in before anything calls it.
-        is_copied = (copied is None or binding in copied) and binding not in usage.read_before_bound
+        is_copied = binding in copied and binding not in usage.read_before_bound
         return (not usage.needs_import(binding) or is_copied) and _vueda_no_longer_has(node, alias)
 
     return removable
@@ -336,18 +337,38 @@ def imports_that_vueda_no_longer_has(source):
         tree = ast.parse(source)
     except SyntaxError:
         return ()
-    gone = []
-    for node in tree.body:
-        if not isinstance(node, (ast.Import, ast.ImportFrom)):
-            continue
-        for alias in node.names:
-            try:
-                missing = _vueda_no_longer_has(node, alias)
-            except RefreshError:
-                missing = True
-            if missing:
-                gone.append(_import_label(node, alias))
-    return tuple(sorted(gone))
+    return tuple(
+        sorted(
+            _import_label(node, alias)
+            for node in tree.body
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+            for alias in node.names
+            if imports_code_that_vueda_no_longer_has(node, alias)
+        )
+    )
+
+
+def imports_of_copied_vueda_functions(source, kind):
+    """Return the sorted ``module.name`` of each top-level import in ``source`` of a VUEDA function that ``kind``
+    copies into migrations.
+
+    A migration with such an import runs today's version of that function, not a copy of its own. The result is empty
+    when the source cannot be read.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return ()
+    copied = {name for names in kind.get_sources(False, as_mapping=True) for name in names}
+    return tuple(
+        sorted(
+            _import_label(node, alias)
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom) and not node.level and _is_vueda_module(node.module)
+            for alias in node.names
+            if alias.name in copied
+        )
+    )
 
 
 def imports_code_that_vueda_no_longer_has(node, alias):
