@@ -107,8 +107,7 @@ def iter_model_actions(called_viewset, request):
     viewset = type(called_viewset)
     user = request.user if request is not None else None
 
-    # The class's queryset names the model without building a queryset. get_queryset() can read the request,
-    # which a viewset built here does not have.
+    # The class's queryset names the model without building a queryset, which can be costly.
     queryset = viewset.queryset if getattr(viewset, "queryset", None) is not None else called_viewset.get_queryset()
     meta = queryset.model._meta
     app_label = meta.app_label
@@ -130,7 +129,8 @@ def iter_model_actions(called_viewset, request):
 
         if action not in ("list", "create"):
             action_item_data["detail"] = True
-            parameters = viewset.detail_args
+            # A plain DRF viewset has no detail_args, and still answers model info like any other viewset.
+            parameters = getattr(viewset, "detail_args", None)
             if parameters:
                 action_item_data["parameters"] = parameters
         yield False, action_item_data

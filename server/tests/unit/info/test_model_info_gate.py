@@ -220,16 +220,20 @@ class TestModelInfoGateWithExtraActions(BaseTestUserMixin, BaseTestGroupMixin):
 @pytest.mark.django_db
 class TestModelInfoGateWithPlainViewSet(BaseTestUserMixin, BaseTestGroupMixin):
     """
-    A viewset without ``get_allowed_extra_actions`` does not filter its extra actions.
+    A plain DRF viewset has no ``detail_args`` and no ``get_allowed_extra_actions``.
 
     ``model_actions`` still leaves out an extra action that the user passes no method of, so the action does not let
-    the user read the model info.
+    the user read the model info. A user who passes a detail action reads the model info.
     """
 
-    groups_to_create: ClassVar[dict] = {"No Permissions": []}
+    groups_to_create: ClassVar[dict] = {
+        "No Permissions": [],
+        "Distributor Reader": [("store", "Distributor", "read")],
+    }
 
     users_to_create: ClassVar[dict] = {
         "none@domain.invalid": {"name": "None", "password": "testpass", "groups": ["No Permissions"]},
+        "reader@domain.invalid": {"name": "Reader", "password": "testpass", "groups": ["Distributor Reader"]},
     }
 
     @pytest.fixture(autouse=True)
@@ -245,6 +249,22 @@ class TestModelInfoGateWithPlainViewSet(BaseTestUserMixin, BaseTestGroupMixin):
         response = api_client.get(reverse("info.model_info-detail", args=("store", "distributor")), format="json")
 
         assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+
+    def test_a_user_who_passes_only_a_detail_action_reads_the_model_info(self, api_client):
+        """retrieve comes before the extra actions, so the gate reads its detail parameters first."""
+        api_client.force_authenticate(user=self.users["reader@domain.invalid"])
+
+        detail = api_client.get(
+            reverse("info.model_info-detail", args=("store", "distributor")),
+            format="json",
+            data={EXPAND_PARAM: "model_actions"},
+        )
+        listed = api_client.get(reverse("info.model_info-list"), format="json")
+
+        assert detail.status_code == HTTPStatus.OK, response_body(detail)
+        assert "retrieve" in [action["name"] for action in detail.data["model_actions"]]
+        assert listed.status_code == HTTPStatus.OK, response_body(listed)
+        assert "store.distributor" in {f"{row['app_label']}.{row['model']}" for row in listed.data["results"]}
 
 
 @pytest.mark.django_db
