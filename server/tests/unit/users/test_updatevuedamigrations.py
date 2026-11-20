@@ -837,6 +837,40 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert (status, err) == (0, "")
             assert f"Already up to date: {path}" in out
 
+    def test_a_skipped_migration_with_an_import_that_vueda_no_longer_has_is_left_unchanged(self, settings):
+        """The import is removed only while the graph is built. Nothing copies the function into a skipped
+        migration, so removing the import for good would leave the migration calling a name it never defines."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0001_initial"), WORKFLOW_SCHEMA_BEFORE_EVENTS),
+            )
+            source = refresh_migration(path.read_text(), WORKFLOW_MIGRATION_KIND).source
+            forwards = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name == "forwards_migrate_workflow"
+            )
+            lines = source.splitlines(keepends=True)
+            del lines[forwards.lineno - 1 : forwards.end_lineno]
+            imported = (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
+            )
+            path.write_text(
+                "".join(lines).replace(
+                    "from django.db import migrations\n", f"from django.db import migrations\n{imported}", 1
+                )
+            )
+            before = path.read_text()
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Skipping: {path}" in out
+            assert path.read_text() == before
+
     def test_a_function_that_an_operation_names_keeps_its_import_and_the_error_names_the_file(self, settings):
         """An operation reads the name while Django imports the migration, so removing the import would only turn
         the import error into a NameError. The import stays, and the graph error names the file to fix by hand."""
@@ -891,7 +925,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             if dry_run:
                 assert status == 1
-                assert f"a dry run cannot check the migration graph, because {path} still import" in err
+                assert "a dry run cannot check the migration graph, because these migrations still import code" in err
+                assert str(path) in err
                 assert path.read_text() == before
             else:
                 assert (status, err) == (0, "")

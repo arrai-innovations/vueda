@@ -258,7 +258,7 @@ You can update migrations that other environments have already applied. The chan
 
 ### What the Command Changes
 
-Before it checks dependencies, the command removes each import of a VUEDA module or name that no longer exists, when nothing in the migration uses that name or the refresh copies it in. Checking dependencies imports every migration, and such an import would stop the check for every file. A dry run cannot write this change. When a migration needs it, a dry run reports that it cannot check the migration graph and names the file.
+Checking dependencies imports every migration, so one import of a VUEDA module or name that no longer exists would stop the check for every file. While it builds the migration graph, the command removes such an import from the file when nothing in the migration uses that name or the refresh copies it in. It then puts each file back as it was. Each file's refresh removes the import for good, and a file that is skipped or fails is left unchanged. A dry run cannot write files, so when a migration has such an import, a dry run reports that it cannot check the migration graph and names the file.
 
 For each workflow migration that passes the dependency check, the command:
 

@@ -5,7 +5,6 @@ __all__ = ("Command",)
 import ast
 import dataclasses
 import os
-import re
 import stat
 import sys
 import tempfile
@@ -21,6 +20,7 @@ from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
+from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.registration import get_migration_tools
 from vueda.user.migration_generation.utils import is_generated_migration
 from vueda.user.migration_generation.utils import is_installed_package_app
@@ -37,8 +37,6 @@ class _GeneratedFile:
     writable: bool
     text: str | None = None
     read_problem: str | None = None
-    # The text without imports that VUEDA no longer has, which Django can import. It is None when it equals text.
-    importable_text: str | None = None
 
 
 # What happened to one migration in a run.
@@ -74,11 +72,6 @@ class Command(BaseCommand):
         if not writable and not failed:
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No generated migrations found to update."))
             return
-
-        self.early_fixed = set()
-        self.unwritten_import_fixes = []
-        if any(generated.kind.name == "workflow" for generated in writable):
-            self._remove_imports_that_stop_the_graph(writable)
 
         # Group migrations need no migration graph, so they are refreshed first.
         writable.sort(key=lambda generated: generated.kind.name == "workflow")
@@ -140,27 +133,6 @@ class Command(BaseCommand):
 
         return found
 
-    def _remove_imports_that_stop_the_graph(self, writable):
-        """Remove the imports that VUEDA no longer has before the migration graph is built, which imports them.
-
-        A real run writes the change at once, so the graph can load. The refresh of the file then finishes the job,
-        and reports each import that it removed. A dry run writes nothing, so it records the files instead.
-        """
-        for generated in writable:
-            fixed, removed = remove_imports_that_stop_the_graph(generated.text, generated.kind)
-            if not removed:
-                continue
-            generated.importable_text = fixed
-            if self.dry_run:
-                self.unwritten_import_fixes.append(generated.path)
-                continue
-            try:
-                _write_atomically(generated.path, fixed)
-            except OSError as error:
-                self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
-                continue
-            self.early_fixed.add(generated.path)
-
     def _prepare_workflow(self, files):
         """Read every workflow migration's history and build the migration graph, before any file is refreshed.
 
@@ -186,8 +158,9 @@ class Command(BaseCommand):
                     )
                 continue
 
+            # Imports of code that VUEDA no longer has would stop the read, and the refresh removes them anyway.
             changed_data, problem = workflow_refresh.read_changed_data(
-                generated.importable_text or generated.text, generated.path
+                without_imports_that_vueda_no_longer_has(generated.text), generated.path
             )
             if problem is not None:
                 if not generated.writable:
@@ -204,33 +177,7 @@ class Command(BaseCommand):
                 )
             changed_data_lists.append(changed_data)
 
-        loader = loader_problem = None
-        if self.unwritten_import_fixes:
-            # A dry run cannot write the import fixes that the graph needs, so the graph cannot load.
-            paths = ", ".join(str(path) for path in sorted(self.unwritten_import_fixes))
-            loader_problem = (
-                f"a dry run cannot check the migration graph, because {paths} still import code that VUEDA no longer "
-                "has. A run without --dry-run removes those imports first"
-            )
-        else:
-            try:
-                # The declared graph, not the migrations applied to this database: a refreshed migration must also
-                # work when a new installation starts with an empty database.
-                loader = MigrationLoader(None, ignore_no_migrations=True)
-            except Exception as error:
-                loader_problem = f"cannot resolve migration dependencies: {error}"
-                # A migration that imports a module that does not exist stops the graph. Name it, so the user knows
-                # which file to fix by hand.
-                missing = getattr(error, "name", None)
-                importers = sorted(
-                    str(generated.path)
-                    for generated in files
-                    if missing
-                    and generated.text is not None
-                    and re.search(rf"\b{re.escape(missing)}\b", generated.text)
-                )
-                if importers:
-                    loader_problem += f". {missing} is imported by {', '.join(importers)}"
+        loader, loader_problem = self._build_migration_graph(files)
 
         return {
             "module": workflow_refresh,
@@ -238,6 +185,68 @@ class Command(BaseCommand):
             "loader": loader,
             "loader_problem": loader_problem,
         }
+
+    def _build_migration_graph(self, files):
+        """Build the declared migration graph, and return it with the reason that it could not be built.
+
+        Building the graph imports every migration, so one import of VUEDA code that no longer exists stops it for
+        the whole project. A real run removes such imports from the files while it builds the graph, when removing
+        them cannot break the import, and then puts every original back. The graph keeps what it imported, and each
+        file's refresh writes its final text from the original, so a file that is skipped or fails is unchanged. A
+        dry run writes nothing, so it reports the files instead.
+        """
+        stale = []
+        for generated in files:
+            if not generated.writable or generated.read_problem:
+                continue
+            # A group migration may already be refreshed, so read the current text.
+            try:
+                current = generated.path.read_text("utf-8-sig")
+            except (OSError, UnicodeDecodeError):
+                continue
+            fixed, removed = remove_imports_that_stop_the_graph(current, generated.kind)
+            if removed:
+                stale.append((generated, current, fixed))
+
+        if stale and self.dry_run:
+            paths = ", ".join(str(generated.path) for generated, _current, _fixed in stale)
+            return None, (
+                "a dry run cannot check the migration graph, because these migrations still import code that VUEDA "
+                f"no longer has: {paths}. A run without --dry-run removes those imports first"
+            )
+
+        written = []
+        try:
+            for generated, current, fixed in stale:
+                try:
+                    _write_atomically(generated.path, fixed)
+                except OSError as error:
+                    self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
+                    continue
+                written.append((generated, current))
+            try:
+                # The declared graph, not the migrations applied to this database: a refreshed migration must also
+                # work when a new installation starts with an empty database.
+                return MigrationLoader(None, ignore_no_migrations=True), None
+            except Exception as error:
+                return None, self._describe_graph_problem(error, files)
+        finally:
+            for generated, current in written:
+                _write_atomically(generated.path, current)
+
+    def _describe_graph_problem(self, error, files):
+        """Say why the migration graph could not be built, naming each migration that imports a missing module."""
+        problem = f"cannot resolve migration dependencies: {error}"
+        missing = error.name if isinstance(error, ImportError) else None
+        if missing:
+            importers = sorted(
+                str(generated.path)
+                for generated in files
+                if generated.text is not None and _imports_module(generated.text, missing)
+            )
+            if importers:
+                problem += f". {missing} is imported by {', '.join(importers)}"
+        return problem
 
     def _refresh_file(self, generated, workflow):
         """Refresh one migration, and return what happened to it.
@@ -252,8 +261,6 @@ class Command(BaseCommand):
                 # The migration keeps the functions that it was written with, so nothing in it is refreshed.
                 self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
                 self.stdout.write(f"  Its {blocked}")
-                if generated.path in self.early_fixed:
-                    self.stdout.write("  Its imports of code that VUEDA no longer has were removed.")
                 return _SKIPPED
             if blocked is None:
                 update_changed_data = workflow["module"].changed_data_updater(
@@ -268,12 +275,12 @@ class Command(BaseCommand):
         # SyntaxError. Each one fails only its own file.
         except (RefreshError, ValueError, TypeError, SyntaxError) as error:
             self.stderr.write(
-                self.style.ERROR(f"  Could not update {generated.path}: {error} {self._left_as_it_was(generated)}")
+                self.style.ERROR(f"  Could not update {generated.path}: {error} Leaving the file unchanged.")
             )
             return _FAILED
         if blocked is not None:
             self.stderr.write(
-                self.style.ERROR(f"  Cannot update {generated.path}: {blocked} {self._left_as_it_was(generated)}")
+                self.style.ERROR(f"  Cannot update {generated.path}: {blocked} Leaving the file unchanged.")
             )
             return _FAILED
 
@@ -324,12 +331,6 @@ class Command(BaseCommand):
             )
         return None, False
 
-    def _left_as_it_was(self, generated):
-        """Say what a failed refresh left in a file: nothing, or only the import fixes written before the graph."""
-        if generated.path in self.early_fixed:
-            return "Its imports of code that VUEDA no longer has were removed. The rest of the file was left unchanged."
-        return "Leaving the file unchanged."
-
     def _write_summary(self, updated, up_to_date, skipped, failed):
         for kind_name, count in sorted(updated.items()):
             verb = "Would update" if self.dry_run else "Updated"
@@ -368,3 +369,17 @@ def _write_atomically(path, text):
         # Also on an interrupt, so no temporary file is left in the migrations directory.
         Path(handle.name).unlink(missing_ok=True)
         raise
+
+
+def _imports_module(text, module):
+    """Return whether the migration ``text`` imports ``module`` at its top level."""
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module == module:
+            return True
+        if isinstance(node, ast.Import) and any(alias.name == module for alias in node.names):
+            return True
+    return False

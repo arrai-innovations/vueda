@@ -5,7 +5,9 @@ __all__ = (
     "Refresh",
     "RefreshError",
     "refresh_migration",
+    "remove_imports_that_stop_the_graph",
     "remove_obsolete_names",
+    "without_imports_that_vueda_no_longer_has",
 )
 
 import ast
@@ -171,6 +173,9 @@ def remove_imports_that_stop_the_graph(source, kind):
                 read_on_import |= _names_read_on_import(node)
 
         def removable(node, alias):
+            if alias.name == "*":
+                # The names that a star import supplies are unknown, so it can never be shown to be unused.
+                return False
             binding = _alias_binding(alias)
             safe = binding not in used or (binding in copied and binding not in read_on_import)
             return safe and _vueda_no_longer_has(node, alias)
@@ -189,7 +194,13 @@ def _names_read_on_import(node):
     """
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         parts = [*node.decorator_list, *node.args.defaults, *node.args.kw_defaults]
-        parts += [arg.annotation for arg in (*node.args.args, *node.args.kwonlyargs) if arg.annotation is not None]
+        arguments = (
+            *node.args.posonlyargs,
+            *node.args.args,
+            *node.args.kwonlyargs,
+            *(arg for arg in (node.args.vararg, node.args.kwarg) if arg is not None),
+        )
+        parts += [arg.annotation for arg in arguments if arg.annotation is not None]
         if node.returns is not None:
             parts.append(node.returns)
         return set().union(*(_used_names(part) for part in parts if part is not None))
@@ -262,7 +273,21 @@ def _import_text(node, alias):
 
 
 def _vueda_no_longer_has(node, alias):
-    """Return whether the import ``alias`` of ``node`` names a VUEDA module or name that no longer exists."""
+    """Return whether the import ``alias`` of ``node`` names a VUEDA module or name that no longer exists.
+
+    Raises ``RefreshError`` when finding or importing the module fails in the module's own code. Django would fail
+    on the same import, so the migration is reported rather than the run ended.
+    """
+    try:
+        return _vueda_lacks(node, alias)
+    except RefreshError:
+        raise
+    except Exception as error:
+        module = node.module if isinstance(node, ast.ImportFrom) else alias.name
+        raise RefreshError(f"The migration imports {module}, which fails to import: {error}") from error
+
+
+def _vueda_lacks(node, alias):
     if isinstance(node, ast.ImportFrom):
         if node.level or not _is_vueda_module(node.module):
             return False
@@ -270,11 +295,7 @@ def _vueda_no_longer_has(node, alias):
             return True
         if alias.name == "*":
             return False
-        try:
-            module = importlib.import_module(node.module)
-        except Exception as error:
-            # Django would fail on the same import, so the migration is reported rather than the run ended.
-            raise RefreshError(f"The migration imports {node.module}, which fails to import: {error}") from error
+        module = importlib.import_module(node.module)
         return not hasattr(module, alias.name) and not module_exists(f"{node.module}.{alias.name}")
     return _is_vueda_module(alias.name) and not module_exists(alias.name)
 
