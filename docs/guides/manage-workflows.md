@@ -288,7 +288,7 @@ When the command cannot read the `changed_data` of a migration that it does not 
 
 The current functions need the event models and triggers that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. Before it rewrites a migration, the command checks that `0008` comes before that migration in the migration graph. The check follows indirect dependencies, and it accepts a squashed migration that replaces `0008`. It reads the migration files, not the database's migration records, because the rewritten file must also apply to an empty database.
 
-When the check fails, the command reports the file as skipped and names the required migration. It leaves the file unchanged, and a skipped file does not change the exit status. The migration has to keep the functions that it was written with.
+When the check fails, the command reports the file as skipped and names the required migration. It leaves the file unchanged, and a skipped file does not change the exit status. The migration has to keep the functions that it was written with. When such a migration also imports VUEDA code that no longer exists, the command reports it as a failure instead, because `migrate` fails on that import until you fix it by hand.
 
 Any workflow migration generated with VUEDA v3.0.0a0 or earlier fails this check. Handle each one by hand, as the steps below describe.
 
