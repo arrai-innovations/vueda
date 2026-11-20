@@ -132,8 +132,7 @@ def forwards_migrate_groups(apps, changed_items):
     """Apply each change in ``changed_items`` in order, and record a ``GroupChange`` row for any change not already
     stored.
 
-    Generated group migrations copy this function into their source. The migrations that VUEDA's own tests
-    write import it instead.
+    Generated group migrations copy this function into their source.
     """
     content_types = apps.get_model("contenttypes", "ContentType")
     group_changes = apps.get_model("vueda_user", "GroupChange")
@@ -182,8 +181,7 @@ def backwards_migrate_groups(apps, changed_items):
     """Undo each change in ``changed_items`` in reverse order by applying its opposite change.
 
     It does not remove the ``GroupChange`` rows that ``forwards_migrate_groups`` recorded. Generated group
-    migrations copy this function into their source. The migrations that VUEDA's own tests write import it
-    instead.
+    migrations copy this function into their source.
     """
     content_types = apps.get_model("contenttypes", "ContentType")
     groups = apps.get_model("auth", "Group")
@@ -232,7 +230,6 @@ def make_sure_permissions_exist(apps, schema_editor):
     """Create any missing permissions for every installed app, so later group steps can find them.
 
     Generated group migrations run this as their first ``RunPython`` operation. They copy it into their source.
-    The migrations that VUEDA's own tests write import it instead.
     """
     # We need to make sure all permissions exist, since the permissions could be for any app.
     for app in django_apps.get_app_configs():
@@ -249,7 +246,7 @@ def get_group_migration_imports(import_instead=False, direct_runpython_import=Fa
     When ``as_mapping`` is True, an ordered mapping is returned instead: keys are single-name tuples (an
     import only ever binds one name, per this project's force-single-line isort convention) and values are
     the current import line, each ending in its own newline and prefixed with a blank line where it opens
-    a new isort group. This is used by ``updategroupmigrations`` to update or insert only the imports it
+    a new isort group. This is used by ``updatevuedamigrations`` to update or insert only the imports it
     recognizes in an existing migration, leaving any hand-added imports (or comments) around them
     untouched.
     """
@@ -294,7 +291,7 @@ def get_group_migration_sources(import_instead=False, as_mapping=False):
 
     When ``as_mapping`` is True, an ordered mapping is returned instead: keys are tuples of every name
     (old and current) that identifies a given function/class across versions of this command, and values
-    are the current source for it. This is used by ``updategroupmigrations`` to replace only the functions
+    are the current source for it. This is used by ``updatevuedamigrations`` to replace only the functions
     it recognizes in an existing migration, leaving any hand-added code around them untouched.
     """
     noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.

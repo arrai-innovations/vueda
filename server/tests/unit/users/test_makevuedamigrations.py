@@ -11,6 +11,7 @@ import ast
 import importlib
 import io
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -32,6 +33,7 @@ from tests.utils import BaseTestMigrations
 from vueda.user.management.commands.makevuedamigrations import Command as MakeVuedaMigrationsCommand
 from vueda.user.management.commands.makevuedamigrations import _PrefixedArgumentGroup
 from vueda.user.migration_generation import operations as group_operations
+from vueda.user.migration_generation import utils as migration_utils
 from vueda.user.migration_generation import writer
 from vueda.user.migration_generation.tools import GroupChangeTool
 from vueda.user.migration_generation.utils import is_generated_migration
@@ -907,6 +909,19 @@ class TestMakeVuedaMigrations(BaseTestMigrations):
 @pytest.mark.xdist_group(name="management_command_tests")
 @pytest.mark.django_db
 class TestMakeVuedaMigrationsCommand(BaseTestMigrations):
+    def test_an_app_is_a_package_when_its_migrations_directory_is_installed(self, settings, monkeypatch):
+        """The check follows the migrations directory that MIGRATION_MODULES names, not only the app's own."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            assert not migration_utils.is_installed_package_app("erring")
+
+            monkeypatch.setattr(
+                migration_utils,
+                "INSTALLED_PACKAGE_PATHS",
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(Path(erring_dir).parent))),
+            )
+
+            assert migration_utils.is_installed_package_app("erring")
+
     def test_no_pending_changes_writes_nothing(self, settings):
         with (
             self.temporary_migration_module(settings, app_label="employee") as employee_dir,

@@ -26,6 +26,7 @@ from vueda.user.management.commands.utils import get_matching_record
 from vueda.user.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.user.migration_generation.operations import get_group_migration_imports
 from vueda.user.migration_generation.operations import get_group_migration_sources
+from vueda.user.migration_generation.refresh import MigrationKind
 from vueda.user.migration_generation.utils import generated_migrations
 from vueda.user.migration_generation.utils import user_app_label
 
@@ -78,6 +79,9 @@ class MigrationTool:
     key = ""
     migration_name = ""
     tie_order = 0
+    # The refresh.MigrationKind that updatevuedamigrations uses for this tool's migrations. None means the tool's
+    # migrations are never refreshed.
+    refresh_kind = None
 
     def __init__(self, command):
         self.command = command
@@ -151,6 +155,25 @@ CHANGE_FIELDS = (
 )
 
 
+# Top-level names that earlier versions wrote into group migrations and the current version does not. A refresh
+# removes each one that nothing else in the migration still uses.
+OBSOLETE_GROUP_NAMES = frozenset(("settings",))
+
+
+GROUP_MIGRATION_KIND = MigrationKind(
+    name="group",
+    markers=MIGRATION_MODIFIED_COMMENTS,
+    required_assignments=("changed_data",),
+    renames={
+        "forwards_migrate_groups": "forwards_migrate_groups_through_imports",
+        "backwards_migrate_groups": "backwards_migrate_groups_through_imports",
+    },
+    get_sources=get_group_migration_sources,
+    get_imports=get_group_migration_imports,
+    obsolete_names=OBSOLETE_GROUP_NAMES,
+)
+
+
 class GroupChangeTool(MigrationTool):
     """Write the group permission changes that the Group Management Page recorded as ``GroupChange`` rows.
 
@@ -160,6 +183,7 @@ class GroupChangeTool(MigrationTool):
 
     key = "group"
     migration_name = "group_permission_migrations"
+    refresh_kind = GROUP_MIGRATION_KIND
     # Workflow changes can name a group, so a group change goes first when both were recorded at once.
     tie_order = 0
 

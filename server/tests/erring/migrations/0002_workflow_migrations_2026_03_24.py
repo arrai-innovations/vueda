@@ -3,6 +3,7 @@
 import copy
 import datetime
 import enum
+import sys
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -10,8 +11,13 @@ from django.contrib.auth.management import create_permissions
 from django.db import migrations
 from django.db.migrations.state import ModelState
 from django.db.migrations.state import ProjectState
+from django.db.models import Exists
+from django.db.models import OuterRef
+from django.db.models import Q
+from django.db.models import Subquery
 
 from vueda.core.audit import audited_action
+from vueda.core.audit import tagged_writes
 
 
 history_change_reason = "Workflow Migration - 0002_workflow_migrations_2026_03_24"
@@ -20,10 +26,17 @@ changed_data = [
     {
         "changes": {
             "code": "enabledwithworkflow",
-            "content_type_id": {"app_label": "erring", "model": "enabledwithworkflow"},
+            "content_type_id": {
+                "app_label": "erring",
+                "model": "enabledwithworkflow",
+            },
             "historical_app_label": "erring",
             "historical_model": "enabledwithworkflow",
-            "id": {"code": "enabledwithworkflow"},
+            "id": {
+                "code": "enabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "enabledwithworkflow",
+            },
             "name": "EnabledWithWorkflow",
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
@@ -39,13 +52,24 @@ changed_data = [
                 "historical_permission_codename": "view_enabledwithworkflow",
                 "historical_permission_content_type_app_label": "erring",
                 "historical_permission_content_type_model_name": "enabledwithworkflow",
-                "workflow_id": {"code": "enabledwithworkflow"},
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
             },
             "permission_id": {
                 "codename": "read_enabledwithworkflow",
-                "content_type_id": {"app_label": "erring", "model": "enabledwithworkflow"},
+                "content_type_id": {
+                    "app_label": "erring",
+                    "model": "enabledwithworkflow",
+                },
             },
-            "workflow_id": {"code": "enabledwithworkflow"},
+            "workflow_id": {
+                "code": "enabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "enabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -54,9 +78,20 @@ changed_data = [
     {
         "changes": {
             "code": "approved",
-            "id": {"code": "approved", "workflow_id": {"code": "enabledwithworkflow"}},
+            "id": {
+                "code": "approved",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
             "name": "Approved",
-            "workflow_id": {"code": "enabledwithworkflow"},
+            "workflow_id": {
+                "code": "enabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "enabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -65,9 +100,20 @@ changed_data = [
     {
         "changes": {
             "code": "unapproved",
-            "id": {"code": "unapproved", "workflow_id": {"code": "enabledwithworkflow"}},
+            "id": {
+                "code": "unapproved",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
             "name": "Unapproved",
-            "workflow_id": {"code": "enabledwithworkflow"},
+            "workflow_id": {
+                "code": "enabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "enabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -76,11 +122,33 @@ changed_data = [
     {
         "changes": {
             "id": {
-                "state_id": {"code": "unapproved", "workflow_id": {"code": "enabledwithworkflow"}},
-                "workflow_id": {"code": "enabledwithworkflow"},
+                "state_id": {
+                    "code": "unapproved",
+                    "workflow_id": {
+                        "code": "enabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "enabledwithworkflow",
+                    },
+                },
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
             },
-            "state_id": {"code": "unapproved", "workflow_id": {"code": "enabledwithworkflow"}},
-            "workflow_id": {"code": "enabledwithworkflow"},
+            "state_id": {
+                "code": "unapproved",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
+            "workflow_id": {
+                "code": "enabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "enabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -89,10 +157,28 @@ changed_data = [
     {
         "changes": {
             "code": "approve",
-            "id": {"code": "approve", "workflow_id": {"code": "enabledwithworkflow"}},
+            "id": {
+                "code": "approve",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
             "name": "Approve",
-            "target_id": {"code": "approved", "workflow_id": {"code": "enabledwithworkflow"}},
-            "workflow_id": {"code": "enabledwithworkflow"},
+            "target_id": {
+                "code": "approved",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
+            "workflow_id": {
+                "code": "enabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "enabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -107,13 +193,30 @@ changed_data = [
                 "historical_permission_codename": "view_enabledwithworkflow",
                 "historical_permission_content_type_app_label": "erring",
                 "historical_permission_content_type_model_name": "enabledwithworkflow",
-                "transition_id": {"code": "approve", "workflow_id": {"code": "enabledwithworkflow"}},
+                "transition_id": {
+                    "code": "approve",
+                    "workflow_id": {
+                        "code": "enabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "enabledwithworkflow",
+                    },
+                },
             },
             "permission_id": {
                 "codename": "read_enabledwithworkflow",
-                "content_type_id": {"app_label": "erring", "model": "enabledwithworkflow"},
+                "content_type_id": {
+                    "app_label": "erring",
+                    "model": "enabledwithworkflow",
+                },
             },
-            "transition_id": {"code": "approve", "workflow_id": {"code": "enabledwithworkflow"}},
+            "transition_id": {
+                "code": "approve",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -122,11 +225,39 @@ changed_data = [
     {
         "changes": {
             "id": {
-                "source_id": {"code": "unapproved", "workflow_id": {"code": "enabledwithworkflow"}},
-                "transition_id": {"code": "approve", "workflow_id": {"code": "enabledwithworkflow"}},
+                "source_id": {
+                    "code": "unapproved",
+                    "workflow_id": {
+                        "code": "enabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "enabledwithworkflow",
+                    },
+                },
+                "transition_id": {
+                    "code": "approve",
+                    "workflow_id": {
+                        "code": "enabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "enabledwithworkflow",
+                    },
+                },
             },
-            "source_id": {"code": "unapproved", "workflow_id": {"code": "enabledwithworkflow"}},
-            "transition_id": {"code": "approve", "workflow_id": {"code": "enabledwithworkflow"}},
+            "source_id": {
+                "code": "unapproved",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
+            "transition_id": {
+                "code": "approve",
+                "workflow_id": {
+                    "code": "enabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -135,10 +266,17 @@ changed_data = [
     {
         "changes": {
             "code": "notenabledwithworkflow",
-            "content_type_id": {"app_label": "erring", "model": "notenabledwithworkflow"},
+            "content_type_id": {
+                "app_label": "erring",
+                "model": "notenabledwithworkflow",
+            },
             "historical_app_label": "erring",
             "historical_model": "notenabledwithworkflow",
-            "id": {"code": "notenabledwithworkflow"},
+            "id": {
+                "code": "notenabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "notenabledwithworkflow",
+            },
             "name": "NotEnabledWithWorkflow",
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
@@ -154,13 +292,24 @@ changed_data = [
                 "historical_permission_codename": "view_notenabledwithworkflow",
                 "historical_permission_content_type_app_label": "erring",
                 "historical_permission_content_type_model_name": "notenabledwithworkflow",
-                "workflow_id": {"code": "notenabledwithworkflow"},
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
             },
             "permission_id": {
                 "codename": "read_notenabledwithworkflow",
-                "content_type_id": {"app_label": "erring", "model": "notenabledwithworkflow"},
+                "content_type_id": {
+                    "app_label": "erring",
+                    "model": "notenabledwithworkflow",
+                },
             },
-            "workflow_id": {"code": "notenabledwithworkflow"},
+            "workflow_id": {
+                "code": "notenabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "notenabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -169,9 +318,20 @@ changed_data = [
     {
         "changes": {
             "code": "approved",
-            "id": {"code": "approved", "workflow_id": {"code": "notenabledwithworkflow"}},
+            "id": {
+                "code": "approved",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
             "name": "Approved",
-            "workflow_id": {"code": "notenabledwithworkflow"},
+            "workflow_id": {
+                "code": "notenabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "notenabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -180,9 +340,20 @@ changed_data = [
     {
         "changes": {
             "code": "unapproved",
-            "id": {"code": "unapproved", "workflow_id": {"code": "notenabledwithworkflow"}},
+            "id": {
+                "code": "unapproved",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
             "name": "Unapproved",
-            "workflow_id": {"code": "notenabledwithworkflow"},
+            "workflow_id": {
+                "code": "notenabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "notenabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -191,11 +362,33 @@ changed_data = [
     {
         "changes": {
             "id": {
-                "state_id": {"code": "unapproved", "workflow_id": {"code": "notenabledwithworkflow"}},
-                "workflow_id": {"code": "notenabledwithworkflow"},
+                "state_id": {
+                    "code": "unapproved",
+                    "workflow_id": {
+                        "code": "notenabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "notenabledwithworkflow",
+                    },
+                },
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
             },
-            "state_id": {"code": "unapproved", "workflow_id": {"code": "notenabledwithworkflow"}},
-            "workflow_id": {"code": "notenabledwithworkflow"},
+            "state_id": {
+                "code": "unapproved",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
+            "workflow_id": {
+                "code": "notenabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "notenabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -204,10 +397,28 @@ changed_data = [
     {
         "changes": {
             "code": "approve",
-            "id": {"code": "approve", "workflow_id": {"code": "notenabledwithworkflow"}},
+            "id": {
+                "code": "approve",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
             "name": "Approve",
-            "target_id": {"code": "approved", "workflow_id": {"code": "notenabledwithworkflow"}},
-            "workflow_id": {"code": "notenabledwithworkflow"},
+            "target_id": {
+                "code": "approved",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
+            "workflow_id": {
+                "code": "notenabledwithworkflow",
+                "historical_app_label": "erring",
+                "historical_model": "notenabledwithworkflow",
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -222,13 +433,30 @@ changed_data = [
                 "historical_permission_codename": "view_notenabledwithworkflow",
                 "historical_permission_content_type_app_label": "erring",
                 "historical_permission_content_type_model_name": "notenabledwithworkflow",
-                "transition_id": {"code": "approve", "workflow_id": {"code": "notenabledwithworkflow"}},
+                "transition_id": {
+                    "code": "approve",
+                    "workflow_id": {
+                        "code": "notenabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "notenabledwithworkflow",
+                    },
+                },
             },
             "permission_id": {
                 "codename": "read_notenabledwithworkflow",
-                "content_type_id": {"app_label": "erring", "model": "notenabledwithworkflow"},
+                "content_type_id": {
+                    "app_label": "erring",
+                    "model": "notenabledwithworkflow",
+                },
             },
-            "transition_id": {"code": "approve", "workflow_id": {"code": "notenabledwithworkflow"}},
+            "transition_id": {
+                "code": "approve",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -237,11 +465,39 @@ changed_data = [
     {
         "changes": {
             "id": {
-                "source_id": {"code": "unapproved", "workflow_id": {"code": "notenabledwithworkflow"}},
-                "transition_id": {"code": "approve", "workflow_id": {"code": "notenabledwithworkflow"}},
+                "source_id": {
+                    "code": "unapproved",
+                    "workflow_id": {
+                        "code": "notenabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "notenabledwithworkflow",
+                    },
+                },
+                "transition_id": {
+                    "code": "approve",
+                    "workflow_id": {
+                        "code": "notenabledwithworkflow",
+                        "historical_app_label": "erring",
+                        "historical_model": "notenabledwithworkflow",
+                    },
+                },
             },
-            "source_id": {"code": "unapproved", "workflow_id": {"code": "notenabledwithworkflow"}},
-            "transition_id": {"code": "approve", "workflow_id": {"code": "notenabledwithworkflow"}},
+            "source_id": {
+                "code": "unapproved",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
+            "transition_id": {
+                "code": "approve",
+                "workflow_id": {
+                    "code": "notenabledwithworkflow",
+                    "historical_app_label": "erring",
+                    "historical_model": "notenabledwithworkflow",
+                },
+            },
         },
         "history_date": datetime.datetime(2026, 3, 24, 17, 15, 54, 206078, tzinfo=datetime.timezone.utc),
         "history_type": "added",
@@ -289,6 +545,11 @@ def workflow_migration_action(apps, change_reason):
 
 
 def forwards_migrate_workflow(apps, changed_items, change_reason):
+    """Apply a generated workflow migration's ``changed_items`` in order, then sync workflow object states.
+
+    Generated workflow migrations copy this function and call it from their forwards step. All writes
+    are grouped under one migration action named by ``change_reason``.
+    """
     with workflow_migration_action(apps, change_reason):
         _forwards_migrate_workflow(apps, changed_items, change_reason)
 
@@ -324,17 +585,35 @@ def _forwards_migrate_workflow(apps, changed_items, change_reason):
 
 
 def backwards_migrate_workflow(apps, changed_items, change_reason):
+    """Undo a generated workflow migration's ``changed_items`` in reverse order.
+
+    Adds become deletes, deletes become adds, and changed fields get their old values back. Object
+    states change only for the workflows ``changed_items`` names: a removed workflow's object states
+    are deleted, an object in a removed state is restored from its history or reset to the initial
+    state, and a re-created workflow gives its objects the initial state. Every other object state
+    keeps its row and its state. Generated workflow migrations copy this function and call it from
+    their reverse step.
+    """
     apps = rebuild_migration_apps(apps)
     with workflow_migration_action(apps, change_reason):
         _backwards_migrate_workflow(apps, changed_items, change_reason)
 
 
 def rebuild_migration_apps(apps):
-    # Some operations, such as AlterModelOptions and pgtrigger's AddTrigger, reload a model with
-    # delay=True. That leaves the models pointing at its direct relations on older classes than
-    # apps.get_model() returns. Django re-renders the registry before a forwards RunPython but not
-    # before a backwards one (https://code.djangoproject.com/ticket/33586), so the reverse step
-    # rebuilds it.
+    """Return a fresh registry of the models in ``apps``, in which every relation points at a model of its own.
+
+    Some migration operations, such as ``AlterModelOptions`` and pgtrigger's ``AddTrigger``, reload a
+    model with ``delay=True``. That re-renders the model and its direct relations but not the models
+    that point at them, so a foreign key can keep an older class than ``apps.get_model()`` returns,
+    and filtering through it raises ``ValueError``. Django re-renders the registry before a forwards
+    ``RunPython`` but not before a backwards one (https://code.djangoproject.com/ticket/33586), so
+    the reverse step rebuilds it. Generated workflow migrations copy this function and reach it
+    through ``backwards_migrate_workflow``.
+
+    VUEDA keeps it until the oldest Django version it supports includes the fix. A copy in a
+    migration can stay after that, because rebuilding a registry that is already consistent changes
+    nothing.
+    """
     project_state = ProjectState()
     for model in apps.get_models(include_swapped=True):
         project_state.add_model(ModelState.from_model(model))
@@ -342,7 +621,15 @@ def rebuild_migration_apps(apps):
 
 
 def _backwards_migrate_workflow(apps, changed_items, change_reason):
-    handle_state_objects(apps, reversing=True)
+    released = delete_object_states_of_removed_workflows(apps, changed_items)
+    # The loop below deletes each workflow's identifying data as it re-creates the workflow, so keep a
+    # copy to find the workflows afterwards.
+    recreated_workflow_ids = [
+        copy.deepcopy(changed_item["changes"]["id"])
+        for changed_item in changed_items
+        if changed_item["model_name"] == "workflow"
+        and changed_item["history_type"] == WorkflowChangeTypes.DELETED.value
+    ]
 
     # Make sure we go through the changed_items in reverse order, so we undo things correctly.
     for changed_item in reversed(changed_items):
@@ -361,6 +648,9 @@ def _backwards_migrate_workflow(apps, changed_items, change_reason):
                 handle_workflow_permission(apps, changed_item, change_reason, reversing=True)
 
             case "state":
+                if changed_item["history_type"] == WorkflowChangeTypes.DELETED.value:
+                    # The state's object states protect it, so they move out before it goes.
+                    release_state_objects(apps, changed_item, released)
                 handle_state(apps, changed_item, change_reason, reversing=True)
 
             case "statepermission":
@@ -378,13 +668,26 @@ def _backwards_migrate_workflow(apps, changed_items, change_reason):
             case "transitionsource":
                 handle_transition_source(apps, changed_item, change_reason, reversing=True)
 
+    settle_released_object_states(apps, released, recreated_workflow_ids)
+
 
 def make_sure_permissions_exist(app_label):
+    """Create any missing permissions for the app named ``app_label``.
+
+    Generated workflow migrations run this before applying their changes, so the permissions those changes
+    name exist. The migrations copy this function.
+    """
     app = django_apps.get_app_config(app_label)
     create_permissions(app, interactive=False)
 
 
 def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one workflow to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
@@ -413,6 +716,12 @@ def handle_workflow(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one workflow permission to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -467,6 +776,12 @@ def handle_workflow_permission(apps, changed_item, change_reason, *, reversing=F
 
 
 def handle_state(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one workflow state to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
@@ -500,6 +815,12 @@ def handle_state(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_state_permission(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one state permission (a group's permission in a state) to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_group = apps.get_model("auth", "Group")
     model_permission = apps.get_model("auth", "Permission")
@@ -527,6 +848,8 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
             model_state_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
+            # A state permission moved to another state holds an (old, new) pair here too.
+            data["id"]["state_id"] = get_id_values_from_item(data["id"]["state_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
@@ -557,6 +880,16 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
                     new_group_ids.append(group.pk)
                 data["group_id"] = tuple(new_group_ids)
 
+            # If the value is changed, it is a tuple.  We need to get the ids for each item.
+            if type(data["state_id"]) is tuple:
+                state_ids = []
+                for state_data in data["state_id"]:
+                    workflow = model_workflow.objects.get(**state_data["workflow_id"])
+                    state_data["workflow_id"] = workflow.pk
+                    state = model_state.objects.get(**state_data)
+                    state_ids.append(state.pk)
+                data["state_id"] = tuple(state_ids)
+
             apply_and_save_changes(state_permission, data, reversing=reversing)
 
         case WorkflowChangeTypes.DELETED.value:
@@ -575,6 +908,12 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
 
 
 def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete a workflow's initial state to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_initial_state = apps.get_model("vueda_workflow", "InitialState")
     model_state = apps.get_model("vueda_workflow", "State")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -632,6 +971,12 @@ def handle_initial_state(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_transition(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one transition to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -682,6 +1027,12 @@ def handle_transition(apps, changed_item, change_reason, *, reversing=False):
 
 
 def handle_transition_permission(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one transition permission to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_content_type = apps.get_model("contenttypes", "ContentType")
     model_permission = apps.get_model("auth", "Permission")
     model_transition = apps.get_model("vueda_workflow", "Transition")
@@ -706,6 +1057,8 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
             model_transition_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
+            # A transition permission moved to another transition holds an (old, new) pair here.
+            data["id"]["transition_id"] = get_id_values_from_item(data["id"]["transition_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
 
@@ -755,6 +1108,12 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
 
 
 def handle_transition_source(apps, changed_item, change_reason, *, reversing=False):
+    """Add, change, or delete one transition source state to match ``changed_item``.
+
+    The function finds related rows by the identifying fields stored in ``changed_item``. ``reversing`` restores
+    old values on a change. Generated workflow migrations copy this function and reach it through
+    ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
     model_state = apps.get_model("vueda_workflow", "State")
     model_transition = apps.get_model("vueda_workflow", "Transition")
     model_transition_source = apps.get_model("vueda_workflow", "TransitionSource")
@@ -784,6 +1143,8 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
             state = model_state.objects.get(**data["id"]["source_id"])
             data["id"]["source_id"] = state.pk
 
+            # A source moved to another transition holds an (old, new) pair here, as source_id does above.
+            data["id"]["transition_id"] = get_id_values_from_item(data["id"]["transition_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
             transition = model_transition.objects.get(**data["id"]["transition_id"])
@@ -833,28 +1194,63 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
 
 
 def handle_state_objects(apps, *, reversing=False):
+    """Run ``manage_state_objects`` for every workflow, using the migration's own models.
+
+    ``reversing`` deletes all object states instead. Generated workflow migrations copy this function
+    and reach it through ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
+    """
+    model_initial_state_event = apps.get_model("vueda_workflow", "InitialStateEvent")
     model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
     for workflow in model_workflow.objects.all():
         model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
-        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event, reversing=reversing)
+        manage_state_objects(
+            workflow,
+            model_obj,
+            model_object_state,
+            model_object_state_event,
+            model_initial_state_event,
+            reversing=reversing,
+        )
 
 
-def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, *, reversing=False):
-    """Give every object of a workflow its initial state, and move one nothing has changed since.
+def manage_state_objects(
+    workflow,
+    obj_class,
+    workflow_obj_state_class,
+    object_state_event_class,
+    initial_state_event_class,
+    *,
+    reversing=False,
+):
+    """Create missing object states and move untouched object states to the workflow's initial state.
 
-    An object state with only its creation recorded against it is still wherever it was put, so a
-    changed initial state moves it. One that carries any later event was moved by someone, and the
-    state they moved it to is theirs to keep.
+    Every object of ``obj_class`` without an object state gets one in the initial state. Objects are read through
+    the model's base manager, so a default manager that hides rows does not hide them here. The states are created
+    in bulk, and a state that a save creates meanwhile is kept.
 
-    TODO: An earlier run of this counts as someone, because its update is an event like any other.
-      A workflow whose initial state changes twice therefore moves its objects only the first time.
-      Telling the two apart needs the sync's own writes to be identifiable, which the action context
-      cannot currently do here: pghistory sets its context as a transaction-local, so an action
-      opened around these writes is still attributed to everything else written in the same
-      transaction.
+    An untouched object state moves to the current initial state, so a changed initial state reaches it. That
+    includes changing the initial state back after a mistake. An object state is untouched when both of these hold:
+
+    - It was created in the workflow's initial state as it stood at that moment. That initial state is the one that
+      the latest initial state event at or before the creation records. A state that was created somewhere else,
+      such as an imported object placed in a later state, stays where it is.
+    - No event for the same workflow and object records a move that someone made. That includes an event on an
+      earlier object state of the object that a migration's reversal deleted, so a move that someone made before
+      the reversal still counts. This function's own moves are tagged with
+      ``initial_state_sync`` through ``tagged_writes``. A migration's writes are recorded under an action of the
+      ``migration`` kind, such as a reversal that moves objects out of a state that it removes. Neither counts as
+      someone's move.
+
+    A state with no events stays where it is, because it may predate the event triggers. So does a state that was
+    created before the workflow's first recorded initial state event.
+
+    Returns the number of object states that moved. ``reversing`` deletes every object state of the workflow
+    instead. The workflow, model, object state, and event classes are passed in, so the function works with a
+    migration's models and with the current models.
+    Generated workflow migrations copy this function, and ``backfillworkflowstates`` calls it.
     """
     if reversing:
         # Delete all object states
@@ -866,41 +1262,217 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
         # A workflow part-way through its own migration has no initial state to give anything.
         return
 
-    for obj in obj_class.objects.all():
-        obj_state = workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).first()
+    # vueda.workflow.models.objects_without_object_state runs the same query for the system check. This copy
+    # stays separate, because migrations copy this function and must not import the current models.
+    with_state = workflow_obj_state_class.objects.filter(workflow=workflow).values("object_id")
+    missing = obj_class._base_manager.exclude(pk__in=with_state).values_list("pk", flat=True)
+    workflow_obj_state_class.objects.bulk_create(
+        [workflow_obj_state_class(workflow=workflow, object_id=pk, state_id=initial_state.state_id) for pk in missing],
+        batch_size=1000,
+        # A save that created its own object state while this ran keeps it.
+        ignore_conflicts=True,
+    )
 
-        if obj_state is None:
-            workflow_obj_state_class.objects.create(
-                workflow=workflow,
-                object_id=obj.id,
-                state=initial_state.state,
-            )
-            continue
-
-        if obj_state.state_id == initial_state.state_id:
-            continue
-
-        changed_since_created = (
-            object_state_event_class.objects.filter(pgh_obj_id=obj_state.pk).exclude(pgh_label="insert").exists()
+    # Event timestamps come from clock_timestamp(), so they order the writes even inside one transaction.
+    initial_state_at_creation = (
+        initial_state_event_class.objects.filter(
+            workflow_id=OuterRef("workflow_id"), pgh_created_at__lte=OuterRef("pgh_created_at")
         )
-        if not changed_since_created:
-            workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
+        .order_by("-pgh_created_at", "-pgh_id")
+        .values("state_id")[:1]
+    )
+    created_in_the_initial_state = object_state_event_class.objects.filter(
+        pgh_obj_id=OuterRef("pk"), pgh_label="insert", state_id=Subquery(initial_state_at_creation)
+    )
+    # Match on the workflow and object rather than the row, so a move recorded on a row that an earlier
+    # reversal deleted still counts.
+    moved_by_someone = (
+        object_state_event_class.objects.filter(workflow_id=OuterRef("workflow_id"), object_id=OuterRef("object_id"))
+        .exclude(pgh_label="insert")
+        .filter(
+            Q(pgh_context__isnull=True)
+            | ~(
+                Q(pgh_context__metadata__contains={"initial_state_sync": True})
+                # Written out rather than named, because this source is copied into migrations. It matches
+                # MIGRATION_ACTION_KIND.
+                | Q(pgh_context__metadata__contains={"kind": "migration"})
+            )
+        )
+    )
+    untouched = (
+        workflow_obj_state_class.objects.filter(workflow=workflow)
+        .exclude(state_id=initial_state.state_id)
+        .filter(Exists(created_in_the_initial_state))
+        .exclude(Exists(moved_by_someone))
+    )
+    with tagged_writes(initial_state_sync=True):
+        return untouched.update(state_id=initial_state.state_id)
 
 
-def add_history_to_data(history_data, obj, history_type, history_date, change_reason, fields=()):
-    # For changed history
-    for field_name in fields:
-        history_data[field_name] = getattr(obj, field_name)
+def _released_record(released, workflow):
+    return released.setdefault(
+        workflow.pk,
+        {
+            "code": workflow.code,
+            "restored": set(),
+            "reset": set(),
+            "orphaned": set(),
+            "orphans_reset": 0,
+            "deleted": 0,
+            "created": 0,
+        },
+    )
 
-    # For all history
-    history_data["history_change_reason"] = change_reason
-    history_data["history_date"] = history_date
-    history_data["history_relation_id"] = obj.pk
-    history_data["history_type"] = history_type
-    history_data["id"] = obj.pk
+
+def delete_object_states_of_removed_workflows(apps, changed_items):
+    """Delete the object states of each workflow the reversal of ``changed_items`` removes.
+
+    A workflow the migration added has no state left to give its objects once the reversal removes
+    it, and its object states protect it from deletion. Returns the record of released object states
+    that ``release_state_objects`` and ``settle_released_object_states`` add to. Generated workflow
+    migrations copy this function and reach it through ``backwards_migrate_workflow``.
+    """
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    released = {}
+    for index, changed_item in enumerate(changed_items):
+        if changed_item["model_name"] != "workflow" or changed_item["history_type"] != WorkflowChangeTypes.ADDED.value:
+            continue
+        # The add records the workflow's identifying fields as they were then. A later change in the
+        # same migration may have renamed it, so follow each rename to the fields the row has now.
+        workflow_id_data = changed_item["changes"]["id"]
+        for later_item in changed_items[index + 1 :]:
+            if (
+                later_item["model_name"] == "workflow"
+                and later_item["history_type"] == WorkflowChangeTypes.CHANGED.value
+                and get_id_values_from_dict(later_item["changes"]["id"]) == workflow_id_data
+            ):
+                workflow_id_data = get_id_values_from_dict(later_item["changes"]["id"], reversing=True)
+        workflow = model_workflow.objects.filter(**workflow_id_data).first()
+        if workflow is None:
+            continue
+        object_states = model_object_state.objects.filter(workflow=workflow)
+        _released_record(released, workflow)["deleted"] += object_states.count()
+        object_states.delete()
+    return released
+
+
+def release_state_objects(apps, changed_item, released):
+    """Move every object out of the state that ``changed_item`` is about to delete.
+
+    Each object returns to the most recent state in its history that its workflow still has. An
+    object with no such state moves to the workflow's initial state, or loses its object state when
+    the workflow has none. Rows are updated in place, so each keeps its id and its history.
+    ``released`` records each move for ``settle_released_object_states``. Generated workflow
+    migrations copy this function and reach it through ``backwards_migrate_workflow``.
+    """
+    model_initial_state = apps.get_model("vueda_workflow", "InitialState")
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
+    model_state = apps.get_model("vueda_workflow", "State")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    state_id_data = changed_item["changes"]["id"]
+    workflow = model_workflow.objects.get(**state_id_data["workflow_id"])
+    state = model_state.objects.get(**{**state_id_data, "workflow_id": workflow.pk})
+
+    object_states = list(model_object_state.objects.filter(workflow=workflow, state=state))
+    if not object_states:
+        return
+
+    record = _released_record(released, workflow)
+    surviving_state_ids = list(
+        model_state.objects.filter(workflow=workflow).exclude(pk=state.pk).values_list("pk", flat=True)
+    )
+    initial_state = model_initial_state.objects.filter(workflow=workflow).exclude(state=state).first()
+    for object_state in object_states:
+        # Match on the workflow and object rather than the row, so events from rows an earlier
+        # reversal deleted still count.
+        restored_state_id = (
+            model_object_state_event.objects.filter(
+                workflow_id=workflow.pk,
+                object_id=object_state.object_id,
+                state_id__in=surviving_state_ids,
+            )
+            .order_by("-pgh_id")
+            .values_list("state_id", flat=True)
+            .first()
+        )
+        record["restored"].discard(object_state.pk)
+        record["reset"].discard(object_state.pk)
+        if restored_state_id is not None:
+            model_object_state.objects.filter(pk=object_state.pk).update(state_id=restored_state_id)
+            record["restored"].add(object_state.pk)
+        elif initial_state is not None:
+            model_object_state.objects.filter(pk=object_state.pk).update(state_id=initial_state.state_id)
+            record["reset"].add(object_state.pk)
+        else:
+            model_object_state.objects.filter(pk=object_state.pk).delete()
+            record["orphaned"].add(object_state.object_id)
+
+
+def settle_released_object_states(apps, released, recreated_workflow_ids):
+    """Finish the object state changes of a reversal, then report them.
+
+    An object reset to the initial state moves to the initial state the workflow has once the whole
+    reversal has run, which a later step may have changed. An object left without a state, and every
+    object of a re-created workflow, gets that initial state. Generated workflow migrations copy this
+    function and reach it through ``backwards_migrate_workflow``.
+    """
+    model_initial_state = apps.get_model("vueda_workflow", "InitialState")
+    model_initial_state_event = apps.get_model("vueda_workflow", "InitialStateEvent")
+    model_object_state = apps.get_model("vueda_workflow", "ObjectState")
+    model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
+    model_workflow = apps.get_model("vueda_workflow", "Workflow")
+
+    for workflow_pk, record in released.items():
+        workflow = model_workflow.objects.filter(pk=workflow_pk).first()
+        initial_state = workflow and model_initial_state.objects.filter(workflow=workflow).first()
+        if initial_state is None:
+            continue
+        model_object_state.objects.filter(pk__in=record["reset"]).exclude(state_id=initial_state.state_id).update(
+            state_id=initial_state.state_id
+        )
+        for object_id in record["orphaned"]:
+            model_object_state.objects.create(workflow=workflow, object_id=object_id, state_id=initial_state.state_id)
+        record["orphans_reset"] += len(record["orphaned"])
+        record["orphaned"] = set()
+
+    for workflow_id_data in recreated_workflow_ids:
+        workflow = model_workflow.objects.filter(**workflow_id_data).first()
+        if workflow is None:
+            continue
+        before = model_object_state.objects.filter(workflow=workflow).count()
+        model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
+        manage_state_objects(
+            workflow, model_obj, model_object_state, model_object_state_event, model_initial_state_event
+        )
+        _released_record(released, workflow)["created"] += (
+            model_object_state.objects.filter(workflow=workflow).count() - before
+        )
+
+    for record in released.values():
+        counts = (
+            (len(record["restored"]), "restored from history"),
+            (len(record["reset"]) + record["orphans_reset"], "reset to the initial state"),
+            (len(record["orphaned"]), "left without a state, because the workflow has no initial state"),
+            (record["deleted"], "deleted with the workflow"),
+            (record["created"], "given the initial state"),
+        )
+        for count, outcome in counts:
+            if count:
+                # A migration's code has no command stdout to write to; migrate shows what it writes here. It
+                # writes rather than prints, so a project's linter has no print call to flag in its migrations.
+                sys.stdout.write(f"  Workflow {record['code']}: {count} object state(s) {outcome}.\n")
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
+    """Set each changed field in ``data`` on ``obj``, then save ``obj``.
+
+    A changed field holds an ``(old, new)`` tuple, and ``reversing`` applies the old value. Fields that are
+    not tuples are skipped. Generated workflow migrations copy this function.
+    """
     # The changed fields have a tuple with 2 values, the other fields do not.
     # Testing as tuple instead of length, because values could be a dictionary
     # with 2 keys, or a 2 character string.  A single value can't be a tuple.
@@ -920,6 +1492,11 @@ def apply_and_save_changes(obj, data, *, reversing=False):
 
 
 def get_id_values_from_item(values, reversing=False):
+    """Return the value that finds a row as it stands now: the old side of an ``(old, new)`` tuple.
+
+    ``reversing`` picks the new side instead. A value that is not a tuple is returned unchanged.
+    Generated workflow migrations copy this function.
+    """
     # The changed fields have a tuple with 2 values, the other fields do not.
     # Testing as tuple instead of length, because values could be a dictionary
     # with 2 keys, or a 2 character string.  A single value can't be a tuple.
@@ -930,6 +1507,10 @@ def get_id_values_from_item(values, reversing=False):
 
 
 def get_id_values_from_dict(id_data, reversing=False):
+    """Return ``id_data`` with each value passed through ``get_id_values_from_item``.
+
+    The result finds the row as it stands now. Generated workflow migrations copy this function.
+    """
     results = {}
     for field_name, values in id_data.items():
         results[field_name] = get_id_values_from_item(values, reversing)

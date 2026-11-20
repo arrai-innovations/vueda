@@ -35,6 +35,7 @@ import copy
 import enum
 import inspect
 import re
+import sys
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -104,9 +105,8 @@ def workflow_migration_action(apps, change_reason):
 def forwards_migrate_workflow(apps, changed_items, change_reason):
     """Apply a generated workflow migration's ``changed_items`` in order, then sync workflow object states.
 
-    Generated workflow migrations copy this function and call it from their forwards step. The
-    migrations that VUEDA's own tests write import it instead. All writes are grouped under one
-    migration action named by ``change_reason``.
+    Generated workflow migrations copy this function and call it from their forwards step. All writes
+    are grouped under one migration action named by ``change_reason``.
     """
     with workflow_migration_action(apps, change_reason):
         _forwards_migrate_workflow(apps, changed_items, change_reason)
@@ -156,7 +156,7 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
     are deleted, an object in a removed state is restored from its history or reset to the initial
     state, and a re-created workflow gives its objects the initial state. Every other object state
     keeps its row and its state. Generated workflow migrations copy this function and call it from
-    their reverse step. The migrations that VUEDA's own tests write import it instead.
+    their reverse step.
     """
     apps = rebuild_migration_apps(apps)
     with workflow_migration_action(apps, change_reason):
@@ -1022,8 +1022,9 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
         )
         for count, outcome in counts:
             if count:
-                # A migration's code has no command stdout to write to; migrate shows what it prints.
-                print(f"  Workflow {record['code']}: {count} object state(s) {outcome}.")  # noqa: T201
+                # A migration's code has no command stdout to write to; migrate shows what it writes here. It
+                # writes rather than prints, so a project's linter has no print call to flag in its migrations.
+                sys.stdout.write(f"  Workflow {record['code']}: {count} object state(s) {outcome}.\n")
 
 
 def get_id_values_from_item(values, reversing=False):
@@ -1057,7 +1058,7 @@ def make_sure_permissions_exist(app_label):
     """Create any missing permissions for the app named ``app_label``.
 
     Generated workflow migrations run this before applying their changes, so the permissions those changes
-    name exist. The migrations copy this function. The migrations that VUEDA's own tests write import it instead.
+    name exist. The migrations copy this function.
     """
     app = django_apps.get_app_config(app_label)
     create_permissions(app, interactive=False)
@@ -1102,7 +1103,7 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
     When ``as_mapping`` is True, an ordered mapping is returned instead: keys are single-name tuples (an
     import only ever binds one name, per this project's force-single-line isort convention) and values are
     the current import line, each ending in its own newline and prefixed with a blank line where it opens
-    a new isort group. This is used by ``updateworkflowmigrations`` to update or insert only the imports
+    a new isort group. This is used by ``updatevuedamigrations`` to update or insert only the imports
     it recognizes in an existing migration, leaving any hand-added imports (or comments) around them
     untouched.
     """
@@ -1112,6 +1113,7 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
     }
     if not import_instead:
         result_mapping[("enum",)] = f"import enum{NEWLINE}"
+        result_mapping[("sys",)] = f"import sys{NEWLINE}"
 
     if not import_instead:
         result_mapping[("django_apps",)] = f"{NEWLINE}from django.apps import apps as django_apps{NEWLINE}"
@@ -1142,12 +1144,10 @@ def get_migration_imports(import_instead=False, direct_runpython_import=False, a
             f"from vueda.workflow.migration_generation.operations import make_sure_permissions_exist{NEWLINE}"
         )
     else:
-        result_mapping[("Count",)] = f"from django.db.models import Count{NEWLINE}"
         result_mapping[("Exists",)] = f"from django.db.models import Exists{NEWLINE}"
         result_mapping[("OuterRef",)] = f"from django.db.models import OuterRef{NEWLINE}"
         result_mapping[("Q",)] = f"from django.db.models import Q{NEWLINE}"
         result_mapping[("Subquery",)] = f"from django.db.models import Subquery{NEWLINE}"
-        result_mapping[("timezone",)] = f"from django.utils import timezone{NEWLINE}"
         result_mapping[("audited_action",)] = f"{NEWLINE}from vueda.core.audit import audited_action{NEWLINE}"
         result_mapping[("tagged_writes",)] = f"from vueda.core.audit import tagged_writes{NEWLINE}"
 
@@ -1162,7 +1162,7 @@ def get_migration_sources(import_instead=False, as_mapping=False):
 
     When ``as_mapping`` is True, an ordered mapping is returned instead: keys are tuples of every name
     (old and current) that identifies a given function/class across versions of this command, and values
-    are the current source for it. This is used by ``updateworkflowmigrations`` to replace only the
+    are the current source for it. This is used by ``updatevuedamigrations`` to replace only the
     functions it recognizes in an existing migration, leaving any hand-added code around them untouched.
     """
     noqa_removal_regex = r"\s*#\s*noqa:\s*F821[^\n]*"  # Removes 'noqa: F821' from these functions.
