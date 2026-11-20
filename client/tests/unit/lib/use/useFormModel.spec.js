@@ -870,7 +870,7 @@ describe("lib/use/useFormModel.js", () => {
             expect(state.widgetComponents["lines.note"]).not.toBe(availableWidgets.WidgetReadOnly);
         });
     });
-    describe("read-only widget of a slug relation", () => {
+    describe("read-only widget of a relation", () => {
         const slugDetail = (extra = {}) => ({
             name: "country",
             typeSerializer: "SlugRelatedField",
@@ -1006,14 +1006,88 @@ describe("lib/use/useFormModel.js", () => {
             },
         );
 
-        scopedIt("passes no choices endpoint for a slug relation that the server marks read-only", async () => {
-            const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+        describe("relation that the server marks read-only", () => {
+            scopedIt("passes the related model for a slug relation that the server marks read-only", async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
 
-            // The server sends no choices for a read-only field.
-            const state = await buildCountryForm("update", slugDetail({ readOnly: true, choices: false }));
+                // The server sends no choices for a read-only field, so the widget gets no choices endpoint.
+                const state = await buildCountryForm("update", slugDetail({ readOnly: true, choices: false }));
 
-            expect(state.widgetComponents.country).toBe(availableWidgets.WidgetModelReadOnly);
-            expect(state.widgetProps.country.fieldApp).toBeUndefined();
+                expect(state.widgetComponents.country).toBe(availableWidgets.WidgetModelReadOnly);
+                expect(state.widgetProps.country).toMatchObject({ app: "geo", model: "country", readOnly: true });
+                expect(state.widgetProps.country.fieldApp).toBeUndefined();
+            });
+
+            scopedIt("passes the related model for a foreign key that the server marks read-only", async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                // The server sends no choices for a read-only field, but it still names the related model.
+                const state = await buildCountryForm("read", primaryKeyDetail({ readOnly: true, choices: false }));
+
+                expect(state.widgetComponents.country).toBe(availableWidgets.WidgetReadOnly);
+                expect(state.widgetProps.country).toMatchObject({ app: "geo", model: "country", readOnly: true });
+                expect(state.widgetProps.country.fieldApp).toBeUndefined();
+            });
+
+            scopedIt("passes the related model for a many-to-many field that the server marks read-only", async () => {
+                const { availableWidgets } = await import("@vueda/utils/formLookups.js");
+
+                const state = await buildCountryForm("update", manyToManyDetail({ readOnly: true, choices: false }));
+
+                expect(state.widgetComponents.country).toBe(availableWidgets.WidgetReadOnly);
+                expect(state.widgetProps.country).toMatchObject({ app: "geo", model: "country", readOnly: true });
+                expect(state.widgetProps.country.fieldApp).toBeUndefined();
+            });
+
+            scopedIt("passes no related model to a read-only field that names none", async () => {
+                const state = await buildCountryForm(
+                    "read",
+                    primaryKeyDetail({ appLabel: undefined, model: undefined, readOnly: true, choices: false }),
+                );
+
+                expect(state.widgetProps.country.app).toBeUndefined();
+                expect(state.widgetProps.country.model).toBeUndefined();
+            });
+
+            scopedIt("passes no related model to an editable field that has no choices", async () => {
+                const state = await buildCountryForm("update", primaryKeyDetail({ choices: false }));
+
+                expect(state.widgetProps.country.app).toBeUndefined();
+                expect(state.widgetProps.country.model).toBeUndefined();
+            });
+
+            scopedIt("passes the related model for a relation inside an expanded serializer", async () => {
+                const { useFormModel } = await import("@vueda/use/useFormModel.js");
+                modelConfig.config = {
+                    fieldDetails: {
+                        order: {
+                            name: "order",
+                            typeSerializer: "PrimaryKeyRelatedField",
+                            many: false,
+                            readOnly: false,
+                        },
+                    },
+                    expandDetails: {
+                        order: { f: { country: primaryKeyDetail({ readOnly: true, choices: false }) } },
+                    },
+                };
+                const props = makeBaseProps({
+                    view: "read",
+                    fields: ["order.country"],
+                    expand: ["order"],
+                    fieldDetails: undefined,
+                    expandDetails: undefined,
+                });
+
+                const state = await withSetup(() => useFormModel(props));
+                await flushPromises();
+
+                expect(state.widgetProps["order.country"]).toMatchObject({
+                    app: "geo",
+                    model: "country",
+                    readOnly: true,
+                });
+            });
         });
     });
     describe("field detail fallback behavior", () => {
