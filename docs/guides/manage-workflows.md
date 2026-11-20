@@ -263,7 +263,6 @@ For each workflow migration that passes the dependency check, the command:
 - Replaces the embedded functions, matched by name, with the current versions, and adds any that the file lacks.
 - Updates the imports that it recognizes, and adds the ones that the current functions need.
 - Removes an import of a function that it now copies into the file. The copy replaces the import, so the migration holds every function that it runs.
-- Removes an import from a module that no longer exists when nothing in the file uses it. When the file still uses such a name, the command reports the file and leaves it unchanged.
 - Updates stale function names in the `operations` list.
 - Adds the app label and model to each workflow that `changed_data` names by code alone.
 - Removes functions and imports that earlier versions wrote and the current version does not, such as `add_history_to_data`, when nothing else in the file uses them. The command reports each one that it removes.
@@ -279,7 +278,7 @@ When it adds to `changed_data`, it writes the whole list back, as [How `changed_
 
 The next run overwrites any edit inside the embedded functions. To add behavior, write your own function and reference it from the `operations` list.
 
-If the command cannot read a file's `changed_data`, it reports the file and skips it, updates the others, and exits with status 1. Fix the file by hand and run the command again. A file that stops Django from loading the migration graph also fails the dependency check of every other file.
+If the command cannot read a file's `changed_data`, it reports the file as a failure and leaves it unchanged. It updates the others and exits with status 1. Fix the file by hand and run the command again. A file that stops Django from loading the migration graph also fails the dependency check of every other file.
 
 When the command cannot read the `changed_data` of a migration that it does not rewrite, such as one in an installed package, it reports a warning. It leaves out the workflows that the migration records, and it does not count the migration as a failure. The command then resolves references from the history that remains, so fix the reported fault where you can before you rely on the result.
 

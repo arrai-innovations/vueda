@@ -10,6 +10,7 @@ __all__ = (
 
 import ast
 import dataclasses
+import importlib
 import importlib.util
 from collections.abc import Callable
 
@@ -108,71 +109,83 @@ def replace_imports_with_copies(source, copied_names):
         node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
     }
     replaceable = defined & set(copied_names)
-    lines = source.splitlines(keepends=True)
-    replaced = []
-    whole = []
-    partial = []
-    for node in tree.body:
-        if not isinstance(node, (ast.Import, ast.ImportFrom)):
-            continue
-        copied = [alias for alias in node.names if _alias_binding(alias) in replaceable]
-        if not copied:
-            continue
-        module = node.module if isinstance(node, ast.ImportFrom) else None
-        replaced.extend(f"{module}.{alias.name}" if module else alias.name for alias in copied)
-        kept = [alias for alias in node.names if alias not in copied]
-        (partial if kept else whole).append((node, kept))
-
-    # Rewrite the statements that keep some names first, from the bottom up, so the line numbers stay correct.
-    for node, kept in sorted(partial, key=lambda item: item[0].lineno, reverse=True):
-        lines[node.lineno - 1 : node.end_lineno] = [_import_text(node, alias) for alias in kept]
-    text = "".join(lines)
-    if whole:
-        whole_lines = {node.lineno for node, _kept in whole}
-        text = _delete_statements(text, [node for node in ast.parse(text).body if _is_import_at(node, whole_lines)])
-
-    return text, tuple(sorted(replaced))
+    return _drop_imports(source, lambda node, alias: _alias_binding(alias) in replaceable)
 
 
-def remove_imports_from_missing_modules(source):
-    """Remove the top-level imports in ``source`` from modules that no longer exist, when nothing uses them.
+def remove_imports_that_vueda_no_longer_has(source):
+    """Remove the top-level imports in ``source`` of VUEDA modules and names that no longer exist.
 
     Django imports every migration when it builds the migration graph, so such an import stops ``migrate`` for
-    the whole project. Returns the new source and the sorted ``module.name`` of each import that was removed.
+    the whole project. Only imports from ``vueda`` are checked, because VUEDA is installed wherever the command
+    runs. A project's other imports can depend on packages that only some environments install. Returns the new
+    source and the sorted ``module.name`` of each import that was removed.
 
     Raises ``RefreshError`` when the migration still uses a name that such an import binds.
     """
     tree = ast.parse(source)
-    missing = [node for node in tree.body if _imports_a_missing_module(node)]
-    if not missing:
+    gone = [
+        (node, alias)
+        for node in tree.body
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for alias in node.names
+        if _vueda_no_longer_has(node, alias)
+    ]
+    if not gone:
         return source, ()
 
     used = set()
     for node in tree.body:
-        if node not in missing:
+        if not isinstance(node, (ast.Import, ast.ImportFrom)):
             used |= _used_names(node)
-    still_used = sorted(
-        f"{node.module}.{alias.name}" if isinstance(node, ast.ImportFrom) else alias.name
-        for node in missing
-        for alias in node.names
-        if _alias_binding(alias) in used
-    )
+    still_used = sorted(_import_label(node, alias) for node, alias in gone if _alias_binding(alias) in used)
     if still_used:
         raise RefreshError(
-            f"The migration uses {', '.join(still_used)}, from a module that no longer exists. Copy that code into "
-            "the migration or remove it by hand, then run the command again."
+            f"The migration uses {', '.join(still_used)}, which VUEDA no longer has. Copy that code into the "
+            "migration or remove it by hand, then run the command again."
         )
 
-    removed = sorted(
-        f"{node.module}.{alias.name}" if isinstance(node, ast.ImportFrom) else alias.name
-        for node in missing
-        for alias in node.names
-    )
-    return _delete_statements(source, missing), tuple(removed)
+    return _drop_imports(source, _vueda_no_longer_has)
+
+
+def _drop_imports(source, should_drop):
+    """Remove each name of a top-level import in ``source`` for which ``should_drop(node, alias)`` is true.
+
+    A statement that loses every name is deleted. A statement that keeps some names is rewritten with one import
+    per line. Returns the new source and the sorted ``module.name`` of each name that was removed.
+    """
+    tree = ast.parse(source)
+    dropped = []
+    whole = []
+    for node in tree.body:
+        if not isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue
+        drop = [alias for alias in node.names if should_drop(node, alias)]
+        dropped.extend(_import_label(node, alias) for alias in drop)
+        if drop and len(drop) == len(node.names):
+            whole.append(node)
+    text = _delete_statements(source, whole) if whole else source
+
+    # The deletions moved the lines, so the statements that keep some names are found again in the new text.
+    lines = text.splitlines(keepends=True)
+    partial = []
+    for node in ast.parse(text).body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)) and any(should_drop(node, alias) for alias in node.names):
+            partial.append((node, [alias for alias in node.names if not should_drop(node, alias)]))
+    # From the bottom up, so the line numbers of the statements above stay correct.
+    for node, kept in sorted(partial, key=lambda item: item[0].lineno, reverse=True):
+        lines[node.lineno - 1 : node.end_lineno] = [_import_text(node, alias) for alias in kept]
+
+    return "".join(lines), tuple(sorted(dropped))
 
 
 def _alias_binding(alias):
+    """Return the name that an import's ``alias`` binds in the module."""
     return alias.asname or alias.name.split(".")[0]
+
+
+def _import_label(node, alias):
+    """Return an imported name as ``module.name``, or the module name for a plain ``import``."""
+    return f"{node.module}.{alias.name}" if isinstance(node, ast.ImportFrom) else alias.name
 
 
 def _import_text(node, alias):
@@ -182,28 +195,30 @@ def _import_text(node, alias):
     return f"import {name}\n"
 
 
-def _is_import_at(node, line_numbers):
-    return isinstance(node, (ast.Import, ast.ImportFrom)) and node.lineno in line_numbers
-
-
-def _imports_a_missing_module(node):
-    """Return whether ``node`` is a top-level absolute import of a module that cannot be found."""
+def _vueda_no_longer_has(node, alias):
+    """Return whether the import ``alias`` of ``node`` names a VUEDA module or name that no longer exists."""
     if isinstance(node, ast.ImportFrom):
-        if node.level or not node.module:
+        if node.level or not _is_vueda_module(node.module):
             return False
-        modules = (node.module,)
-    elif isinstance(node, ast.Import):
-        modules = tuple(alias.name for alias in node.names)
-    else:
-        return False
-    for module in modules:
-        try:
-            if importlib.util.find_spec(module) is None:
-                return True
-        except (ImportError, ValueError):
-            # A parent package is missing too, or the name is not a module.
+        if not _module_exists(node.module):
             return True
-    return False
+        if alias.name == "*":
+            return False
+        module = importlib.import_module(node.module)
+        return not hasattr(module, alias.name) and not _module_exists(f"{node.module}.{alias.name}")
+    return _is_vueda_module(alias.name) and not _module_exists(alias.name)
+
+
+def _is_vueda_module(name):
+    return name == "vueda" or name.startswith("vueda.")
+
+
+def _module_exists(name):
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:
+        # A parent package is missing too.
+        return False
 
 
 def _used_names(node):
@@ -216,7 +231,7 @@ def _bound_names(node):
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
         return {node.name}
     if isinstance(node, (ast.Import, ast.ImportFrom)):
-        return {alias.asname or alias.name.split(".")[0] for alias in node.names}
+        return {_alias_binding(alias) for alias in node.names}
     return set()
 
 
@@ -250,8 +265,8 @@ class Refresh:
 
     ``source`` is the refreshed text. ``changed`` says whether it differs from the original. ``removed_names``
     says what ``remove_obsolete_names`` removed. ``replaced_imports`` names each import that a copied function
-    replaced, and ``removed_missing_imports`` names each import from a module that no longer exists. Each name is
-    written as ``module.name``.
+    replaced. ``removed_missing_imports`` names each import of a VUEDA module or name that no longer exists. Each
+    name is written as ``module.name``.
     """
 
     source: str
@@ -266,12 +281,12 @@ def refresh_migration(source, kind, *, update_changed_data=None):
 
     The steps run in this order: the operations call the current function names; each copied function that the
     kind writes is replaced or added, and replaces any import of the same name; each import that the kind writes
-    is replaced or added; obsolete names that nothing uses are removed; and imports from modules that no longer
-    exist are removed when nothing uses them. Code that a developer added stays. ``update_changed_data``, when
-    given, takes the text and returns it with its ``changed_data`` updated.
+    is replaced or added; obsolete names that nothing uses are removed; and imports of VUEDA modules and names
+    that no longer exist are removed when nothing uses them. Code that a developer added stays.
+    ``update_changed_data``, when given, takes the text and returns it with its ``changed_data`` updated.
 
     Raises ``RefreshError`` when the migration is not valid Python, lacks an assignment that the kind needs, or
-    still uses a name from a module that no longer exists.
+    still uses a VUEDA name that no longer exists.
     """
     text = source
     tree = _parse_or_refuse(text)
@@ -302,7 +317,7 @@ def refresh_migration(source, kind, *, update_changed_data=None):
     text, replaced = replace_imports_with_copies(text, {name for names in sources for name in names})
     text = merge_migration_imports(text, kind.get_imports(False, direct_runpython_import, as_mapping=True))
     text, removed = remove_obsolete_names(text, kind.obsolete_names)
-    text, missing = remove_imports_from_missing_modules(text)
+    text, missing = remove_imports_that_vueda_no_longer_has(text)
 
     return Refresh(
         source=text,

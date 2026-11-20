@@ -299,7 +299,28 @@ def test_an_import_statement_keeps_the_names_that_are_not_copied():
     assert "import create_group_change" not in result.source
 
 
-def test_a_name_from_a_module_that_no_longer_exists_is_refused():
+def test_a_rewritten_import_statement_does_not_move_another_import_that_goes():
+    """An import that keeps some names is rewritten one name per line, which moves the lines below it. The import
+    that loses every name is still the one deleted."""
+    source = (OLD_MIGRATIONS / "group_imported_helpers_2026_04.py.txt").read_text()
+    source = (
+        source.replace(
+            "from vueda.user.management.commands.utils import create_group_change\n",
+            "from vueda.user.management.commands.utils import NEWLINE, get_migrations_path, create_group_change\n"
+            "import json\n",
+        )
+        + "\n\nSEPARATOR = (NEWLINE, get_migrations_path, json.dumps([]))\n"
+    )
+
+    result = refresh_migration(source, GROUP_MIGRATION_KIND)
+
+    assert "import json\n" in result.source
+    assert "import get_matching_record" not in result.source
+    assert "from vueda.user.management.commands.utils import NEWLINE\n" in result.source
+    assert "from vueda.user.management.commands.utils import get_migrations_path\n" in result.source
+
+
+def test_a_name_that_vueda_no_longer_has_is_refused_when_the_migration_uses_it():
     """The migration would fail when it runs, and nothing can copy a name that VUEDA no longer has."""
     source = (OLD_MIGRATIONS / "group_copied_2026_06.py.txt").read_text()
     source = (
@@ -317,7 +338,7 @@ def test_a_name_from_a_module_that_no_longer_exists_is_refused():
         refresh_migration(source, GROUP_MIGRATION_KIND)
 
 
-def test_an_unused_import_from_a_module_that_no_longer_exists_is_removed():
+def test_an_unused_import_of_a_name_that_vueda_no_longer_has_is_removed():
     source = (OLD_MIGRATIONS / "group_copied_2026_06.py.txt").read_text()
     source = source.replace(
         "from django.db import migrations\n",
