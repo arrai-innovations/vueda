@@ -111,7 +111,7 @@ workflows:
                   executor: python312-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --color=yes -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -131,7 +131,7 @@ workflows:
                   executor: python313-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --color=yes -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -151,7 +151,7 @@ workflows:
                   executor: python314-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov --color=yes -n2 --dist loadgroup
+                  pytest_args: --cov -n2 --dist loadgroup
                   create_status_badge: false
                   coverage_artifacts_directory: server-pytest
                   coverage_badge_label: server-coverage
@@ -173,7 +173,7 @@ workflows:
                   executor: python314-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --color=yes -n2 --dist loadgroup
+                  pytest_args: -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   build_coverage: false
@@ -193,7 +193,7 @@ workflows:
                   executor: python314-pg
                   context: arrai-global
                   wd: server
-                  pytest_args: --cov --color=yes -n2 --dist loadgroup
+                  pytest_args: --cov -n2 --dist loadgroup
                   create_status_badge: false
                   create_coverage_badge: false
                   coverage_artifacts_directory: server-pytest
