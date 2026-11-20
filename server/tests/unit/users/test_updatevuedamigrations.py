@@ -790,6 +790,53 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert status == 1
             assert f"vueda.workflow.management.commands.makeworkflowmigrations is imported by {path}" in err
 
+    def test_a_workflow_migration_that_imports_its_forwards_function_gets_a_copy(self, settings):
+        """The operations call the copied wrappers, and the wrappers call forwards_migrate_workflow, which the
+        migration imports from a module that VUEDA removed. The import goes before the graph is built, and the
+        refresh copies the function in."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            # The current copied form, with forwards_migrate_workflow imported instead of copied.
+            source = refresh_migration(path.read_text(), WORKFLOW_MIGRATION_KIND).source
+            forwards = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name == "forwards_migrate_workflow"
+            )
+            lines = source.splitlines(keepends=True)
+            del lines[forwards.lineno - 1 : forwards.end_lineno]
+            imported = (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
+            )
+            path.write_text(
+                "".join(lines).replace(
+                    "from django.db import migrations\n", f"from django.db import migrations\n{imported}", 1
+                )
+            )
+            assert "\ndef forwards_migrate_workflow(" not in path.read_text()
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
+            assert (
+                "  Replaced the import of vueda.workflow.management.commands.makeworkflowmigrations."
+                "forwards_migrate_workflow with a copy."
+            ) in out
+            refreshed = path.read_text()
+            assert "\ndef forwards_migrate_workflow(apps, changed_items, change_reason):" in refreshed
+            assert "makeworkflowmigrations import" not in refreshed
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Already up to date: {path}" in out
+
     @pytest.mark.parametrize("dry_run", [False, True])
     def test_an_unused_import_that_vueda_no_longer_has_is_removed_before_the_graph_is_built(self, settings, dry_run):
         """Django imports every migration to build the graph. A real run removes the import first. A dry run cannot
