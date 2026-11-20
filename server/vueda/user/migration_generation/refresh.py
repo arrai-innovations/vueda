@@ -376,7 +376,11 @@ def _alias_binding(alias):
 
 def _import_label(node, alias):
     """Return an imported name as ``module.name``, or the module name for a plain ``import``."""
-    return f"{node.module}.{alias.name}" if isinstance(node, ast.ImportFrom) else alias.name
+    if isinstance(node, ast.ImportFrom):
+        return (
+            f"{'.' * node.level}{node.module or ''}.{alias.name}" if node.module else f"{'.' * node.level}{alias.name}"
+        )
+    return alias.name
 
 
 def _import_text(node, alias):

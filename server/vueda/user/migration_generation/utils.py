@@ -186,7 +186,13 @@ def module_exists(module_name):
 def _names_a_missing_module(module_name):
     """Return whether ``module_name`` names a module that cannot be found. A module that exists but fails to import
     does not count."""
-    return bool(module_name) and not module_exists(module_name)
+    if not module_name:
+        return False
+    try:
+        return not module_exists(module_name)
+    except Exception:
+        # The module's package exists but fails on its own import, so the module is not missing.
+        return False
 
 
 def is_installed_package_location(path):

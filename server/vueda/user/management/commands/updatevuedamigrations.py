@@ -166,13 +166,14 @@ class Command(BaseCommand):
                 without_imports_that_vueda_no_longer_has(generated.text), generated.path
             )
             if problem is not None:
-                if not generated.writable:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"  Could not read changed_data in {generated.path}: {problem}. "
-                            "The workflows it records are not used to name references."
-                        )
+                # A package's file is only read here, and a project's file may be skipped and never refreshed, so
+                # the problem is reported here for every file.
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  Could not read changed_data in {generated.path}: {problem}. "
+                        "The workflows it records are not used to name references."
                     )
+                )
                 continue
             if generated.writable and workflow_refresh.has_naive_history_dates(changed_data):
                 self.stdout.write(
@@ -289,7 +290,7 @@ class Command(BaseCommand):
         # A hand-edited migration can fail any step in its own way. Each one fails only its own file.
         except Exception as error:
             self.stderr.write(
-                self.style.ERROR(f"  Could not update {generated.path}: {error} Leaving the file unchanged.")
+                self.style.ERROR(f"  Could not update {generated.path}: {_sentence(error)} Leaving the file unchanged.")
             )
             return _FAILED
         if blocked is not None:
@@ -333,8 +334,8 @@ class Command(BaseCommand):
             # A hand-edited migration can fail in its own way. It fails only its own file.
             self.stderr.write(
                 self.style.ERROR(
-                    f"  Cannot update {generated.path}: {error} The command keeps its existing functions, because "
-                    f"its {reason} Leaving the file unchanged."
+                    f"  Cannot update {generated.path}: {_sentence(error)} The command keeps its existing "
+                    f"functions, because its {reason} Leaving the file unchanged."
                 )
             )
             return _FAILED
@@ -406,7 +407,7 @@ def _write_atomically(path, text):
     path = Path(path).resolve()
     # Replacing a file needs only the directory's permission, so a migration marked read-only is refused here, as
     # writing it in place would be.
-    if not os.access(path, os.W_OK):
+    if not path.stat().st_mode & stat.S_IWUSR or not os.access(path, os.W_OK):
         raise PermissionError(f"{path} is read-only")
     handle = tempfile.NamedTemporaryFile(  # noqa: SIM115
         "w", encoding="utf-8", newline="", dir=path.parent, delete=False, suffix=".tmp"
@@ -462,3 +463,9 @@ class _StrippedMigrationFinder(importlib.abc.MetaPathFinder, importlib.abc.Loade
         # The stripped text keeps every import that the module needs while it loads, so an error here comes from an
         # import that stays, and it is the error that the graph reports.
         exec(compile(text, str(path), "exec"), module.__dict__)
+
+
+def _sentence(error):
+    """Return ``error``'s text as a sentence that ends with a full stop."""
+    text = str(error).rstrip()
+    return text if text.endswith((".", "!", "?")) else f"{text}."
