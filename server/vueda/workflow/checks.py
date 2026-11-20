@@ -69,7 +69,7 @@ def check_workflow_definitions(app_configs=None, databases=None, **kwargs):
                 CheckWarning(
                     f"The workflow of {model._meta.label} has no initial state.",
                     hint=(
-                        "Give the workflow an initial state and export it with makeworkflowmigrations. Until "
+                        "Give the workflow an initial state and export it with makevuedamigrations. Until "
                         "then, saving a new object fails and backfillworkflowstates cannot run."
                     ),
                     obj=model,

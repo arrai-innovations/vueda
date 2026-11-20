@@ -304,9 +304,9 @@ A page, served only when `DEBUG` is on, where you rename groups and add or remov
 
 ## Group Permission Migration
 
-A migration that `makegroupmigrations` writes from the changes recorded on the {@term Group Management Page}, so other environments receive the same group permissions. It names groups and permissions by natural key and goes in the app of `AUTH_USER_MODEL`.
+A migration that `makevuedamigrations` writes from the changes recorded on the {@term Group Management Page}, so other environments receive the same group permissions. It names groups and permissions by natural key and goes in the app of `AUTH_USER_MODEL`.
 
-- Names: [`makegroupmigrations`]{@api py:class:vueda.user.management.commands.makegroupmigrations.Command}; [`updategroupmigrations`]{@api py:class:vueda.user.management.commands.updategroupmigrations.Command}; [`sync_group_changes`]{@api py:class:vueda.user.management.commands.sync_group_changes.Command}; [`GroupChange`]{@api py:class:vueda.user.models.GroupChange}
+- Names: [`makevuedamigrations`]{@api py:class:vueda.user.management.commands.makevuedamigrations.Command}; [`updategroupmigrations`]{@api py:class:vueda.user.management.commands.updategroupmigrations.Command}; [`sync_group_changes`]{@api py:class:vueda.user.management.commands.sync_group_changes.Command}; [`GroupChange`]{@api py:class:vueda.user.models.GroupChange}
 - Described in: [Manage Groups and Generate Group Migrations](../guides/manage-groups.md#generating-group-migrations)
 - Upstream: [Django: `Group`]{@api ext:django:django.contrib.auth.models.Group}; [Django: `AUTH_USER_MODEL`]{@api ext:django:setting:AUTH_USER_MODEL}
 
@@ -732,9 +732,9 @@ The states, transitions, initial state, and permission rows defined for one mode
 
 ## Workflow Migration
 
-A Django migration that `makeworkflowmigrations` writes from the workflow changes recorded in history, so a workflow built in one database reaches other environments. It names records by code, app label, and model, since primary keys differ between databases.
+A Django migration that `makevuedamigrations` writes from the workflow changes recorded in history, so a workflow built in one database reaches other environments. It names records by code, app label, and model, since primary keys differ between databases.
 
-- Names: [`makeworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.makeworkflowmigrations.Command}; [`updateworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.updateworkflowmigrations.Command}
+- Names: [`makevuedamigrations`]{@api py:class:vueda.user.management.commands.makevuedamigrations.Command}; [`updateworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.updateworkflowmigrations.Command}
 - Described in: [Manage Workflows and Generate Workflow Migrations](../guides/manage-workflows.md#generating-workflow-migrations)
 - Upstream: [Django: `RunPython`]{@api ext:django:django.db.migrations.operations.RunPython}
 

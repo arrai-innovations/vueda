@@ -7,9 +7,9 @@ import datetime
 from django.conf import settings
 from django.db import migrations
 
-from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow
-from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow
-from vueda.workflow.management.commands.makeworkflowmigrations import make_sure_permissions_exist
+from vueda.workflow.migration_generation.operations import backwards_migrate_workflow
+from vueda.workflow.migration_generation.operations import forwards_migrate_workflow
+from vueda.workflow.migration_generation.operations import make_sure_permissions_exist
 
 
 history_change_reason = "Workflow Migration - 0004_workflow_migrations_2026_07_01"

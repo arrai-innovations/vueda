@@ -288,3 +288,76 @@ def test_the_history_api_is_part_of_the_core_viewset():
     )
 
     assert_probe_succeeded(result)
+
+
+def test_makevuedamigrations_writes_group_migrations_without_workflow():
+    """Without vueda.workflow, the command registers only the group tool and never imports workflow code.
+
+    SQLite cannot run VUEDA's own migrations, so this database has no GroupChange table. The group tool's one
+    database read is replaced with a recorded change. Everything after it runs for real: the command, the
+    planner, the writer, and makemigrations.
+    """
+    result = run_optional_apps_probe(
+        """
+        import datetime
+        import io
+        import re
+        import sys
+        import tempfile
+        from pathlib import Path
+
+        import django
+
+        django.setup()
+
+        from django.conf import settings
+        from django.core.management import call_command
+
+        from vueda.user.management.commands.makevuedamigrations import Command
+        from vueda.user.migration_generation.tools import GroupChangeTool
+        from vueda.user.migration_generation.tools import PendingChange
+        from vueda.user.migration_generation.registration import get_migration_tools
+
+        # The user app gets a migrations package, with the initial migration that a project would have.
+        root = Path(tempfile.mkdtemp())
+        migrations_dir = root / "generated_user_app" / "migrations"
+        migrations_dir.mkdir(parents=True)
+        (root / "generated_user_app" / "__init__.py").write_text("")
+        (migrations_dir / "__init__.py").write_text("")
+        sys.path.insert(0, str(root))
+        settings.MIGRATION_MODULES = {"optional_apps": "generated_user_app.migrations"}
+        call_command("makemigrations", "optional_apps", verbosity=0)
+
+        recorded_at = datetime.datetime(2026, 11, 13, 9, 0, tzinfo=datetime.UTC)
+        change = {
+            "group_name": "Ticket Readers",
+            "group_name_old": "",
+            "change_type": "added",
+            "when": recorded_at,
+            "historical_permission_codename": "read_ticket",
+            "historical_permission_content_type_app_label": "optional_apps",
+            "historical_permission_content_type_model_name": "ticket",
+            "historical_permission_name": "Can read ticket",
+        }
+        GroupChangeTool.pending_changes = lambda self: (
+            PendingChange(recorded_at=recorded_at, tiebreak=(1,), app_label="optional_apps", data=change),
+        )
+
+        assert [tool.key for tool in get_migration_tools(None)] == ["group"]
+        # This process does not run the conftest fixture that sets this for the test suite.
+        Command._import_instead = True
+        call_command("makevuedamigrations", stdout=io.StringIO())
+
+        names = sorted(path.name for path in migrations_dir.glob("0*.py"))
+        assert len(names) == 2 and names[0] == "0001_initial.py", names
+        assert re.fullmatch(r"0002_group_permission_migrations_[0-9a-f]{8}[.]py", names[1]), names
+        source = (migrations_dir / names[1]).read_text()
+        assert "makevuedamigrations command (group changes)" in source
+        assert "Ticket Readers" in source
+        assert "vueda_workflow" not in source
+        assert "__first__" not in source
+        assert not [name for name in sys.modules if name.startswith("vueda.workflow")]
+        """
+    )
+
+    assert_probe_succeeded(result)

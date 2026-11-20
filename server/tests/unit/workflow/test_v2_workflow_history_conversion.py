@@ -19,7 +19,7 @@ from types import SimpleNamespace
 import pgtrigger
 import pytest
 from django.apps import apps
-from django.core.management import call_command
+from django.core.management import BaseCommand
 from django.db import connection
 from django.db.migrations.loader import MigrationLoader
 from django.urls import reverse
@@ -27,7 +27,8 @@ from django.utils import timezone
 
 from tests.store import models as store_models
 from vueda.workflow import models
-from vueda.workflow.management.commands import makeworkflowmigrations
+from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
+from vueda.workflow.migration_generation.tools import WorkflowChangeTool
 
 
 migration_0009 = importlib.import_module(
@@ -386,16 +387,13 @@ def legacy_row_for(legacy_apps, obj, *, history_type, recorded_at, reason=""):
     )
 
 
-def exported_workflow_changes(monkeypatch, app_label):
-    """Run makeworkflowmigrations as a dry run and return the changes that it would write for one app."""
-    exported = {}
-    monkeypatch.setattr(
-        makeworkflowmigrations.Command,
-        "_create_migration_per_app",
-        lambda self, changes_by_app: exported.update(changes_by_app),
-    )
-    call_command("makeworkflowmigrations", app_label, dry_run=True, stdout=io.StringIO())
-    return exported[app_label]["changes"] if app_label in exported else []
+def exported_workflow_changes(app_label):
+    """Return the workflow changes that makevuedamigrations would write for one app, in recorded order."""
+    command = BaseCommand(stdout=io.StringIO())
+    tool = WorkflowChangeTool(command)
+    tool.configure({"dry_run": True, "import_instead": False, "workflow_debug": []})
+    pending = sorted(tool.pending_changes(selected_apps=(app_label,)), key=lambda change: change.recorded_at)
+    return [change.data for change in pending]
 
 
 ORDER_FULFILLMENT_ID = {
@@ -408,8 +406,8 @@ STORE_MIGRATION_REASON = "Workflow Migration - 0002_workflow_migrations_2024_08_
 
 
 class TestMakeWorkflowMigrations:
-    def test_an_edit_to_a_converted_workflow_is_exported_as_a_change(self, legacy_apps, monkeypatch):
-        """makeworkflowmigrations finds a workflow's rows through their events and diffs an edit against the
+    def test_an_edit_to_a_converted_workflow_is_exported_as_a_change(self, legacy_apps):
+        """makevuedamigrations finds a workflow's rows through their events and diffs an edit against the
         row's previous event. A workflow carried over from v2 has both only through the conversion."""
         workflow = models.Workflow.objects.get(code="order_fulfillment")
         packed = models.State.objects.get(code="packed", workflow=workflow)
@@ -424,15 +422,15 @@ class TestMakeWorkflowMigrations:
         packed.name = "Packed and Labelled"
         packed.save()
 
-        changes = exported_workflow_changes(monkeypatch, "store")
+        changes = exported_workflow_changes("store")
         assert len(changes) == 1
         change = changes[0]
         assert change["model_name"] == "state"
-        assert change["history_type"] == makeworkflowmigrations.WorkflowChangeTypes.CHANGED.value
+        assert change["history_type"] == WorkflowChangeTypes.CHANGED.value
         assert change["changes"]["name"] == ("Packed", "Packed and Labelled")
         assert change["changes"]["id"] == {"code": "packed", "workflow_id": ORDER_FULFILLMENT_ID}
 
-    def test_a_v2_edit_that_no_migration_holds_is_exported(self, legacy_apps, monkeypatch):
+    def test_a_v2_edit_that_no_migration_holds_is_exported(self, legacy_apps):
         """A v2 edit without a generated migration's change reason is still waiting to be exported."""
         workflow = models.Workflow.objects.get(code="order_fulfillment")
         packed = models.State.objects.get(code="packed", workflow=workflow)
@@ -446,11 +444,11 @@ class TestMakeWorkflowMigrations:
         legacy_row_for(legacy_apps, on_hold, history_type="+", recorded_at=LONG_AGO + timedelta(minutes=1))
         convert_legacy_workflow_history(legacy_apps, None)
 
-        changes = exported_workflow_changes(monkeypatch, "store")
+        changes = exported_workflow_changes("store")
 
         assert len(changes) == 1
         change = changes[0]
         assert change["model_name"] == "state"
-        assert change["history_type"] == makeworkflowmigrations.WorkflowChangeTypes.ADDED.value
+        assert change["history_type"] == WorkflowChangeTypes.ADDED.value
         assert change["changes"]["id"] == {"code": "legacy_on_hold", "workflow_id": ORDER_FULFILLMENT_ID}
         assert change["changes"]["name"] == "On Hold"

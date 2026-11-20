@@ -32,7 +32,7 @@ class Widget(VuedaModel):
 
 ## Choose Where to Create the Rows
 
-- **In the browser:** add the rows on the workflow, state, and transition edit forms that [Manage Workflows and Generate Workflow Migrations](./manage-workflows.md) describes. Then run [`makeworkflowmigrations`]{@api py:class:vueda.workflow.management.commands.makeworkflowmigrations.Command} to write a {@term Workflow Migration}. Give groups their permissions on the {@term Group Management Page}, and run [`makegroupmigrations`]{@api py:class:vueda.user.management.commands.makegroupmigrations.Command} to write a {@term Group Permission Migration}. [Manage Groups and Generate Group Migrations](./manage-groups.md) gives those steps.
+- **In the browser:** add the rows on the workflow, state, and transition edit forms that [Manage Workflows and Generate Workflow Migrations](./manage-workflows.md) describes. Give groups their permissions on the {@term Group Management Page}, which [Manage Groups and Generate Group Migrations](./manage-groups.md) describes. Then run [`makevuedamigrations`]{@api py:class:vueda.user.management.commands.makevuedamigrations.Command} to write the {@term Workflow Migration} and the {@term Group Permission Migration}, in the order that you made the changes.
 - **In code:** create the rows in a test fixture or a Django shell, as the steps below show.
 
 The code in the steps shares this setup:

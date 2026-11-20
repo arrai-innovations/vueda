@@ -93,6 +93,8 @@ class WorkflowConfig(AppConfig):
     name = "vueda.workflow"
     label = "vueda_workflow"
     verbose_name = "VUEDA Workflow"
+    # The makevuedamigrations tools that this app adds. Read through ``get_migration_tools``.
+    _vueda_migration_tools = ("vueda.workflow.migration_generation.tools.WorkflowChangeTool",)
 
     def ready(self):
         from django.core.checks import Tags
