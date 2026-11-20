@@ -139,7 +139,10 @@ def remove_imports_that_vueda_no_longer_has(source):
     for node in tree.body:
         if not isinstance(node, (ast.Import, ast.ImportFrom)):
             used |= _used_names(node)
-    still_used = sorted(_import_label(node, alias) for node, alias in gone if _alias_binding(alias) in used)
+    # The names that a star import supplies are unknown, so it counts as used.
+    still_used = sorted(
+        _import_label(node, alias) for node, alias in gone if alias.name == "*" or _alias_binding(alias) in used
+    )
     if still_used:
         raise RefreshError(
             f"The migration uses {', '.join(still_used)}, which VUEDA no longer has. Copy that code into the "
@@ -216,10 +219,22 @@ def without_imports_that_vueda_no_longer_has(source):
     """Return ``source`` without its top-level imports of VUEDA modules and names that no longer exist.
 
     The result is for running the migration's text to read its data, never for writing. Running it no longer
-    fails on those imports. The source is returned unchanged when it cannot be read.
+    fails on those imports. An import of a name that the migration reads while it loads stays, so its import error
+    is reported rather than a ``NameError``. The source is returned unchanged when it cannot be read.
     """
     try:
-        return _drop_imports(source, _vueda_no_longer_has)[0]
+        tree = ast.parse(source)
+        read_on_import = set()
+        for node in tree.body:
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                read_on_import |= _names_read_on_import(node)
+
+        def removable(node, alias):
+            return (
+                alias.name != "*" and _alias_binding(alias) not in read_on_import and _vueda_no_longer_has(node, alias)
+            )
+
+        return _drop_imports(source, removable)[0]
     except (SyntaxError, RefreshError):
         return source
 
@@ -280,8 +295,6 @@ def _vueda_no_longer_has(node, alias):
     """
     try:
         return _vueda_lacks(node, alias)
-    except RefreshError:
-        raise
     except Exception as error:
         module = node.module if isinstance(node, ast.ImportFrom) else alias.name
         raise RefreshError(f"The migration imports {module}, which fails to import: {error}") from error

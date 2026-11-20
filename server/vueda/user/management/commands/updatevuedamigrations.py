@@ -8,6 +8,7 @@ import os
 import stat
 import sys
 import tempfile
+import types
 from pathlib import Path
 
 from django.apps import apps as django_apps
@@ -190,12 +191,14 @@ class Command(BaseCommand):
         """Build the declared migration graph, and return it with the reason that it could not be built.
 
         Building the graph imports every migration, so one import of VUEDA code that no longer exists stops it for
-        the whole project. A real run removes such imports from the files while it builds the graph, when removing
-        them cannot break the import, and then puts every original back. The graph keeps what it imported, and each
-        file's refresh writes its final text from the original, so a file that is skipped or fails is unchanged. A
-        dry run writes nothing, so it reports the files instead.
+        the whole project. Django's loader imports each migration by its module name, and it uses a module that
+        is already loaded. So each migration with such an import is loaded first, from its text without the
+        imports that can go safely, under its own module name. Nothing is written, and the modules are unloaded
+        again afterwards. Each file's refresh then removes the imports for good, and a file that is skipped or
+        fails keeps them.
         """
-        stale = []
+        seen = {}
+        stripped = {}
         for generated in files:
             if not generated.writable or generated.read_problem:
                 continue
@@ -205,44 +208,52 @@ class Command(BaseCommand):
             except (OSError, UnicodeDecodeError):
                 continue
             fixed, removed = remove_imports_that_stop_the_graph(current, generated.kind)
-            if removed:
-                stale.append((generated, current, fixed))
+            seen[generated.path] = fixed
+            if not removed:
+                continue
+            package, _explicit = MigrationLoader.migrations_module(generated.app_label)
+            if package is not None:
+                stripped[f"{package}.{generated.path.stem}"] = (generated.path, fixed)
 
-        if stale and self.dry_run:
-            paths = ", ".join(str(generated.path) for generated, _current, _fixed in stale)
-            return None, (
-                "a dry run cannot check the migration graph, because these migrations still import code that VUEDA "
-                f"no longer has: {paths}. A run without --dry-run removes those imports first"
-            )
-
-        written = []
+        replaced = {}
         try:
-            for generated, current, fixed in stale:
+            for name, (path, fixed) in stripped.items():
+                module = types.ModuleType(name)
+                module.__file__ = str(path)
+                module.__package__ = name.rpartition(".")[0]
                 try:
-                    _write_atomically(generated.path, fixed)
-                except OSError as error:
-                    self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
+                    exec(compile(fixed, str(path), "exec"), module.__dict__)
+                except Exception:
+                    # The loader imports the file itself and reports its error.
+                    seen[path] = None
                     continue
-                written.append((generated, current))
+                replaced[name] = sys.modules.get(name)
+                sys.modules[name] = module
             try:
                 # The declared graph, not the migrations applied to this database: a refreshed migration must also
                 # work when a new installation starts with an empty database.
                 return MigrationLoader(None, ignore_no_migrations=True), None
             except Exception as error:
-                return None, self._describe_graph_problem(error, files)
+                return None, self._describe_graph_problem(error, files, seen)
         finally:
-            for generated, current in written:
-                _write_atomically(generated.path, current)
+            for name, previous in replaced.items():
+                if previous is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = previous
 
-    def _describe_graph_problem(self, error, files):
-        """Say why the migration graph could not be built, naming each migration that imports a missing module."""
+    def _describe_graph_problem(self, error, files, seen):
+        """Say why the migration graph could not be built, naming each migration that imports a missing module.
+
+        ``seen`` maps each project migration's path to the text that the graph loaded from it.
+        """
         problem = f"cannot resolve migration dependencies: {error}"
         missing = error.name if isinstance(error, ImportError) else None
         if missing:
             importers = sorted(
                 str(generated.path)
                 for generated in files
-                if generated.text is not None and _imports_module(generated.text, missing)
+                if _imports_module(seen.get(generated.path) or generated.text or "", missing)
             )
             if importers:
                 problem += f". {missing} is imported by {', '.join(importers)}"
@@ -378,8 +389,13 @@ def _imports_module(text, module):
     except SyntaxError:
         return False
     for node in tree.body:
-        if isinstance(node, ast.ImportFrom) and node.module == module:
+        # A missing package stops every import of a module inside it, so its submodules count too.
+        if isinstance(node, ast.ImportFrom) and _within(node.module, module):
             return True
-        if isinstance(node, ast.Import) and any(alias.name == module for alias in node.names):
+        if isinstance(node, ast.Import) and any(_within(alias.name, module) for alias in node.names):
             return True
     return False
+
+
+def _within(name, module):
+    return bool(name) and (name == module or name.startswith(f"{module}."))

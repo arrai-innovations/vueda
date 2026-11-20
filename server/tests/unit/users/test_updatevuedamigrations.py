@@ -838,8 +838,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert f"Already up to date: {path}" in out
 
     def test_a_skipped_migration_with_an_import_that_vueda_no_longer_has_is_left_unchanged(self, settings):
-        """The import is removed only while the graph is built. Nothing copies the function into a skipped
-        migration, so removing the import for good would leave the migration calling a name it never defines."""
+        """The graph loads the migration without the import, and nothing is written. Nothing copies the function
+        into a skipped migration, so removing the import for good would leave it calling a name it never defines."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -872,9 +872,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert imported in path.read_text()
             assert path.read_text() == before
 
-    def test_a_failed_refresh_keeps_the_import_that_was_removed_while_the_graph_was_built(self, settings):
-        """The import goes only while the graph is built. The refresh then fails for another reason, so nothing
-        copies the function in, and the file keeps its import."""
+    def test_a_failed_refresh_keeps_the_import_that_the_graph_loaded_without(self, settings):
+        """The graph loads the migration without the import, and nothing is written. The refresh then fails for
+        another reason, so nothing copies the function in, and the file keeps its import."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -944,8 +944,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
     @pytest.mark.parametrize("dry_run", [False, True])
     def test_an_unused_import_that_vueda_no_longer_has_is_removed_before_the_graph_is_built(self, settings, dry_run):
-        """Django imports every migration to build the graph. A real run removes the import first. A dry run cannot
-        write, so it says why the graph cannot load."""
+        """Django imports every migration to build the graph. The graph loads the migration without the import, so a
+        dry run checks it too, and only a real run removes the import from the file."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -960,9 +960,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             out, err, status = run_update(*(("--dry-run",) if dry_run else ()))
 
             if dry_run:
-                assert status == 1
-                assert "a dry run cannot check the migration graph, because these migrations still import code" in err
-                assert str(path) in err
+                assert (status, err) == (0, "")
+                assert f"Would update: {path}" in out
                 assert path.read_text() == before
             else:
                 assert (status, err) == (0, "")

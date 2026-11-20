@@ -224,7 +224,7 @@ python manage.py updatevuedamigrations
 
 For each migration, it prints `Updating:` when it rewrote the file, `Already up to date:` when nothing needed to change, or `Skipping:` for a migration that must keep its functions. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, how many it skipped, and how many failed. It exits with status 1 if any file fails.
 
-`--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update, with one exception that [What the Command Changes](#what-the-command-changes) describes.
+`--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update.
 
 ### Which Apps a Run Covers
 
@@ -258,7 +258,7 @@ You can update migrations that other environments have already applied. The chan
 
 ### What the Command Changes
 
-Checking dependencies imports every migration, so one import of a VUEDA module or name that no longer exists would stop the check for every file. While it builds the migration graph, the command removes such an import from the file when nothing in the migration uses that name or the refresh copies it in. It then puts each file back as it was. Each file's refresh removes the import for good, and a file that is skipped or fails is left unchanged. A dry run cannot write files, so when a migration has such an import, a dry run reports that it cannot check the migration graph and names the file.
+Checking dependencies imports every migration, so one import of a VUEDA module or name that no longer exists would stop the check for every file. To build the migration graph, the command loads such a migration from its text without that import, when nothing in the migration uses the name or the refresh copies it in. It writes nothing to do this, so a dry run checks the graph too. Each file's refresh then removes the import for good, and a file that is skipped or fails keeps it. When a migration still needs a name that VUEDA no longer has, the dependency check names that file.
 
 For each workflow migration that passes the dependency check, the command:
 
