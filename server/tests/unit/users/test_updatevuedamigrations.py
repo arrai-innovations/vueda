@@ -1047,10 +1047,11 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             # The command cannot refresh it, and migrate would fail on its import, so it needs a hand fix.
             assert status == 1
             assert (
-                f"Cannot update {path}: The migration uses "
-                "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow"
+                f"Cannot update {path}: It needs a change by hand: it imports "
+                "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow, which VUEDA no "
+                "longer has"
             ) in err
-            assert "The command keeps its existing functions, because its dependencies do not include" in err
+            assert "Replace each such import with a copy of the function as it was when the migration was made" in err
             assert imported in path.read_text()
             assert path.read_text() == before
 

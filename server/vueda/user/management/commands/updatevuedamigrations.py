@@ -19,6 +19,7 @@ from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
+from vueda.user.migration_generation.refresh import imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
 from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
@@ -327,11 +328,19 @@ class Command(BaseCommand):
             fixed, removed = remove_imports_that_vueda_no_longer_has(generated.text)
         except Exception as error:
             # A hand-edited migration can fail in its own way. It fails only its own file.
-            self.stderr.write(
-                self.style.ERROR(
-                    f"  Cannot update {generated.path}: {_sentence(error)} The command keeps its existing "
-                    f"functions, because its {reason} Leaving the file unchanged."
+            gone = imports_that_vueda_no_longer_has(generated.text)
+            if gone:
+                # Today's functions cannot be copied into a migration that keeps its own, so the fix is by hand.
+                advice = (
+                    f"It needs a change by hand: it imports {', '.join(gone)}, which VUEDA no longer has, and its "
+                    f"{reason} Replace each such import with a copy of the function as it was when the migration "
+                    "was made, for example from version control, so that the migration holds everything that it "
+                    "runs."
                 )
+            else:
+                advice = f"{_sentence(error)} The command keeps its existing functions, because its {reason}"
+            self.stderr.write(
+                self.style.ERROR(f"  Cannot update {generated.path}: {advice} Leaving the file unchanged.")
             )
             return _FAILED
         if not removed:
