@@ -197,7 +197,8 @@ class Command(BaseCommand):
         the whole project. While the graph builds, an import finder serves each migration that has such an import
         from its text without the imports that can go safely. Python's import system loads it as it would load the
         file. Nothing is written, and the modules are unloaded again afterwards. Each file's refresh then removes
-        the imports for good, and a file that is skipped or fails keeps them.
+        the imports for good. A file whose refresh fails keeps them, and a file that keeps its functions loses only
+        the ones that nothing in it uses.
         """
         seen = {}
         stripped = {}
@@ -274,32 +275,7 @@ class Command(BaseCommand):
         if generated.kind.name == "workflow":
             blocked, skipped = self._workflow_blocker(generated, workflow)
             if skipped:
-                # The migration keeps the functions that it was written with, so nothing in it is refreshed. An
-                # import of VUEDA code that no longer exists would still stop migrate, so it goes when nothing needs
-                # it. When something does, the file needs a hand fix.
-                try:
-                    fixed, removed = remove_imports_that_vueda_no_longer_has(generated.text)
-                except RefreshError as error:
-                    required = workflow["module"].REQUIRED_WORKFLOW_MIGRATION
-                    self.stderr.write(
-                        self.style.ERROR(
-                            f"  Cannot update {generated.path}: {error} The command keeps its existing functions, "
-                            f"because it runs before {required[0]}.{required[1]}. Leaving the file unchanged."
-                        )
-                    )
-                    return _FAILED
-                if removed and not self.dry_run:
-                    try:
-                        _write_atomically(generated.path, fixed)
-                    except OSError as error:
-                        self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
-                        return _FAILED
-                self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
-                self.stdout.write(f"  Its {blocked}")
-                for name in removed:
-                    verb = "Would remove" if self.dry_run else "Removed"
-                    self.stdout.write(f"  {verb} the import of {name}, which VUEDA no longer has.")
-                return _SKIPPED
+                return self._keep_functions(generated, blocked)
             if blocked is None:
                 update_changed_data = workflow["module"].changed_data_updater(
                     workflow["identities"], generated.path, stderr=self.stderr, dry_run=self.dry_run
@@ -339,6 +315,40 @@ class Command(BaseCommand):
         else:
             try:
                 _write_atomically(generated.path, result.source)
+            except OSError as error:
+                self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
+                return _FAILED
+        return _UPDATED
+
+    def _keep_functions(self, generated, reason):
+        """Leave a migration that has to keep its functions as it is, apart from imports that stop migrate.
+
+        ``reason`` says why the migration keeps its functions. An import of VUEDA code that no longer exists would
+        still stop ``migrate``, so it goes when nothing in the migration needs it, and the file counts as updated.
+        When something needs it, the file fails and needs a hand fix.
+        """
+        try:
+            fixed, removed = remove_imports_that_vueda_no_longer_has(generated.text)
+        except (RefreshError, ValueError, TypeError, SyntaxError) as error:
+            self.stderr.write(
+                self.style.ERROR(
+                    f"  Cannot update {generated.path}: {error} The command keeps its existing functions, because "
+                    f"its {reason} Leaving the file unchanged."
+                )
+            )
+            return _FAILED
+        if not removed:
+            self.stdout.write(self.style.WARNING(f"Skipping: {generated.path}"))
+            self.stdout.write(f"  Its {reason}")
+            return _SKIPPED
+
+        self.stdout.write(f"{'Would update' if self.dry_run else 'Updating'}: {generated.path}")
+        self.stdout.write(f"  Its functions stay as they are, because its {reason}")
+        for name in removed:
+            self.stdout.write(f"  Removed the import of {name}, which VUEDA no longer has.")
+        if not self.dry_run:
+            try:
+                _write_atomically(generated.path, fixed)
             except OSError as error:
                 self.stderr.write(self.style.ERROR(f"  Could not write {generated.path}: {error}"))
                 return _FAILED

@@ -1014,13 +1014,14 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 f"Cannot update {path}: The migration uses "
                 "vueda.workflow.management.commands.makeworkflowmigrations.forwards_migrate_workflow"
             ) in err
-            assert "The command keeps its existing functions, because it runs before vueda_workflow.0008_" in err
+            assert "The command keeps its existing functions, because its dependencies do not include" in err
             assert imported in path.read_text()
             assert path.read_text() == before
 
-    def test_a_skipped_migration_loses_a_gone_import_that_nothing_uses(self, settings):
+    @pytest.mark.parametrize("dry_run", [False, True])
+    def test_a_migration_that_keeps_its_functions_loses_a_gone_import_that_nothing_uses(self, settings, dry_run):
         """migrate would fail on the import, and removing it cannot break the migration, so it goes even though the
-        migration keeps its functions."""
+        migration keeps its functions. The file then counts as updated."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -1031,17 +1032,18 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             stale = "from vueda.workflow.management.commands.makeworkflowmigrations import retired_helper\n"
             original = path.read_text()
             path.write_text(original.replace("import copy\n", f"import copy\n{stale}", 1))
+            before = path.read_text()
 
-            out, err, status = run_update()
+            out, err, status = run_update(*(("--dry-run",) if dry_run else ()))
 
             assert (status, err) == (0, "")
-            assert f"Skipping: {path}" in out
+            assert f"{'Would update' if dry_run else 'Updating'}: {path}" in out
+            assert "  Its functions stay as they are, because its dependencies do not include" in out
             assert (
                 "  Removed the import of vueda.workflow.management.commands.makeworkflowmigrations.retired_helper, "
                 "which VUEDA no longer has."
             ) in out
-            assert stale not in path.read_text()
-            assert path.read_text() == original
+            assert path.read_text() == (before if dry_run else original)
 
     def test_a_failed_refresh_keeps_the_import_that_the_graph_loaded_without(self, settings):
         """The graph loads the migration without the import, and nothing is written. The refresh then fails for

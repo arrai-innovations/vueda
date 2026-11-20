@@ -258,7 +258,7 @@ You can update migrations that other environments have already applied. The chan
 
 ### What the Command Changes
 
-Checking dependencies imports every migration, so one import of a VUEDA module or name that no longer exists would stop the check for every file. To build the migration graph, the command loads such a migration from its text without that import, when nothing in the migration uses the name or the refresh copies it in. It writes nothing to do this, so a dry run checks the graph too. Each file's refresh then removes the import for good, and a file that is skipped or fails keeps it. When a migration still needs a name that VUEDA no longer has, the dependency check names that file.
+Checking dependencies imports every migration, so one import of a VUEDA module or name that no longer exists would stop the check for every file. To build the migration graph, the command loads such a migration from its text without that import, when nothing in the migration uses the name or the refresh copies it in. It writes nothing to do this, so a dry run checks the graph too. Each file's refresh then removes the import for good. A file whose refresh fails keeps it. When a migration still needs a name that VUEDA no longer has, the dependency check names that file.
 
 For each workflow migration that passes the dependency check, the command:
 
@@ -288,7 +288,7 @@ When the command cannot read the `changed_data` of a migration that it does not 
 
 The current functions need the event models and triggers that `vueda_workflow` migration `0008_initialstateevent_objectstateevent_stateevent_and_more` adds. Before it rewrites a migration, the command checks that `0008` comes before that migration in the migration graph. The check follows indirect dependencies, and it accepts a squashed migration that replaces `0008`. It reads the migration files, not the database's migration records, because the rewritten file must also apply to an empty database.
 
-When the check fails, the command reports the file as skipped and names the required migration. It leaves the file unchanged, and a skipped file does not change the exit status. The migration has to keep the functions that it was written with. Its functions stay, but the command removes an import of VUEDA code that no longer exists when nothing in the migration uses it, because `migrate` would fail on that import. When the migration still uses such a name, the command reports it as a failure and leaves it unchanged. Copy the code that it needs into the migration by hand, then run the command again.
+When the check fails, the migration has to keep the functions that it was written with. The command reports the file as skipped, names the required migration, and leaves the file unchanged. A skipped file does not change the exit status. One change is still made: an import of VUEDA code that no longer exists would stop `migrate`, so the command removes it when nothing in the migration uses it, and reports the file as updated. When the migration still uses such a name, the command reports it as a failure and leaves it unchanged. Copy the code that it needs into the migration by hand, then run the command again.
 
 Any workflow migration generated with VUEDA v3.0.0a0 or earlier fails this check. Handle each one by hand, as the steps below describe.
 
