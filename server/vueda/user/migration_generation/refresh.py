@@ -147,6 +147,36 @@ def remove_imports_that_vueda_no_longer_has(source):
     return _drop_imports(source, _vueda_no_longer_has)
 
 
+def remove_imports_that_stop_the_graph(source, kind):
+    """Remove the top-level imports in ``source`` that VUEDA no longer has, when removing them cannot break it.
+
+    Django imports every migration when it builds the migration graph, so one such import stops the graph for the
+    whole project. This runs before the graph is built. An import goes when nothing in the migration uses the name,
+    or when the name is one that a refresh of ``kind`` copies in: such a name is only called inside the copied
+    functions, which a refresh replaces. A used name that is not copied stays, because removing it would only turn
+    the import error into a ``NameError`` later.
+
+    Returns the new source and the sorted ``module.name`` of each import that was removed. The source is returned
+    unchanged when it cannot be read.
+    """
+    try:
+        tree = ast.parse(source)
+        copied = {name for names in kind.get_sources(False, as_mapping=True) for name in names}
+        used = set()
+        for node in tree.body:
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                used |= _used_names(node)
+
+        def removable(node, alias):
+            binding = _alias_binding(alias)
+            return (binding not in used or binding in copied) and _vueda_no_longer_has(node, alias)
+
+        return _drop_imports(source, removable)
+    except (SyntaxError, RefreshError):
+        # The refresh reports the file.
+        return source, ()
+
+
 def _drop_imports(source, should_drop):
     """Remove each name of a top-level import in ``source`` for which ``should_drop(node, alias)`` is true.
 

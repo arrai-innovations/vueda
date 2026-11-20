@@ -224,7 +224,7 @@ python manage.py updatevuedamigrations
 
 For each migration, it prints `Updating:` when it rewrote the file, `Already up to date:` when nothing needed to change, or `Skipping:` for a migration that must keep its functions. It writes only the files that changed. At the end, it prints how many migrations of each kind it updated, how many were already up to date, how many it skipped, and how many failed. It exits with status 1 if any file fails.
 
-`--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update.
+`--dry-run` reports the same lines with `Would update:` and writes nothing. It runs the same checks as an update, with one exception that [What the Command Changes](#what-the-command-changes) describes.
 
 ### Which Apps a Run Covers
 
@@ -257,6 +257,8 @@ Workflow migrations carry everything they need to run, so you do not need to upd
 You can update migrations that other environments have already applied. The change data names the same workflow records either way, so a rewritten migration that runs again produces the same result. The command skips a migration that it cannot rewrite safely, as [Migrations the Command Must Not Rewrite](#migrations-the-command-must-not-rewrite) describes.
 
 ### What the Command Changes
+
+Before it checks dependencies, the command removes each import of a VUEDA module or name that no longer exists, when nothing in the migration uses that name or the refresh copies it in. Checking dependencies imports every migration, and such an import would stop the check for every file. A dry run cannot write this change. When a migration needs it, a dry run reports that it cannot check the migration graph and names the file.
 
 For each workflow migration that passes the dependency check, the command:
 

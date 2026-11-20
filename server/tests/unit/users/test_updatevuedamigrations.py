@@ -781,12 +781,40 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                     "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n",
                     1,
                 )
+                # A name that the migration uses and that no refresh copies in has to stay imported.
+                + "\n\ndef my_own_step(apps, schema_editor):\n    return add_history_to_data({})\n"
             )
 
             _out, err, status = run_update()
 
             assert status == 1
             assert f"vueda.workflow.management.commands.makeworkflowmigrations is imported by {path}" in err
+
+    @pytest.mark.parametrize("dry_run", [False, True])
+    def test_an_unused_import_that_vueda_no_longer_has_is_removed_before_the_graph_is_built(self, settings, dry_run):
+        """Django imports every migration to build the graph. A real run removes the import first. A dry run cannot
+        write, so it says why the graph cannot load."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            stale = "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n"
+            path.write_text(path.read_text().replace("import copy\n", f"import copy\n\n{stale}", 1))
+            before = path.read_text()
+
+            out, err, status = run_update(*(("--dry-run",) if dry_run else ()))
+
+            if dry_run:
+                assert status == 1
+                assert f"a dry run cannot check the migration graph, because {path} still import" in err
+                assert path.read_text() == before
+            else:
+                assert (status, err) == (0, "")
+                assert f"Updating: {path}" in out
+                assert stale not in path.read_text()
 
     def test_a_dry_run_reports_a_migration_graph_that_cannot_be_built(self, settings):
         """A dry run builds the migration graph as a real run does, so a missing dependency fails it too."""
