@@ -869,6 +869,42 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
 
             assert (status, err) == (0, "")
             assert f"Skipping: {path}" in out
+            assert imported in path.read_text()
+            assert path.read_text() == before
+
+    def test_a_failed_refresh_keeps_the_import_that_was_removed_while_the_graph_was_built(self, settings):
+        """The import goes only while the graph is built. The refresh then fails for another reason, so nothing
+        copies the function in, and the file keeps its import."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            source = refresh_migration(path.read_text(), WORKFLOW_MIGRATION_KIND).source
+            forwards = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name == "forwards_migrate_workflow"
+            )
+            lines = source.splitlines(keepends=True)
+            del lines[forwards.lineno - 1 : forwards.end_lineno]
+            imported = (
+                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
+            )
+            source = "".join(lines).replace(
+                "from django.db import migrations\n", f"from django.db import migrations\n{imported}", 1
+            )
+            # Without history_change_reason, the refresh fails.
+            path.write_text(re.sub(r"^history_change_reason = .*\n", "", source, count=1, flags=re.MULTILINE))
+            before = path.read_text()
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert f"Could not update {path}: Could not find history_change_reason" in err
+            assert imported in path.read_text()
             assert path.read_text() == before
 
     def test_a_function_that_an_operation_names_keeps_its_import_and_the_error_names_the_file(self, settings):
