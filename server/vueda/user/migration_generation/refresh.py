@@ -122,7 +122,9 @@ def remove_imports_that_vueda_no_longer_has(source):
     runs. A project's other imports can depend on packages that only some environments install. Returns the new
     source and the sorted ``module.name`` of each import that was removed.
 
-    Raises ``RefreshError`` when the migration still uses a name that such an import binds.
+    Raises ``RefreshError`` when the migration still needs a name that such an import binds: a name that it uses
+    and never defines itself, or a name that it reads while it loads, before its own definition. Also raises it for
+    a star import of such a module, because the names that a star import supplies cannot be checked.
     """
     tree = ast.parse(source)
     gone = [
@@ -135,10 +137,6 @@ def remove_imports_that_vueda_no_longer_has(source):
     if not gone:
         return source, ()
 
-    used = set()
-    for node in tree.body:
-        if not isinstance(node, (ast.Import, ast.ImportFrom)):
-            used |= _used_names(node)
     stars = sorted(_import_label(node, alias) for node, alias in gone if alias.name == "*")
     if stars:
         raise RefreshError(
@@ -146,15 +144,8 @@ def remove_imports_that_vueda_no_longer_has(source):
             "has. The names that it supplies cannot be checked, so replace that import by hand, then run the command "
             "again."
         )
-    # A name that the migration defines itself is what it uses, so its import is unused.
-    shadowed = set().union(
-        *(_defined_names(node) for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom)))
-    )
-    still_used = sorted(
-        _import_label(node, alias)
-        for node, alias in gone
-        if _alias_binding(alias) in used and _alias_binding(alias) not in shadowed
-    )
+    usage = _module_usage(tree)
+    still_used = sorted(_import_label(node, alias) for node, alias in gone if usage.needs_import(_alias_binding(alias)))
     if still_used:
         raise RefreshError(
             f"The migration uses {', '.join(still_used)}, which VUEDA no longer has. Copy that code into the "
@@ -169,10 +160,11 @@ def remove_imports_that_stop_the_graph(source, kind):
 
     Django imports every migration when it builds the migration graph, so one such import stops the graph for the
     whole project. This runs before the graph is built. An import goes when nothing in the migration uses the name,
-    or when the name is one that a refresh of ``kind`` copies in and nothing reads while the migration is imported.
-    Such a name is only called inside functions, and the refresh copies it in before they run. An import stays
-    when removing it would only turn the import error into a ``NameError``: a used name that is not copied, or a
-    name that the ``Migration`` class body reads, as an operation that names the function directly does.
+    when the migration defines the name itself before anything reads it while it loads, or when the name is one
+    that a refresh of ``kind`` copies in and nothing reads while the migration is imported. Such a name is only
+    called inside functions, and the refresh copies it in before they run. An import stays when removing it would
+    only turn the import error into a ``NameError``: a used name that is not copied or defined, or a name that the
+    ``Migration`` class body reads, as an operation that names the function directly does.
 
     Returns the new source and the sorted ``module.name`` of each import that was removed. The source is returned
     unchanged when it cannot be read.
@@ -188,42 +180,83 @@ def remove_imports_that_stop_the_graph(source, kind):
 def _gone_import_rule(tree, copied):
     """Return the rule that decides which imports of gone VUEDA code in ``tree`` can be removed safely.
 
-    An import goes when it names VUEDA code that no longer exists and removing it cannot break the module while it
-    loads: nothing uses the name, the module itself defines the name later and so shadows the import, or the name
-    is in ``copied`` and nothing reads it while the module loads. ``copied`` of None counts every name as copied.
-    A star import never goes, because the names that it supplies are unknown.
+    An import goes when it names VUEDA code that no longer exists, and the module does not read the name while it
+    loads before binding it itself. Then removing the import cannot break the module while it loads. It also has
+    to be safe once the module has loaded: nothing uses the name, the module binds the name itself, or the name is
+    in ``copied``, so the refresh copies it in. ``copied`` of None counts every name as copied. A star import never
+    goes, because the names that it supplies are unknown.
     """
-    shadowed = set()
-    used = set()
-    read_on_import = set()
-    for node in tree.body:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            continue
-        shadowed |= _defined_names(node)
-        used |= _used_names(node)
-        read_on_import |= _names_read_on_import(node)
+    usage = _module_usage(tree)
 
     def removable(node, alias):
         if alias.name == "*":
             return False
         binding = _alias_binding(alias)
+        if binding in usage.read_before_bound:
+            return False
         is_copied = copied is None or binding in copied
-        safe = binding in shadowed or binding not in used or (is_copied and binding not in read_on_import)
-        return safe and _vueda_no_longer_has(node, alias)
+        return (binding in usage.bound or binding not in usage.used or is_copied) and _vueda_no_longer_has(node, alias)
 
     return removable
 
 
+@dataclasses.dataclass(frozen=True)
+class _ModuleUsage:
+    """How a module's top-level code uses names, apart from its imports.
+
+    ``used`` holds every name that the code reads, including inside functions. ``bound`` holds the names that
+    top-level statements bind. ``read_before_bound`` holds the names that the module reads while it loads before a
+    top-level statement binds them, or that it reads while it loads and never binds.
+    """
+
+    used: frozenset
+    bound: frozenset
+    read_before_bound: frozenset
+
+    def needs_import(self, name):
+        """Return whether removing the import of ``name`` would leave the module without it when it is read."""
+        return name in self.read_before_bound or (name in self.used and name not in self.bound)
+
+
+def _module_usage(tree):
+    """Walk the top-level statements of ``tree`` in order, and return how they use names."""
+    used = set()
+    bound = set()
+    read_before_bound = set()
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue
+        used |= _used_names(node)
+        read_before_bound |= _names_read_on_import(node) - bound
+        bound |= _defined_names(node)
+    return _ModuleUsage(frozenset(used), frozenset(bound), frozenset(read_before_bound))
+
+
 def _defined_names(node):
-    """Return the names that a top-level statement ``node`` defines or assigns."""
+    """Return the names that a top-level statement ``node`` binds by itself.
+
+    An augmented assignment reads its name first, and an annotation without a value binds nothing, so neither
+    counts. An assignment to an attribute or an item binds nothing in the module either.
+    """
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
         return {node.name}
-    targets = []
     if isinstance(node, ast.Assign):
-        targets = node.targets
-    elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
-        targets = [node.target]
-    return {child.id for target in targets for child in ast.walk(target) if isinstance(child, ast.Name)}
+        targets = tuple(node.targets)
+    elif isinstance(node, ast.AnnAssign) and node.value is not None:
+        targets = (node.target,)
+    else:
+        return set()
+    return set().union(*(_assigned_names(target) for target in targets))
+
+
+def _assigned_names(target):
+    if isinstance(target, ast.Name):
+        return {target.id}
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return set().union(*(_assigned_names(element) for element in target.elts))
+    if isinstance(target, ast.Starred):
+        return _assigned_names(target.value)
+    return set()
 
 
 def _names_read_on_import(node):

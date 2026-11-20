@@ -229,7 +229,16 @@ class Command(BaseCommand):
             sys.meta_path.remove(finder)
             for name in stripped:
                 sys.modules.pop(name, None)
-            sys.modules.update(set_aside)
+                # Importing a module also sets it on its package, so the stripped one is taken off there too.
+                package_name, _dot, attribute = name.rpartition(".")
+                package = sys.modules.get(package_name)
+                if package is not None and attribute in vars(package):
+                    delattr(package, attribute)
+            for name, module in set_aside.items():
+                sys.modules[name] = module
+                package_name, _dot, attribute = name.rpartition(".")
+                if package_name in sys.modules:
+                    setattr(sys.modules[package_name], attribute, module)
 
     def _describe_graph_problem(self, error, files, seen):
         """Say why the migration graph could not be built, naming each migration that imports a missing module.
@@ -409,4 +418,16 @@ class _StrippedMigrationFinder(importlib.abc.MetaPathFinder, importlib.abc.Loade
     def exec_module(self, module):
         path, text = self.stripped[module.__name__]
         module.__file__ = str(path)
-        exec(compile(text, str(path), "exec"), module.__dict__)
+        try:
+            exec(compile(text, str(path), "exec"), module.__dict__)
+        except Exception:
+            # The stripped text failed for another reason, so the file runs as it is. Its own error, such as the
+            # import that stays, is the one that the graph reports.
+            for key in tuple(module.__dict__):
+                if not key.startswith("__"):
+                    del module.__dict__[key]
+            exec(compile(path.read_text("utf-8-sig"), str(path), "exec"), module.__dict__)
+
+    def get_source(self, fullname):
+        """Return the text that the module runs, so a traceback shows the lines that ran."""
+        return self.stripped[fullname][1]

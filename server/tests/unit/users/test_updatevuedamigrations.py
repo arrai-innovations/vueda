@@ -27,6 +27,7 @@ from vueda.user.migration_generation import utils as migration_utils
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
+from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import remove_obsolete_names
 from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.tools import GROUP_MIGRATION_KIND
@@ -332,6 +333,28 @@ def test_a_gone_import_that_the_migration_shadows_with_its_own_definition_can_go
 
     assert "makeworkflowmigrations" not in without_imports_that_vueda_no_longer_has(source)
     assert "makeworkflowmigrations" not in remove_imports_that_stop_the_graph(source, WORKFLOW_MIGRATION_KIND)[0]
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        pytest.param("helper.flag = True\n", id="attribute-assignment"),
+        pytest.param("helper += 1\n", id="augmented-assignment"),
+        pytest.param("helper: int\nX = helper\n", id="annotation-without-value"),
+        pytest.param("X = helper\n\n\ndef helper():\n    pass\n", id="read-before-its-definition"),
+    ],
+)
+def test_a_gone_import_that_the_migration_still_needs_while_it_loads_is_refused(code):
+    """None of these statements gives the module its own helper before it reads the name, so the import cannot
+    go."""
+    source = "from vueda.workflow.management.commands.makeworkflowmigrations import helper\n\n" + code
+
+    with pytest.raises(
+        RefreshError, match=r"uses vueda\.workflow\.management\.commands\.makeworkflowmigrations\.helper"
+    ):
+        remove_imports_that_vueda_no_longer_has(source)
+    assert "import helper" in without_imports_that_vueda_no_longer_has(source)
+    assert remove_imports_that_stop_the_graph(source, WORKFLOW_MIGRATION_KIND) == (source, ())
 
 
 def test_reading_a_migration_keeps_a_gone_import_that_it_reads_while_it_loads():
@@ -869,8 +892,11 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             refreshed = path.read_text()
             assert "\ndef forwards_migrate_workflow(apps, changed_items, change_reason):" in refreshed
             assert "makeworkflowmigrations import" not in refreshed
-            # The module that the graph loaded without the import is unloaded again.
+            # The module that the graph loaded without the import is unloaded again, and its package no longer
+            # holds it.
             assert not [name for name in sys.modules if name.endswith(".0003_workflow_migrations_2026_06_29")]
+            package = sys.modules[settings.MIGRATION_MODULES["erring"]]
+            assert not hasattr(package, "0003_workflow_migrations_2026_06_29")
 
             out, err, status = run_update()
 
