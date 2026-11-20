@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from django.db.migrations.loader import MigrationLoader
 
-from vueda.user.migration_generation import dependencies
+from vueda.user.migration_generation import utils as migration_utils
 from vueda.workflow.migration_generation import refresh as workflow_refresh
 
 
@@ -100,12 +100,12 @@ def test_workflow_identity_at_a_reference_recorded_before_every_workflow(changed
 )
 def test_is_installed_package_path(tmp_path, monkeypatch, relative_path, expected):
     monkeypatch.setattr(
-        dependencies,
+        migration_utils,
         "INSTALLED_PACKAGE_PATHS",
         (os.path.normcase(os.path.realpath(tmp_path / "site-packages")),),
     )
 
-    assert dependencies.is_installed_package_path(tmp_path / relative_path) is expected
+    assert migration_utils.is_installed_package_path(tmp_path / relative_path) is expected
 
 
 def test_user_site_directory_counts_as_installed(tmp_path, monkeypatch):
@@ -116,10 +116,10 @@ def test_user_site_directory_counts_as_installed(tmp_path, monkeypatch):
     monkeypatch.setattr(site, "USER_SITE", None)
     user_site = Path(site.getusersitepackages())
     assert user_site.is_relative_to(tmp_path)
-    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", dependencies.get_installed_package_paths())
+    monkeypatch.setattr(migration_utils, "INSTALLED_PACKAGE_PATHS", migration_utils.get_installed_package_paths())
 
-    assert dependencies.is_installed_package_path(user_site / "somepackage" / "migrations")
-    assert not dependencies.is_installed_package_path(tmp_path / "project" / "migrations")
+    assert migration_utils.is_installed_package_path(user_site / "somepackage" / "migrations")
+    assert not migration_utils.is_installed_package_path(tmp_path / "project" / "migrations")
 
 
 def test_base_interpreter_packages_count_as_installed():
@@ -127,7 +127,7 @@ def test_base_interpreter_packages_count_as_installed():
     # created from has installed, which is where that interpreter's own pip installs.
     base_packages = sysconfig.get_path("purelib", vars={"base": sys.base_prefix, "platbase": sys.base_exec_prefix})
 
-    assert dependencies.is_installed_package_path(Path(base_packages) / "somepackage" / "migrations")
+    assert migration_utils.is_installed_package_path(Path(base_packages) / "somepackage" / "migrations")
 
 
 def test_base_interpreter_directory_itself_does_not_count_as_installed(monkeypatch):
@@ -140,11 +140,11 @@ def test_base_interpreter_directory_itself_does_not_count_as_installed(monkeypat
             path for prefix in prefixes for path in (prefix, os.path.join(prefix, "Lib", "site-packages"))
         ],
     )
-    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", dependencies.get_installed_package_paths())
+    monkeypatch.setattr(migration_utils, "INSTALLED_PACKAGE_PATHS", migration_utils.get_installed_package_paths())
     base_prefix = Path(sys.base_prefix)
 
-    assert dependencies.is_installed_package_path(base_prefix / "Lib" / "site-packages" / "somepackage")
-    assert not dependencies.is_installed_package_path(base_prefix / "project" / "migrations")
+    assert migration_utils.is_installed_package_path(base_prefix / "Lib" / "site-packages" / "somepackage")
+    assert not migration_utils.is_installed_package_path(base_prefix / "project" / "migrations")
 
 
 def workflow_references(value):

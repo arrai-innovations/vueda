@@ -17,12 +17,12 @@ from django.db.migrations.loader import MigrationLoader
 
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
-from vueda.user.migration_generation.dependencies import is_installed_package_app
-from vueda.user.migration_generation.dependencies import is_installed_package_location
-from vueda.user.migration_generation.existing import is_generated_migration
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
-from vueda.user.migration_generation.tools import get_migration_tools
+from vueda.user.migration_generation.registration import get_migration_tools
+from vueda.user.migration_generation.utils import is_generated_migration
+from vueda.user.migration_generation.utils import is_installed_package_app
+from vueda.user.migration_generation.utils import is_installed_package_location
 
 
 @dataclasses.dataclass

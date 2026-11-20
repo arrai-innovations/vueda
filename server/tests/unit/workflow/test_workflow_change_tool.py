@@ -22,12 +22,12 @@ from django.db import transaction
 
 from tests.erring.models import EnabledWithoutWorkflow
 from tests.erring.models import NotEnabledWithoutWorkflow
-from vueda.user.migration_generation.existing import GeneratedMigration
-from vueda.user.migration_generation.existing import generated_migrations
+from vueda.user.migration_generation.utils import GeneratedMigration
+from vueda.user.migration_generation.utils import generated_migrations
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import workflow_migration_action
-from vueda.workflow.migration_generation.tool import WorkflowChangeTool
+from vueda.workflow.migration_generation.tools import WorkflowChangeTool
 from vueda.workflow.models import InitialState
 from vueda.workflow.models import State
 from vueda.workflow.models import StatePermission
@@ -279,7 +279,8 @@ class TestWorkflowChangeTool:
         started_at = database_now()
         build_workflow("packaged")
         monkeypatch.setattr(
-            "vueda.workflow.migration_generation.tool.is_installed_package_app", lambda app_label: app_label == "erring"
+            "vueda.workflow.migration_generation.tools.is_installed_package_app",
+            lambda app_label: app_label == "erring",
         )
         errors = io.StringIO()
         tool = WorkflowChangeTool(BaseCommand(stdout=io.StringIO(), stderr=errors))

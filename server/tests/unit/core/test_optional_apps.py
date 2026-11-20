@@ -314,9 +314,9 @@ def test_makevuedamigrations_writes_group_migrations_without_workflow():
         from django.core.management import call_command
 
         from vueda.user.management.commands.makevuedamigrations import Command
-        from vueda.user.migration_generation.groups import GroupChangeTool
+        from vueda.user.migration_generation.tools import GroupChangeTool
         from vueda.user.migration_generation.tools import PendingChange
-        from vueda.user.migration_generation.tools import get_migration_tools
+        from vueda.user.migration_generation.registration import get_migration_tools
 
         # The user app gets a migrations package, with the initial migration that a project would have.
         root = Path(tempfile.mkdtemp())

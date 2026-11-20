@@ -28,7 +28,7 @@ from django.utils import timezone
 from tests.store import models as store_models
 from vueda.workflow import models
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
-from vueda.workflow.migration_generation.tool import WorkflowChangeTool
+from vueda.workflow.migration_generation.tools import WorkflowChangeTool
 
 
 migration_0009 = importlib.import_module(

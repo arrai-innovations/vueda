@@ -107,7 +107,7 @@ When a group migration runs forward, it adds a `GroupChange` row for each of its
 
 ### Change Types
 
-Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.migration_generation.group_operations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
+Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.migration_generation.operations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
 
 | Type           | Recorded when                                                | Forward                                                    | Backward                                                   |
 | -------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------- |
@@ -126,7 +126,7 @@ Each group migration carries its own copy of the code that applies these changes
 A group migration is a standard Django migration. `makevuedamigrations` adds:
 
 - `changed_data`, the list of changes that the migration applies. [How `changed_data` Is Formatted](#how-changed-data-is-formatted) describes its layout.
-- Copies of [`migrate_step`]{@api py:function:vueda.user.migration_generation.group_operations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.group_operations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.group_operations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.migration_generation.group_operations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
+- Copies of [`migrate_step`]{@api py:function:vueda.user.migration_generation.operations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.operations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.operations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.migration_generation.operations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
 - A comment near the top that marks the file as a group migration. VUEDA's commands find group migrations by this comment, so keep it. The comment names `makevuedamigrations`. VUEDA still recognizes the comment that `makegroupmigrations` wrote in older migrations.
 
 ### How `changed_data` Is Formatted

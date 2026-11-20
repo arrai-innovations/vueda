@@ -26,15 +26,14 @@ from django.db.models import Q
 from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
-from vueda.user.management.commands.utils import get_migrations_path
-from vueda.user.migration_generation.dependencies import is_installed_package_app
-from vueda.user.migration_generation.dependencies import user_app_label
-from vueda.user.migration_generation.existing import app_migration_names
-from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.refresh import MigrationKind
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
+from vueda.user.migration_generation.utils import app_migration_names
+from vueda.user.migration_generation.utils import generated_migrations
+from vueda.user.migration_generation.utils import is_installed_package_app
+from vueda.user.migration_generation.utils import user_app_label
 from vueda.workflow import models
 from vueda.workflow.migration_generation.operations import MIGRATION_ACTION_KIND
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
@@ -376,13 +375,9 @@ class WorkflowChangeTool(MigrationTool):
             content_type = ContentType.objects.get_for_model(model, for_concrete_model=False)
 
             if workflow_enabled(model):
-                app_config = django_apps.get_app_config(app_label)
-                migrations_path = get_migrations_path(app_config)
-
                 if app_label not in apps_with_workflow:
                     apps_with_workflow[app_label] = {
                         "app_name": model_meta.app_config.name,
-                        "migrations_path": migrations_path,
                         "model_to_content_type_ids": {},
                     }
                 apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
@@ -397,7 +392,6 @@ class WorkflowChangeTool(MigrationTool):
                     if app_label not in apps_with_workflow:
                         apps_with_workflow[app_label] = {
                             "app_name": model_meta.app_config.name,
-                            "migrations_path": get_migrations_path(django_apps.get_app_config(app_label)),
                             "model_to_content_type_ids": {},
                         }
                     apps_with_workflow[app_label]["model_to_content_type_ids"][model_name] = content_type.pk
@@ -811,7 +805,6 @@ class WorkflowChangeTool(MigrationTool):
                 "app_name": app_name,
                 "history_by_model_name": {},
                 "migrations": {},
-                "migrations_path": model_data["migrations_path"],
                 "models_to_content_type_ids": model_data["model_to_content_type_ids"],
             }
 

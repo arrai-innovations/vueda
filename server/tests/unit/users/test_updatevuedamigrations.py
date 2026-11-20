@@ -22,18 +22,18 @@ from django.db.migrations.exceptions import NodeNotFoundError
 import vueda
 from tests.utils import BaseTestMigrations
 from vueda.user.management.commands.utils import merge_migration_sources
-from vueda.user.migration_generation import dependencies
-from vueda.user.migration_generation import group_operations
-from vueda.user.migration_generation.groups import GROUP_MIGRATION_KIND
+from vueda.user.migration_generation import operations as group_operations
+from vueda.user.migration_generation import utils as migration_utils
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_obsolete_names
+from vueda.user.migration_generation.tools import GROUP_MIGRATION_KIND
 from vueda.workflow.migration_generation import operations as workflow_operations
 from vueda.workflow.migration_generation import refresh as workflow_refresh
 from vueda.workflow.migration_generation.refresh import changed_data_updater
 from vueda.workflow.migration_generation.refresh import collect_workflow_identities
 from vueda.workflow.migration_generation.refresh import read_changed_data
-from vueda.workflow.migration_generation.tool import WORKFLOW_MIGRATION_KIND
+from vueda.workflow.migration_generation.tools import WORKFLOW_MIGRATION_KIND
 
 
 # Frozen copies of migrations that earlier versions generated. They are text, so nothing imports them by accident.
@@ -164,28 +164,34 @@ def test_an_obsolete_name_that_a_kept_one_uses_is_kept_too():
 def test_an_app_whose_migration_modules_entry_does_not_exist_yet_is_not_installed(settings, monkeypatch):
     """The project creates the module that MIGRATION_MODULES names, so the app's own directory does not decide."""
     app_path = os.path.normcase(os.path.realpath(django_apps.get_app_config("erring").path))
-    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, app_path))
-    assert dependencies.is_installed_package_app("erring")
+    monkeypatch.setattr(
+        migration_utils, "INSTALLED_PACKAGE_PATHS", (*migration_utils.INSTALLED_PACKAGE_PATHS, app_path)
+    )
+    assert migration_utils.is_installed_package_app("erring")
     settings.MIGRATION_MODULES = {"erring": "tests.erring.migrations_not_created_yet"}
 
-    assert not dependencies.is_installed_package_app("erring")
+    assert not migration_utils.is_installed_package_app("erring")
 
 
 def test_an_app_whose_migration_modules_entry_is_a_single_module_is_judged_by_its_own_directory(settings, monkeypatch):
     """Only a module that does not exist yet moves the decision to the project. tests.settings exists."""
     app_path = os.path.normcase(os.path.realpath(django_apps.get_app_config("erring").path))
-    monkeypatch.setattr(dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, app_path))
+    monkeypatch.setattr(
+        migration_utils, "INSTALLED_PACKAGE_PATHS", (*migration_utils.INSTALLED_PACKAGE_PATHS, app_path)
+    )
     settings.MIGRATION_MODULES = {"erring": "tests.settings"}
 
-    assert dependencies.is_installed_package_app("erring")
+    assert migration_utils.is_installed_package_app("erring")
 
 
 def test_a_path_with_a_site_packages_part_counts_as_installed(monkeypatch):
     """A package installed with pip install --target, or kept on PYTHONPATH, is outside this interpreter's own
     package directories."""
-    monkeypatch.setattr(dependencies, "get_migrations_path", lambda app_config: "/srv/deps/site-packages/x/migrations")
+    monkeypatch.setattr(
+        migration_utils, "get_migrations_path", lambda app_config: "/srv/deps/site-packages/x/migrations"
+    )
 
-    assert dependencies.is_installed_package_app("erring")
+    assert migration_utils.is_installed_package_app("erring")
 
 
 def test_a_local_variable_named_changed_data_does_not_stop_the_identity_update():
@@ -456,7 +462,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
         """
         source_tree = os.path.normcase(os.path.realpath(Path(vueda.__file__).parent.parent))
         monkeypatch.setattr(
-            dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, source_tree)
+            migration_utils, "INSTALLED_PACKAGE_PATHS", (*migration_utils.INSTALLED_PACKAGE_PATHS, source_tree)
         )
 
     def test_an_old_workflow_migration_is_refreshed_and_then_up_to_date(self, settings):
@@ -574,9 +580,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             )
             before = path.read_text()
             monkeypatch.setattr(
-                dependencies,
+                migration_utils,
                 "INSTALLED_PACKAGE_PATHS",
-                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
             )
 
             out, _err, _status = run_update()
@@ -756,9 +762,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 erring_dir, "0003_workflow_migrations_2026_06_29", "[{'model_name': 'state', 'changes': {}}]"
             )
             monkeypatch.setattr(
-                dependencies,
+                migration_utils,
                 "INSTALLED_PACKAGE_PATHS",
-                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
             )
 
             out, err, status = run_update()
@@ -777,9 +783,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             )
             packaged.write_bytes(packaged.read_bytes() + b"# Caf\xe9\n")
             monkeypatch.setattr(
-                dependencies,
+                migration_utils,
                 "INSTALLED_PACKAGE_PATHS",
-                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
             )
 
             out, err, status = run_update()
@@ -864,7 +870,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             before = path.read_text()
             # The temporary module's own directory name stands in for a site-packages directory.
             monkeypatch.setattr(
-                dependencies, "INSTALLED_PACKAGE_DIRECTORY_NAMES", frozenset((Path(erring_dir).parent.name,))
+                migration_utils, "INSTALLED_PACKAGE_DIRECTORY_NAMES", frozenset((Path(erring_dir).parent.name,))
             )
 
             out, _err, _status = run_update()
@@ -887,9 +893,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             linked.symlink_to(packaged)
             before = packaged.read_text()
             monkeypatch.setattr(
-                dependencies,
+                migration_utils,
                 "INSTALLED_PACKAGE_PATHS",
-                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
             )
 
             out, _err, _status = run_update()
@@ -931,9 +937,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 + "changed_data = [\n"
             )
             monkeypatch.setattr(
-                dependencies,
+                migration_utils,
                 "INSTALLED_PACKAGE_PATHS",
-                (*dependencies.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
+                (*migration_utils.INSTALLED_PACKAGE_PATHS, os.path.normcase(os.path.realpath(erring_dir))),
             )
 
             out, _err, _status = run_update()

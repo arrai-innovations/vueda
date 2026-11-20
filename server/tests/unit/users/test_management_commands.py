@@ -16,11 +16,11 @@ from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
 from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import update_operation_function_names
-from vueda.user.migration_generation import group_operations
-from vueda.user.migration_generation.group_operations import migrate_step
-from vueda.user.migration_generation.groups import GROUP_MIGRATION_KIND
+from vueda.user.migration_generation import operations as group_operations
+from vueda.user.migration_generation.operations import migrate_step
+from vueda.user.migration_generation.tools import GROUP_MIGRATION_KIND
 from vueda.user.models import GroupChange
-from vueda.workflow.migration_generation.tool import WORKFLOW_MIGRATION_KIND
+from vueda.workflow.migration_generation.tools import WORKFLOW_MIGRATION_KIND
 
 
 @pytest.mark.django_db

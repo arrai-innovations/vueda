@@ -12,12 +12,12 @@ from django.core.management import call_command
 import vueda
 from tests.erring.models import EnabledWithWorkflow
 from tests.utils import BaseTestMigrations
-from vueda.user.migration_generation import dependencies
-from vueda.user.migration_generation.dependencies import project_app_labels
+from vueda.user.migration_generation import utils as migration_utils
 from vueda.user.migration_generation.planner import ToolChanges
 from vueda.user.migration_generation.planner import plan_migrations
+from vueda.user.migration_generation.utils import project_app_labels
 from vueda.user.migration_generation.writer import write_plan
-from vueda.workflow.migration_generation.tool import WorkflowChangeTool
+from vueda.workflow.migration_generation.tools import WorkflowChangeTool
 from vueda.workflow.models import InitialState
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import ObjectStateEvent
@@ -104,7 +104,7 @@ class TestForwardWorkflowObjectStates(BaseTestMigrations):
                 # they are. Only this temporary module is outside the source tree.
                 source_tree = os.path.normcase(os.path.realpath(Path(vueda.__file__).parent.parent))
                 monkeypatch.setattr(
-                    dependencies, "INSTALLED_PACKAGE_PATHS", (*dependencies.INSTALLED_PACKAGE_PATHS, source_tree)
+                    migration_utils, "INSTALLED_PACKAGE_PATHS", (*migration_utils.INSTALLED_PACKAGE_PATHS, source_tree)
                 )
                 call_command("updatevuedamigrations", stdout=io.StringIO())
             # Generation imports a provisional module before writing the final migration body.

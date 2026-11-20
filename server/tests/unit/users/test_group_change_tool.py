@@ -17,9 +17,9 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
 from vueda.user.management.commands.utils import create_group_change
-from vueda.user.migration_generation.group_operations import backwards_migrate_groups
-from vueda.user.migration_generation.group_operations import forwards_migrate_groups
-from vueda.user.migration_generation.groups import GroupChangeTool
+from vueda.user.migration_generation.operations import backwards_migrate_groups
+from vueda.user.migration_generation.operations import forwards_migrate_groups
+from vueda.user.migration_generation.tools import GroupChangeTool
 from vueda.user.models import GroupChange
 
 
