@@ -649,6 +649,60 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert "Skipped 1 migration(s) that must keep their functions." in out
             assert path.read_text() == before
 
+    def test_a_skipped_migration_is_skipped_even_when_its_refresh_would_fail(self, settings):
+        """A migration that keeps its functions is never refreshed, so nothing that a refresh rejects can fail it."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0001_initial"), WORKFLOW_SCHEMA_BEFORE_EVENTS),
+            )
+            path.write_text(re.sub(r"^history_change_reason = .*\n", "", path.read_text(), count=1, flags=re.MULTILINE))
+            before = path.read_text()
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Skipping: {path}" in out
+            assert path.read_text() == before
+
+    def test_a_group_migration_with_a_stale_import_does_not_stop_the_workflow_migrations(self, settings):
+        """Group migrations are refreshed before the migration graph is built, which imports every migration."""
+        with (
+            self.temporary_migration_module(settings, app_label="employee") as employee_dir,
+            self.temporary_migration_module(settings, app_label="erring") as erring_dir,
+        ):
+            group = write_old_migration(
+                employee_dir,
+                "0002_group_permission_migrations_2026_06_29",
+                "group_copied_2026_06.py.txt",
+                (("employee", "0001_initial"), USER_SCHEMA),
+            )
+            group.write_text(
+                group.read_text().replace(
+                    "from django.db import migrations\n",
+                    "from django.db import migrations\n"
+                    "from vueda.user.management.commands.makegroupmigrations import retired_helper\n",
+                )
+            )
+            workflow = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+
+            out, err, status = run_update()
+
+            assert (status, err) == (0, "")
+            assert f"Updating: {group}" in out
+            assert (
+                "  Removed the import of vueda.user.management.commands.makegroupmigrations.retired_helper, "
+                "which VUEDA no longer has."
+            ) in out
+            assert f"Updating: {workflow}" in out
+
     def test_a_migration_that_is_not_valid_python_fails_and_the_others_are_still_refreshed(self, settings):
         with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
             refreshed = write_old_migration(
