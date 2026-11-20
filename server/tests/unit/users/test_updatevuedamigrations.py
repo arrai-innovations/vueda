@@ -801,7 +801,7 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                 "workflow_copied_2026_06.py.txt",
                 (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
             )
-            stale = "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n"
+            stale = "from vueda.workflow.management.commands.makeworkflowmigrations import retired_helper\n"
             path.write_text(path.read_text().replace("import copy\n", f"import copy\n\n{stale}", 1))
             before = path.read_text()
 
