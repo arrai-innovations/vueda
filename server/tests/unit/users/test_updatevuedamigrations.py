@@ -1116,9 +1116,9 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert imported in path.read_text()
             assert path.read_text() == before
 
-    def test_a_function_that_an_operation_names_keeps_its_import_and_the_error_names_the_file(self, settings):
-        """An operation reads the name while Django imports the migration, so removing the import would only turn
-        the import error into a NameError. The import stays, and the graph error names the file to fix by hand."""
+    def test_a_migration_whose_operations_name_an_imported_function_is_refreshed(self, settings):
+        """An operation reads the name while Django imports the migration, so the file cannot load as it is. The
+        graph loads it as its refresh will leave it, with the operation renamed and the function copied in."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -1143,17 +1143,19 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
                     "from django.db import migrations\n", f"from django.db import migrations\n{imported}", 1
                 )
             )
-            before = path.read_text()
 
-            _out, err, status = run_update()
+            out, err, status = run_update()
 
-            assert status == 1
-            assert f"vueda.workflow.management.commands.makeworkflowmigrations is imported by {path}" in err
-            assert path.read_text() == before
+            assert (status, err) == (0, "")
+            assert f"Updating: {path}" in out
+            refreshed = path.read_text()
+            assert "makeworkflowmigrations import" not in refreshed
+            assert "\ndef forwards_migrate_workflow(apps, changed_items, change_reason):" in refreshed
+            assert "forwards_migrate_workflow_through_imports" in refreshed
 
     def test_the_graph_error_names_the_import_that_stays_rather_than_one_that_goes(self, settings):
-        """The migration has two gone imports. The graph loads it without the unused one, so the error that stops
-        the graph comes from the one that its operations read."""
+        """The migration has two gone imports, and its own step still uses one of them, so its refresh fails. The
+        graph then loads it without the unused one, so the error that stops the graph comes from the one in use."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,
@@ -1171,12 +1173,13 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             del lines[forwards.lineno - 1 : forwards.end_lineno]
             imports = (
                 "from vueda.user.management.commands.makegroupmigrations import retired_helper\n"
-                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
+                "from vueda.workflow.management.commands.makeworkflowmigrations import other_helper\n"
             )
             path.write_text(
                 "".join(lines).replace(
                     "from django.db import migrations\n", f"from django.db import migrations\n{imports}", 1
                 )
+                + "\n\ndef my_own_step(apps, schema_editor):\n    return other_helper()\n"
             )
 
             _out, err, status = run_update()

@@ -75,7 +75,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"{NEWLINE}No generated migrations found to update."))
             return
 
-        self.refreshed_texts = {}
         # Group migrations need no migration graph, so they are refreshed first.
         writable.sort(key=lambda generated: generated.kind.name == "workflow")
         workflow = None
@@ -193,35 +192,34 @@ class Command(BaseCommand):
     def _build_migration_graph(self, files):
         """Build the declared migration graph, and return it with the reason that it could not be built.
 
-        Building the graph imports every migration, so one import of VUEDA code that no longer exists stops it for
-        the whole project. While the graph builds, an import finder serves each migration that has such an import
-        from its text without the imports that can go safely. Python's import system loads it as it would load the
-        file. Nothing is written, and the modules are unloaded again afterwards. Each file's refresh then removes
-        the imports for good. A file whose refresh fails keeps them, and a file that keeps its functions loses only
-        the ones that nothing in it uses.
+        Building the graph imports every migration, so one migration that cannot be imported, such as one that
+        imports VUEDA code that no longer exists, stops it for the whole project. So the graph loads each generated
+        migration as its refresh would leave it: with the current functions copied in, the operations calling
+        them, and the imports that those copies replace removed. A migration whose refresh fails is loaded without
+        the imports that can go safely instead. An import finder serves that text while the graph builds, and
+        Python's import system loads it as it would load the file. Nothing is written, and the modules are
+        unloaded again afterwards. A migration's dependencies do not change in a refresh, so the graph is the one
+        that the files declare.
         """
         seen = {}
         stripped = {}
-        # A package's migrations are stripped too: nothing is written here, so the graph loads even when an old
-        # package migration has such an import.
+        # A package's migrations are loaded the same way. Nothing is written here, so the graph loads even when an
+        # old package migration cannot be imported as it is.
         for generated in files:
             if generated.read_problem or generated.text is None:
                 continue
-            # A group migration may already be refreshed: on disk in a real run, in memory in a dry run.
-            current = self.refreshed_texts.get(generated.path)
-            if current is None:
-                try:
-                    current = generated.path.read_text("utf-8-sig")
-                except (OSError, UnicodeDecodeError):
-                    continue
-            fixed, removed = remove_imports_that_stop_the_graph(current, generated.kind)
-            seen[generated.path] = fixed
-            # A dry run refreshed this migration in memory only, so the graph has to load that text, not the file.
-            if not removed and generated.path not in self.refreshed_texts:
+            try:
+                # The changed_data update needs the graph, and the graph needs only the dependencies, so it is left
+                # out here.
+                graph_text = refresh_migration(generated.text, generated.kind).source
+            except Exception:
+                graph_text = remove_imports_that_stop_the_graph(generated.text, generated.kind)[0]
+            seen[generated.path] = graph_text
+            if graph_text == generated.text:
                 continue
             package, _explicit = MigrationLoader.migrations_module(generated.app_label)
             if package is not None:
-                stripped[f"{package}.{generated.path.stem}"] = (generated.path, fixed)
+                stripped[f"{package}.{generated.path.stem}"] = (generated.path, graph_text)
 
         finder = _StrippedMigrationFinder(stripped)
         # A module that is already loaded would be used as it is, so each one is set aside while the graph builds.
@@ -310,10 +308,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  Replaced the import of {name} with a copy.")
         for name in result.removed_missing_imports:
             self.stdout.write(f"  Removed the import of {name}, which VUEDA no longer has.")
-        if self.dry_run:
-            # A dry run writes nothing, so the migration graph reads this text instead of the file.
-            self.refreshed_texts[generated.path] = result.source
-        else:
+        if not self.dry_run:
             try:
                 _write_atomically(generated.path, result.source)
             except OSError as error:
