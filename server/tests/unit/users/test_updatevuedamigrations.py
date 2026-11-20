@@ -26,7 +26,9 @@ from vueda.user.migration_generation import operations as group_operations
 from vueda.user.migration_generation import utils as migration_utils
 from vueda.user.migration_generation.refresh import RefreshError
 from vueda.user.migration_generation.refresh import refresh_migration
+from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
 from vueda.user.migration_generation.refresh import remove_obsolete_names
+from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.tools import GROUP_MIGRATION_KIND
 from vueda.workflow.migration_generation import operations as workflow_operations
 from vueda.workflow.migration_generation import refresh as workflow_refresh
@@ -318,6 +320,42 @@ def test_a_rewritten_import_statement_does_not_move_another_import_that_goes():
     assert "import get_matching_record" not in result.source
     assert "from vueda.user.management.commands.utils import NEWLINE\n" in result.source
     assert "from vueda.user.management.commands.utils import get_migrations_path\n" in result.source
+
+
+def test_a_gone_import_that_the_migration_shadows_with_its_own_definition_can_go():
+    """The migration defines the name again after its imports, so the import is never what the module uses."""
+    source = (
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards\n\n\n"
+        "def forwards(apps, schema_editor):\n    pass\n\n\n"
+        "class Migration:\n    operations = [forwards]\n"
+    )
+
+    assert "makeworkflowmigrations" not in without_imports_that_vueda_no_longer_has(source)
+    assert "makeworkflowmigrations" not in remove_imports_that_stop_the_graph(source, WORKFLOW_MIGRATION_KIND)[0]
+
+
+def test_reading_a_migration_keeps_a_gone_import_that_it_reads_while_it_loads():
+    """Removing it would turn the import error into a NameError, which says less about what to fix."""
+    source = (
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards\n\n\n"
+        "class Migration:\n    operations = [forwards]\n"
+    )
+
+    assert without_imports_that_vueda_no_longer_has(source) == source
+
+
+def test_a_star_import_of_code_that_vueda_no_longer_has_is_refused():
+    """The names that it supplies cannot be checked, so the refresh cannot tell whether removing it is safe."""
+    source = (OLD_MIGRATIONS / "group_copied_2026_06.py.txt").read_text()
+    source = source.replace(
+        "from django.db import migrations\n",
+        "from django.db import migrations\nfrom vueda.user.management.commands.makegroupmigrations import *\n",
+    )
+
+    with pytest.raises(
+        RefreshError, match=r"imports everything from vueda\.user\.management\.commands\.makegroupmigrations"
+    ):
+        refresh_migration(source, GROUP_MIGRATION_KIND)
 
 
 def test_a_name_that_vueda_no_longer_has_is_refused_when_the_migration_uses_it():
@@ -831,6 +869,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             refreshed = path.read_text()
             assert "\ndef forwards_migrate_workflow(apps, changed_items, change_reason):" in refreshed
             assert "makeworkflowmigrations import" not in refreshed
+            # The module that the graph loaded without the import is unloaded again.
+            assert not [name for name in sys.modules if name.endswith(".0003_workflow_migrations_2026_06_29")]
 
             out, err, status = run_update()
 
@@ -941,6 +981,40 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert status == 1
             assert f"vueda.workflow.management.commands.makeworkflowmigrations is imported by {path}" in err
             assert path.read_text() == before
+
+    def test_the_graph_error_names_the_import_that_stays_rather_than_one_that_goes(self, settings):
+        """The migration has two gone imports. The graph loads it without the unused one, so the error that stops
+        the graph comes from the one that its operations read."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            source = path.read_text()
+            forwards = next(
+                node
+                for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name == "forwards_migrate_workflow"
+            )
+            lines = source.splitlines(keepends=True)
+            del lines[forwards.lineno - 1 : forwards.end_lineno]
+            imports = (
+                "from vueda.user.management.commands.makegroupmigrations import retired_helper\n"
+                "from vueda.workflow.management.commands.makeworkflowmigrations import forwards_migrate_workflow\n"
+            )
+            path.write_text(
+                "".join(lines).replace(
+                    "from django.db import migrations\n", f"from django.db import migrations\n{imports}", 1
+                )
+            )
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert f"vueda.workflow.management.commands.makeworkflowmigrations is imported by {path}" in err
+            assert "makegroupmigrations is imported by" not in err
 
     @pytest.mark.parametrize("dry_run", [False, True])
     def test_an_unused_import_that_vueda_no_longer_has_is_removed_before_the_graph_is_built(self, settings, dry_run):

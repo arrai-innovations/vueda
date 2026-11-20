@@ -139,10 +139,14 @@ def remove_imports_that_vueda_no_longer_has(source):
     for node in tree.body:
         if not isinstance(node, (ast.Import, ast.ImportFrom)):
             used |= _used_names(node)
-    # The names that a star import supplies are unknown, so it counts as used.
-    still_used = sorted(
-        _import_label(node, alias) for node, alias in gone if alias.name == "*" or _alias_binding(alias) in used
-    )
+    stars = sorted(_import_label(node, alias) for node, alias in gone if alias.name == "*")
+    if stars:
+        raise RefreshError(
+            f"The migration imports everything from {', '.join(star[:-2] for star in stars)}, which VUEDA no longer "
+            "has. The names that it supplies cannot be checked, so replace that import by hand, then run the command "
+            "again."
+        )
+    still_used = sorted(_import_label(node, alias) for node, alias in gone if _alias_binding(alias) in used)
     if still_used:
         raise RefreshError(
             f"The migration uses {', '.join(still_used)}, which VUEDA no longer has. Copy that code into the "
@@ -166,27 +170,52 @@ def remove_imports_that_stop_the_graph(source, kind):
     unchanged when it cannot be read.
     """
     try:
-        tree = ast.parse(source)
         copied = {name for names in kind.get_sources(False, as_mapping=True) for name in names}
-        used = set()
-        read_on_import = set()
-        for node in tree.body:
-            if not isinstance(node, (ast.Import, ast.ImportFrom)):
-                used |= _used_names(node)
-                read_on_import |= _names_read_on_import(node)
-
-        def removable(node, alias):
-            if alias.name == "*":
-                # The names that a star import supplies are unknown, so it can never be shown to be unused.
-                return False
-            binding = _alias_binding(alias)
-            safe = binding not in used or (binding in copied and binding not in read_on_import)
-            return safe and _vueda_no_longer_has(node, alias)
-
-        return _drop_imports(source, removable)
+        return _drop_imports(source, _gone_import_rule(ast.parse(source), copied))
     except (SyntaxError, RefreshError):
         # The refresh reports the file.
         return source, ()
+
+
+def _gone_import_rule(tree, copied):
+    """Return the rule that decides which imports of gone VUEDA code in ``tree`` can be removed safely.
+
+    An import goes when it names VUEDA code that no longer exists and removing it cannot break the module while it
+    loads: nothing uses the name, the module itself defines the name later and so shadows the import, or the name
+    is in ``copied`` and nothing reads it while the module loads. ``copied`` of None counts every name as copied.
+    A star import never goes, because the names that it supplies are unknown.
+    """
+    shadowed = set()
+    used = set()
+    read_on_import = set()
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            continue
+        shadowed |= _defined_names(node)
+        used |= _used_names(node)
+        read_on_import |= _names_read_on_import(node)
+
+    def removable(node, alias):
+        if alias.name == "*":
+            return False
+        binding = _alias_binding(alias)
+        is_copied = copied is None or binding in copied
+        safe = binding in shadowed or binding not in used or (is_copied and binding not in read_on_import)
+        return safe and _vueda_no_longer_has(node, alias)
+
+    return removable
+
+
+def _defined_names(node):
+    """Return the names that a top-level statement ``node`` defines or assigns."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return {node.name}
+    targets = []
+    if isinstance(node, ast.Assign):
+        targets = node.targets
+    elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+        targets = [node.target]
+    return {child.id for target in targets for child in ast.walk(target) if isinstance(child, ast.Name)}
 
 
 def _names_read_on_import(node):
@@ -223,18 +252,7 @@ def without_imports_that_vueda_no_longer_has(source):
     is reported rather than a ``NameError``. The source is returned unchanged when it cannot be read.
     """
     try:
-        tree = ast.parse(source)
-        read_on_import = set()
-        for node in tree.body:
-            if not isinstance(node, (ast.Import, ast.ImportFrom)):
-                read_on_import |= _names_read_on_import(node)
-
-        def removable(node, alias):
-            return (
-                alias.name != "*" and _alias_binding(alias) not in read_on_import and _vueda_no_longer_has(node, alias)
-            )
-
-        return _drop_imports(source, removable)[0]
+        return _drop_imports(source, _gone_import_rule(ast.parse(source), None))[0]
     except (SyntaxError, RefreshError):
         return source
 

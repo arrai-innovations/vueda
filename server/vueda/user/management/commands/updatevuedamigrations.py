@@ -4,11 +4,12 @@ __all__ = ("Command",)
 
 import ast
 import dataclasses
+import importlib.abc
+import importlib.util
 import os
 import stat
 import sys
 import tempfile
-import types
 from pathlib import Path
 
 from django.apps import apps as django_apps
@@ -191,11 +192,10 @@ class Command(BaseCommand):
         """Build the declared migration graph, and return it with the reason that it could not be built.
 
         Building the graph imports every migration, so one import of VUEDA code that no longer exists stops it for
-        the whole project. Django's loader imports each migration by its module name, and it uses a module that
-        is already loaded. So each migration with such an import is loaded first, from its text without the
-        imports that can go safely, under its own module name. Nothing is written, and the modules are unloaded
-        again afterwards. Each file's refresh then removes the imports for good, and a file that is skipped or
-        fails keeps them.
+        the whole project. While the graph builds, an import finder serves each migration that has such an import
+        from its text without the imports that can go safely. Python's import system loads it as it would load the
+        file. Nothing is written, and the modules are unloaded again afterwards. Each file's refresh then removes
+        the imports for good, and a file that is skipped or fails keeps them.
         """
         seen = {}
         stripped = {}
@@ -215,32 +215,21 @@ class Command(BaseCommand):
             if package is not None:
                 stripped[f"{package}.{generated.path.stem}"] = (generated.path, fixed)
 
-        replaced = {}
+        finder = _StrippedMigrationFinder(stripped)
+        # A module that is already loaded would be used as it is, so each one is set aside while the graph builds.
+        set_aside = {name: sys.modules.pop(name) for name in stripped if name in sys.modules}
+        sys.meta_path.insert(0, finder)
         try:
-            for name, (path, fixed) in stripped.items():
-                module = types.ModuleType(name)
-                module.__file__ = str(path)
-                module.__package__ = name.rpartition(".")[0]
-                try:
-                    exec(compile(fixed, str(path), "exec"), module.__dict__)
-                except Exception:
-                    # The loader imports the file itself and reports its error.
-                    seen[path] = None
-                    continue
-                replaced[name] = sys.modules.get(name)
-                sys.modules[name] = module
-            try:
-                # The declared graph, not the migrations applied to this database: a refreshed migration must also
-                # work when a new installation starts with an empty database.
-                return MigrationLoader(None, ignore_no_migrations=True), None
-            except Exception as error:
-                return None, self._describe_graph_problem(error, files, seen)
+            # The declared graph, not the migrations applied to this database: a refreshed migration must also
+            # work when a new installation starts with an empty database.
+            return MigrationLoader(None, ignore_no_migrations=True), None
+        except Exception as error:
+            return None, self._describe_graph_problem(error, files, seen)
         finally:
-            for name, previous in replaced.items():
-                if previous is None:
-                    sys.modules.pop(name, None)
-                else:
-                    sys.modules[name] = previous
+            sys.meta_path.remove(finder)
+            for name in stripped:
+                sys.modules.pop(name, None)
+            sys.modules.update(set_aside)
 
     def _describe_graph_problem(self, error, files, seen):
         """Say why the migration graph could not be built, naming each migration that imports a missing module.
@@ -249,11 +238,13 @@ class Command(BaseCommand):
         """
         problem = f"cannot resolve migration dependencies: {error}"
         missing = error.name if isinstance(error, ImportError) else None
+        # Only a missing module stops the imports of the modules inside it.
+        nested = isinstance(error, ModuleNotFoundError)
         if missing:
             importers = sorted(
                 str(generated.path)
                 for generated in files
-                if _imports_module(seen.get(generated.path) or generated.text or "", missing)
+                if _imports_module(seen.get(generated.path) or generated.text or "", missing, nested=nested)
             )
             if importers:
                 problem += f". {missing} is imported by {', '.join(importers)}"
@@ -382,20 +373,40 @@ def _write_atomically(path, text):
         raise
 
 
-def _imports_module(text, module):
+def _imports_module(text, module, *, nested=False):
     """Return whether the migration ``text`` imports ``module`` at its top level."""
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return False
     for node in tree.body:
-        # A missing package stops every import of a module inside it, so its submodules count too.
-        if isinstance(node, ast.ImportFrom) and _within(node.module, module):
+        # A missing package stops every import of a module inside it, so with ``nested`` its submodules count too.
+        if isinstance(node, ast.ImportFrom) and not node.level and _names_module(node.module, module, nested):
             return True
-        if isinstance(node, ast.Import) and any(_within(alias.name, module) for alias in node.names):
+        if isinstance(node, ast.Import) and any(_names_module(alias.name, module, nested) for alias in node.names):
             return True
     return False
 
 
-def _within(name, module):
-    return bool(name) and (name == module or name.startswith(f"{module}."))
+def _names_module(name, module, nested):
+    return bool(name) and (name == module or (nested and name.startswith(f"{module}.")))
+
+
+class _StrippedMigrationFinder(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+    """Serve migrations from replacement text while the migration graph is built.
+
+    ``stripped`` maps a migration's module name to its path and the text to load instead of the file.
+    """
+
+    def __init__(self, stripped):
+        self.stripped = stripped
+
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname not in self.stripped:
+            return None
+        return importlib.util.spec_from_loader(fullname, self, origin=str(self.stripped[fullname][0]))
+
+    def exec_module(self, module):
+        path, text = self.stripped[module.__name__]
+        module.__file__ = str(path)
+        exec(compile(text, str(path), "exec"), module.__dict__)
