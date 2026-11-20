@@ -5,6 +5,7 @@ __all__ = ("Command",)
 import ast
 import dataclasses
 import os
+import re
 import stat
 import sys
 import tempfile
@@ -180,6 +181,16 @@ class Command(BaseCommand):
             loader = MigrationLoader(None, ignore_no_migrations=True)
         except Exception as error:
             loader_problem = f"cannot resolve migration dependencies: {error}"
+            # A migration that imports a module that does not exist stops the graph. Name it, so the user knows
+            # which file to fix by hand.
+            missing = getattr(error, "name", None)
+            importers = sorted(
+                str(generated.path)
+                for generated in files
+                if missing and generated.text is not None and re.search(rf"\b{re.escape(missing)}\b", generated.text)
+            )
+            if importers:
+                loader_problem += f". {missing} is imported by {', '.join(importers)}"
 
         return {
             "module": workflow_refresh,

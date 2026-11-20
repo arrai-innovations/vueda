@@ -765,8 +765,31 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             assert {item: item.read_bytes() for item in originals} == originals
             assert "Updating:" not in out
 
+    def test_a_graph_that_a_missing_import_stops_names_the_migration_that_imports_it(self, settings):
+        """The graph cannot load, so the command cannot fix the import itself, but it can say which file to fix."""
+        with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
+            path = write_old_migration(
+                erring_dir,
+                "0003_workflow_migrations_2026_06_29",
+                "workflow_copied_2026_06.py.txt",
+                (("erring", "0002_workflow_migrations_2026_03_24"), WORKFLOW_SCHEMA),
+            )
+            path.write_text(
+                path.read_text().replace(
+                    "import copy\n",
+                    "import copy\n\n"
+                    "from vueda.workflow.management.commands.makeworkflowmigrations import add_history_to_data\n",
+                    1,
+                )
+            )
+
+            _out, err, status = run_update()
+
+            assert status == 1
+            assert f"vueda.workflow.management.commands.makeworkflowmigrations is imported by {path}" in err
+
     def test_a_dry_run_reports_a_migration_graph_that_cannot_be_built(self, settings):
-        """Only old imports let a dry run skip the dependency check. A missing dependency fails it too."""
+        """A dry run builds the migration graph as a real run does, so a missing dependency fails it too."""
         with self.temporary_migration_module(settings, app_label="erring") as erring_dir:
             path = write_old_migration(
                 erring_dir,

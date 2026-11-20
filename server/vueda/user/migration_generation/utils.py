@@ -14,6 +14,7 @@ __all__ = (
     "is_installed_package_path",
     "is_vueda_app",
     "latest_migration_names",
+    "module_exists",
     "project_app_labels",
     "user_app_label",
 )
@@ -165,16 +166,23 @@ def is_installed_package_app(app_label):
     return is_installed_package_location(migrations_path or app_config.path)
 
 
+def module_exists(module_name):
+    """Return whether ``module_name`` names a module that can be found. A module that exists but fails to import
+    counts as found.
+
+    Finding a dotted name imports its parent packages.
+    """
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except ModuleNotFoundError:
+        # A parent package is missing too.
+        return False
+
+
 def _names_a_missing_module(module_name):
     """Return whether ``module_name`` names a module that cannot be found. A module that exists but fails to import
     does not count."""
-    if not module_name:
-        return False
-    try:
-        return importlib.util.find_spec(module_name) is None
-    except ModuleNotFoundError:
-        # A parent package is missing too.
-        return True
+    return bool(module_name) and not module_exists(module_name)
 
 
 def is_installed_package_location(path):

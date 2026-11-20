@@ -146,7 +146,7 @@ apps also commit generated migrations that other tests read, and they show what 
 When the code that generated migrations copy changes, refresh them:
 
 1. From `server/`, run `python manage.py updatevuedamigrations`. VUEDA's own `vueda_vdq` migrations are reported as
-   failures, because they run before `vueda_workflow` migration `0008`. Leave them as they are.
+   skipped, because they run before `vueda_workflow` migration `0008`. Leave them as they are.
 2. Run `python manage.py updatevuedamigrations` again. Every test app migration should be reported as already up to
    date.
 3. Run the tests, fix any failures, and commit the refreshed migrations.

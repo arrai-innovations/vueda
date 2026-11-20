@@ -11,7 +11,6 @@ __all__ = (
 import ast
 import dataclasses
 import importlib
-import importlib.util
 from collections.abc import Callable
 
 from vueda.user.management.commands.utils import NoRenamesError
@@ -19,6 +18,7 @@ from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
+from vueda.user.migration_generation.utils import module_exists
 
 
 def remove_obsolete_names(source, names):
@@ -200,25 +200,21 @@ def _vueda_no_longer_has(node, alias):
     if isinstance(node, ast.ImportFrom):
         if node.level or not _is_vueda_module(node.module):
             return False
-        if not _module_exists(node.module):
+        if not module_exists(node.module):
             return True
         if alias.name == "*":
             return False
-        module = importlib.import_module(node.module)
-        return not hasattr(module, alias.name) and not _module_exists(f"{node.module}.{alias.name}")
-    return _is_vueda_module(alias.name) and not _module_exists(alias.name)
+        try:
+            module = importlib.import_module(node.module)
+        except Exception as error:
+            # Django would fail on the same import, so the migration is reported rather than the run ended.
+            raise RefreshError(f"The migration imports {node.module}, which fails to import: {error}") from error
+        return not hasattr(module, alias.name) and not module_exists(f"{node.module}.{alias.name}")
+    return _is_vueda_module(alias.name) and not module_exists(alias.name)
 
 
 def _is_vueda_module(name):
     return name == "vueda" or name.startswith("vueda.")
-
-
-def _module_exists(name):
-    try:
-        return importlib.util.find_spec(name) is not None
-    except ModuleNotFoundError:
-        # A parent package is missing too.
-        return False
 
 
 def _used_names(node):
