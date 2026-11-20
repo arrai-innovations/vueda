@@ -10,10 +10,10 @@ from django.core.management import BaseCommand
 from vueda.user.management.commands.utils import create_group_change
 from vueda.user.management.commands.utils import get_matching_record
 from vueda.user.management.commands.utils import get_migrations_path
-from vueda.user.migration_generation.dependencies import is_installed_package_app
-from vueda.user.migration_generation.existing import generated_migrations
-from vueda.user.migration_generation.existing import is_generated_migration
-from vueda.user.migration_generation.group_operations import MIGRATION_MODIFIED_COMMENTS
+from vueda.user.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
+from vueda.user.migration_generation.utils import generated_migrations
+from vueda.user.migration_generation.utils import is_generated_migration
+from vueda.user.migration_generation.utils import is_installed_package_app
 
 
 class Command(BaseCommand):

@@ -27,13 +27,13 @@ from vueda.core.audit import audited_action
 from vueda.core.installed_apps import workflow_enabled
 from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import get_migrations_path
-from vueda.user.migration_generation.dependencies import is_installed_package_app
-from vueda.user.migration_generation.dependencies import user_app_label
-from vueda.user.migration_generation.existing import app_migration_names
-from vueda.user.migration_generation.existing import generated_migrations
 from vueda.user.migration_generation.tools import MigrationContent
 from vueda.user.migration_generation.tools import MigrationTool
 from vueda.user.migration_generation.tools import PendingChange
+from vueda.user.migration_generation.utils import app_migration_names
+from vueda.user.migration_generation.utils import generated_migrations
+from vueda.user.migration_generation.utils import is_installed_package_app
+from vueda.user.migration_generation.utils import user_app_label
 from vueda.workflow import models
 from vueda.workflow.migration_generation.operations import MIGRATION_ACTION_KIND
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS

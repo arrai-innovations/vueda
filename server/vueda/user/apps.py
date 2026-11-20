@@ -12,7 +12,7 @@ class UserConfig(AppConfig):
     label = "vueda_user"
     verbose_name = "VUEDA User"
     # The makevuedamigrations tools that this app adds. Read through ``get_migration_tools``.
-    _vueda_migration_tools = ("vueda.user.migration_generation.groups.GroupChangeTool",)
+    _vueda_migration_tools = ("vueda.user.migration_generation.tools.GroupChangeTool",)
 
     def ready(self):
         from dj_rest_auth.views import LoginView

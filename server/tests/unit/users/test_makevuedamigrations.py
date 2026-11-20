@@ -31,15 +31,15 @@ from tests.erring.models import EnabledWithoutWorkflow
 from tests.utils import BaseTestMigrations
 from vueda.user.management.commands.makevuedamigrations import Command as MakeVuedaMigrationsCommand
 from vueda.user.management.commands.makevuedamigrations import _PrefixedArgumentGroup
-from vueda.user.migration_generation import group_operations
+from vueda.user.migration_generation import operations as group_operations
 from vueda.user.migration_generation import writer
-from vueda.user.migration_generation.existing import is_generated_migration
-from vueda.user.migration_generation.groups import GroupChangeTool
+from vueda.user.migration_generation.tools import GroupChangeTool
+from vueda.user.migration_generation.utils import is_generated_migration
 from vueda.user.models import GroupChange
 from vueda.user.views import PermissionDeleteView
 from vueda.user.views import PermissionSaveView
 from vueda.workflow.migration_generation import operations as workflow_operations
-from vueda.workflow.migration_generation.tool import WorkflowChangeTool
+from vueda.workflow.migration_generation.tools import WorkflowChangeTool
 from vueda.workflow.models import InitialState
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State

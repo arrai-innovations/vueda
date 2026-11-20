@@ -262,13 +262,13 @@ def get_group_migration_imports(import_instead=False, direct_runpython_import=Fa
         if direct_runpython_import:
             result_mapping[("RunPython",)] = f"from django.db.migrations import RunPython{NEWLINE}"
         result_mapping[("backwards_migrate_groups",)] = (
-            f"{NEWLINE}from vueda.user.migration_generation.group_operations import backwards_migrate_groups{NEWLINE}"
+            f"{NEWLINE}from vueda.user.migration_generation.operations import backwards_migrate_groups{NEWLINE}"
         )
         result_mapping[("forwards_migrate_groups",)] = (
-            f"from vueda.user.migration_generation.group_operations import forwards_migrate_groups{NEWLINE}"
+            f"from vueda.user.migration_generation.operations import forwards_migrate_groups{NEWLINE}"
         )
         result_mapping[("make_sure_permissions_exist",)] = (
-            f"from vueda.user.migration_generation.group_operations import make_sure_permissions_exist{NEWLINE}"
+            f"from vueda.user.migration_generation.operations import make_sure_permissions_exist{NEWLINE}"
         )
 
     else:

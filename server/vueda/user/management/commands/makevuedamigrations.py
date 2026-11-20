@@ -9,10 +9,10 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db.transaction import atomic
 
 from vueda.user.management.commands.utils import NEWLINE
-from vueda.user.migration_generation.dependencies import project_app_labels
 from vueda.user.migration_generation.planner import ToolChanges
 from vueda.user.migration_generation.planner import plan_migrations
-from vueda.user.migration_generation.tools import get_migration_tools
+from vueda.user.migration_generation.registration import get_migration_tools
+from vueda.user.migration_generation.utils import project_app_labels
 from vueda.user.migration_generation.writer import write_plan
 
 

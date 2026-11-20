@@ -19,8 +19,8 @@ from vueda.user.management.commands.utils import call_management_command
 from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import locate_empty_migration_slots
-from vueda.user.migration_generation.dependencies import is_vueda_app
-from vueda.user.migration_generation.dependencies import latest_migration_names
+from vueda.user.migration_generation.utils import is_vueda_app
+from vueda.user.migration_generation.utils import latest_migration_names
 
 
 INDENT8 = "        "
