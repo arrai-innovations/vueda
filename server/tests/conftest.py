@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import importlib
 import io
+import os
 import time
 from collections.abc import Iterable
 from http import HTTPStatus
@@ -29,6 +30,11 @@ from psycopg import sql
 from rest_framework.test import APIClient
 
 from tests.utils import object_revision_of
+
+
+# Django colors command output only when it writes to a terminal. Tests that read command output would then pass in
+# CI and fail in a terminal, so command output stays plain in every test.
+os.environ["DJANGO_COLORS"] = "nocolor"
 
 
 POSTGRES_MAX_DB_NAME_LENGTH = 63
