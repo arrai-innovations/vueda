@@ -418,15 +418,9 @@ class _StrippedMigrationFinder(importlib.abc.MetaPathFinder, importlib.abc.Loade
     def exec_module(self, module):
         path, text = self.stripped[module.__name__]
         module.__file__ = str(path)
-        try:
-            exec(compile(text, str(path), "exec"), module.__dict__)
-        except Exception:
-            # The stripped text failed for another reason, so the file runs as it is. Its own error, such as the
-            # import that stays, is the one that the graph reports.
-            for key in tuple(module.__dict__):
-                if not key.startswith("__"):
-                    del module.__dict__[key]
-            exec(compile(path.read_text("utf-8-sig"), str(path), "exec"), module.__dict__)
+        # The stripped text keeps every import that the module needs while it loads, so an error here comes from an
+        # import that stays, and it is the error that the graph reports.
+        exec(compile(text, str(path), "exec"), module.__dict__)
 
     def get_source(self, fullname):
         """Return the text that the module runs, so a traceback shows the lines that ran."""
