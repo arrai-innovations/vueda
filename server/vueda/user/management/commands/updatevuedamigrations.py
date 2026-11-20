@@ -23,7 +23,6 @@ from vueda.user.migration_generation.refresh import imports_that_vueda_no_longer
 from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
 from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
-from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.registration import get_migration_tools
 from vueda.user.migration_generation.utils import is_generated_migration
 from vueda.user.migration_generation.utils import is_installed_package_app
@@ -161,10 +160,7 @@ class Command(BaseCommand):
                     )
                 continue
 
-            # Imports of code that VUEDA no longer has would stop the read, and the refresh removes them anyway.
-            changed_data, problem = workflow_refresh.read_changed_data(
-                without_imports_that_vueda_no_longer_has(generated.text), generated.path
-            )
+            changed_data, problem = workflow_refresh.read_changed_data(generated.text, generated.path)
             if problem is not None:
                 # A package's file is only read here, and a project's file may be skipped and never refreshed, so
                 # the problem is reported here for every file.

@@ -4,12 +4,12 @@ __all__ = (
     "MigrationKind",
     "Refresh",
     "RefreshError",
+    "imports_code_that_vueda_no_longer_has",
     "imports_that_vueda_no_longer_has",
     "refresh_migration",
     "remove_imports_that_stop_the_graph",
     "remove_imports_that_vueda_no_longer_has",
     "remove_obsolete_names",
-    "without_imports_that_vueda_no_longer_has",
 )
 
 import ast
@@ -350,17 +350,15 @@ def imports_that_vueda_no_longer_has(source):
     return tuple(sorted(gone))
 
 
-def without_imports_that_vueda_no_longer_has(source):
-    """Return ``source`` without its top-level imports of VUEDA modules and names that no longer exist.
+def imports_code_that_vueda_no_longer_has(node, alias):
+    """Return whether the import ``alias`` of the import statement ``node`` names VUEDA code that no longer exists.
 
-    The result is for running the migration's text to read its data, never for writing. Running it no longer
-    fails on those imports. An import of a name that the migration reads while it loads stays, so its import error
-    is reported rather than a ``NameError``. The source is returned unchanged when it cannot be read.
+    An import whose module fails in its own code counts too, because nothing can load it either.
     """
     try:
-        return _drop_imports(source, _gone_import_rule(ast.parse(source), None))[0]
-    except (SyntaxError, RefreshError):
-        return source
+        return _vueda_no_longer_has(node, alias)
+    except RefreshError:
+        return True
 
 
 def _drop_imports(source, should_drop):

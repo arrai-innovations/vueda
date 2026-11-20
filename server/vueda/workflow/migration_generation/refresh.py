@@ -26,7 +26,7 @@ import datetime
 import types
 
 from vueda.user.management.commands.utils import format_changed_data
-from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
+from vueda.user.migration_generation.refresh import imports_code_that_vueda_no_longer_has
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
 from vueda.workflow.migration_generation.operations import get_id_values_from_item
 
@@ -261,11 +261,24 @@ def read_changed_data(source, filepath):
     When the changes cannot be read, the result is ``(None, problem)``, and ``problem`` says why. The text is run as a
     module, rather than parsed, because a change records real datetimes and a literal parser cannot build them.
     It runs the given text, not the file, so a refresh can read a migration before writing anything.
+
+    Only the module's imports and top-level assignments run, which is all that ``changed_data`` can need. Its
+    functions and its ``Migration`` class are left out, so a class body that names a function from an import that
+    VUEDA no longer has cannot stop the read. Those imports are left out too.
     """
     module = types.ModuleType("workflow_migration_being_updated")
     module.__file__ = str(filepath)
     try:
-        exec(compile(source, str(filepath), "exec"), module.__dict__)
+        tree = ast.parse(source, str(filepath))
+        body = []
+        for node in tree.body:
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                node.names = [alias for alias in node.names if not imports_code_that_vueda_no_longer_has(node, alias)]
+                if node.names:
+                    body.append(node)
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                body.append(node)
+        exec(compile(ast.Module(body=body, type_ignores=[]), str(filepath), "exec"), module.__dict__)
         changed_data = module.changed_data
     except Exception as error:
         return None, str(error)
@@ -286,7 +299,7 @@ def changed_data_updater(identities, filepath, *, stderr, dry_run):
 
     def update(source):
         # The refresh removes imports of code that VUEDA no longer has, so they must not stop the read either.
-        changed_data, problem = read_changed_data(without_imports_that_vueda_no_longer_has(source), filepath)
+        changed_data, problem = read_changed_data(source, filepath)
         if problem:
             raise ValueError(f"Could not read changed_data: {problem}")
 

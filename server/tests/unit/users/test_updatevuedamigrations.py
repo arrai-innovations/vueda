@@ -29,7 +29,6 @@ from vueda.user.migration_generation.refresh import refresh_migration
 from vueda.user.migration_generation.refresh import remove_imports_that_stop_the_graph
 from vueda.user.migration_generation.refresh import remove_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.refresh import remove_obsolete_names
-from vueda.user.migration_generation.refresh import without_imports_that_vueda_no_longer_has
 from vueda.user.migration_generation.tools import GROUP_MIGRATION_KIND
 from vueda.workflow.migration_generation import operations as workflow_operations
 from vueda.workflow.migration_generation import refresh as workflow_refresh
@@ -261,7 +260,7 @@ def test_removing_obsolete_names_twice_changes_nothing_the_second_time():
             "'changes': {'code': ('a',)}}]",
             "change 0 has a workflow code that is not a single value",
         ),
-        ("raise RuntimeError('the migration fails to import')", "the migration fails to import"),
+        ("changed_data = 1 / 0", "division by zero"),
     ],
 )
 def test_changed_data_that_a_refresh_cannot_read_names_the_reason(changed_data_source, problem):
@@ -349,7 +348,6 @@ def test_a_gone_import_that_the_migration_shadows_with_its_own_definition_can_go
         "class Migration:\n    operations = [forwards]\n"
     )
 
-    assert "makeworkflowmigrations" not in without_imports_that_vueda_no_longer_has(source)
     assert "makeworkflowmigrations" not in remove_imports_that_stop_the_graph(source, WORKFLOW_MIGRATION_KIND)[0]
 
 
@@ -375,7 +373,6 @@ def test_a_gone_import_that_the_migration_still_needs_while_it_loads_is_refused(
         RefreshError, match=r"uses vueda\.workflow\.management\.commands\.makeworkflowmigrations\.helper"
     ):
         remove_imports_that_vueda_no_longer_has(source)
-    assert "import helper" in without_imports_that_vueda_no_longer_has(source)
     assert remove_imports_that_stop_the_graph(source, WORKFLOW_MIGRATION_KIND) == (source, ())
 
 
@@ -406,14 +403,20 @@ def test_a_function_used_as_a_decorator_runs_while_the_migration_loads():
     assert remove_imports_that_stop_the_graph(source, GROUP_MIGRATION_KIND) == (source, ())
 
 
-def test_reading_a_migration_keeps_a_gone_import_that_it_reads_while_it_loads():
-    """Removing it would turn the import error into a NameError, which says less about what to fix."""
+def test_changed_data_is_read_without_the_functions_and_the_migration_class():
+    """The class body names a function from an import that VUEDA no longer has. Reading changed_data runs only the
+    imports and the assignments, so neither can stop the read."""
     source = (
-        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards\n\n\n"
+        "import datetime\n"
+        "from vueda.workflow.management.commands.makeworkflowmigrations import forwards\n\n"
+        "changed_data = [{'model_name': 'state', 'history_date': datetime.datetime(2026, 6, 29), 'changes': {}}]\n\n\n"
         "class Migration:\n    operations = [forwards]\n"
     )
 
-    assert without_imports_that_vueda_no_longer_has(source) == source
+    changed_data, problem = read_changed_data(source, "kept.py")
+
+    assert problem is None
+    assert changed_data[0]["model_name"] == "state"
 
 
 def test_a_star_import_of_code_that_vueda_no_longer_has_is_refused():
