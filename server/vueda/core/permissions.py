@@ -34,8 +34,10 @@ def has_matching_state_grant(model, user, required_permissions) -> bool:
     own workflow, and that rule grants rather than denies.
 
     The answer says only that an object's state can still admit the request. It does not say that
-    any particular object does. Call it only from a path that goes on to make that per-object
-    decision, and let the object decision, including a matching deny, settle the request.
+    any particular object does. A path that authorizes a request must go on to make that per-object
+    decision, and let the object decision, including a matching deny, settle the request. Model
+    metadata, such as ``model_actions`` and the model info gate, may use the answer alone, because it
+    describes what a user might do on some object of the model.
     """
     if not workflow_is_installed() or not user.is_authenticated:
         return False

@@ -139,16 +139,18 @@ def get_registration(content_type):
     """
     Get the registration for a content type.
 
-    :param content_type: The content type to get the registration for.
+    :param content_type: The content type to get the registration for, or its primary key. A content type
+     instance needs no query.
     :return: The registration for the content type.
     """
     from django.contrib.contenttypes.models import ContentType
 
-    try:
-        # Fetch the ContentType object based on its PK
-        content_type = ContentType.objects.get(pk=content_type)
-    except ContentType.DoesNotExist:
-        raise ValueError(f"ContentType {content_type} does not exist.")
+    if not isinstance(content_type, ContentType):
+        try:
+            # Fetch the ContentType object based on its PK
+            content_type = ContentType.objects.get(pk=content_type)
+        except ContentType.DoesNotExist:
+            raise ValueError(f"ContentType {content_type} does not exist.")
 
     # Construct the key as "app_label.model"
     key = f"{content_type.app_label}.{content_type.model}"
