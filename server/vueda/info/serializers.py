@@ -158,6 +158,7 @@ def iter_model_actions(called_viewset, request):
             "detail": extra_action.detail,
             "bulk": extra_action.bulk,
             "method_names": method_names,
+            "url_path": extra_action.url_path,
         }
         parameters = [parameter for parameter in parameters if parameter not in ("self", "request")]
         if parameters:
