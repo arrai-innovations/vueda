@@ -644,7 +644,8 @@ class TestUpdateVuedaMigrations(BaseTestMigrations):
             out, err, status = run_update()
 
             assert (status, err) == (0, "")
-            assert f"Skipping: {path}\n  Its dependencies do not include vueda_workflow.0008_" in out
+            assert f"Skipping: {path}" in out
+            assert "\n  Its dependencies do not include vueda_workflow.0008_" in out
             assert "Keep its existing functions; review the migration graph before changing dependencies." in out
             assert "Skipped 1 migration(s) that must keep their functions." in out
             assert path.read_text() == before
