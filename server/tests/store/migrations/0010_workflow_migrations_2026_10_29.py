@@ -4,6 +4,7 @@
 import copy
 import datetime
 import enum
+import sys
 
 from django.apps import apps as django_apps
 from django.conf import settings
@@ -11,8 +12,13 @@ from django.contrib.auth.management import create_permissions
 from django.db import migrations
 from django.db.migrations.state import ModelState
 from django.db.migrations.state import ProjectState
+from django.db.models import Exists
+from django.db.models import OuterRef
+from django.db.models import Q
+from django.db.models import Subquery
 
 from vueda.core.audit import audited_action
+from vueda.core.audit import tagged_writes
 
 
 history_change_reason = "Workflow Migration - 0010_workflow_migrations_2026_10_29"
@@ -302,9 +308,8 @@ def workflow_migration_action(apps, change_reason):
 def forwards_migrate_workflow(apps, changed_items, change_reason):
     """Apply a generated workflow migration's ``changed_items`` in order, then sync workflow object states.
 
-    Generated workflow migrations call this from their forwards step; the migrations import it when
-    made with ``--import-instead`` and copy it otherwise. All writes are grouped under one migration
-    action named by ``change_reason``.
+    Generated workflow migrations copy this function and call it from their forwards step. All writes
+    are grouped under one migration action named by ``change_reason``.
     """
     with workflow_migration_action(apps, change_reason):
         _forwards_migrate_workflow(apps, changed_items, change_reason)
@@ -347,8 +352,8 @@ def backwards_migrate_workflow(apps, changed_items, change_reason):
     states change only for the workflows ``changed_items`` names: a removed workflow's object states
     are deleted, an object in a removed state is restored from its history or reset to the initial
     state, and a re-created workflow gives its objects the initial state. Every other object state
-    keeps its row and its state. Generated workflow migrations call this from their reverse step; the
-    migrations import it when made with ``--import-instead`` and copy it otherwise.
+    keeps its row and its state. Generated workflow migrations copy this function and call it from
+    their reverse step.
     """
     apps = rebuild_migration_apps(apps)
     with workflow_migration_action(apps, change_reason):
@@ -431,7 +436,7 @@ def make_sure_permissions_exist(app_label):
     """Create any missing permissions for the app named ``app_label``.
 
     Generated workflow migrations run this before applying their changes, so the permissions those changes
-    name exist. The migrations import it when made with ``--import-instead`` and copy it otherwise.
+    name exist. The migrations copy this function.
     """
     app = django_apps.get_app_config(app_label)
     create_permissions(app, interactive=False)
@@ -604,6 +609,8 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
             model_state_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
+            # A state permission moved to another state holds an (old, new) pair here too.
+            data["id"]["state_id"] = get_id_values_from_item(data["id"]["state_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["state_id"]["workflow_id"])
             data["id"]["state_id"]["workflow_id"] = workflow.pk
             state = model_state.objects.get(**data["id"]["state_id"])
@@ -633,6 +640,16 @@ def handle_state_permission(apps, changed_item, change_reason, *, reversing=Fals
                     group = model_group.objects.get(**group_id)
                     new_group_ids.append(group.pk)
                 data["group_id"] = tuple(new_group_ids)
+
+            # If the value is changed, it is a tuple.  We need to get the ids for each item.
+            if type(data["state_id"]) is tuple:
+                state_ids = []
+                for state_data in data["state_id"]:
+                    workflow = model_workflow.objects.get(**state_data["workflow_id"])
+                    state_data["workflow_id"] = workflow.pk
+                    state = model_state.objects.get(**state_data)
+                    state_ids.append(state.pk)
+                data["state_id"] = tuple(state_ids)
 
             apply_and_save_changes(state_permission, data, reversing=reversing)
 
@@ -801,6 +818,8 @@ def handle_transition_permission(apps, changed_item, change_reason, *, reversing
             model_transition_permission.objects.create(**data)
 
         case WorkflowChangeTypes.CHANGED.value:
+            # A transition permission moved to another transition holds an (old, new) pair here.
+            data["id"]["transition_id"] = get_id_values_from_item(data["id"]["transition_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
 
@@ -885,6 +904,8 @@ def handle_transition_source(apps, changed_item, change_reason, *, reversing=Fal
             state = model_state.objects.get(**data["id"]["source_id"])
             data["id"]["source_id"] = state.pk
 
+            # A source moved to another transition holds an (old, new) pair here, as source_id does above.
+            data["id"]["transition_id"] = get_id_values_from_item(data["id"]["transition_id"], reversing=reversing)
             workflow = model_workflow.objects.get(**data["id"]["transition_id"]["workflow_id"])
             data["id"]["transition_id"]["workflow_id"] = workflow.pk
             transition = model_transition.objects.get(**data["id"]["transition_id"])
@@ -939,29 +960,58 @@ def handle_state_objects(apps, *, reversing=False):
     ``reversing`` deletes all object states instead. Generated workflow migrations copy this function
     and reach it through ``forwards_migrate_workflow`` and ``backwards_migrate_workflow``.
     """
+    model_initial_state_event = apps.get_model("vueda_workflow", "InitialStateEvent")
     model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
 
     for workflow in model_workflow.objects.all():
         model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
-        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event, reversing=reversing)
+        manage_state_objects(
+            workflow,
+            model_obj,
+            model_object_state,
+            model_object_state_event,
+            model_initial_state_event,
+            reversing=reversing,
+        )
 
 
-def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_state_event_class, *, reversing=False):
-    """Create missing object states and move states with only a recorded creation to the initial state.
+def manage_state_objects(
+    workflow,
+    obj_class,
+    workflow_obj_state_class,
+    object_state_event_class,
+    initial_state_event_class,
+    *,
+    reversing=False,
+):
+    """Create missing object states and move untouched object states to the workflow's initial state.
 
-    An object state with only its creation recorded against it is still wherever it was put, so a
-    changed initial state moves it. One that carries any later event was moved by someone, and the
-    state they moved it to is theirs to keep. A state with no events also stays where it is: it may
-    predate the event triggers, so missing history does not prove that it has never moved.
+    Every object of ``obj_class`` without an object state gets one in the initial state. Objects are read through
+    the model's base manager, so a default manager that hides rows does not hide them here. The states are created
+    in bulk, and a state that a save creates meanwhile is kept.
 
-    TODO: An earlier run of this counts as someone, because its update is an event like any other.
-      A workflow whose initial state changes twice therefore moves its objects only the first time.
-      Telling the two apart needs the sync's own writes to be identifiable, which the action context
-      cannot currently do here: pghistory sets its context as a transaction-local, so an action
-      opened around these writes is still attributed to everything else written in the same
-      transaction.
+    An untouched object state moves to the current initial state, so a changed initial state reaches it. That
+    includes changing the initial state back after a mistake. An object state is untouched when both of these hold:
+
+    - It was created in the workflow's initial state as it stood at that moment. That initial state is the one that
+      the latest initial state event at or before the creation records. A state that was created somewhere else,
+      such as an imported object placed in a later state, stays where it is.
+    - No event for the same workflow and object records a move that someone made. That includes an event on an
+      earlier object state of the object that a migration's reversal deleted, so a move that someone made before
+      the reversal still counts. This function's own moves are tagged with
+      ``initial_state_sync`` through ``tagged_writes``. A migration's writes are recorded under an action of the
+      ``migration`` kind, such as a reversal that moves objects out of a state that it removes. Neither counts as
+      someone's move.
+
+    A state with no events stays where it is, because it may predate the event triggers. So does a state that was
+    created before the workflow's first recorded initial state event.
+
+    Returns the number of object states that moved. ``reversing`` deletes every object state of the workflow
+    instead. The workflow, model, object state, and event classes are passed in, so the function works with a
+    migration's models and with the current models.
+    Generated workflow migrations copy this function, and ``backfillworkflowstates`` calls it.
     """
     if reversing:
         # Delete all object states
@@ -973,23 +1023,51 @@ def manage_state_objects(workflow, obj_class, workflow_obj_state_class, object_s
         # A workflow part-way through its own migration has no initial state to give anything.
         return
 
-    for obj in obj_class.objects.all():
-        obj_state = workflow_obj_state_class.objects.filter(workflow=workflow, object_id=obj.pk).first()
+    # vueda.workflow.models.objects_without_object_state runs the same query for the system check. This copy
+    # stays separate, because migrations copy this function and must not import the current models.
+    with_state = workflow_obj_state_class.objects.filter(workflow=workflow).values("object_id")
+    missing = obj_class._base_manager.exclude(pk__in=with_state).values_list("pk", flat=True)
+    workflow_obj_state_class.objects.bulk_create(
+        [workflow_obj_state_class(workflow=workflow, object_id=pk, state_id=initial_state.state_id) for pk in missing],
+        batch_size=1000,
+        # A save that created its own object state while this ran keeps it.
+        ignore_conflicts=True,
+    )
 
-        if obj_state is None:
-            workflow_obj_state_class.objects.create(
-                workflow=workflow,
-                object_id=obj.id,
-                state=initial_state.state,
+    # Event timestamps come from clock_timestamp(), so they order the writes even inside one transaction.
+    initial_state_at_creation = (
+        initial_state_event_class.objects.filter(
+            workflow_id=OuterRef("workflow_id"), pgh_created_at__lte=OuterRef("pgh_created_at")
+        )
+        .order_by("-pgh_created_at", "-pgh_id")
+        .values("state_id")[:1]
+    )
+    created_in_the_initial_state = object_state_event_class.objects.filter(
+        pgh_obj_id=OuterRef("pk"), pgh_label="insert", state_id=Subquery(initial_state_at_creation)
+    )
+    # Match on the workflow and object rather than the row, so a move recorded on a row that an earlier
+    # reversal deleted still counts.
+    moved_by_someone = (
+        object_state_event_class.objects.filter(workflow_id=OuterRef("workflow_id"), object_id=OuterRef("object_id"))
+        .exclude(pgh_label="insert")
+        .filter(
+            Q(pgh_context__isnull=True)
+            | ~(
+                Q(pgh_context__metadata__contains={"initial_state_sync": True})
+                # Written out rather than named, because this source is copied into migrations. It matches
+                # MIGRATION_ACTION_KIND.
+                | Q(pgh_context__metadata__contains={"kind": "migration"})
             )
-            continue
-
-        if obj_state.state_id == initial_state.state_id:
-            continue
-
-        events = object_state_event_class.objects.filter(pgh_obj_id=obj_state.pk)
-        if events.filter(pgh_label="insert").exists() and not events.exclude(pgh_label="insert").exists():
-            workflow_obj_state_class.objects.filter(pk=obj_state.pk).update(state_id=initial_state.state_id)
+        )
+    )
+    untouched = (
+        workflow_obj_state_class.objects.filter(workflow=workflow)
+        .exclude(state_id=initial_state.state_id)
+        .filter(Exists(created_in_the_initial_state))
+        .exclude(Exists(moved_by_someone))
+    )
+    with tagged_writes(initial_state_sync=True):
+        return untouched.update(state_id=initial_state.state_id)
 
 
 def _released_record(released, workflow):
@@ -1104,6 +1182,7 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
     function and reach it through ``backwards_migrate_workflow``.
     """
     model_initial_state = apps.get_model("vueda_workflow", "InitialState")
+    model_initial_state_event = apps.get_model("vueda_workflow", "InitialStateEvent")
     model_object_state = apps.get_model("vueda_workflow", "ObjectState")
     model_object_state_event = apps.get_model("vueda_workflow", "ObjectStateEvent")
     model_workflow = apps.get_model("vueda_workflow", "Workflow")
@@ -1127,7 +1206,9 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
             continue
         before = model_object_state.objects.filter(workflow=workflow).count()
         model_obj = apps.get_model(workflow.historical_app_label, workflow.historical_model)
-        manage_state_objects(workflow, model_obj, model_object_state, model_object_state_event)
+        manage_state_objects(
+            workflow, model_obj, model_object_state, model_object_state_event, model_initial_state_event
+        )
         _released_record(released, workflow)["created"] += (
             model_object_state.objects.filter(workflow=workflow).count() - before
         )
@@ -1142,8 +1223,9 @@ def settle_released_object_states(apps, released, recreated_workflow_ids):
         )
         for count, outcome in counts:
             if count:
-                # A migration's code has no command stdout to write to; migrate shows what it prints.
-                print(f"  Workflow {record['code']}: {count} object state(s) {outcome}.")
+                # A migration's code has no command stdout to write to; migrate shows what it writes here. It
+                # writes rather than prints, so a project's linter has no print call to flag in its migrations.
+                sys.stdout.write(f"  Workflow {record['code']}: {count} object state(s) {outcome}.\n")
 
 
 def apply_and_save_changes(obj, data, *, reversing=False):
