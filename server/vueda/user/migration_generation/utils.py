@@ -1,15 +1,20 @@
 """Helpers for migration generation: which apps a run covers, and the migrations that those apps already have."""
 
 __all__ = (
-    "INSTALLED_PACKAGE_DIRECTORIES",
+    "INSTALLED_PACKAGE_DIRECTORY_NAMES",
+    "INSTALLED_PACKAGE_PATHS",
     "MARKER_SEARCH_LINES",
     "GeneratedMigration",
     "app_migration_names",
     "generated_migrations",
+    "get_installed_package_paths",
     "is_generated_migration",
     "is_installed_package_app",
+    "is_installed_package_location",
+    "is_installed_package_path",
     "is_vueda_app",
     "latest_migration_names",
+    "module_exists",
     "project_app_labels",
     "user_app_label",
 )
@@ -17,6 +22,10 @@ __all__ = (
 import dataclasses
 import importlib
 import importlib.util
+import os
+import site
+import sys
+import sysconfig
 from pathlib import Path
 
 from django.apps import apps as django_apps
@@ -59,7 +68,9 @@ def app_migration_names(app_label):
 def is_generated_migration(migration_path, marker_comments):
     """Return whether the file at ``migration_path`` carries one of ``marker_comments`` near its top."""
     markers = tuple(marker.strip() for marker in marker_comments)
-    with open(migration_path, encoding="utf-8") as migration_file:
+    # The markers are plain ASCII. Replacing undecodable bytes lets a hand-written migration in another encoding be
+    # checked without an error.
+    with open(migration_path, encoding="utf-8", errors="replace") as migration_file:
         for line_number, line in enumerate(migration_file):
             if line_number > MARKER_SEARCH_LINES:
                 break
@@ -94,17 +105,103 @@ def generated_migrations(app_label, marker_comments):
     return tuple(found)
 
 
-# The directory names that Python installs third-party packages into.
-INSTALLED_PACKAGE_DIRECTORIES = frozenset(("site-packages", "dist-packages"))
+def get_installed_package_paths():
+    """Return the directories that packages are installed into, normalized for comparison.
+
+    A migration under one of them belongs to a package, so the project cannot commit a rewrite of it,
+    and reinstalling the package puts the original back. An editable install leaves its files in their
+    source tree, so it is not under any of these.
+
+    Besides the environment's own package directories, these include the base interpreter's, which a
+    virtual environment created with ``--system-site-packages`` also imports from, and the user site
+    directory that ``pip install --user`` installs into.
+
+    On Windows, ``site.getsitepackages`` lists each prefix itself alongside its ``Lib\\site-packages``.
+    A prefix holds far more than packages, so counting it would treat a project kept inside a Python
+    install, such as a portable or embedded one, as installed. The prefixes are left out.
+    """
+    prefixes = (sys.base_prefix, sys.base_exec_prefix)
+    paths = (
+        sysconfig.get_path("purelib"),
+        sysconfig.get_path("platlib"),
+        *site.getsitepackages(prefixes),
+        site.getusersitepackages(),
+    )
+    # Different spellings can name one directory, such as lib64 linked to lib, so duplicates are
+    # dropped once each path is resolved.
+    resolved_prefixes = {os.path.normcase(os.path.realpath(prefix)) for prefix in prefixes}
+    resolved_paths = {os.path.normcase(os.path.realpath(path)): None for path in paths}
+    return tuple(path for path in resolved_paths if path not in resolved_prefixes)
+
+
+INSTALLED_PACKAGE_PATHS = get_installed_package_paths()
+
+# The names of the directories that Python installs third-party packages into, wherever they are.
+INSTALLED_PACKAGE_DIRECTORY_NAMES = frozenset(("site-packages", "dist-packages"))
+
+
+def is_installed_package_path(path):
+    """Return whether a path is inside a directory that packages are installed into."""
+    path = os.path.normcase(os.path.realpath(path))
+    return any(path == root or path.startswith(root + os.sep) for root in INSTALLED_PACKAGE_PATHS)
 
 
 def is_installed_package_app(app_label):
-    """Return whether the app ``app_label`` is installed as a package, under ``site-packages`` or ``dist-packages``.
+    """Return whether the app ``app_label`` is installed as a package, so no command may write its migrations.
 
-    A project cannot commit a migration written into such an app, and a reinstall puts the package's own files
-    back.
+    It checks the app's migrations directory, which honors ``MIGRATION_MODULES``. An app without a migrations
+    directory is checked by its own directory. An app whose ``MIGRATION_MODULES`` entry names a module that does
+    not exist yet is not installed, because the project creates that module. The directory counts as installed
+    when it is inside a directory that this interpreter installs packages into, or when its path has a
+    ``site-packages`` or ``dist-packages`` part, which covers packages installed with ``pip install --target`` or
+    kept on ``PYTHONPATH``. A project cannot commit a migration written into a package, and a reinstall puts the
+    package's own files back.
     """
-    return bool(INSTALLED_PACKAGE_DIRECTORIES & set(Path(django_apps.get_app_config(app_label).path).parts))
+    app_config = django_apps.get_app_config(app_label)
+    migrations_path = get_migrations_path(app_config)
+    if migrations_path is None and _names_a_missing_module(settings.MIGRATION_MODULES.get(app_label)):
+        # MIGRATION_MODULES moves the migrations into a module that does not exist yet. The project creates it, so
+        # the app's own directory does not decide.
+        return False
+    return is_installed_package_location(migrations_path or app_config.path)
+
+
+def module_exists(module_name):
+    """Return whether ``module_name`` names a module that can be found. A module that exists but fails to import
+    counts as found.
+
+    Finding a dotted name imports its parent packages.
+    """
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except ModuleNotFoundError as error:
+        # A missing parent package means the module is missing too. A module that a parent package imports for
+        # itself, such as an optional dependency, is a failure of that package, not a missing module.
+        parts = module_name.split(".")
+        if error.name in {".".join(parts[: index + 1]) for index in range(len(parts))}:
+            return False
+        raise
+
+
+def _names_a_missing_module(module_name):
+    """Return whether ``module_name`` names a module that cannot be found. A module that exists but fails to import
+    does not count."""
+    if not module_name:
+        return False
+    try:
+        return not module_exists(module_name)
+    except Exception:
+        # The module's package exists but fails on its own import, so the module is not missing.
+        return False
+
+
+def is_installed_package_location(path):
+    """Return whether ``path`` belongs to an installed package, by the rules that ``is_installed_package_app`` uses.
+
+    The path counts as installed when it is inside a directory that this interpreter installs packages into, or
+    when it has a ``site-packages`` or ``dist-packages`` part.
+    """
+    return is_installed_package_path(path) or bool(INSTALLED_PACKAGE_DIRECTORY_NAMES & set(Path(path).parts))
 
 
 def is_vueda_app(app_label):
@@ -119,8 +216,8 @@ def is_vueda_app(app_label):
 def project_app_labels():
     """Return the labels of the installed apps that belong to the project, in installed order.
 
-    An app installed under ``site-packages``, or ``dist-packages`` on Debian's system Python, is a third-party
-    package, so it is left out.
+    An app installed as a package, as ``is_installed_package_app`` decides, is a third-party package, so it is left
+    out.
     """
     return tuple(
         app_config.label
