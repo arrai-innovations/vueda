@@ -575,8 +575,10 @@ def merge_migration_sources(existing_segment, source_map):
     line_no = 1
     total_lines = len(lines)
     while line_no <= total_lines:
+        # The blank lines that separate the anchor from what comes before it are already in place above this
+        # line, so an inserted definition takes the separating blank lines after itself.
         for source in insert_before.get(line_no, ()):
-            output.append(f"{NEWLINE}{NEWLINE}{source}")
+            output.append(f"{source}{NEWLINE}{NEWLINE}")
 
         if line_no in replace_at:
             end, source = replace_at[line_no]
