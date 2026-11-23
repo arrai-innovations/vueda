@@ -19,6 +19,7 @@ from django.contrib.auth.models import UserManager
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.db.models import F
+from django.db.models.functions import Now
 from django.utils import timezone
 from hashids import Hashids
 from phonenumber_field.modelfields import PhoneNumberField
@@ -171,7 +172,9 @@ class GroupChange(models.Model):
             (DELETED, DELETED),
         ),
     )
-    when = models.DateTimeField(auto_now_add=True)
+    # The database's clock (the statement's time), as pghistory stamps workflow events with clock_timestamp(), so
+    # makevuedamigrations orders group and workflow changes by one clock. The app server's clock can drift from it.
+    when = models.DateTimeField(db_default=Now(), editable=False)
     historical_permission_codename = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_app_label = models.CharField(max_length=100, blank=True)
     historical_permission_content_type_model_name = models.CharField(max_length=100, blank=True)

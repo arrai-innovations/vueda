@@ -4,6 +4,7 @@ __all__ = (
     "action_is_open",
     "audited_action",
     "current_action_metadata",
+    "tagged_writes",
 )
 
 import contextlib
@@ -33,13 +34,46 @@ def audited_action(action, kind=None, **metadata):
     action keeps that metadata until it exits. Only the outermost block clears the action when it
     ends, because an inner one leaving must not take the action its caller is still writing under.
     """
+    with _open_or_join_action({"action": action, **metadata}, kind):
+        yield
+
+
+@contextlib.contextmanager
+def tagged_writes(**metadata):
+    """Add ``metadata`` to the action that the writes made in this block are recorded under.
+
+    Unlike ``audited_action``, this names no action and no kind. Inside an open action, the metadata joins that
+    action and keeps its name and kind. Every write in the action shares one context row, so every write in it,
+    including the writes made before this block, carries the metadata.
+
+    Outside an action, the block opens one that holds only the metadata, and clears it when the block ends, so a
+    later write in the same transaction carries no metadata. An action that the block opens has the ``system``
+    kind, as ``audited_action`` gives an action that names none.
+
+    The ``action`` and ``kind`` keys raise ``TypeError``, because they would rename or re-kind the open action.
+    Name an action with ``audited_action`` instead.
+    """
+    reserved = sorted({"action", "kind"} & set(metadata))
+    if reserved:
+        raise TypeError(f"tagged_writes() does not accept {', '.join(reserved)}; use audited_action() to name one.")
+    with _open_or_join_action(metadata, None):
+        yield
+
+
+@contextlib.contextmanager
+def _open_or_join_action(metadata, kind):
+    """Record the block's writes under an action that holds ``metadata``, joining the open action if there is one.
+
+    ``kind`` replaces the action's kind. Without one, the action keeps the kind that it has, and an action with
+    none gets ``system``. Only the block that opened the action clears it when it ends.
+    """
     owns_action = not action_is_open()
 
-    with pghistory.context(action=action, **metadata) as current:
+    with pghistory.context(**metadata) as current:
         if kind is not None:
             current.metadata["kind"] = kind
-        else:
-            current.metadata.setdefault("kind", "system")
+        elif "kind" not in current.metadata:
+            current.metadata["kind"] = "system"
         try:
             yield
         finally:

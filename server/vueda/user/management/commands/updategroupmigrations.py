@@ -6,20 +6,20 @@ import sys
 from django.apps import apps as django_apps
 from django.core.management import BaseCommand
 
-from vueda.user.management.commands.makegroupmigrations import MIGRATION_MODIFIED_COMMENT
-from vueda.user.management.commands.makegroupmigrations import NEWLINE
-from vueda.user.management.commands.makegroupmigrations import get_group_migration_imports
-from vueda.user.management.commands.makegroupmigrations import get_group_migration_sources
+from vueda.user.management.commands.utils import NEWLINE
 from vueda.user.management.commands.utils import NoRenamesError
 from vueda.user.management.commands.utils import get_migrations_path
 from vueda.user.management.commands.utils import has_direct_runpython_import
 from vueda.user.management.commands.utils import merge_migration_imports
 from vueda.user.management.commands.utils import merge_migration_sources
 from vueda.user.management.commands.utils import update_operation_function_names
+from vueda.user.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
+from vueda.user.migration_generation.operations import get_group_migration_imports
+from vueda.user.migration_generation.operations import get_group_migration_sources
 
 
-GROUP_MIGRATION_COMMENT_MARKER = MIGRATION_MODIFIED_COMMENT.strip()
-IMPORT_INSTEAD_MARKER = "from vueda.user.management.commands.makegroupmigrations import make_sure_permissions_exist"
+GROUP_MIGRATION_COMMENT_MARKER = tuple(marker.strip() for marker in MIGRATION_MODIFIED_COMMENTS)
+IMPORT_INSTEAD_MARKER = "from vueda.user.migration_generation.operations import make_sure_permissions_exist"
 
 # Old function names (without _through_imports) that must be renamed in the operations block.
 OPERATION_FUNCTION_RENAMES = {
@@ -30,8 +30,9 @@ OPERATION_FUNCTION_RENAMES = {
 
 class Command(BaseCommand):
     help = (
-        "Scan all installed apps for group migrations created by makegroupmigrations and rewrite "
-        "their import and function sections with the current implementations from makegroupmigrations.py. "
+        "Scan all installed apps for group migrations created by makevuedamigrations or makegroupmigrations and "
+        "rewrite their import and function sections with the current implementations from "
+        "vueda/user/migration_generation/operations.py. "
         "The changed_data variable and the class Migration block are preserved unchanged."
     )
 

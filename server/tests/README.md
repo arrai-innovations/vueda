@@ -58,10 +58,9 @@ statements hold:
 - No migration that the test applies depends on another test app's migrations.
 
 `test_the_vdq_migrations_still_reverse_and_apply` in
-`unit/workflow/test_reverse_workflow_object_states.py` is an example. The group migration tests in
-`unit/users/test_management_commands.py` do not use the marker. The migration that
-`makegroupmigrations` generates depends on the latest migration of every project app, test apps
-included.
+`unit/workflow/test_reverse_workflow_object_states.py` is an example. The `makevuedamigrations`
+tests in `unit/users/test_makevuedamigrations.py` do not use the marker. The first migration that
+the command writes depends on the latest migration of every project app, test apps included.
 
 Each xdist worker builds the template the first time a marked test needs it. The worker drops the
 template when the session ends. `suffix_each_test` fails a marked test that is not also marked
@@ -69,7 +68,7 @@ template when the session ends. `suffix_each_test` fails a marked test that is n
 
 ## Tests that generate or apply migrations
 
-Commands such as `makegroupmigrations` and `makeworkflowmigrations` write migration files. A test
+Commands such as `makevuedamigrations` write migration files. A test
 of those commands must not write into the source tree. `BaseTestMigrations` and the helpers in
 `tests/utils.py` handle this:
 
@@ -84,10 +83,29 @@ of those commands must not write into the source tree. `BaseTestMigrations` and 
    the copy. It returns the copy's path, so the test can read the files that a command writes. It
    deletes the directory when the block exits.
 
-`test_no_app_label_specified` in `unit/workflow/test_management_commands.py` follows all three
-steps. To find a generated migration by name, use `find_one_migration_generated_today_or_fail`.
-The commands put the date in the file name, and the helper accepts yesterday's date for a test that
-runs past midnight.
+`TestMakeVuedaMigrations` in `unit/users/test_makevuedamigrations.py` follows steps 1 and 3. To find
+the migrations that a command wrote, list the migration directory before and after it runs, as its
+`new_migration_names` helper does. Never build a name yourself: a generated migration's name ends in a
+random suffix.
+
+### Migrations that the tests write import their functions
+
+A project's generated migrations copy in the functions that they run, so they keep working when
+VUEDA changes those functions. Copied code does not count toward the coverage report. So the
+session fixture `import_instead_of_copying` in `conftest.py` sets
+`makevuedamigrations.Command._import_instead` to `True` once, before any test runs. Every migration
+that a test writes with `makevuedamigrations` then imports its functions from VUEDA. Projects get
+no option for this.
+
+A test that needs the copied functions sets the attribute back to `False` for itself only:
+
+```python
+def test_...(self, settings, monkeypatch):
+    monkeypatch.setattr(MakeVuedaMigrationsCommand, "_import_instead", False)
+```
+
+`monkeypatch` restores `True` after the test. `test_migrations_with_copied_code_round_trip` in
+`unit/users/test_makevuedamigrations.py` is an example.
 
 ## Tests that must not run in parallel
 
@@ -118,73 +136,35 @@ rely on. Then run the suite with `-n2 --dist loadgroup` to check that the group 
 
 ## Regenerate the test apps' migrations
 
-The group and workflow test apps commit the migrations that the management commands generated for
-them. Regenerate them when a command's output changes.
+`makevuedamigrations` tests generate their migrations while they run, into temporary migration modules, so no
+test app commits a migration that it generated. Only `group_changes_syncing` commits a generated group
+migration, which its `sync_group_changes` test reads.
 
-### Do the following when changes are made to `makegroupmigrations.py`.
+### Do the following when the code that group migrations copy changes.
 
-1. Temporarily add the four group apps to `LOCAL_APPS` in
-   `server/tests/settings.py`:
+1. Temporarily add the app to `LOCAL_APPS` in `server/tests/settings.py`:
 
     ```python
     LOCAL_APPS = [
         ...
 
-        "tests.group_added.apps.GroupAddedConfig",
-        "tests.group_changed.apps.GroupChangedConfig",
         "tests.group_changes_syncing.apps.GroupChangesSyncingConfig",
-        "tests.group_deleted.apps.GroupDeletedConfig",
     ]
     ```
 
 2. From `server/`, run `updategroupmigrations`.
-3. Remove the group apps added in step 1.
+3. Remove the app added in step 1.
 4. Run the tests to verify everything works.
 5. Fix any failing tests.
-6. Commit the migration changes in the four group apps.
+6. Commit the migration changes in `group_changes_syncing`.
 
 [!WARNING]
-Never do this procedure with the following apps. Their tests require group migrations that are not updated.
+Never do this procedure with the following apps. Their tests require group or workflow migrations that are not
+updated.
 
 - `group_updating`
 - `group_updating_bad_migrations`
 - `group_updating_no_migrations`
-
-### Do the following when changes are made to `makeworkflowmigrations.py`.
-
-1. Temporarily add the five workflow apps to `LOCAL_APPS` in
-   `server/tests/settings.py`:
-
-    ```python
-    LOCAL_APPS = [
-        ...
-
-        "tests.workflow_added.apps.WorkflowAddedConfig",
-        "tests.workflow_changed.apps.WorkflowChangedConfig",
-        "tests.workflow_deleted.apps.WorkflowDeletedConfig",
-        "tests.workflow_duplicates.apps.WorkflowDuplicatesConfig",
-        "tests.workflow_initial_state.apps.WorkflowInitialStateConfig",
-    ]
-    ```
-
-2. From `server/`, run `updateworkflowmigrations`:
-3. Remove the workflow apps added in step 1.
-4. Run the tests to verify everything works.
-5. Fix any failing tests.
-6. Commit the migration changes in the five workflow apps.
-
-[!WARNING]
-Never do this procedure with the following apps. Their tests require group migrations that are not updated.
-
 - `workflow_updating`
 - `workflow_updating_bad_migrations`
 - `workflow_updating_no_migrations`
-
-Three apps are not part of this procedure and have nothing to add to step 1:
-
-- `workflow_reused_codes` and `workflow_moved_codes` commit no generated migration. Their tests
-  generate each one while running, because the dates a generated migration records only line up with
-  history on the database that produced them.
-- `workflow_received_codes` commits a generated migration written in the import form, so it holds no
-  copied functions for this procedure to refresh. Its test applies that migration rather than faking
-  it, which is what a database receiving one does, and rewriting it would change what the test reads.

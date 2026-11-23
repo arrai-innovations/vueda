@@ -18,6 +18,7 @@ from tests.utils import append_installed_apps
 from tests.utils import clear_info_registry_before_test
 from vueda.core.audit import action_is_open
 from vueda.core.audit import audited_action
+from vueda.core.audit import tagged_writes
 from vueda.history.middleware import VuedaHistoryMiddleware
 
 
@@ -142,6 +143,13 @@ class TestActionContext:
         context = events_for(invoice)[0].pgh_context
         assert context.metadata["action"] == "invoice.create"
         assert context.metadata["source"] == "test"
+
+    def test_tagged_writes_refuses_keys_that_would_rename_the_open_action(self):
+        with audited_action("invoice.create"):
+            for key in ("action", "kind"):
+                with pytest.raises(TypeError, match=f"does not accept {key}"):
+                    with tagged_writes(**{key: "other"}):
+                        pass
 
     def test_separate_actions_do_not_share_an_identity(self):
         with audited_action("first"):
