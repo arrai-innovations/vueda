@@ -757,6 +757,46 @@ describe("lib/use/useViewUpdate.js", () => {
             expect(saves[0].body).toEqual({ quantity: 2, lines, address: { city: "Calgary" }, id: "42" });
         });
 
+        scopedIt("sends a relation that a dotted entry narrows as null when the form submits it as null", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: {
+                    ...orderConfig,
+                    fetchFields: ["quantity", "unit_price", "address"],
+                    submitFields: ["quantity", "address.city"],
+                },
+                retrieved: { id: "42", quantity: 1, unit_price: 5, address: { street: "1 Main St", city: "Calgary" } },
+            });
+            await flushPromises();
+
+            // A saved singular inline object marked for removal submits its relation as null. No field renders
+            // here, so the test reports the relation as modified itself, as its inline would.
+            result.formContext.registerIsModifiedHook("address", () => true);
+            result.formContext.submitAsNull("address");
+            await flushPromises();
+            await result.objectForm.submit();
+            await flushPromises();
+
+            expect(saves[0].body).toEqual({ quantity: 1, address: null, id: "42" });
+        });
+
+        scopedIt("leaves out a null relation that a dotted entry narrows when nothing marks it", async () => {
+            const { default: flushPromises } = await import("flush-promises");
+            const { result, saves } = await buildSelectionViewUpdate({
+                config: {
+                    ...orderConfig,
+                    fetchFields: ["quantity", "unit_price", "address"],
+                    submitFields: ["quantity", "address.city"],
+                },
+                retrieved: { id: "42", quantity: 1, unit_price: 5, address: null },
+            });
+            await flushPromises();
+
+            await editAndSubmit(result, "quantity", 2);
+
+            expect(saves[0].body).toEqual({ quantity: 2, id: "42" });
+        });
+
         scopedIt("saves to the edited object's URL through the default update handler", async () => {
             const { default: flushPromises } = await import("flush-promises");
             const { defaultObjectUpdate } = await import("@vueda/utils/objectCrud.js");

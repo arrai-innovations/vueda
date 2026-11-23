@@ -25,7 +25,7 @@ A relation accepts a nested object when its serializer field is a nested seriali
 
 The swap runs only on a serializer that is an instance of the view's serializer class. Query parameters reach only the root serializer. While the body is validated, a swapped child gets no expands of its own, so the relations inside it accept primary keys.
 
-A swapped relation is required on a `create` or a full `update`. An expand whose options set `required: False` is optional. The nested serializer rejects `null`. An expand whose options set `allow_null: True` accepts it.
+A swapped relation is required on a `create` or a full `update`. An expand whose options set `required: False` is optional. A single-object relation that can be empty accepts `null`. A reverse one-to-one relation can always be empty, and a forward relation can be empty when its model field has `null=True`. [Write Order](#write-order) lists what `null` removes and which settings change the rule. Any other nested serializer rejects `null`. An expand whose options set `allow_null: True` accepts it.
 
 DRF does not give nested serializer fields their part of the submitted body. `to_internal_value` sets `initial_data` on each nested serializer field whose name appears in the body, so a nested serializer can read its raw input while it validates. A read-only field, a relation left as a primary key, and a relation that the body omits get no `initial_data`.
 
@@ -58,9 +58,15 @@ Removal applies only to a reverse relation whose key is in the body. A body that
 
 - A many-to-many relation loses its link to the row. The row stays.
 - A foreign key with {@api ext:django:django.db.models.SET_NULL} or `SET_DEFAULT` is set to null or to its default.
-- Any other foreign key has its row deleted. When {@api ext:django:django.db.models.PROTECT} blocks the delete, the response is a `400` with "Cannot delete ... because protected relation exists" under `non_field_errors`.
+- Any other foreign key has its row deleted. When another row holds that row with {@api ext:django:django.db.models.PROTECT} or `RESTRICT`, the delete fails. The response is a `400` with "Cannot delete ... because protected relation exists" under `non_field_errors`.
 
-A reverse one-to-one relation takes one row or `null`, not a list. A body that sends `null` removes the parent's row, by the same rules. A body that omits the key leaves the row in place.
+A single-object relation, such as a reverse one-to-one or a forward foreign key, takes one object or `null`, not a list. A body that omits its key leaves its object in place. To remove the object, send `null` for it and name it in `e`:
+
+- A reverse one-to-one child is deleted. When the child's one-to-one field uses `SET_NULL` or `SET_DEFAULT`, that field is set to null or its default instead, and the child stays. When another row holds the child with `PROTECT` or `RESTRICT`, the delete fails and the response is a `400`.
+- A forward foreign key or one-to-one field with `null=True` is cleared. The related row stays.
+- Any other forward relation rejects `null` with "This field may not be null.".
+
+The rule applies to the relations that the view's serializer expands. A deeper level, such as `profile` in `e=items.profile`, still rejects `null`. drf-writable-nested saves each nested row through a new serializer without that row's expands, so it could not save the `null`. For a forward relation, the writable plain field that the serializer exposes for the relation passes its own `allow_null` instead. DRF builds that field from the model field's `null` and any `allow_null` entry in `Meta.extra_kwargs`. A field that the serializer declares, such as a `PrimaryKeyRelatedField(allow_null=False)`, sets its own. For a reverse relation, only a writable field that the serializer declares passes its `allow_null`. A plain field counts when its `source` names the relation. An `allow_null` option in the relation's `Meta.expandable_fields` entry replaces all of these. A reverse one-to-one object without a primary key replaces the saved child. The update removes the saved child first, then creates the new one.
 
 The update removes rows before it writes the body's rows, which is the reverse of drf-writable-nested's order. When the body is HTML form data, DRF rebuilds the nested row list each time the serializer reads its submitted data. Form data is a form-encoded body or a multipart body without the manifest that [CRUD Adapter Layer](./crud-adapter-layer#multipart-saves) describes. The library records a new row's primary key in one copy of that list, and its removal step reads a fresh copy without it. Run in the library's order, the removal step would delete the rows that the request had just created.
 

@@ -111,6 +111,34 @@ export const defaultOnSubmitNotAnyModified = async ({ toast }) => {
 };
 
 /**
+ * Picks the submitted fields from the form's submitting values.
+ *
+ * A dotted entry, such as `address.city`, narrows a nested value. A field that the form submits as `null`, such as a
+ * saved singular inline object marked for removal, has nothing inside it to pick. Lodash `pick` would then leave the
+ * field out of the body, and the save would keep the object. This function sends that field as `null` instead.
+ *
+ * Only a top-level field counts. The server accepts a `null` single relation only for the relations that the view's
+ * serializer expands. A field that is `null` without the mark stays out of the body, as `pick` leaves it.
+ *
+ * @param {object} submittingValues - The form's values for submission.
+ * @param {string[]} submitFields - The field paths to send.
+ * @param {{[path: string]: true}} submittedAsNull - The fields that the form submits as `null`.
+ * @returns {object} The body's values.
+ */
+function pickSubmitFields(submittingValues, submitFields, submittedAsNull) {
+    const picked = pick(submittingValues, submitFields);
+    for (const path of Object.keys(submittedAsNull ?? {})) {
+        if (/[.[]/.test(path) || path in picked || submittingValues[path] !== null) {
+            continue;
+        }
+        if (submitFields.some((field) => field.startsWith(`${path}.`) || field.startsWith(`${path}[`))) {
+            picked[path] = null;
+        }
+    }
+    return picked;
+}
+
+/**
  * Default implementation for onSubmitAnyError hook.
  *
  * @param {object} options
@@ -523,7 +551,11 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             const isUpdate = !!instanceObject.state.pk;
             const createOrUpdate = isUpdate ? instanceObject.update : instanceObject.create;
             const formValues = props.submitFields
-                ? pick(formContext.state.submittingValues, props.submitFields)
+                ? pickSubmitFields(
+                      formContext.state.submittingValues,
+                      props.submitFields,
+                      formContext.state.submittedAsNull,
+                  )
                 : formContext.state.submittingValues;
             const { pk, pkKey } = instanceObject.state;
             // The update handler builds the request URL from the body's primary key. The instance's

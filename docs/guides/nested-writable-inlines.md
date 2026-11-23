@@ -108,11 +108,11 @@ On an update, the server matches each child object to one of the parent's existi
 
 A many-to-many child can match any row of the related model. A many-to-many primary key that matches no row returns a `400`.
 
-Removal depends on the relation. The server deletes a reverse foreign key row and unlinks a many-to-many row. It sets a `SET_NULL` or `SET_DEFAULT` foreign key to null or its default. A `PROTECT` foreign key fails the request with a `400`.
+Removal depends on the relation. The server deletes a reverse foreign key row and unlinks a many-to-many row. It sets a `SET_NULL` or `SET_DEFAULT` foreign key to null or its default. When another row holds a removed row with `PROTECT` or `RESTRICT`, the request fails with a `400`.
 
-To keep a child, send it with its primary key. To leave every child unchanged, leave the relation's key out of the body. A create never removes rows. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md#write-order) describes the order of these steps.
+To keep a child, send it with its primary key. To leave every child unchanged, leave the relation's key out of the body. A create never removes rows.
 
-A reverse one-to-one relation holds one child instead of a list. To remove that child, send `null`. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md#write-order) describes this case.
+A single-object relation, such as a reverse one-to-one, holds one child instead of a list. To remove that child, send `null` in place of an empty list. [Nested Write Compatibility](../core-concepts/nested-write-compatibility.md#write-order) describes the order of these steps, which relations accept `null`, and what `null` removes.
 
 ## Keep a Relation Read-Only
 
@@ -238,7 +238,7 @@ To clear a sibling field's server error when the user leaves a row field, follow
 
 **Children disappear after an update.** The body sent the relation's key without them. Send every child that you keep, with its primary key, or leave the key out.
 
-**`Cannot delete ... because protected relation exists`.** A `PROTECT` foreign key points at a child missing from the list. Send that child, or remove the protecting rows first.
+**`Cannot delete ... because protected relation exists`.** A `PROTECT` or `RESTRICT` foreign key points at a child missing from the list. Send that child, or remove the protecting rows first.
 
 **`TypeError: Cannot encode multipart value at ...` on save.** The save holds a file, so the client sends multipart, and the value at the named path has no JSON form. Examples are `undefined`, a `Date`, and a class instance. Convert the value before the save. [CRUD Adapter Layer](../core-concepts/crud-adapter-layer.md#multipart-saves) lists the values that a multipart save accepts.
 
