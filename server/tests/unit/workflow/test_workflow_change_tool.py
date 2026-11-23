@@ -26,6 +26,7 @@ from vueda.user.migration_generation.utils import GeneratedMigration
 from vueda.user.migration_generation.utils import generated_migrations
 from vueda.workflow.migration_generation.operations import MIGRATION_MODIFIED_COMMENTS
 from vueda.workflow.migration_generation.operations import WorkflowChangeTypes
+from vueda.workflow.migration_generation.operations import backwards_migrate_workflow
 from vueda.workflow.migration_generation.operations import workflow_migration_action
 from vueda.workflow.migration_generation.tools import WorkflowChangeTool
 from vueda.workflow.models import InitialState
@@ -264,6 +265,124 @@ class TestWorkflowChangeTool:
 
         (permission_change,) = (change for change in pending if change.data["model_name"] == "statepermission")
         assert permission_change.data["changes"]["historical_group_name"] == "renamed_group reviewers"
+
+    def test_a_deleted_state_permission_from_another_model_names_that_models_content_type(self):
+        """The permission belongs to ``vueda_user.GroupChange``, not to the workflow's model.
+
+        Reversing the delete adds the row back, which finds the permission by the recorded content type.
+        """
+        workflow = build_workflow("other_model_deleted")
+        draft = State.objects.get(workflow=workflow, code="draft")
+        create_group_change = Permission.objects.get(
+            content_type__app_label="vueda_user", content_type__model="groupchange", codename="create_groupchange"
+        )
+        reviewers = Group.objects.get(name="other_model_deleted reviewers")
+        state_permission = StatePermission.objects.create(
+            state=draft, permission=create_group_change, group=reviewers, grant_or_deny=True
+        )
+        started_at = database_now()
+        state_permission.delete()
+
+        pending = pending_changes_since(started_at)
+
+        assert change_kinds(pending) == (("statepermission", WorkflowChangeTypes.DELETED.value),)
+        assert pending[0].data["changes"]["permission_id"] == {
+            "codename": "create_groupchange",
+            "content_type_id": {"app_label": "vueda_user", "model": "groupchange"},
+        }
+
+        backwards_migrate_workflow(django_apps, copy.deepcopy([pending[0].data]), "reverse test migration")
+
+        assert StatePermission.objects.filter(state=draft, permission=create_group_change, group=reviewers).exists()
+
+    def test_a_state_permission_given_another_permission_names_each_by_its_own_content_type(self):
+        """The row moves from a ``vueda_user.GroupChange`` permission to one of the workflow's own model."""
+        workflow = build_workflow("other_model_replaced")
+        draft = State.objects.get(workflow=workflow, code="draft")
+        create_group_change = Permission.objects.get(
+            content_type__app_label="vueda_user", content_type__model="groupchange", codename="create_groupchange"
+        )
+        read = Permission.objects.get(
+            content_type=ContentType.objects.get_for_model(EnabledWithoutWorkflow),
+            codename="read_enabledwithoutworkflow",
+        )
+        reviewers = Group.objects.get(name="other_model_replaced reviewers")
+        state_permission = StatePermission.objects.create(
+            state=draft, permission=create_group_change, group=reviewers, grant_or_deny=True
+        )
+        started_at = database_now()
+        state_permission.permission = read
+        state_permission.save()
+
+        pending = pending_changes_since(started_at)
+
+        assert change_kinds(pending) == (("statepermission", WorkflowChangeTypes.CHANGED.value),)
+        assert pending[0].data["changes"]["permission_id"] == (
+            {
+                "codename": "create_groupchange",
+                "content_type_id": {"app_label": "vueda_user", "model": "groupchange"},
+            },
+            {
+                "codename": "read_enabledwithoutworkflow",
+                "content_type_id": {"app_label": "erring", "model": "enabledwithoutworkflow"},
+            },
+        )
+
+    def test_a_state_permission_names_its_permission_by_the_codename_that_the_write_recorded(self):
+        workflow = build_workflow("renamed_permission")
+        draft = State.objects.get(workflow=workflow, code="draft")
+        approve_group_change = Permission.objects.create(
+            content_type=ContentType.objects.get(app_label="vueda_user", model="groupchange"),
+            codename="approve_groupchange",
+            name="Can approve group change",
+        )
+        reviewers = Group.objects.get(name="renamed_permission reviewers")
+        started_at = database_now()
+        StatePermission.objects.create(
+            state=draft, permission=approve_group_change, group=reviewers, grant_or_deny=True
+        )
+        approve_group_change.codename = "sign_off_groupchange"
+        approve_group_change.save()
+
+        pending = pending_changes_since(started_at)
+
+        assert change_kinds(pending) == (("statepermission", WorkflowChangeTypes.ADDED.value),)
+        assert pending[0].data["changes"]["permission_id"] == {
+            "codename": "approve_groupchange",
+            "content_type_id": {"app_label": "vueda_user", "model": "groupchange"},
+        }
+
+    def test_a_state_permission_whose_permission_was_deleted_names_it_as_the_write_recorded_it(self):
+        """Deleting the permission also deletes its state permission rows.
+
+        Both the add and the delete are then pending.
+        """
+        workflow = build_workflow("deleted_permission")
+        draft = State.objects.get(workflow=workflow, code="draft")
+        approve_group_change = Permission.objects.create(
+            content_type=ContentType.objects.get(app_label="vueda_user", model="groupchange"),
+            codename="approve_groupchange",
+            name="Can approve group change",
+        )
+        reviewers = Group.objects.get(name="deleted_permission reviewers")
+        started_at = database_now()
+        StatePermission.objects.create(
+            state=draft, permission=approve_group_change, group=reviewers, grant_or_deny=True
+        )
+        approve_group_change.delete()
+
+        pending = pending_changes_since(started_at)
+
+        assert change_kinds(pending) == (
+            ("statepermission", WorkflowChangeTypes.ADDED.value),
+            ("statepermission", WorkflowChangeTypes.DELETED.value),
+        )
+        recorded_permission = {
+            "codename": "approve_groupchange",
+            "content_type_id": {"app_label": "vueda_user", "model": "groupchange"},
+        }
+        assert pending[0].data["changes"]["permission_id"] == recorded_permission
+        assert pending[1].data["changes"]["permission_id"] == recorded_permission
 
     def test_a_model_whose_workflow_is_turned_off_still_has_its_changes_written(self):
         """erring.NotEnabledWithWorkflow keeps a recorded workflow while its model no longer enables workflow."""
