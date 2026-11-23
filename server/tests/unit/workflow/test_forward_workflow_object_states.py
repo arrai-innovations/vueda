@@ -1,6 +1,7 @@
 """Workflow migrations preserve existing states unless recorded creation is their only event."""
 
 import io
+import os
 from pathlib import Path
 
 import pgtrigger
@@ -8,8 +9,10 @@ import pytest
 from django.core.management import BaseCommand
 from django.core.management import call_command
 
+import vueda
 from tests.erring.models import EnabledWithWorkflow
 from tests.utils import BaseTestMigrations
+from vueda.user.migration_generation import utils as migration_utils
 from vueda.user.migration_generation.planner import ToolChanges
 from vueda.user.migration_generation.planner import plan_migrations
 from vueda.user.migration_generation.utils import project_app_labels
@@ -72,7 +75,9 @@ def assert_carried_over_states_unchanged(states):
 class TestForwardWorkflowObjectStates(BaseTestMigrations):
     @pytest.mark.parametrize("migration_kind", ["copied", "imported", "updated"])
     @pytest.mark.parametrize("change_initial", [False, True], ids=["unrelated-workflow", "changed-initial"])
-    def test_generated_migration_preserves_carried_over_states(self, settings, migration_kind, change_initial):
+    def test_generated_migration_preserves_carried_over_states(
+        self, settings, monkeypatch, migration_kind, change_initial
+    ):
         app_label = "erring" if change_initial else "store"
         workflow = Workflow.objects.get(code="enabledwithworkflow" if change_initial else "order_fulfillment")
         original_initial = workflow.initial_state.state_id
@@ -95,7 +100,13 @@ class TestForwardWorkflowObjectStates(BaseTestMigrations):
                     + 'def manage_state_objects(*args, **kwargs):\n    raise AssertionError("stale state sync")\n'
                     + source[end:]
                 )
-                call_command("updateworkflowmigrations", app_label, stdout=io.StringIO())
+                # The command covers every app, so the committed migrations count as installed and stay as
+                # they are. Only this temporary module is outside the source tree.
+                source_tree = os.path.normcase(os.path.realpath(Path(vueda.__file__).parent.parent))
+                monkeypatch.setattr(
+                    migration_utils, "INSTALLED_PACKAGE_PATHS", (*migration_utils.INSTALLED_PACKAGE_PATHS, source_tree)
+                )
+                call_command("updatevuedamigrations", stdout=io.StringIO())
             # Generation imports a provisional module before writing the final migration body.
             self.reload_module(output.getvalue().splitlines(), directory)
 

@@ -205,7 +205,12 @@ class TestReverseWorkflowObjectStates(BaseTestUserMixin):
         renamed = {
             "changes": {
                 "code": ("enabledwithworkflow", "enabledwithworkflow_renamed"),
-                "id": {"code": ("enabledwithworkflow", "enabledwithworkflow_renamed")},
+                # A generated change names the workflow by its app and model as well as its code.
+                "id": {
+                    "code": ("enabledwithworkflow", "enabledwithworkflow_renamed"),
+                    "historical_app_label": "erring",
+                    "historical_model": "enabledwithworkflow",
+                },
             },
             "history_type": "changed",
             "model_name": "workflow",

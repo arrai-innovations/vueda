@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -359,5 +360,57 @@ def test_makevuedamigrations_writes_group_migrations_without_workflow():
         assert not [name for name in sys.modules if name.startswith("vueda.workflow")]
         """
     )
+
+    assert_probe_succeeded(result)
+
+
+def test_updatevuedamigrations_refreshes_group_migrations_without_workflow():
+    """Without vueda.workflow, the update command refreshes group migrations and never imports workflow code."""
+    fixture = Path(__file__).parent.parent / "users" / "old_migrations" / "group_imported_helpers_2026_04.py.txt"
+    script = """
+        import io
+        import re
+        import sys
+        import tempfile
+        from pathlib import Path
+
+        import django
+
+        django.setup()
+
+        from django.conf import settings
+        from django.core.management import call_command
+
+        # The user app gets a migrations package, with the initial migration that a project would have.
+        root = Path(tempfile.mkdtemp())
+        migrations_dir = root / "generated_user_app" / "migrations"
+        migrations_dir.mkdir(parents=True)
+        (root / "generated_user_app" / "__init__.py").write_text("")
+        (migrations_dir / "__init__.py").write_text("")
+        sys.path.insert(0, str(root))
+        settings.MIGRATION_MODULES = {"optional_apps": "generated_user_app.migrations"}
+        call_command("makemigrations", "optional_apps", verbosity=0)
+
+        source = Path(FIXTURE).read_text()
+        source = re.sub(
+            r"dependencies = \\[.*?\\]",
+            'dependencies = [("optional_apps", "0001_initial")]',
+            source,
+            count=1,
+            flags=re.S,
+        )
+        path = migrations_dir / "0002_group_permission_migrations_2026_04_22.py"
+        path.write_text(source)
+
+        out = io.StringIO()
+        call_command("updatevuedamigrations", stdout=out)
+
+        assert f"Updating: {path}" in out.getvalue(), out.getvalue()
+        refreshed = path.read_text()
+        assert "def forwards_migrate_groups(apps, changed_items):" in refreshed
+        assert "from vueda.user.management.commands.utils import" not in refreshed
+        assert not [name for name in sys.modules if name.startswith("vueda.workflow")]
+        """
+    result = run_optional_apps_probe(script.replace("FIXTURE", repr(str(fixture))))
 
     assert_probe_succeeded(result)
