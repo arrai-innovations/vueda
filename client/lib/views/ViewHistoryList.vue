@@ -48,7 +48,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the instance whose history is displayed. */
+    /**
+     * Lookup value of the instance whose history is displayed: the value of the model's lookup field (`lookupField` in
+     * model info).
+     */
     pk: {
         type: String,
         required: true,

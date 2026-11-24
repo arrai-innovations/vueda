@@ -397,6 +397,35 @@ describe("lib/utils/objectStreams.js", () => {
         });
     });
 
+    describe("Object subscribe handler for a view that retrieves by a lookup value", () => {
+        const target = { app: "store", model: "customer_order", recordPk: 7 };
+        const params = { f: ["id", "order_number"] };
+
+        beforeEach(() => {
+            objectStreams.setupObjectStreams({ WebSocketImpl: FakeWebSocket, log });
+        });
+
+        it("subscribes by the record's primary key and refetches by the lookup value", async () => {
+            const request = deferredRequest();
+            defaultObjectRetrieve.mockReturnValue(request);
+            const callback = vi.fn();
+
+            objectStreams.objectStreamSubscribe({ target, pk: "1001", params, callback, isCancelled: ref(false) });
+            const socket = latestSocket();
+            socket.acceptHandshake();
+            socket.deliver({ type: "event", subscription_id: "s1", facet: "object", op: "updated" });
+            request.resolve({ id: 7, order_number: "1001" });
+            await request;
+
+            expect(socket.sent).toEqual([
+                { op: "subscribe", kind: "object", model: "store.customer_order", pk: "7", subscription_id: "s1" },
+            ]);
+            expect(defaultObjectRetrieve).toHaveBeenCalledTimes(1);
+            expect(defaultObjectRetrieve).toHaveBeenCalledWith({ target, pk: "1001", params });
+            expect(callback).toHaveBeenCalledWith({ id: 7, order_number: "1001" }, "update");
+        });
+    });
+
     describe("List subscription", () => {
         const target = { app: "store", model: "customer_order" };
 
