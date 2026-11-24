@@ -107,7 +107,7 @@ from vueda.core.exceptions import gate_warnings
 
 class InvoiceViewSet(VuedaViewSet):
     @action(detail=True, methods=["post"])
-    def send(self, request, pk=None):
+    def send(self, request, **kwargs):
         invoice = self.get_object()
         serializer = SendInvoiceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)  # blocking errors return 400 first
@@ -121,7 +121,7 @@ class InvoiceViewSet(VuedaViewSet):
 ```
 
 - Pass `{field: [messages]}` when the request identifies one object in its URL or identifies no object.
-- Pass `{object_id: {field: [messages]}}`, keyed by `str(pk)`, when a {@term Bulk Action} request goes to the list URL. The client sends a request for one selected object to its detail URL, so a bulk action body checks whether `pk` is set.
+- Pass `{object_id: {field: [messages]}}`, keyed by `str(pk)`, when a {@term Bulk Action} request goes to the list URL. The client sends a request for one selected object to its detail URL, so a bulk action body checks whether [`get_lookup_value`]{@api py:function:vueda.core.viewsets.ObjectLookupViewSetMixin.get_lookup_value} returns a value. That method reads the detail URL's value under the viewset's URL keyword. The keyword is the viewset's `lookup_url_kwarg`, or its `lookup_field` when `lookup_url_kwarg` is unset, so it is `pk` only for a viewset that keeps DRF's defaults. Take the URL keyword through `**kwargs`, because a viewset that sets either attribute passes it under another name.
 - An empty mapping passes the gate.
 
 A 409 rolls back the request's database transaction, as [Request Transactions](../core-concepts/configuration-surface-and-defaults.md#request-transactions) describes. Work outside the database, such as an email or a call to another service, does not roll back, so call the gate before that work. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#warning-confirmation-gating) describes the gate order in actions and how gating relates to a {@term Dry Run}.
@@ -133,7 +133,7 @@ For an action that takes no input, declare [`confirm=True`]{@api py:param:vueda.
 ```python
 class InvoiceViewSet(VuedaViewSet):
     @action(detail=True, methods=["post"], confirm=True)
-    def reissue(self, request, pk=None):
+    def reissue(self, request, **kwargs):
         ...
 
     reissue.confirm_message = "Reissuing voids the original invoice."

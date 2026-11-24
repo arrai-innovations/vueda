@@ -71,7 +71,14 @@ The [`tone`]{@api vue:component:ModelActionForm:prop:tone} prop sets that risk l
 
 At `danger`, the selected-records panel and its chips also take the destructive tint, and the default confirm button takes the destructive button tone. At every other tone, the confirm button keeps the primary tone.
 
-The selected-records panel is headed "Selected" plus the model's verbose name, with an "N of N selected" count. Each record is a chip that shows the record's {@term Formatted Name} as a {@api vue:component:LinkModelView} link. A view can pass the records it fetched as [`fetchState`]{@api vue:component:ModelActionForm:prop:fetchState}. Without it, `ModelActionForm` looks the records up by primary key for display only: the action still targets the primary keys it was given. A chip shows the primary key instead when the record has no formatted name, or when the lookup fails.
+The selected-records panel is headed "Selected" plus the model's verbose name, with an "N of N selected" count. Each record is a chip that shows the record's {@term Formatted Name} as a {@api vue:component:LinkModelView} link. The route names the records by their {@term Lookup Value}. A view can pass the records it fetched as [`fetchState`]{@api vue:component:ModelActionForm:prop:fetchState}, keyed by primary key. Without it, `ModelActionForm` loads the records itself:
+
+- For a model with a custom lookup field, it loads the records through the hidden `lookup` filter. A bulk request sends the primary keys of the loaded records.
+- For any other model, it loads the records through the hidden `id` filter. The route's values are the primary keys, so the loaded records give the chips their labels, and the action does not need them for its request. The action can run even when the records fail to load.
+
+A chip shows the record's lookup value when the record has no formatted name. For a model whose lookup field is its primary key, a chip shows before its record loads, with the primary key as its label. For a model with a custom lookup field, a chip shows once its record has loaded, because the chip is keyed by the primary key that the record carries.
+
+When the records load without an error but a route value has no record, the card names that value in the form's error alert, under the form's `non_field_errors` key. That error disables the confirm button until every value has a record. A record is missing when someone deleted it or changed its lookup value, or when the user may not read it. When the records that `ModelActionForm` loads for a model with a custom lookup field fail to load, the card shows the error and disables the confirm button, because it has no primary keys to send. A failed load for any other model shows no error. The error of a `fetchState` that a view passes shows for every model.
 
 Each chip is a {@api vue:component:FormField} named for its record's primary key. {@term Server Feedback} keyed by primary key therefore appears beside the matching chip. {@api theme-key:ActionForm.validation} lists, above the card, any error that no rendered field shows.
 
