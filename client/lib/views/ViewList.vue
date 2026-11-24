@@ -30,6 +30,7 @@ import { useViewList } from "@vueda/use/useViewList.js";
 import { getCRUDName } from "@vueda/utils/case.js";
 import { availableColumns } from "@vueda/utils/columnLookups.js";
 import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_OPTIONS } from "@vueda/utils/constants.js";
+import { lookupValueOf } from "@vueda/utils/lookupValues.js";
 import omit from "lodash-es/omit.js";
 import { computed, onMounted, reactive, readonly, ref, toRef, toRefs, useSlots } from "vue";
 import { useRoute } from "vue-router";
@@ -202,11 +203,15 @@ const detailLinkAdapters = new Set([
 /**
  * @param {string} name
  * @param {import('@vueda/utils/resolveColumnComponents.js').ResolvedColumn} resolved
- * @param {{pk: string|number, obj?: {available_actions?: string[]}}} cell
+ * @param {{obj?: {available_actions?: string[]}}} cell
  * @returns {'update'|'read'|null}
  */
 const detailLinkView = (name, resolved, cell) => {
-    if (name !== modelConfig.config.detailLinkField || !detailLinkAdapters.has(resolved.component) || cell.pk == null) {
+    if (
+        name !== modelConfig.config.detailLinkField ||
+        !detailLinkAdapters.has(resolved.component) ||
+        lookupValueOf(modelConfig.info, cell.obj) == null
+    ) {
         return null;
     }
     const available = cell.obj?.available_actions;
@@ -270,7 +275,7 @@ const themedSearchSlotProps = computed(() => ({
 }));
 
 const emit = defineEmits([
-    /** Emitted once on mount with a live ref to the selected primary keys (`actions.selectedObjects`). */
+    /** Emitted once on mount with a live ref to the selected rows' lookup values (`actions.selectedObjects`). */
     "selected",
     /** Emitted once on mount with a live ref to the active sort order (`sort.sorting.state.sorted`). */
     "sorted",
@@ -548,7 +553,7 @@ onMounted(() => {
                         v-if="detailLinkView(name, resolved, slotProps)"
                         :app="app"
                         :model="model"
-                        :pk="String(slotProps.pk)"
+                        :pk="String(lookupValueOf(modelConfig.info, slotProps.obj))"
                         :view="detailLinkView(name, resolved, slotProps)"
                     >
                         <component :is="resolved.component" v-bind="{ ...slotProps, ...resolved.props }" />
@@ -572,9 +577,11 @@ onMounted(() => {
                     <Checkbox
                         v-if="actions.bulkActions.size || actions.availableTransitions.size"
                         :id="`selected-row-${slotProps.pk}`"
-                        :model-value="actions.selectedObjects.includes(slotProps.pk)"
+                        :model-value="actions.selectedObjects.includes(lookupValueOf(modelConfig.info, slotProps.obj))"
                         name="selected"
-                        @update:model-value="actions.toggleSelectedObject(slotProps.pk)"
+                        @update:model-value="
+                            actions.toggleSelectedObject(lookupValueOf(modelConfig.info, slotProps.obj))
+                        "
                     />
                 </slot>
             </template>

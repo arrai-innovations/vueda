@@ -5,15 +5,18 @@ import Popover from "@vueda/shell/popover/Popover.vue";
 import PopoverContent from "@vueda/shell/popover/PopoverContent.vue";
 import PopoverTrigger from "@vueda/shell/popover/PopoverTrigger.vue";
 import "@vueda/theme/vueda-tailwind/objects-grid/ColumnModelLinks.theme.js";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { relatedLookupValueOf } from "@vueda/utils/lookupValues.js";
 import { computed, ref } from "vue";
 
 /**
  * To-many list column adapter. Renders a many-to-many field or a reverse foreign key as a
  * comma-separated list of the related objects' labels. Each label links to the related
  * object's view through {@link LinkModelView}. A label renders as plain text when the viewer
- * cannot open that view. A label also renders as plain text when the related model or the
- * object's pk is unknown.
+ * cannot open that view. The link carries the object's lookup value, the value of the related
+ * model's lookup field (`lookupField` in model info). A label also renders as plain text when the
+ * related model is unknown, or when the object does not carry its lookup value.
  *
  * The labels come from an expanded value, which holds one object per related row. Each label is
  * the object's `formatted_name`. When `formatted_name` is missing, the label is its `name`, `id`,
@@ -94,14 +97,17 @@ const countText = computed(() => {
     return count === 1 ? "1 item" : `${count} items`;
 });
 
+// Each link carries the related object's lookup value, under the related model's lookup field.
+const targetModelConfig = useModelConfig(targetApp, targetModel, "list");
 const items = computed(() =>
     relatedValues.value.map((related, index) => {
         const pk = related.id ?? related.pk;
+        const lookupValue = relatedLookupValueOf(targetModelConfig.info, related);
         return {
             key: pk ?? index,
-            pk,
+            pk: lookupValue,
             label: related.formatted_name ?? related.name ?? pk ?? "",
-            linked: hasTarget.value && pk != null && pk !== "",
+            linked: hasTarget.value && lookupValue != null && lookupValue !== "",
         };
     }),
 );

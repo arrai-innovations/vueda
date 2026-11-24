@@ -9,6 +9,7 @@ import { THEME_OVERRIDE_PROPS } from "@vueda/use/useTheme.js";
 import { WIDGET_EMITS, WIDGET_PROPS, useWidget } from "@vueda/use/useWidget.js";
 import { useWidgetTheme } from "@vueda/use/useWidgetTheme.js";
 import { choiceDisplay } from "@vueda/utils/choiceLabels.js";
+import { lookupFieldOf } from "@vueda/utils/lookupValues.js";
 import { FieldContextSymbol } from "@vueda/utils/symbols.js";
 import omit from "lodash-es/omit.js";
 import { computed, effectScope, inject, reactive, shallowRef, toRef, unref, watch } from "vue";
@@ -27,6 +28,9 @@ import { computed, effectScope, inject, reactive, shallowRef, toRef, unref, watc
  * server does not return shows as plain text. A key whose request fails also shows as plain text,
  * and the other keys keep their labels. An empty array shows the same empty value as an empty
  * foreign key.
+ *
+ * A linked label opens the object's read view. The link carries the object's lookup value, the value of the
+ * model's lookup field (`lookupField` in model info), so it needs an object that carries that field.
  *
  * Each displayed value is one item. The `link-item` slot replaces one linked label, and the
  * `text-item` slot replaces the plain-text value. The prefix and suffix belong to the field, not to
@@ -123,13 +127,16 @@ const resolvedReactive = reactive({
 
 /**
  * @typedef {Object} State
- * @property {import('vue').ComputedRef<string>} pkKey
+ * @property {import('vue').ComputedRef<string>} pkKey - The primary key field, which finds a related object.
+ * @property {import('vue').ComputedRef<string>} lookupField - The lookup field, whose value a link to the object's
+ *  read view carries.
  * @property {boolean} keyAlreadyScoped
  */
 
 /** @type {State} */
 const state = reactive({
     pkKey: "id",
+    lookupField: "id",
     keyAlreadyScoped: false,
 });
 watch(
@@ -139,6 +146,7 @@ watch(
             modelConfig = es.run(() => useModelConfig(toRef(props, "app"), toRef(props, "model"), "list"));
             if (!state.keyAlreadyScoped) {
                 state.pkKey = es.run(() => computed(() => modelConfig.info?.pk ?? "id"));
+                state.lookupField = es.run(() => computed(() => lookupFieldOf(modelConfig.info)));
                 state.keyAlreadyScoped = true;
             }
             fieldsList = es.run(() =>
@@ -146,9 +154,12 @@ watch(
                     !unref(isLookupMode)
                         ? []
                         : [
-                              ...(props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields),
-                              "formatted_name",
-                              state.pkKey,
+                              ...new Set([
+                                  ...(props.modelFields?.length ? props.modelFields : modelConfig.config?.fetchFields),
+                                  "formatted_name",
+                                  state.pkKey,
+                                  state.lookupField,
+                              ]),
                           ],
                 ),
             );
@@ -177,6 +188,7 @@ watch(
             resolvedReactive.loading = false;
             if (state.keyAlreadyScoped) {
                 state.pkKey?.effect?.stop?.();
+                state.lookupField?.effect?.stop?.();
                 state.keyAlreadyScoped = false;
             }
             if (resolvedLookupObject) {
@@ -224,8 +236,9 @@ const choiceValue = computed(() => {
 const lookupLoading = computed(() => !!(resolvedReactive.loading || resolvedLookupObjects.value?.loading));
 
 /**
- * One entry for each related object of an array value in lookup mode: its label, and its pk when
- * the object is known. A label without a pk renders as plain text.
+ * One entry for each related object of an array value in lookup mode: its label, and the lookup
+ * value that its link carries when the object is known. A label without a lookup value renders as
+ * plain text.
  */
 const relatedItems = computed(() => {
     if (!isLookupMode.value || !isManyValue.value) {
@@ -233,7 +246,7 @@ const relatedItems = computed(() => {
     }
     return widgetContext.state.combinedValue.map((related, index) => {
         const object = isExpandedManyValue.value ? related : resolvedLookupObjects.value?.objects[related + ""];
-        const pk = object?.[state.pkKey];
+        const pk = object?.[state.lookupField];
         // An expanded entry is an object, so it has no text of its own to fall back to.
         const rawLabel = isExpandedManyValue.value ? "" : related;
         return { key: index, pk, label: String(object?.formatted_name ?? pk ?? rawLabel ?? "") };
@@ -255,7 +268,8 @@ const readonlyValue = computed(() => {
     );
 });
 const pkValue = computed(() => {
-    return props.foreignKeyObj ? props.foreignKeyObj[state.pkKey] : resolvedReactive.object?.[state.pkKey];
+    // A link to the object's read view carries its lookup value.
+    return props.foreignKeyObj ? props.foreignKeyObj[state.lookupField] : resolvedReactive.object?.[state.lookupField];
 });
 
 /**
