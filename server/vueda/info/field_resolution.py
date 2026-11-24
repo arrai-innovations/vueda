@@ -18,8 +18,10 @@ mechanisms, because they have different runtime semantics:
 """
 
 __all__ = (
+    "primary_key_root_field",
     "resolve_lookup_expression",
     "resolve_serializer_field_model_field",
+    "serializer_primary_key_field_name",
 )
 
 from django.contrib.admin.utils import NotRelationField
@@ -198,3 +200,38 @@ def resolve_serializer_field_model_field(model, field_name, field):
         return None, None
 
     return None, field_name
+
+
+def primary_key_root_field(model):
+    """
+    Return the model field whose value DRF's ``ModelSerializer`` returns as ``model``'s primary key.
+
+    This is ``model._meta.pk``, except on a multi-table inheritance child. A child's primary key is the
+    link to its parent, and DRF returns the parent link's value through the root model's primary key
+    field instead, such as ``id``. The function follows each parent link up to that field, as DRF does.
+    """
+    field = model._meta.pk
+    while field.remote_field is not None and field.remote_field.parent_link:
+        field = field.remote_field.model._meta.pk
+    return field
+
+
+def serializer_primary_key_field_name(model, serializer_fields):
+    """
+    Return the name of the serializer field that returns ``model``'s primary key value.
+
+    ``serializer_fields`` maps each field name to its field, as ``Serializer.get_fields()`` returns
+    them. A field named after :func:`primary_key_root_field` matches first. Otherwise, the first field
+    whose value comes from that model field matches, such as ``key = IntegerField(source="id")``. A
+    field that reads DRF's ``pk`` attribute matches too. Returns ``None`` when no field returns the value.
+    """
+    root_field = primary_key_root_field(model)
+    if root_field.name in serializer_fields:
+        return root_field.name
+    for field_name, field in serializer_fields.items():
+        if (field.source or field_name) == "pk":
+            return field_name
+        model_field, _unresolved_path = resolve_serializer_field_model_field(model, field_name, field)
+        if model_field is root_field:
+            return field_name
+    return None

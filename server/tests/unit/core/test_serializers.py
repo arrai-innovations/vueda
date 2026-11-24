@@ -1273,6 +1273,25 @@ class TestVuedaReadonlySerializer:
 
         assert set(distributor_item[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]]) == {"id", "name"}
 
+    def test_expandable_field_metadata_keeps_the_root_primary_key_of_a_multi_table_child(self):
+        """A multi-table inheritance child returns its primary key under the root model's ``id``."""
+        from tests.bulk_actions import serializers as bulk_serializers
+
+        class _ParentSerializer(bulk_serializers.IntegerKeyGadgetSerializer):
+            class Meta(bulk_serializers.IntegerKeyGadgetSerializer.Meta):
+                expandable_fields = {
+                    "inheritedkeygadget": (
+                        bulk_serializers.InheritedKeyGadgetSerializer,
+                        {settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]: ["colour"]},
+                    )
+                }
+
+        expand_items = _ParentSerializer().generate_expand_model_info()
+        child_item = next(item for item in expand_items if item["name"] == "inheritedkeygadget")
+
+        assert set(child_item[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]]) == {"id", "colour"}
+        assert child_item[settings.REST_FLEX_FIELDS2["FIELDS_PARAM"]]["id"]["pk"] is True
+
 
 @pytest.mark.django_db
 class TestSchemaExpandableFieldsAndFields:

@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.http import QueryDict
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from rest_framework.viewsets import GenericViewSet
@@ -15,11 +16,14 @@ from rest_framework.viewsets import GenericViewSet
 from tests.bulk_actions import serializers as bulk_serializers
 from tests.bulk_actions import viewsets as bulk_viewsets
 from tests.bulk_actions.models import CompositeKeyGadget
+from tests.bulk_actions.models import InheritedKeyGadget
 from tests.bulk_actions.models import IntegerKeyGadget
 from tests.bulk_actions.models import LookupKeyGadget
 from tests.conftest import response_body
 from vueda import info
 from vueda.core.filters import VuedaCompositePrimaryKeyFilterSet
+from vueda.core.serializers import VuedaSerializer
+from vueda.info.field_resolution import serializer_primary_key_field_name
 from vueda.info.serializers import ModelInfoSerializer
 
 
@@ -42,6 +46,7 @@ def registered_gadgets():
     info.registration.get_empty_registry()
     info.register(bulk_serializers.LookupKeyGadgetSerializer, bulk_viewsets.LookupKeyGadgetViewSet)
     info.register(bulk_serializers.IntegerKeyGadgetSerializer, bulk_viewsets.IntegerKeyGadgetViewSet)
+    info.register(bulk_serializers.InheritedKeyGadgetSerializer, bulk_viewsets.InheritedKeyGadgetViewSet)
     yield
     info.registration.get_empty_registry()
 
@@ -275,3 +280,61 @@ class CompositeKeyGadgetFilterSet(VuedaCompositePrimaryKeyFilterSet):
     class Meta:
         model = CompositeKeyGadget
         fields = ["name"]
+
+
+@pytest.mark.django_db
+class TestMultiTableInheritanceChild:
+    """A child model whose primary key is its parent link. The serializer returns that value under ``id``."""
+
+    @pytest.fixture
+    def children(self):
+        return [
+            InheritedKeyGadget.objects.create(name="first", colour="red"),
+            InheritedKeyGadget.objects.create(name="second", colour="blue"),
+        ]
+
+    def test_model_info_marks_the_root_primary_key_field_as_the_primary_key(self):
+        content_type = ContentType.objects.get_for_model(InheritedKeyGadget)
+
+        model_fields = ModelInfoSerializer(content_type, context={}).get_model_fields(content_type)
+
+        assert [name for name, field in model_fields.items() if field.get("pk")] == ["id"]
+
+    def test_model_info_reports_no_lookup_field_for_the_default_lookup(self):
+        content_type = ContentType.objects.get_for_model(InheritedKeyGadget)
+
+        assert ModelInfoSerializer(content_type, context={}).data["lookup_field"] is None
+
+    def test_a_field_renamed_from_the_root_primary_key_returns_the_primary_key(self):
+        class RenamedKeySerializer(VuedaSerializer):
+            key = serializers.IntegerField(source="id", read_only=True)
+
+            class Meta(VuedaSerializer.Meta):
+                model = InheritedKeyGadget
+                fields = ["key", "colour"]
+
+        assert serializer_primary_key_field_name(InheritedKeyGadget, RenamedKeySerializer().get_fields()) == "key"
+
+    def test_retrieve_finds_the_object_by_its_primary_key(self, superuser_client, children):
+        url = reverse("bulk_actions.inheritedkeygadget-detail", kwargs={"pk": children[1].pk})
+
+        response = superuser_client.get(url)
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert response.data["id"] == children[1].pk
+
+    def test_the_lookup_filter_matches_the_primary_keys(self, superuser_client, children):
+        url = reverse("bulk_actions.inheritedkeygadget-list")
+
+        response = superuser_client.get(f"{url}?lookup={children[0].pk}")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert [row["colour"] for row in response.data["results"]] == ["red"]
+
+    def test_bulk_deactivate_acts_on_the_rows_that_the_primary_keys_name(self, superuser_client, children):
+        url = reverse("bulk_actions.inheritedkeygadget-deactivate")
+
+        response = superuser_client.patch(url, data={"pks": [children[0].pk]}, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert list(InheritedKeyGadget.objects.filter(is_active=False).values_list("colour", flat=True)) == ["red"]

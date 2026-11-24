@@ -25,6 +25,18 @@ class CompositeKeyGadgetViewSet(DeactivateActionViewSetMixin, VuedaViewSet):
     serializer_class = my_serializers.CompositeKeyGadgetSerializer
 
 
+class InheritedKeyGadgetFilterSet(VuedaFilterSet):
+    class Meta:
+        model = my_models.InheritedKeyGadget
+        fields = ["name"]
+
+
+class InheritedKeyGadgetViewSet(DeactivateActionViewSetMixin, VuedaViewSet):
+    queryset = my_models.InheritedKeyGadget.objects.all()
+    serializer_class = my_serializers.InheritedKeyGadgetSerializer
+    filterset_class = InheritedKeyGadgetFilterSet
+
+
 class LookupKeyGadgetFilterSet(VuedaFilterSet):
     class Meta:
         model = my_models.LookupKeyGadget

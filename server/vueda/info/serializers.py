@@ -60,6 +60,7 @@ from vueda.core.serializers.fields import FormattedNameField
 from vueda.core.utils import implemented_builtin_actions
 from vueda.info import open_api_tracebacks
 from vueda.info.field_resolution import resolve_serializer_field_model_field
+from vueda.info.field_resolution import serializer_primary_key_field_name
 from vueda.info.registration import get_lookup_field
 from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
@@ -439,11 +440,12 @@ class ModelInfoSerializer(VuedaExpandableFieldsSerializerMixin, FlexFieldsSerial
         ]
 
     def get_model_fields_data(self, serializer, *, excluded_fields=frozenset(), context=None):
-        pk_field = serializer.Meta.model._meta.pk.name
         fields = {}
 
         serializer_instance = serializer(context=context) if context else serializer()
-        for field_name, field in serializer_instance.get_fields().items():
+        serializer_fields = serializer_instance.get_fields()
+        pk_field = serializer_primary_key_field_name(serializer.Meta.model, serializer_fields)
+        for field_name, field in serializer_fields.items():
             if field_name in excluded_fields:
                 continue
 
