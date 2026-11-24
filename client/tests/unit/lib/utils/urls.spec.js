@@ -47,6 +47,16 @@ describe("lib/utils/urls.js", () => {
         });
     });
 
+    describe("Lookup values", () => {
+        // A lookup value is the value of the model's lookup field, which can hold characters that a URL path
+        // reserves, such as a space or `#`. The detail URL carries the value percent-encoded in one segment.
+        scopedIt("percent-encodes a lookup value in the detail URL's path", () => {
+            const url = getDetailUrl({ app: "billing", model: "invoice", pk: "SAGE 42 #1", action: "mark_paid" });
+
+            expect(new URL(url).pathname).toBe("/routes/billing/invoice/SAGE%2042%20%231/mark_paid/");
+        });
+    });
+
     describe("Composite primary keys", () => {
         // The server sends a composite primary key as a JSON list. The detail URL must carry the
         // whole list in one path segment, which the server decodes back to the same text.

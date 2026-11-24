@@ -264,7 +264,13 @@ const camelCaseObject = (obj, skipKeys = []) => {
  * @property {boolean} workflowEnabled - Whether the model enables workflow on the server. The workflow store
  *  requests transitions, states, and history only for a model that reports `true`. The workflow endpoints
  *  still decide what the user may see and do.
- * @property {string} pk - The primary key field of the model.
+ * @property {string} pk - The primary key field of the model. Each row carries its primary key under this name. The
+ *  client sends that value in bulk `pks` bodies, update bodies, workflow requests, and live-update subscriptions.
+ *  Detail URLs, including detail actions such as `history_list`, carry the object's lookup value instead.
+ * @property {string|null} lookupField - The field whose value addresses an object in the model's detail URLs and
+ *  client routes: the `lookup_field` of the model's registered viewset. Rows carry the value under this field name. It
+ *  is `null` when the viewset addresses objects by primary key. The client then uses the `pk` field. Read the field
+ *  name through `lookupFieldOf` in `utils/lookupValues.js`, which covers both cases.
  * @property {{[fieldName: string]: FieldInfo}} fields - A mapping of field names to their respective `FieldInfo`
  *  objects.
  * @property {ActionInfo[]} actions - The actions that can be performed on the model.
@@ -384,6 +390,7 @@ export const storeModelInfo = defineStore("modelInfo", {
                         "verbose_name",
                         "verbose_name_plural",
                         "workflow_enabled",
+                        "lookup_field",
                         "model_fields",
                         "model_actions",
                         "model_expands",
