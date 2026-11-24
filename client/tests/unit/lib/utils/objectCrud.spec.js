@@ -406,6 +406,25 @@ describe("lib/utils/objectCrud.js", () => {
             });
         });
 
+        it("builds the url from pk over the body's lookup field value", async () => {
+            getDetailUrl.mockReturnValue("detail-url");
+            const object = { invoice_sage_id: "SAGE-2", title: "hi" };
+            getJsonOrText.mockResolvedValue({ ok: true });
+            cancellableFetch.mockImplementation((url, opts, transform) => {
+                expect(opts.body).toBe(JSON.stringify(object));
+                return transform(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+            });
+
+            await objectCrud.defaultObjectUpdate({
+                target: { app: "billing", model: "invoice" },
+                object,
+                pk: "SAGE-1",
+                pkKey: "invoice_sage_id",
+            });
+
+            expect(getDetailUrl).toHaveBeenCalledWith(expect.objectContaining({ pk: "SAGE-1" }));
+        });
+
         it("uses FormData when object has a File", async () => {
             getDetailUrl.mockReturnValue("detail-url");
             const file = new File(["data"], "file.txt");

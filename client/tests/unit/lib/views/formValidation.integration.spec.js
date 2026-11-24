@@ -73,7 +73,14 @@ describe("lib/{views,widgets}/*.vue", () => {
                                 clearError: vi.fn(),
                             };
                             const objectForm = useObjectForm({
-                                props: reactive({ app: "catalog", model: "order", redirectAfter: null }),
+                                // An update view passes the loaded record's primary key, as useViewUpdate does.
+                                props: reactive({
+                                    app: "catalog",
+                                    model: "order",
+                                    redirectAfter: null,
+                                    primaryKeyField: "id",
+                                    primaryKey: View === ViewCreate ? undefined : "1",
+                                }),
                                 formContext,
                                 instanceObject,
                             });
@@ -163,7 +170,7 @@ describe("lib/{views,widgets}/*.vue", () => {
                     } else if (View === ViewCreate) {
                         expected = { object: values };
                     } else {
-                        // Update forms carry the route pk in the saved object.
+                        // Update forms carry the loaded record's primary key in the saved object.
                         expected = { object: { ...values, id: "1" } };
                     }
                     expect(send.mock.calls[0][0]).toEqual(expect.objectContaining(expected));

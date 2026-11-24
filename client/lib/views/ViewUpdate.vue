@@ -43,7 +43,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the object instance to fetch and edit. */
+    /**
+     * Lookup value of the object instance to fetch and edit: the value of the model's lookup field (`lookupField` in
+     * model info).
+     */
     pk: {
         type: String,
         required: true,
