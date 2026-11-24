@@ -97,6 +97,45 @@ describe("lib/views/ModelActionForm.vue", () => {
             }
         });
 
+        const missingRecordMessage =
+            "5 was not found. It may have been deleted or renamed, or you may not have access to it.";
+
+        scopedIt(
+            "names a selected record that the lookup does not return as a form error and blocks confirm",
+            async () => {
+                global.fetch = vi.fn(
+                    async () => new Response(JSON.stringify({ results: [records[0]], totalPages: 1 }), { status: 200 }),
+                );
+                const { wrapper, form } = await renderConfirmation({ hostFetches: false });
+                try {
+                    await flushPromises();
+                    const [url] = global.fetch.mock.calls[0];
+                    expect(new URL(String(url), "http://domain.invalid").searchParams.get("id")).toBe("4,5");
+                    expect(form.state.errors.non_field_errors).toEqual({ missing_objects: missingRecordMessage });
+                    expect(wrapper.text().split(missingRecordMessage)).toHaveLength(2);
+                    const confirm = wrapper.get('[data-qa="action-form-buttons"] button[type="submit"]');
+                    expect(confirm.attributes("disabled")).toBeDefined();
+                } finally {
+                    wrapper.unmount();
+                }
+            },
+        );
+
+        scopedIt("keeps the missing record error through a form reset and removes it on unmount", async () => {
+            global.fetch = vi.fn(
+                async () => new Response(JSON.stringify({ results: [records[0]], totalPages: 1 }), { status: 200 }),
+            );
+            const { wrapper, form } = await renderConfirmation({ hostFetches: false });
+            await flushPromises();
+            form.reset();
+            await flushPromises();
+            expect(form.state.errors.non_field_errors).toEqual({ missing_objects: missingRecordMessage });
+            expect(wrapper.text()).toContain(missingRecordMessage);
+
+            wrapper.unmount();
+            expect(form.state.errors.non_field_errors).toBeUndefined();
+        });
+
         scopedIt("keeps the IDs and the selection when the lookup fails", async () => {
             global.fetch = vi.fn(async () => new Response(JSON.stringify({ detail: "Forbidden" }), { status: 403 }));
             const { wrapper } = await renderConfirmation({ hostFetches: false });
@@ -105,6 +144,8 @@ describe("lib/views/ModelActionForm.vue", () => {
                 const ids = wrapper.findAll('[data-qa="action-form-list-item-pk"]').map((pk) => pk.text());
                 expect(ids).toEqual(["4", "5"]);
                 expect(wrapper.get('[data-qa="action-form-selected-count"]').text()).toBe("2 of 2 selected");
+                // The route already holds the primary keys, so the failed request only costs the chips their names.
+                expect(wrapper.text()).not.toContain("There was an error while");
             } finally {
                 wrapper.unmount();
             }
@@ -223,7 +264,7 @@ describe("lib/views/ModelActionForm.vue", () => {
                                 action: "submit",
                                 pk: "4",
                                 enableDryRun: false,
-                                fetchState: reactive({ loading: false, objectsMap: new Map() }),
+                                fetchState: reactive({ loading: false, objectsMap: new Map([["4", { id: 4 }]]) }),
                                 runAction,
                             });
                     },

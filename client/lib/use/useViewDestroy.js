@@ -9,6 +9,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { ConfirmationRequiredError } from "@vueda/utils/errors.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { lookupValuesListParams } from "@vueda/utils/lookupValues.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef } from "vue";
 
@@ -35,10 +36,12 @@ import { computed, inject, reactive, toRef } from "vue";
 /**
  * Provides instance deletion support for a view screen.
  *
- * Internally loads the instance(s) matching the provided `pk`, then exposes a
+ * Internally loads the instance(s) whose lookup values the provided `pk` holds, then exposes a
  * `handleDelete` function that can perform bulk deletion and report errors.
  *
- * @param {{ app: string, model: string, pk: string|string[] }} props - The reactive props object.
+ * @param {{ app: string, model: string, pk: string|string[] }} props - The reactive props object. `pk` holds the lookup
+ *  value or lookup values of the instances to delete: the value of the model's lookup field (`lookupField` in model
+ *  info).
  * @returns {ViewDestroyState} An object containing reactive state and the `handleDelete` function.
  */
 export function useViewDestroy(props) {
@@ -57,12 +60,11 @@ export function useViewDestroy(props) {
             model: toRef(props, "model"),
         },
         pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-        params: {
-            id: computed(() => {
-                const pk = props.pk;
-                return Array.isArray(pk) ? pk : [pk];
-            }),
-        },
+        // The route's `pk` holds lookup values. For a model with a custom lookup field, the loaded rows carry the
+        // primary keys that the delete sends.
+        params: computed(() =>
+            lookupValuesListParams(modelConfig.info, Array.isArray(props.pk) ? props.pk : [props.pk]),
+        ),
         intendToList: validAndActive,
     });
     const instanceList = useList({

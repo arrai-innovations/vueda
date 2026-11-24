@@ -11,14 +11,29 @@ import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { useIsActive } from "@vueda/use/useIsActive.js";
 import { useModelAction } from "@vueda/use/useModelAction.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
+import { NON_FIELD_ERRORS_KEY } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { hasCustomLookupField, lookupValueOf, lookupValuesListParams } from "@vueda/utils/lookupValues.js";
 import { FormContextSymbol } from "@vueda/utils/symbols.js";
 import ActionForm from "@vueda/views/ActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import WidgetReadOnly from "@vueda/widgets/WidgetReadOnly.vue";
 import omit from "lodash-es/omit.js";
 import upperFirst from "lodash-es/upperFirst.js";
-import { computed, inject, provide, reactive, ref, toRef, unref, useSlots, watch } from "vue";
+import {
+    computed,
+    inject,
+    onBeforeUnmount,
+    provide,
+    reactive,
+    ref,
+    shallowRef,
+    toRef,
+    toRefs,
+    unref,
+    useSlots,
+    watch,
+} from "vue";
 
 /**
  * Wraps `ActionForm` to execute a named action (such as delete or a custom
@@ -56,7 +71,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or primary keys used when selected objects have not been fetched yet. */
+    /**
+     * The lookup value or lookup values of the objects that the action targets: the value of the model's lookup field
+     * (`lookupField` in model info), as the route carries it.
+     */
     pk: {
         type: [String, Number, Array],
         default: undefined,
@@ -90,9 +108,11 @@ const props = defineProps({
         default: undefined,
     },
     /**
-     * Reactive fetch state object providing the list of selected objects and their data. Without it, the form looks the
-     * selected records up by primary key so its chips can show their formatted names. That lookup is for display only
-     * and never changes which records the action targets.
+     * Reactive fetch state of the loaded rows that `pk` names, keyed by primary key. Without it, the form loads those
+     * rows itself. A model with a custom lookup field loads them through the `lookup` filter. For such a model, a bulk
+     * request sends the loaded rows' primary keys, and the form shows the loading and error state of its own request.
+     * Any other model loads them through the `id` filter. Those rows give the chips their labels, and the request sends
+     * the `pk` values. When the rows load without an error, a `pk` value with no loaded row blocks the confirm button.
      */
     fetchState: {
         type: Object,
@@ -108,8 +128,10 @@ const props = defineProps({
     },
     /**
      * Function that runs the action in place of the default request to the model's action URL. It receives the same
-     * options as `ActionForm`'s `runAction`. A host that passes it sends the request itself, so the form does not
-     * require a request method from model info. `ViewExecuteTransition` uses it to send a workflow transition.
+     * options as `ActionForm`'s `runAction`, plus `pks`, the primary keys of the objects that the action targets. For a
+     * model with a custom lookup field, those keys come from the loaded rows. For any other model, they are the `pk`
+     * values. A host that passes it sends the request itself, so the form does not require a request method from model
+     * info. `ViewExecuteTransition` uses it to send a workflow transition.
      */
     runAction: {
         type: Function,
@@ -212,12 +234,47 @@ if (!injectedFormContext) {
     provide(FormContextSymbol, formContext);
 }
 
-const modelAction = useModelAction(props);
+// A host that loads the rows passes them as `fetchState`. Without one, the form loads the rows that `pk` names
+// through the filter that `lookupValuesListParams` picks. The loaded rows give each chip its formatted name. For a
+// model with a custom lookup field, they also carry the primary keys that a bulk request sends. The lookup list uses
+// the action's model config, so it is created after `useModelAction`. It sits in a ref, so the effective fetch state
+// follows the list once the list exists.
+const isActive = useIsActive();
+/** @type {import('vue').ShallowRef<ReturnType<typeof useList>|null>} */
+const selectedObjectsLookup = shallowRef(null);
+const effectiveFetchState = computed(() => props.fetchState ?? selectedObjectsLookup.value?.state);
+
+const modelAction = useModelAction(reactive({ ...toRefs(props), fetchState: effectiveFetchState }));
 const modelConfig = modelAction.modelConfig;
+const lookupValues = computed(() =>
+    (Array.isArray(props.pk) ? props.pk : [props.pk]).filter((value) => value != null && value !== ""),
+);
+if (!props.fetchState) {
+    selectedObjectsLookup.value = useList({
+        props: reactive({
+            target: { app: toRef(props, "app"), model: toRef(props, "model") },
+            pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+            params: computed(() => lookupValuesListParams(modelConfig.info, lookupValues.value)),
+            intendToList: computed(
+                () => !!(isActive.value && lookupValues.value.length > 0 && modelConfig.loading === false),
+            ),
+        }),
+        handlers: { list: allPagePaginatedListCrudAdaptor },
+    });
+}
+// `ActionForm` shows the loading and error state of the rows that the action needs. A host's rows always count. The
+// form's own rows count for a model with a custom lookup field, because its route carries lookup values and the
+// primary keys that the action sends come from those rows. For any other model, the route carries the primary keys,
+// so a failed request of the form's own rows leaves the chips showing primary keys, and the action can still run.
+const actionFormFetchState = computed(() =>
+    hasCustomLookupField(modelConfig.info) ? effectiveFetchState.value : props.fetchState,
+);
 const {
+    pks,
     pksAsString,
     pkCount,
-    objectsMap: hostObjectsMap,
+    objectsMap,
+    missingMessage,
     modelVerboseName,
     actionSuccessSummary: actionSuccessSummaryComputed,
     actionErrorSummary: actionErrorSummaryComputed,
@@ -232,26 +289,18 @@ const {
     viewOnlyMessage,
 } = modelAction.state;
 const redirectTo = modelAction.redirectTo;
-// A host that fetches the selected records passes them as `fetchState`. Without one, look the
-// records up here, so each chip shows the record's formatted name rather than its primary key.
-// The lookup is for display only: the action still targets the `pk` prop, and a failed lookup
-// leaves the chips showing primary keys without blocking the confirm button.
-const isActive = useIsActive();
-const selectedObjectsLookup = props.fetchState
-    ? null
-    : useList({
-          props: reactive({
-              target: { app: toRef(props, "app"), model: toRef(props, "model") },
-              pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-              params: { id: pksAsString },
-              intendToList: computed(
-                  () => !!(isActive.value && pksAsString.value.length > 0 && modelConfig.loading === false),
-              ),
-          }),
-          handlers: { list: allPagePaginatedListCrudAdaptor },
-      });
-const objectsMap = computed(() =>
-    selectedObjectsLookup ? selectedObjectsLookup.state.objectsMap || new Map() : hostObjectsMap.value,
+
+/**
+ * The label of a chip whose record has no formatted name: the record's lookup value, which the user knows from the
+ * record's address. A record that has not loaded shows its primary key.
+ *
+ * @param {string} targetPk - The record's primary key, as a string.
+ * @returns {string|number} The chip label.
+ */
+const chipFallbackLabel = (targetPk) => lookupValueOf(modelConfig.info, objectsMap.value.get(targetPk)) ?? targetPk;
+// A host `runAction` also receives the primary keys of the targeted objects, so it can send them.
+const hostRunAction = computed(() =>
+    props.runAction ? (options = {}) => props.runAction({ ...options, pks: [...unref(pks)] }) : undefined,
 );
 // The confirm button names the action it runs, in sentence case, so a reader who skips the prompt
 // still sees what pressing it does.
@@ -271,8 +320,31 @@ watch(dryRunTarget, () => {
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
 const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
 const confirmBlocked = computed(
-    () => typedConfirmGateBlocking.value || (!props.runAction && !actionRequestMethod.value),
+    () => typedConfirmGateBlocking.value || !unref(pks).length || (!props.runAction && !actionRequestMethod.value),
 );
+
+// A `pk` value that no loaded row holds blocks the action. The form shows `missingMessage` as its own form-level error,
+// which also disables the confirm button. A reset of the form clears its errors, so the watch also follows the stored
+// error, and it stores the message again while a value is still missing.
+const MISSING_OBJECTS_ERROR_CODE = "missing_objects";
+const storedMissingMessage = () => formContext.state.errors[NON_FIELD_ERRORS_KEY]?.[MISSING_OBJECTS_ERROR_CODE];
+watch(
+    () => [missingMessage.value, storedMissingMessage()],
+    ([message, storedMessage]) => {
+        if (message && storedMessage !== message) {
+            formContext.updateError(NON_FIELD_ERRORS_KEY, MISSING_OBJECTS_ERROR_CODE, message);
+        } else if (!message && storedMessage) {
+            formContext.deleteError(NON_FIELD_ERRORS_KEY, MISSING_OBJECTS_ERROR_CODE);
+        }
+    },
+    { immediate: true },
+);
+// A host that passes its form context keeps it after this form unmounts, so the error leaves with the form.
+onBeforeUnmount(() => {
+    if (storedMissingMessage()) {
+        formContext.deleteError(NON_FIELD_ERRORS_KEY, MISSING_OBJECTS_ERROR_CODE);
+    }
+});
 
 /**
  * Normalizes the confirmation dialog's raw warnings mapping into one display group per warned
@@ -310,9 +382,9 @@ const resolveWarningGroups = (warnings, bulk) => {
 
 <template>
     <action-form
-        :fetch-state="fetchState"
+        :fetch-state="actionFormFetchState"
         :redirect-to="redirectTo"
-        :run-action="runAction ?? defaultRunAction"
+        :run-action="hostRunAction ?? defaultRunAction"
         :ready-to-dry-run="dryRun"
         :dry-run-target="dryRunTarget"
         v-bind="$attrs"
@@ -452,7 +524,7 @@ const resolveWarningGroups = (warnings, bulk) => {
                                         :class="theme('listItemPk')"
                                         data-qa="action-form-list-item-pk"
                                     >
-                                        {{ targetPk }}
+                                        {{ chipFallbackLabel(targetPk) }}
                                     </span>
                                 </li>
                             </ul>

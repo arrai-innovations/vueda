@@ -83,13 +83,19 @@ describe("lib/use/useViewDestroy.js", () => {
 
         const listArgs = useList.mock.calls[0][0];
         expect(listArgs.props.intendToList).toBe(result.validAndActive.value);
-        const params = listArgs.props.params;
-        expect(params.id).toEqual(["123"]);
-        expect(Array.isArray(params.id)).toBe(true);
+        // The model's lookup field is its primary key field, so the rows load through the `id` filter.
+        expect(listArgs.props.params).toEqual({ id: ["123"] });
 
         expect(result.modelConfig).toBe(mockModelConfig);
         expect(result.instanceList).toBe(mockInstanceList);
         expect(result.validAndActive.value).toBe(true);
+    });
+
+    scopedIt("loads the rows of a model with a custom lookup field through the lookup filter", async () => {
+        mockModelConfig.info.lookupField = "sage_id";
+        await withSetup(() => useViewDestroy(props));
+
+        expect(useList.mock.calls[0][0].props.params).toEqual({ lookup: ["123"] });
     });
 
     scopedIt("handleDelete calls bulkDelete and throws if errored", async () => {

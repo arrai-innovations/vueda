@@ -217,8 +217,15 @@ function createFetchState(overrides = {}) {
 }
 
 function mountModelActionForm(options = {}) {
+    const state = vue.reactive({ submittingValues: { foo: "bar" }, errors: {} });
     const formContext = {
-        state: vue.reactive({ submittingValues: { foo: "bar" } }),
+        state,
+        updateError: vi.fn((name, code, message) => {
+            state.errors[name] = { ...state.errors[name], [code]: message };
+        }),
+        deleteError: vi.fn((name) => {
+            delete state.errors[name];
+        }),
     };
     const wrapper = mount(ModelActionForm, {
         props: {
@@ -599,7 +606,8 @@ describe("lib/views/ModelActionForm.vue", () => {
             expect(actionForm.props("readyToDryRun")).toBe(true);
             expect(wrapper.find('[data-qa="action-form-view-only-message"]').exists()).toBe(false);
             await actionForm.props("runAction")({ dryRun: true });
-            expect(runAction).toHaveBeenCalledWith({ dryRun: true });
+            // The host also receives the loaded rows' primary keys.
+            expect(runAction).toHaveBeenCalledWith({ dryRun: true, pks: [1, 2] });
             expect(instanceStubs.instanceObject.executeAction).not.toHaveBeenCalled();
             expect(instanceStubs.fallbackList.executeAction).not.toHaveBeenCalled();
         });

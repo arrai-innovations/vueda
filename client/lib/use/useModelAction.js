@@ -7,6 +7,12 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getActionRequestMethod } from "@vueda/utils/actionMap.js";
 import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
+import {
+    comparableLookupValue,
+    hasCustomLookupField,
+    lookupFieldOf,
+    lookupValueOf,
+} from "@vueda/utils/lookupValues.js";
 import startCase from "lodash-es/startCase.js";
 import { computed, reactive, ref, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -16,13 +22,17 @@ import { useRoute, useRouter } from "vue-router";
  * @property {string} app - Django app label that owns the model.
  * @property {string} model - Django model name the action targets.
  * @property {string} action - Action identifier sent to the server.
- * @property {string|string[]|number|number[]} [pk] - Optional primary key or primary keys when no fetch state is ready.
+ * @property {string|string[]|number|number[]} [pk] - The lookup value or lookup values of the objects that the action
+ *  targets: the value of the model's lookup field (`lookupField` in model info), as the route carries it. One value
+ *  targets one object through its detail URL. Several values target a bulk request. Without `pk`, the rows of
+ *  `fetchState` are the targets.
  * @property {string} [actionVerboseName] - Human-readable action name.
  * @property {string} [actionSuccessSummary] - Toast summary shown on successful action completion.
  * @property {string} [actionErrorSummary] - Toast summary shown when the action fails.
  * @property {string} [confirmMessage] - Confirmation message shown to the user before submitting.
- * @property {{ objectsInOrder?: object[], objectsMap?: Map<string, object> }} [fetchState] - Selected-object fetch
- *  state.
+ * @property {import('@vueda/use/useModelAction.js').ModelActionFetchState} [fetchState] - The loaded rows that `pk`
+ *  names, keyed by primary key. For a model whose lookup field is not its primary key field, a bulk request sends the
+ *  loaded rows' primary keys.
  * @property {import('@arrai-innovations/reactive-helpers').ListManager|import('@arrai-innovations/reactive-helpers').ListInstance} [instanceList] -
  *  List instance that holds the selected objects. Bulk actions use it to reconcile displayed rows after a real destroy.
  *  Omit it to use a private transport-only list.
@@ -41,21 +51,38 @@ import { useRoute, useRouter } from "vue-router";
  */
 
 /**
+ * @typedef {object} ModelActionFetchState
+ * @property {boolean} [loading] - Whether the rows are loading.
+ * @property {boolean} [errored] - Whether the request for the rows failed.
+ * @property {object[]} [objectsInOrder] - The loaded rows in list order.
+ * @property {Map<string, object>} [objectsMap] - The loaded rows by string primary key.
+ */
+
+/**
  * @typedef {object} ModelActionRunOptions
  * @property {object} [formValues] - Form values to submit.
  * @property {boolean} [dryRun] - Whether this is a dry-run validation request.
  * @property {string} [acknowledgeWarnings] - Warning digest acknowledged by the user.
+ * @property {unknown[]} [pks] - The primary keys of the targeted objects. `ModelActionForm` passes them to a host
+ *  `runAction`.
  */
 
 /**
  * @typedef {object} ModelActionRawState
  *
  * Target state.
- * @property {import('vue').ComputedRef<unknown[]>} pks - Primary keys targeted by the action.
- * @property {import('vue').ComputedRef<string[]>} pksAsString - String primary keys for rendering.
- * @property {import('vue').ComputedRef<boolean>} bulk - Whether more than one primary key is targeted.
- * @property {import('vue').ComputedRef<number>} pkCount - Number of primary keys targeted.
+ * @property {import('vue').ComputedRef<unknown[]>} pks - Primary keys of the objects that the action targets. A bulk
+ *  request sends them. They are the `pk` values when the model's lookup field is its primary key field. Otherwise
+ *  they come from the loaded rows, and the list is empty until the rows load.
+ * @property {import('vue').ComputedRef<string[]>} pksAsString - The primary keys as strings, for rendering.
+ * @property {import('vue').ComputedRef<boolean>} bulk - Whether `pk` names more than one object.
+ * @property {import('vue').ComputedRef<number>} pkCount - Number of objects that `pk` names.
  * @property {import('vue').ComputedRef<Map<string, object>>} objectsMap - Selected objects by string primary key.
+ * @property {import('vue').ComputedRef<string[]>} missingLookupValues - The `pk` values that no loaded row holds, once
+ *  `fetchState` has loaded without an error and before a real run starts. A row is missing when someone deleted it or
+ *  changed its lookup value, or when the user may not read it. The action cannot run while any value is missing.
+ * @property {import('vue').ComputedRef<string>} missingMessage - The message that names `missingLookupValues`. It is
+ *  empty when no value is missing.
  *
  * Copy state.
  * @property {import('vue').ComputedRef<string>} modelVerboseName - Singular or plural model name.
@@ -89,7 +116,9 @@ import { useRoute, useRouter } from "vue-router";
  * @property {import('@vueda/use/useModelConfig.js').ModelConfigState} modelConfig - Model metadata and view config.
  * @property {ModelActionRawState} state - Reactive action state.
  * @property {(options?: ModelActionRunOptions) => Promise<any>} runAction - Runs the action through the registered
- *  crud handlers. Rejects with `viewOnlyMessage` and sends no request when `requestMethod` is `null`.
+ *  crud handlers. Rejects with `viewOnlyMessage` and sends no request when `requestMethod` is `null`. Rejects with
+ *  `missingMessage` and sends no request while a `pk` value has no loaded row. Rejects and sends no request while
+ *  `pks` is empty.
  * @property {(result: any) => Promise<boolean>} redirectTo - Redirects after success or cancel. Goes to the route's
  *  `returnPath` query value when it has one. Otherwise it goes to the model config's `actionRedirects` entry for
  *  the action. Resolves `false` when the router reports a navigation failure, so `useActionForm` keeps the form usable.
@@ -124,18 +153,69 @@ export function useModelAction(props) {
     const route = useRoute();
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"));
 
-    const pks = computed(() => {
-        const objectPks = props.fetchState?.objectsInOrder?.map((obj) => obj?.id ?? obj) || [];
-        return objectPks.length > 0 ? objectPks : normalizePks(props.pk);
+    // `pk` holds lookup values, which address objects. A bulk request and a host `runAction` identify each object by
+    // its primary key. The route values are the primary keys when the lookup field is the primary key field.
+    // Otherwise the loaded rows carry them. Without `pk`, the loaded rows are the targets.
+    const pkKey = computed(() => modelConfig.info?.pk ?? "id");
+    // The primary keys of the last real run. A dry run leaves them alone.
+    const lastRunPks = ref([]);
+    const loadedRows = computed(() =>
+        props.fetchState?.objectsMap
+            ? Array.from(props.fetchState.objectsMap.values())
+            : (props.fetchState?.objectsInOrder ?? []),
+    );
+    const lookupValues = computed(() => {
+        const values = normalizePks(props.pk);
+        return values.length ? values : loadedRows.value.map((row) => lookupValueOf(modelConfig.info, row));
     });
-    const pksAsString = computed(() => pks.value.map((pk) => pk.toString()));
+    // A route value and a row's value can spell one key differently, such as a composite key `[1, 42]` against
+    // `["1", "42"]`. `comparableLookupValue` gives both spellings one form, so a row matches the value that loaded it.
+    const rowsByLookupValue = computed(
+        () =>
+            new Map(loadedRows.value.map((row) => [comparableLookupValue(lookupValueOf(modelConfig.info, row)), row])),
+    );
+    // The primary keys follow the order of the route values. Only a row that matches a route value is sent, so a
+    // request never acts on a row that the route does not name.
+    const pks = computed(() =>
+        hasCustomLookupField(modelConfig.info)
+            ? lookupValues.value
+                  .map((value) => rowsByLookupValue.value.get(comparableLookupValue(value))?.[pkKey.value])
+                  .filter((pk) => pk != null)
+            : lookupValues.value,
+    );
+    const pksAsString = computed(() => pks.value.map(String));
     const objectsMap = computed(() => props.fetchState?.objectsMap || new Map());
-    const bulk = computed(() => pks.value.length > 1);
-    const pkCount = computed(() => pks.value.length);
+    const bulk = computed(() => lookupValues.value.length > 1);
+    const pkCount = computed(() => lookupValues.value.length);
+    // The rows of a real run leave the list once the run succeeds, so the check stops when a real run starts.
+    // A real run sets `lastRunPks`, and a change of target clears it.
+    const missingLookupValues = computed(() => {
+        if (
+            !props.fetchState ||
+            props.fetchState.loading !== false ||
+            props.fetchState.errored ||
+            lastRunPks.value.length > 0
+        ) {
+            return [];
+        }
+        return lookupValues.value
+            .map(String)
+            .filter((value) => !rowsByLookupValue.value.has(comparableLookupValue(value)));
+    });
+    const missingMessage = computed(() => {
+        const missing = missingLookupValues.value;
+        if (!missing.length) {
+            return "";
+        }
+        return missing.length === 1
+            ? `${missing[0]} was not found. It may have been deleted or renamed, or you may not have access to it.`
+            : `${missing.join(", ")} were not found. They may have been deleted or renamed, or you may not have access ` +
+                  "to them.";
+    });
 
     // Bulk actions need a list instance so destroy can reconcile selected rows. Use the caller's list when provided;
-    // otherwise create a private list only for transport. Single-object actions use an object instance owned here.
-    const pkKey = computed(() => modelConfig.info?.pk ?? "id");
+    // otherwise create a private list only for transport. Single-object actions use an object instance owned here,
+    // which sends the request to the object's detail URL, so it carries the lookup value.
     const target = reactive({ app: toRef(props, "app"), model: toRef(props, "model") });
     const fallbackInstanceList = props.instanceList
         ? undefined
@@ -144,8 +224,8 @@ export function useModelAction(props) {
     const instanceObject = useObjectInstance({
         props: reactive({
             target,
-            pk: computed(() => pks.value[0]),
-            pkKey,
+            pk: computed(() => lookupValues.value[0]),
+            pkKey: computed(() => lookupFieldOf(modelConfig.info)),
             params: {},
         }),
     });
@@ -233,7 +313,6 @@ export function useModelAction(props) {
     // own -- the dry run itself toggles instance loading, so without a latch somewhere the readiness watcher would
     // retrigger for the same target. `dryRunTarget` gives a consumer (`useActionForm`'s dry-run watcher) an identity
     // to latch against instead.
-    const lastRunPks = ref([]);
     watch(
         () => JSON.stringify([props.app, props.model, props.action, props.pk]),
         () => {
@@ -258,13 +337,13 @@ export function useModelAction(props) {
                 modelConfig.loading === false &&
                 !!(props.runAction || requestMethod.value) &&
                 pks.value.length > 0 &&
+                missingLookupValues.value.length === 0 &&
                 !actionInstance.value?.state?.loading
             ),
     );
 
-    // Keep the last real target for redirects because a successful bulk destroy may clear `pks` before redirecting.
-    const redirectPks = computed(() => (lastRunPks.value.length > 0 ? lastRunPks.value : pks.value));
-    const redirectBulk = computed(() => redirectPks.value.length > 1);
+    // A redirect names the objects by the lookup values that `pk` holds. A successful bulk destroy clears the loaded
+    // rows, and `pk` keeps the values.
 
     const redirectTo = async (result) => {
         const returnPath = route.query?.returnPath;
@@ -281,10 +360,10 @@ export function useModelAction(props) {
             redirect = props.action === "destroy" && result === "success" ? "list" : redirects.default;
         }
         if (typeof redirect === "function") {
-            redirect = redirect({ bulk: redirectBulk.value, result });
+            redirect = redirect({ bulk: bulk.value, result });
         }
 
-        if (redirectBulk.value || redirect === "list") {
+        if (bulk.value || redirect === "list") {
             return !(await router.push({
                 name: LIST_VIEW_CRUD_NAME,
                 params: { app: props.app, model: props.model, action: "list" },
@@ -292,7 +371,7 @@ export function useModelAction(props) {
         }
         return !(await router.push({
             name: DETAIL_VIEW_CRUD_NAME,
-            params: { app: props.app, model: props.model, action: redirect, pk: redirectPks.value[0] },
+            params: { app: props.app, model: props.model, action: redirect, pk: lookupValues.value[0] },
         }));
     };
 
@@ -310,6 +389,12 @@ export function useModelAction(props) {
         try {
             if (!requestMethod.value) {
                 throw new Error(viewOnlyMessage.value);
+            }
+            if (missingMessage.value) {
+                throw new Error(missingMessage.value);
+            }
+            if (!pks.value.length) {
+                throw new Error("The selected objects have not loaded.");
             }
             const instance = actionInstance.value;
             const runTarget = dryRunTarget.value;
@@ -378,6 +463,8 @@ export function useModelAction(props) {
             bulk,
             pkCount,
             objectsMap,
+            missingLookupValues,
+            missingMessage,
             modelVerboseName,
             actionVerboseNameLowerCase,
             actionSuccessSummary,

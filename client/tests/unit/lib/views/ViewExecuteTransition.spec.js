@@ -273,24 +273,27 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
     });
 
     describe("Submission", () => {
-        scopedIt("run-action submits app, model, pk, and the transition code verbatim through storeWorkflow", () => {
-            mockedInject.mockReturnValueOnce({});
-            const wrapper = mount(ViewExecuteTransition, {
-                props: { app: "app", model: "invoice", action: "approve", pk: "7" },
-            });
-            const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
-            runAction({ dryRun: true, acknowledgeWarnings: "digest-1" });
-            expect(executeTransition).toHaveBeenCalledWith(
-                "app",
-                "invoice",
-                "7",
-                "approve",
-                expect.any(Object),
-                undefined,
-                true,
-                "digest-1",
-            );
-        });
+        scopedIt(
+            "run-action submits the loaded row's primary key and the transition code through storeWorkflow",
+            () => {
+                mockedInject.mockReturnValueOnce({});
+                const wrapper = mount(ViewExecuteTransition, {
+                    props: { app: "app", model: "invoice", action: "approve", pk: "SAGE-7" },
+                });
+                const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
+                runAction({ dryRun: true, acknowledgeWarnings: "digest-1", pks: [7] });
+                expect(executeTransition).toHaveBeenCalledWith(
+                    "app",
+                    "invoice",
+                    7,
+                    "approve",
+                    expect.any(Object),
+                    undefined,
+                    true,
+                    "digest-1",
+                );
+            },
+        );
 
         scopedIt("run-action defaults dryRun to false and forwards undefined acknowledgeWarnings when omitted", () => {
             mockedInject.mockReturnValueOnce({});
@@ -298,11 +301,11 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
                 props: { app: "app", model: "invoice", action: "approve", pk: "7" },
             });
             const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
-            runAction();
+            runAction({ pks: [7] });
             expect(executeTransition).toHaveBeenCalledWith(
                 "app",
                 "invoice",
-                "7",
+                7,
                 "approve",
                 expect.any(Object),
                 undefined,
@@ -311,17 +314,17 @@ describe("lib/views/ViewExecuteTransition.vue", () => {
             );
         });
 
-        scopedIt("run-action forwards a bulk pk array unchanged for bulk transitions", () => {
+        scopedIt("run-action sends the loaded rows' primary keys for bulk transitions", () => {
             mockedInject.mockReturnValueOnce({});
             const wrapper = mount(ViewExecuteTransition, {
-                props: { app: "app", model: "invoice", action: "approve", pk: ["1", "2"] },
+                props: { app: "app", model: "invoice", action: "approve", pk: ["SAGE-1", "SAGE-2"] },
             });
             const runAction = wrapper.findComponent(ModelActionFormStub).props("runAction");
-            runAction();
+            runAction({ pks: [1, 2] });
             expect(executeTransition).toHaveBeenCalledWith(
                 "app",
                 "invoice",
-                ["1", "2"],
+                [1, 2],
                 "approve",
                 expect.any(Object),
                 undefined,

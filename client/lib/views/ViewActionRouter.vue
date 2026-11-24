@@ -30,7 +30,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key(s) forwarded to the resolved action view. */
+    /**
+     * Lookup value(s) forwarded to the resolved action view: the value of the model's lookup field (`lookupField` in
+     * model info).
+     */
     pk: {
         type: [String, Number, Array],
         default: "",
