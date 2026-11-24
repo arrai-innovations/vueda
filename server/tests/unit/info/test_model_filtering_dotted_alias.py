@@ -222,14 +222,14 @@ class TestPublicFilterAliasMixinClassLevelRename:
         assert "distributor__description" not in base_filter_names
 
     def test_base_filters_keeps_each_filters_declared_position(self):
-        """Renaming a key in place (a dict comprehension over `super().get_filters()`, in its own
-        order) keeps every filter's declared position. The previous `pop`-then-reinsert approach
-        moved each renamed filter to the end of the dict as it was renamed, so `id` -- the one filter
-        here with nothing to rename -- ended up first instead of third, and `model_filtering`'s
-        (and the client's filter-control) order followed."""
+        """Renaming a key in place keeps every filter in its declared position.
+
+        ``model_filtering`` and the client's filter controls list the filters in this order.
+        """
         assert list(my_filtersets.ProductAutoDerivedFilterSet.base_filters) == [
             "distributor.name",
             "distributor.name.icontains",
+            "lookup",
             "id",
             "tangible_type.code",
             "distributor.id",

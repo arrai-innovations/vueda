@@ -246,6 +246,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "distributor",
             "verbose_name_plural": "distributors",
             "workflow_enabled": False,
+            "lookup_field": None,
         },
     },
     "GetModelInfoActionsExpandedExample": {
@@ -258,6 +259,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "customer",
             "verbose_name_plural": "customers",
             "workflow_enabled": False,
+            "lookup_field": None,
             "model_actions": [
                 {
                     "name": "list",
@@ -334,8 +336,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
                         "get",
                     ],
                     "parameters": [
-                        "args",
-                        "kwargs",
+                        "pk",
                     ],
                     "url_path": "history_list",
                 },
@@ -352,6 +353,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "product",
             "verbose_name_plural": "products",
             "workflow_enabled": False,
+            "lookup_field": None,
             "model_expands": [
                 {
                     "name": "distributor",
@@ -427,6 +429,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "customer order",
             "verbose_name_plural": "customer orders",
             "workflow_enabled": False,
+            "lookup_field": None,
             "model_fields": {
                 "id": {
                     "choices": False,
@@ -559,6 +562,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "cart",
             "verbose_name_plural": "carts",
             "workflow_enabled": False,
+            "lookup_field": None,
             "model_filtering": {
                 "last_modified": {
                     "hidden": False,
@@ -734,6 +738,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "customer order",
             "verbose_name_plural": "customer orders",
             "workflow_enabled": False,
+            "lookup_field": None,
             "model_ordering": {
                 "default": [],
                 "fields": [
@@ -767,6 +772,7 @@ MODEL_INFO_DETAIL_EXAMPLES = {
             "verbose_name": "customer order",
             "verbose_name_plural": "customer orders",
             "workflow_enabled": False,
+            "lookup_field": None,
             "model_permissions": [
                 {
                     "codename": "create_customerorder",

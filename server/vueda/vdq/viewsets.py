@@ -50,7 +50,8 @@ class DefaultSendQueueViewSet(VuedaReadOnlyViewSet):
         if not hasattr(self, "request"):
             return queryset
 
-        if "pk" in self.kwargs:
+        # A detail route shows any queue item, including a done one. Only the list leaves done items out.
+        if self.get_lookup_value() is not None:
             return queryset
         return queryset.exclude(object_states_proxy__state__code__in=QUEUE_ITEM_DONE_STATES)
 
@@ -73,8 +74,8 @@ class DefaultSentItemViewSet(VuedaReadOnlyViewSet):
     @conditional_extend_schema_decorator(summary="Resend sent item(s)")
     @atomic
     @action(detail=True, bulk=True, methods=["post"])
-    def resend(self, request, pk=None):
-        if pk:
+    def resend(self, request, **kwargs):
+        if self.get_lookup_value() is not None:
             queue_item = self.get_object()
             new_queue_item = queue_item.clone()
             schedule_queue_item(new_queue_item)

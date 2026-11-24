@@ -76,3 +76,18 @@ class CompositeKeyGadget(VuedaModel, ActivatableBaseModel):
 
     def __str__(self):
         return self.name
+
+
+class LookupKeyGadget(VuedaModel, ActivatableBaseModel):
+    """A gadget whose viewset identifies it by ``sage_id`` instead of its integer primary key."""
+
+    sage_id = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=255)
+
+    class Vueda:
+        class History:
+            enabled = False
+            reason = "A bulk action fixture; history would add an event table and triggers it never exercises."
+
+    def __str__(self):
+        return self.name

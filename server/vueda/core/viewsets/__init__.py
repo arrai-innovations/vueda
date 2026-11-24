@@ -11,6 +11,7 @@ __all__ = (
     "FlexFieldsMixin",
     "ListRowLevelViewSetMixin",
     "NoExtraFieldsForViewSetMixin",
+    "ObjectLookupViewSetMixin",
     "PerActionSerializerMixin",
     "VuedaReadOnlyViewSet",
     "VuedaViewSet",
@@ -77,6 +78,8 @@ from vueda.history.revision import annotate_object_revision
 from vueda.history.revision import is_tracked
 from vueda.history.serializers.actions import HistoryActionGroupSerializer
 from vueda.history.sources import state_events_for
+from vueda.info.registration import resolve_lookup_field
+from vueda.info.registration import viewset_lookup_url_kwarg
 
 
 # The zero a column total falls back to when its filtered set is empty, by column type. Django hands
@@ -1713,9 +1716,26 @@ class AllowedExtraActionsMixin:
         }
 
 
+class ObjectLookupViewSetMixin:
+    """
+    Reads the lookup value from a detail URL, whatever the viewset's ``lookup_field`` is.
+
+    DRF routes detail URLs by ``lookup_field`` and names the URL keyword ``lookup_url_kwarg``,
+    which defaults to ``lookup_field``. A detail action therefore receives the lookup value under
+    that keyword, and a bulk request on the list route receives no keyword at all.
+    """
+
+    def get_lookup_value(self):
+        """Return the lookup value in the request URL. The value is ``None`` on a route without one."""
+        return self.kwargs.get(viewset_lookup_url_kwarg(self))
+
+
 class DeactivateActionViewSetMixin:
     """
     A ViewSet mixin that allows you to deactivate a model inheriting from `ActivatableBaseModel`.
+
+    A single-object request names its row by the lookup value in the URL. A validation error for it
+    is keyed by the row's ``str(pk)``, the key that bulk errors and warnings use.
 
     A bulk request names its rows in a ``pks`` body. ``VuedaViewSet.get_bulk_queryset`` converts
     the keys and applies the row-level and object permission checks for ``update``, the checks that
@@ -1728,8 +1748,8 @@ class DeactivateActionViewSetMixin:
     """
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def deactivate(self, request, pk=None):
-        if pk:
+    def deactivate(self, request, **kwargs):
+        if self.get_lookup_value() is not None:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
@@ -1737,7 +1757,9 @@ class DeactivateActionViewSetMixin:
                     status=status.HTTP_405_METHOD_NOT_ALLOWED,
                 )
             if not instance.is_active:
-                raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already deactivated"]})
+                raise VuedaValidationError(
+                    {str(instance.pk): [f"This {instance.__class__.__name__} is already deactivated"]}
+                )
             gate_warnings(request, self.get_warnings_for_object("deactivate", instance))
             instance.is_active = False
             instance.save()
@@ -1771,8 +1793,8 @@ class DeactivateActionViewSetMixin:
         return Response({"detail": f"Successfully deactivated {updated} objects."}, status=status.HTTP_200_OK)
 
     @action(detail=True, bulk=True, methods=["patch"])
-    def activate(self, request, pk=None):
-        if pk:
+    def activate(self, request, **kwargs):
+        if self.get_lookup_value() is not None:
             instance = self.get_object()
             if not isinstance(instance, ActivatableBaseModel):
                 return Response(
@@ -1781,7 +1803,9 @@ class DeactivateActionViewSetMixin:
                 )
 
             if instance.is_active:
-                raise VuedaValidationError({pk: [f"This {instance.__class__.__name__} is already activated"]})
+                raise VuedaValidationError(
+                    {str(instance.pk): [f"This {instance.__class__.__name__} is already activated"]}
+                )
 
             gate_warnings(request, self.get_warnings_for_object("activate", instance))
             instance.is_active = True
@@ -1816,6 +1840,7 @@ class DeactivateActionViewSetMixin:
 
 
 class VuedaViewSet(
+    ObjectLookupViewSetMixin,
     AllowedExtraActionsMixin,
     NestedMultipartMixin,
     WarningConfirmationMixin,
@@ -1839,8 +1864,6 @@ class VuedaViewSet(
       ``DeactivateActionViewSetMixin`` is mixed in) behind a 409 confirmation with the same rule
       for both; override ``get_warnings`` instead if bulk needs its own logic.
     """
-
-    detail_args = ["pk"]
 
     nulls_ordering: dict[str, str] | None = None
     """Nulls placement per field name, ``"first"`` or ``"last"``, applied wherever that field is sorted.
@@ -1886,7 +1909,7 @@ class VuedaViewSet(
         return extra_actions
 
     @action(detail=True, methods=["get"])
-    def history_list(self, request, pk=None):
+    def history_list(self, request, **kwargs):
         """Return this object's history as the user actions behind it.
 
         A page is a page of actions. One action that wrote several rows stays whole, because the
@@ -1993,9 +2016,8 @@ class VuedaViewSet(
 
     def destroy(self, request, **kwargs):
         """Delete one or more objects."""
-        pk = kwargs.get("pk")
         dry_run = request.headers.get(DRY_RUN_HEADER, "false").lower() == "true"
-        if pk:
+        if self.get_lookup_value() is not None:
             instance = self.get_object()
             self.destroy_validation((instance,))
             gate_warnings(request, self.get_warnings_for_object("destroy", instance))
@@ -2016,24 +2038,26 @@ class VuedaViewSet(
 
     def get_object(self):
         """
-        Override this function to convert the pk kwarg to a list if the model has a composite primary key.
-        """
-        if hasattr(self, "kwargs") and "pk" in self.kwargs:
-            has_composite_primary_key = False
-            cpk_field = None
-            model = getattr(self.queryset, "model", None) or self.get_queryset().model
-            for field in model._meta.fields:
-                if isinstance(field, CompositePrimaryKey):
-                    has_composite_primary_key = True
-                    cpk_field = field
+        Return the object whose lookup value the request URL carries.
 
-            if has_composite_primary_key:
-                # 'CompositePrimaryKey' must be named 'pk'. A key that does not convert names no
-                # object, so answer 404 the way DRF's get_object_or_404 does for a malformed pk.
-                try:
-                    self.kwargs["pk"] = cpk_field.to_python(self.kwargs["pk"])
-                except (TypeError, ValueError, ValidationError) as exc:
-                    raise Http404 from exc
+        DRF reads the value from the ``lookup_url_kwarg`` URL keyword and filters by ``lookup_field``.
+        When the lookup field is a composite primary key, the URL carries the key as its JSON array
+        string. This method converts that string to the tuple of column values that the filter
+        expects. A key that does not convert names no object, so it answers 404, as DRF does for a
+        malformed key.
+        """
+        lookup_value = self.get_lookup_value()
+        model = getattr(self.queryset, "model", None) or self.get_queryset().model
+        pk_field = model._meta.pk
+        if (
+            lookup_value is not None
+            and isinstance(pk_field, CompositePrimaryKey)
+            and resolve_lookup_field(model, self.lookup_field) == pk_field.name
+        ):
+            try:
+                self.kwargs[viewset_lookup_url_kwarg(self)] = pk_field.to_python(lookup_value)
+            except (TypeError, ValueError, ValidationError) as exc:
+                raise Http404 from exc
 
         return super().get_object()
 
@@ -2080,6 +2104,7 @@ class VuedaViewSet(
 
 
 class VuedaReadOnlyViewSet(
+    ObjectLookupViewSetMixin,
     AllowedExtraActionsMixin,
     NestedMultipartMixin,
     FlexFieldsMixin,
@@ -2092,8 +2117,6 @@ class VuedaReadOnlyViewSet(
     with the same flex-fields, query-parameter validation, row-level filtering, and extra-action
     permission checks as ``VuedaViewSet``.
     """
-
-    detail_args = ["pk"]
 
     nulls_ordering: dict[str, str] | None = None
     """Nulls placement per field name, ``"first"`` or ``"last"``, applied wherever that field is sorted.

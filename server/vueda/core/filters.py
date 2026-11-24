@@ -8,6 +8,8 @@ __all__ = (
     "BaseArrayInFilter",
     "FormattedNamePathFilterSetMixin",
     "IdInFilterSet",
+    "LookupInFilter",
+    "LookupInFilterSet",
     "ModelChoiceArrayFilter",
     "NumberArrayFilter",
     "PublicFilterAliasMixin",
@@ -62,6 +64,9 @@ from vueda.core.paths import path_annotation_name
 from vueda.core.paths import public_ordering_path_to_orm
 from vueda.core.paths import reject_wildcard
 from vueda.core.paths import split_ordering_direction
+from vueda.core.widgets import RepeatedHiddenInput
+from vueda.info.registration import get_lookup_field
+from vueda.info.registration import viewset_lookup_field
 
 
 class BaseArrayFilter(rest_framework.Filter):
@@ -231,18 +236,103 @@ class IdInFilterSet(rest_framework.FilterSet):
     id = NumberArrayFilter(field_name="id", lookup_expr="in", widget=forms.HiddenInput)
 
 
+class LookupValuesField(forms.Field):
+    """
+    A form field that holds a list of lookup values, each one kept exactly as the request sent it.
+
+    The field strips no spaces and splits no commas, because a lookup value is one whole key.
+    """
+
+    widget = RepeatedHiddenInput
+
+    def to_python(self, value):
+        if value in self.empty_values:
+            return []
+        return [str(item) for item in value]
+
+
+class LookupInFilter(rest_framework.Filter):
+    """
+    Matches the rows whose ``field_name`` holds one of the given lookup values.
+
+    A lookup value is the value of the lookup field: the model field whose value the viewset puts
+    in its detail URLs. The query string repeats the parameter once for each value, as in
+    ``?lookup=A&lookup=B``. Each value converts through
+    :class:`~vueda.core.serializers.ModelFieldValueField`, so a value that the field cannot hold
+    answers 400 instead of failing in the database.
+    """
+
+    field_class = LookupValuesField
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("lookup_expr", "in")
+        kwargs.setdefault("label", _("Lookup value"))
+        kwargs.setdefault("help_text", _("Repeat the parameter once for each lookup value."))
+        super().__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        if not value:
+            return qs
+        from vueda.core.serializers import ModelFieldValueField
+
+        value_field = ModelFieldValueField(qs.model, self.field_name)
+        try:
+            values = [value_field.to_internal_value(item) for item in value]
+        except ValidationError as exc:
+            raise ValidationError({"lookup": exc.detail}) from exc
+        return self.get_method(qs)(**{f"{self.field_name}__{self.lookup_expr}": values})
+
+
+class LookupInFilterSet(rest_framework.FilterSet):
+    """
+    Adds a hidden ``lookup`` filter that matches lookup values, as in ``?lookup=SAGE-0042&lookup=SAGE-0043``.
+
+    A lookup value is the value of the lookup field: the model field whose value the viewset puts
+    in its detail URLs. A client route carries lookup values. For a model with a custom lookup field,
+    the client's delete, action, and transition pages use this filter to load the rows that the
+    route names. The filter matches the ``lookup_field`` of the viewset that serves
+    the request when that viewset serves the filterset's model. Otherwise, such as outside a viewset
+    request or on an endpoint that filters another model, it matches the lookup field of the model's
+    registered viewset. A model without a registered viewset matches its primary key.
+    """
+
+    lookup = LookupInFilter()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        lookup_filter = self.filters.get("lookup")
+        if isinstance(lookup_filter, LookupInFilter):
+            lookup_filter.field_name = self.get_lookup_field()
+
+    def get_lookup_field(self):
+        """Return the name of the model field whose values the ``lookup`` filter matches."""
+        model = self.queryset.model
+        view = (getattr(self.request, "parser_context", None) or {}).get("view")
+        view_model = getattr(getattr(view, "queryset", None), "model", None)
+        if view_model is model and hasattr(view, "lookup_field"):
+            return viewset_lookup_field(view, model)
+        return get_lookup_field(model)
+
+
 class VuedaFilterSet(
-    PublicFilterAliasMixin, WorkflowStateFilterSetMixin, FormattedNamePathFilterSetMixin, IdInFilterSet
+    PublicFilterAliasMixin,
+    WorkflowStateFilterSetMixin,
+    FormattedNamePathFilterSetMixin,
+    LookupInFilterSet,
+    IdInFilterSet,
 ):
     pass
 
 
 class VuedaCompositePrimaryKeyFilterSet(
-    PublicFilterAliasMixin, WorkflowStateFilterSetMixin, FormattedNamePathFilterSetMixin, rest_framework.FilterSet
+    PublicFilterAliasMixin, WorkflowStateFilterSetMixin, FormattedNamePathFilterSetMixin, LookupInFilterSet
 ):
     """
-    We can't have a default 'pk' filter.
-    We would want filters for each field that combines to make the pk.
+    The VUEDA filterset for a model with a composite primary key.
+
+    It has no ``id`` filter, because a composite primary key is several columns. Declare a filter
+    for each column that a client filters by. It keeps the hidden ``lookup`` filter that
+    :class:`LookupInFilterSet` adds, which matches a composite key as its JSON array string.
     """
 
 

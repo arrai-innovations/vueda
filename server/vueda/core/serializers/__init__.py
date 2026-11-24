@@ -6,6 +6,7 @@ __all__ = (
     "FlexFieldsWriteableNestedSerializerMixin",
     "GenericForeignKeySerializer",
     "MakeReadonly",
+    "ModelFieldValueField",
     "ModelPrimaryKeyValueField",
     "NoExtraFieldsSerializerMixin",
     "PrimaryKeyListSerializer",
@@ -71,38 +72,52 @@ from vueda.info.registration import get_registration
 from vueda.info.registration import get_serializer_for_model
 
 
-class ModelPrimaryKeyValueField(serializers.Field):
+class ModelFieldValueField(serializers.Field):
+    """
+    Converts one value to the value that a filter on the ``field_name`` field of ``model`` expects.
+
+    The model field does the conversion, so a UUID, string, or other value type converts the way
+    the database lookup needs it. A composite primary key arrives as its JSON array string, such as
+    ``'["1", "42"]'``, the same form that the detail route takes. It converts to a tuple of column
+    values. A value that the field cannot convert fails as ``invalid``.
+    """
+
+    default_error_messages = {"invalid": "Values must be valid for the {field} field."}
+
+    def __init__(self, model, field_name, **kwargs):
+        self.model = model
+        self.model_field = model._meta.get_field(field_name)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        if isinstance(self.model_field, CompositePrimaryKey):
+            if not isinstance(data, str):
+                self.fail("invalid", field=self.model_field.name)
+            try:
+                return tuple(self.model_field.to_python(data))
+            except (TypeError, ValueError, DjangoValidationError):
+                self.fail("invalid", field=self.model_field.name)
+        try:
+            return self.model_field.to_python(data)
+        except (TypeError, ValueError, DjangoValidationError):
+            self.fail("invalid", field=self.model_field.name)
+
+    def to_representation(self, value):
+        return value
+
+
+class ModelPrimaryKeyValueField(ModelFieldValueField):
     """
     Converts one primary key value to the value that a ``pk`` filter on ``model`` expects.
 
-    The model's primary key field does the conversion, so a UUID, string, or other key type
-    converts the way the database lookup needs it. A composite key arrives as its JSON array
-    string, such as ``'["1", "42"]'``, the same form that the detail route takes. It converts to a
-    tuple of column values. A value that the key field cannot convert fails as ``invalid``.
+    The primary key field does the conversion, as :class:`ModelFieldValueField` describes for any
+    field. A composite key arrives as its JSON array string and converts to a tuple of column values.
     """
 
     default_error_messages = {"invalid": "Primary keys must be valid values for this model's primary key."}
 
     def __init__(self, model, **kwargs):
-        self.model = model
-        super().__init__(**kwargs)
-
-    def to_internal_value(self, data):
-        pk_field = self.model._meta.pk
-        if isinstance(pk_field, CompositePrimaryKey):
-            if not isinstance(data, str):
-                self.fail("invalid")
-            try:
-                return tuple(pk_field.to_python(data))
-            except (TypeError, ValueError, DjangoValidationError):
-                self.fail("invalid")
-        try:
-            return pk_field.to_python(data)
-        except (TypeError, ValueError, DjangoValidationError):
-            self.fail("invalid")
-
-    def to_representation(self, value):
-        return value
+        super().__init__(model, model._meta.pk.name, **kwargs)
 
 
 def _has_integer_primary_key(model):

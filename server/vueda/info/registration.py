@@ -2,11 +2,16 @@
 
 __all__ = (
     "get_all_registrations",
+    "get_lookup_field",
     "get_registered_content_types",
     "get_registration",
     "get_serializer_for_model",
+    "get_viewset_for_model",
     "register",
     "register_serializer",
+    "resolve_lookup_field",
+    "viewset_lookup_field",
+    "viewset_lookup_url_kwarg",
 )
 
 import logging
@@ -166,6 +171,59 @@ def get_serializer_for_model(model):
     key = f"{model._meta.app_label}.{model._meta.model_name}"
     entry = _registry.get(key)
     return entry["serializer"] if entry else None
+
+
+def get_viewset_for_model(model):
+    """
+    Return the canonical viewset class registered for ``model``.
+
+    Returns ``None`` when the model is unregistered or registered without a viewset. The function
+    reads the in-process registry directly.
+    """
+    key = f"{model._meta.app_label}.{model._meta.model_name}"
+    entry = _registry.get(key)
+    return entry["viewset"] if entry else None
+
+
+def resolve_lookup_field(model, lookup_field):
+    """
+    Return the name of the ``model`` field that a viewset's ``lookup_field`` value names.
+
+    DRF's default ``lookup_field``, ``"pk"``, names the model's primary key field, so it resolves to
+    that field's name. Any other value is already a field name, and the function returns it unchanged.
+    """
+    return model._meta.pk.name if lookup_field == "pk" else lookup_field
+
+
+def viewset_lookup_field(viewset, model):
+    """
+    Return the name of the ``model`` field whose value ``viewset`` puts in its detail URLs.
+
+    This is the viewset's ``lookup_field``, with ``"pk"`` resolved to the primary key field's name.
+    A ``viewset`` of ``None`` uses DRF's default, the primary key.
+    """
+    return resolve_lookup_field(model, getattr(viewset, "lookup_field", "pk"))
+
+
+def viewset_lookup_url_kwarg(viewset):
+    """
+    Return the URL keyword that carries the lookup value in ``viewset``'s detail URLs.
+
+    This is the viewset's ``lookup_url_kwarg``. A viewset that leaves it unset uses its
+    ``lookup_field`` as the keyword, as DRF does. A ``viewset`` of ``None`` uses DRF's default,
+    ``"pk"``.
+    """
+    return getattr(viewset, "lookup_url_kwarg", None) or getattr(viewset, "lookup_field", "pk")
+
+
+def get_lookup_field(model):
+    """
+    Return the name of the field whose value addresses a ``model`` object in VUEDA's URLs and client routes.
+
+    This is the ``lookup_field`` of the model's registered viewset, with ``"pk"`` resolved to the
+    primary key field's name. A model without a registered viewset uses its primary key field.
+    """
+    return viewset_lookup_field(get_viewset_for_model(model), model)
 
 
 def get_all_registrations():

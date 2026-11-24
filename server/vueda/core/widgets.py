@@ -1,6 +1,9 @@
 """Django form widget for rendering and parsing native array inputs."""
 
-__all__ = ("BaseArrayWidget",)
+__all__ = (
+    "BaseArrayWidget",
+    "RepeatedHiddenInput",
+)
 
 from collections.abc import Iterable
 from copy import deepcopy
@@ -62,3 +65,21 @@ class BaseArrayWidget(forms.Widget):
         value = ",".join(list(value))
 
         return self.surrogate.render(name, value, attrs, renderer=renderer)
+
+
+class RepeatedHiddenInput(forms.HiddenInput):
+    """
+    A hidden input that reads a list from a repeated query parameter, as in ``?lookup=A&lookup=B``.
+
+    Each value is one whole entry, kept exactly as sent, so an entry that contains a comma or a
+    space stays intact. A plain mapping, such as a JSON body, may hold the list itself or a single
+    value. The widget drops empty values, so a bare ``?lookup=`` gives an empty list.
+    """
+
+    def value_from_datadict(self, data, files, name):
+        values = data.getlist(name, None) if hasattr(data, "getlist") else data.get(name)
+        if values is None:
+            return None
+        if not isinstance(values, list):
+            values = [values]
+        return [value for value in values if value != ""]

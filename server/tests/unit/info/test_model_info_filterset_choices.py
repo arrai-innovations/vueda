@@ -587,7 +587,7 @@ class TestModelInfoFiltersetChoicesInvalidFilter(BaseModelInfoFilterSetChoices):
         assert response.status_code == HTTPStatus.NOT_FOUND, response_body(response)
         assert response.data["detail"] == (
             "Invalid filter 'invalid_filterset_field'. Valid filters are condition, disabled, "
-            "distributor, id, last_ordered, name, name_icontains, quantity, special_care, tangible_type."
+            "distributor, id, last_ordered, lookup, name, name_icontains, quantity, special_care, tangible_type."
         )
 
     @pytest.mark.parametrize("registration", ["serializer_only", "viewset_without_filterset"])
