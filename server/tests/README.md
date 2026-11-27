@@ -134,37 +134,23 @@ rely on. Then run the suite with `-n2 --dist loadgroup` to check that the group 
 - Test viewset behavior with real requests through the `api_client` fixture.
   `test_get_queryset_limits_to_authenticated_user` in `unit/users/test_viewsets.py` is an example.
 
-## Regenerate the test apps' migrations
+## Refresh the test apps' generated migrations
 
-`makevuedamigrations` tests generate their migrations while they run, into temporary migration modules, so no
-test app commits a migration that it generated. Only `group_changes_syncing` commits a generated group
-migration, which its `sync_group_changes` test reads.
+`makevuedamigrations` tests generate their migrations while they run, into temporary migration modules. A few test
+apps also commit generated migrations that other tests read, and they show what the current commands write:
 
-### Do the following when the code that group migrations copy changes.
+- `erring/migrations/0002_workflow_migrations_2026_03_24.py`
+- `store/migrations/0002_workflow_migrations_2024_08_13.py`
+- `store/migrations/0010_workflow_migrations_2026_10_29.py`
 
-1. Temporarily add the app to `LOCAL_APPS` in `server/tests/settings.py`:
+When the code that generated migrations copy changes, refresh them:
 
-    ```python
-    LOCAL_APPS = [
-        ...
+1. From `server/`, run `python manage.py updatevuedamigrations`. VUEDA's own `vueda_vdq` migrations are reported as
+   skipped, because they run before `vueda_workflow` migration `0008`. Leave them as they are.
+2. Run `python manage.py updatevuedamigrations` again. Every test app migration should be reported as already up to
+   date.
+3. Run the tests, fix any failures, and commit the refreshed migrations.
 
-        "tests.group_changes_syncing.apps.GroupChangesSyncingConfig",
-    ]
-    ```
-
-2. From `server/`, run `updategroupmigrations`.
-3. Remove the app added in step 1.
-4. Run the tests to verify everything works.
-5. Fix any failing tests.
-6. Commit the migration changes in `group_changes_syncing`.
-
-[!WARNING]
-Never do this procedure with the following apps. Their tests require group or workflow migrations that are not
-updated.
-
-- `group_updating`
-- `group_updating_bad_migrations`
-- `group_updating_no_migrations`
-- `workflow_updating`
-- `workflow_updating_bad_migrations`
-- `workflow_updating_no_migrations`
+`test_updatevuedamigrations.py` keeps frozen copies of migrations that earlier versions generated, as text in
+`unit/users/old_migrations/`, so its tests can refresh them without importing them by accident. Do not refresh
+those copies.
