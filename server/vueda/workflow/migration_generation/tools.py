@@ -873,9 +873,9 @@ class WorkflowChangeTool(MigrationTool):
                     old = workflow_identity(hist_workflow)
 
             case "permission_id":
-                # Name the permission as each write recorded it, not by its current row. A permission that
-                # was renamed or deleted since then would otherwise name one the write never saw. The
-                # permission can also belong to a model other than the workflow's model.
+                # Name the permission from the codename and content type that each write recorded.
+                # Those survive a later rename or delete of the permission. The content type is the
+                # permission's own, which can differ from the workflow's model.
                 if change.new:
                     new = permission_identity(history_diff.new_record)
 
@@ -883,8 +883,8 @@ class WorkflowChangeTool(MigrationTool):
                     old = permission_identity(history_diff.old_record)
 
             case "group_id":
-                # Name the group as each write recorded it, not by its current name. A group that was
-                # renamed or deleted since then would otherwise name a group the write never saw.
+                # Name the group from the name that each write recorded.
+                # That name survives a later rename or delete of the group.
                 if change.new:
                     new = {"name": history_diff.new_record.historical_group_name}
 
