@@ -14,6 +14,7 @@ from tests.conftest import BaseTestUserMixin
 from tests.store import models as store_models
 from vueda.core.audit import audited_action
 from vueda.core.permissions import BaseRowLevelPermissions
+from vueda.workflow.exceptions import AlreadyInTargetStateError
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
@@ -325,6 +326,50 @@ class TestWorkflowModelMethods(BaseTestGroupMixin, BaseTestUserMixin):
             customer_order.check_transition("pack_order", user=workflow_user)
 
         assert "Orders on credit hold cannot be packed." in str(excinfo.value)
+
+    def test_check_transition_names_the_transition_and_state_when_it_refuses(self, customer_order, workflow_user):
+        shipped_state = State.objects.get(code="shipped", workflow__code="order_fulfillment")
+        object_state = customer_order.object_state
+        object_state.state = shipped_state
+        object_state.save()
+
+        with pytest.raises(InvalidTransitionError) as excinfo:
+            customer_order.check_transition("pack_order", user=workflow_user)
+
+        assert not isinstance(excinfo.value, AlreadyInTargetStateError)
+        assert str(excinfo.value) == "Pack Order is not available from the Shipped state."
+
+    def test_check_transition_raises_already_in_target_state_for_an_object_in_the_target_state(
+        self, customer_order, workflow_user
+    ):
+        packed_state = State.objects.get(code="packed", workflow__code="order_fulfillment")
+        object_state = customer_order.object_state
+        object_state.state = packed_state
+        object_state.save()
+
+        with pytest.raises(AlreadyInTargetStateError) as excinfo:
+            customer_order.check_transition("pack_order", user=workflow_user)
+
+        assert str(excinfo.value) == "Already in the Packed state."
+
+    def test_check_transition_keeps_the_allow_transition_message_for_an_object_in_the_target_state(
+        self, customer_order, workflow_user, monkeypatch
+    ):
+        # The subclass still marks the object as needing no change, and the project's own message wins.
+        packed_state = State.objects.get(code="packed", workflow__code="order_fulfillment")
+        object_state = customer_order.object_state
+        object_state.state = packed_state
+        object_state.save()
+        monkeypatch.setattr(
+            store_models.CustomerOrder,
+            "allow_transition",
+            lambda self, transition, user=None: "This order is already packed.",
+        )
+
+        with pytest.raises(AlreadyInTargetStateError) as excinfo:
+            customer_order.check_transition("pack_order", user=workflow_user)
+
+        assert str(excinfo.value) == "This order is already packed."
 
     def test_check_transition_observes_a_state_written_between_calls(self, customer_order, workflow_user):
         # execute_transition checks a transition, locks the row, and checks again. The second check has

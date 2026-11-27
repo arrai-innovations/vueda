@@ -6,6 +6,8 @@ schema generation reads them, so each response shape becomes a named component.
 
 __all__ = (
     "BulkExecuteTransitionRequestSerializer",
+    "BulkTransitionObjectSerializer",
+    "BulkTransitionResultSerializer",
     "ExecuteTransitionRequestSerializer",
     "ObjectStateSerializer",
     "TransitionResultSerializer",
@@ -51,6 +53,47 @@ class TransitionResultStateSerializer(serializers.Serializer):
 class TransitionResultSerializer(serializers.Serializer):
     new_state = TransitionResultStateSerializer(help_text="The state the object moved to.")
     new_transitions = TransitionSerializer(many=True, help_text="Transitions available from the new state.")
+
+
+class BulkTransitionObjectSerializer(serializers.Serializer):
+    state = StateSerializer(
+        allow_null=True,
+        help_text="The object's state when the request arrived. Null when the object has no state.",
+    )
+    new_state = TransitionResultStateSerializer(
+        required=False, help_text="The state that the object moved to. Present only in a 200 response."
+    )
+    new_transitions = TransitionSerializer(
+        many=True,
+        required=False,
+        help_text="Transitions available from the new state. Present only in a 200 response.",
+    )
+    errors = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Why the object cannot take the transition. Present only for a refused object in a 400 response.",
+    )
+    already_in_target_state = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "True when the object was refused because it is already in the target state. Present only for such an "
+            "object in a 400 response."
+        ),
+    )
+    locked = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "True when another request held the object's row lock, so the same request can succeed later. Present "
+            "only for such an object in a 400 response."
+        ),
+    )
+
+
+class BulkTransitionResultSerializer(serializers.Serializer):
+    target_state = StateSerializer(help_text="The state that the transition moves each object to.")
+    objects = serializers.DictField(
+        child=BulkTransitionObjectSerializer(), help_text="One entry for each object, keyed by object id."
+    )
 
 
 class ExecuteTransitionRequestSerializer(serializers.Serializer):
@@ -288,27 +331,73 @@ BULK_EXECUTE_TRANSITION_EXAMPLES = [
         description="uri: /routes"
         + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/",
         value={
-            "1": {
-                "new_state": {
-                    "code": "packed",
-                    "name": "Packed",
-                    "object_state_revision": "vueda_workflow.ObjectState:3",
+            "target_state": {"code": "packed", "name": "Packed"},
+            "objects": {
+                "1": {
+                    "state": {"code": "new", "name": "New"},
+                    "new_state": {
+                        "code": "packed",
+                        "name": "Packed",
+                        "object_state_revision": "vueda_workflow.ObjectState:3",
+                    },
+                    "new_transitions": [
+                        {"code": "cancel_order", "name": "Cancel Order"},
+                        {"code": "ship_order", "name": "Ship Order"},
+                    ],
                 },
-                "new_transitions": [
-                    {"code": "cancel_order", "name": "Cancel Order"},
-                    {"code": "ship_order", "name": "Ship Order"},
-                ],
+                "2": {
+                    "state": {"code": "new", "name": "New"},
+                    "new_state": {
+                        "code": "packed",
+                        "name": "Packed",
+                        "object_state_revision": "vueda_workflow.ObjectState:4",
+                    },
+                    "new_transitions": [
+                        {"code": "cancel_order", "name": "Cancel Order"},
+                        {"code": "ship_order", "name": "Ship Order"},
+                    ],
+                },
             },
-            "2": {
-                "new_state": {
-                    "code": "packed",
-                    "name": "Packed",
-                    "object_state_revision": "vueda_workflow.ObjectState:4",
+        },
+    ),
+]
+
+BULK_EXECUTE_TRANSITION_400_EXAMPLES = [
+    conditional_open_api_example(
+        "ExecuteTransitionBulkRefusedExample",
+        summary="Objects that cannot take the transition",
+        description="uri: /routes"
+        + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/",
+        value={
+            "target_state": {"code": "packed", "name": "Packed"},
+            "objects": {
+                "1": {"state": {"code": "new", "name": "New"}},
+                "2": {
+                    "state": {"code": "shipped", "name": "Shipped"},
+                    "errors": ["Pack Order is not available from the Shipped state."],
                 },
-                "new_transitions": [
-                    {"code": "cancel_order", "name": "Cancel Order"},
-                    {"code": "ship_order", "name": "Ship Order"},
-                ],
+                "3": {
+                    "state": {"code": "packed", "name": "Packed"},
+                    "errors": ["Already in the Packed state."],
+                    "already_in_target_state": True,
+                },
+            },
+        },
+    ),
+    conditional_open_api_example(
+        "ExecuteTransitionBulkLockedExample",
+        summary="Another request held an object's row lock",
+        description="uri: /routes"
+        + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/",
+        value={
+            "target_state": {"code": "packed", "name": "Packed"},
+            "objects": {
+                "1": {"state": {"code": "new", "name": "New"}},
+                "2": {
+                    "state": {"code": "new", "name": "New"},
+                    "errors": ["This object cannot be updated right now. Please try again."],
+                    "locked": True,
+                },
             },
         },
     ),
@@ -376,18 +465,29 @@ else:
 
         def get_response_serializers(self):
             if self._is_bulk_route():
-                result = self.resolve_serializer(TransitionResultSerializer, "response")
                 ok = conditional_open_api_response(
-                    {"type": "object", "additionalProperties": result.ref},
-                    description="Each object's result, keyed by object id.",
+                    BulkTransitionResultSerializer,
+                    description="The target state, and each object's state and result, keyed by object id.",
                     examples=BULK_EXECUTE_TRANSITION_EXAMPLES,
+                )
+                # A refused object gives the run's own shape, with errors on that object's entry. A
+                # missing, unknown, or malformed request field gives that field's errors instead.
+                bad_request = conditional_open_api_response(
+                    conditional_open_api_types().OBJECT,
+                    description=(
+                        "When an object cannot take the transition, the body has the 200 response's shape, and"
+                        " the refused object's entry holds `errors`. A missing or unknown `transition_code`, or"
+                        " an `object_ids` value that is not a list, gives that field's errors instead."
+                    ),
+                    examples=BULK_EXECUTE_TRANSITION_400_EXAMPLES,
                 )
             else:
                 ok = conditional_open_api_response(TransitionResultSerializer, examples=EXECUTE_TRANSITION_EXAMPLES)
+                # A validation error: a missing transition_code, or the object cannot take the transition.
+                bad_request = conditional_open_api_types().OBJECT
             return {
                 200: ok,
-                # A validation error: a missing transition_code, or per-object errors keyed by object id.
-                400: conditional_open_api_types().OBJECT,
+                400: bad_request,
                 403: conditional_open_api_response(WorkflowErrorSerializer, examples=EXECUTE_TRANSITION_403_EXAMPLES),
                 404: conditional_open_api_response(WorkflowErrorSerializer, examples=EXECUTE_TRANSITION_404_EXAMPLES),
             }

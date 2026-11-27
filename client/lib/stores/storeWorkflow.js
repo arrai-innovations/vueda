@@ -210,6 +210,36 @@ const executeTransitionUrl = (result) => {
 };
 
 /**
+ * Moves each refused object's errors in a bulk transition's 400 body to that object's primary key.
+ *
+ * The body holds `target_state` and `objects`, and each refused object's entry holds `errors`. A
+ * confirmation page names a form field after each selected primary key, so keying the errors by
+ * primary key puts each refusal under its object. An object marked `already_in_target_state` needs
+ * no change, so its message is not an error and stays only in the body. An object marked `locked`
+ * keeps its message as an error, because it asks the user to try again. A body without `objects`,
+ * such as an unknown `transition_code`, is returned unchanged.
+ *
+ * @param {object} data - The 400 response body.
+ * @returns {object} The errors keyed by primary key, with `serverStack` kept when present.
+ * @private
+ */
+const refusalsByPk = (data) => {
+    if (!data?.objects) {
+        return data;
+    }
+    const byPk = {};
+    for (const [pk, entry] of Object.entries(data.objects)) {
+        if (entry?.errors && !entry.already_in_target_state) {
+            byPk[pk] = entry.errors;
+        }
+    }
+    if ("serverStack" in data) {
+        byPk.serverStack = data.serverStack;
+    }
+    return byPk;
+};
+
+/**
  * @typedef {ReturnType<typeof storeWorkflow>} WorkflowStore
  */
 
@@ -544,11 +574,25 @@ export const storeWorkflow = defineStore("workflow", {
          *  `Acknowledge-Warnings` header.
          * @returns {Promise<
          *     {new_state: WorkflowState, new_transitions: WorkflowTransition[]}|
-         *     {[objectPk: string]: {new_state: WorkflowState, new_transitions: WorkflowTransition[]}}|
+         *     {
+         *         target_state: WorkflowState,
+         *         objects: {[objectPk: string]: {
+         *             state: WorkflowState|null,
+         *             new_state?: WorkflowState,
+         *             new_transitions?: WorkflowTransition[],
+         *             errors?: string[],
+         *             already_in_target_state?: boolean,
+         *             locked?: boolean,
+         *         }},
+         *     }|
          *     Array
-         * >} A promise for the server response. A bulk run resolves to one result per primary key. It
-         *  resolves to an empty array when workflow is off. It rejects with `FormValidationError` on a
-         *  400, `ConfirmationRequiredError` on a 409, and `WorkflowError` for other failures.
+         * >} A promise for the server response. A bulk run resolves to the transition's target state,
+         *  and to each object's state before the run and its result, under `objects`, keyed by primary
+         *  key. It resolves to an empty array when workflow is off. It rejects with `FormValidationError`
+         *  on a 400, `ConfirmationRequiredError` on a 409, and `WorkflowError` for other failures. A bulk
+         *  run's `FormValidationError` keys each refused object's errors by primary key. It leaves out an
+         *  object marked `already_in_target_state`, whose message is not an error. Its `responseData` keeps
+         *  the whole body, which holds `target_state` and `objects`.
          */
         executeTransition(
             app,
@@ -595,7 +639,10 @@ export const storeWorkflow = defineStore("workflow", {
                 undefined,
                 (response, data) => {
                     if (response.status === 400) {
-                        return new FormValidationError(data, response);
+                        const error = new FormValidationError(refusalsByPk(data), response);
+                        // Keep the whole body, so a bulk run's target state and object states stay readable.
+                        error.responseData = data;
+                        return error;
                     }
                     if (response.status === 409) {
                         return new ConfirmationRequiredError(data, response, { bulk: Array.isArray(objectPk) });

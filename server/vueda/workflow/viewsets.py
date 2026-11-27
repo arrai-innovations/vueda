@@ -23,6 +23,7 @@ from vueda.core.open_api import conditional_extend_schema_view_decorator
 from vueda.core.open_api import conditional_open_api_response
 from vueda.history.revision import object_revision
 from vueda.workflow import schema as workflow_schema
+from vueda.workflow.exceptions import AlreadyInTargetStateError
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.filtersets import WorkflowFilterSet
 from vueda.workflow.models import Transition
@@ -33,6 +34,56 @@ from vueda.workflow.schema import ObjectStateSerializer
 from vueda.workflow.schema import WorkflowErrorSerializer
 from vueda.workflow.serializers import TransitionSerializer
 from vueda.workflow.serializers import WorkflowSerializer
+
+
+class _AlreadyInTargetStateRefusalError(VuedaValidationError):
+    """A refusal of an object that is already in the transition's target state.
+
+    A class of its own, not an error code, so an error that a project raises with any code cannot carry the marker.
+    """
+
+
+class _RowLockedRefusalError(VuedaValidationError):
+    """A refusal because another request held the object's row lock. The same request can succeed later.
+
+    A class of its own, not an error code, so an error that a project raises with any code cannot carry the marker.
+    """
+
+
+def _record_refusal(entry, error):
+    """
+    Add a refused object's ``errors`` to its ``objects`` entry in a bulk response.
+
+    An object that is already in the transition's target state also gets ``already_in_target_state: true``. A
+    confirmation page skips such an object instead of reporting it as blocked. An object whose row lock another
+    request held gets ``locked: true``, because the same request can succeed once that lock is released.
+    """
+    entry["errors"] = error.detail
+    if isinstance(error, _AlreadyInTargetStateRefusalError):
+        entry["already_in_target_state"] = True
+    elif isinstance(error, _RowLockedRefusalError):
+        entry["locked"] = True
+
+
+def _state_data(state):
+    """Return the ``code`` and ``name`` of ``state``. ``None`` stays ``None``."""
+    return state and {"code": state.code, "name": state.name}
+
+
+class _BulkTransitionRefusedError(VuedaValidationError):
+    """
+    The 400 of a bulk transition, whose body keeps the shape of the run's 200 response.
+
+    The body holds ``target_state`` and ``objects``. A refused object's entry holds ``errors``. A refused object
+    that is already in the target state also holds ``already_in_target_state``, and one refused because another
+    request held its row lock holds ``locked``. The body is kept as built, because
+    the validation error's usual conversion would turn every value into a string, including a state that is
+    ``None``.
+    """
+
+    def __init__(self, data):
+        super().__init__()
+        self.detail = data
 
 
 @conditional_extend_schema_view_decorator(
@@ -262,7 +313,19 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             if not isinstance(object_ids, list):
                 raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
 
-            model_class = self.get_workflow().content_type.model_class()
+            workflow = self.get_workflow()
+            transition = (
+                Transition.objects.filter(workflow=workflow, code=transition_code).select_related("target").first()
+            )
+            if transition is None:
+                raise VuedaValidationError(
+                    {
+                        "transition_code": [
+                            f"Transition {transition_code!r} does not exist for workflow {workflow.code!r}."
+                        ]
+                    }
+                )
+            model_class = workflow.content_type.model_class()
             # Key every dict below off the resolved instance's own pk (cast to str), not the raw
             # request value. object_ids is client-supplied JSON, which may mix numeric and string
             # types (or the same ids typed differently across a gate/retry round trip); either of
@@ -276,35 +339,49 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 for instance in (self._get_readable_object(model_class, object_id) for object_id in object_ids)
             ]
 
+            # Every response of a bulk run, and its 400 and 409, carries the transition's target state
+            # and each object's state when the request arrived. The objects sit under "objects" rather
+            # than at the root, so no primary key can collide with another key of the body.
+            objects = {oid: {"state": _state_data(instance.workflow_state)} for oid, instance in id_instances}
+            target_state = _state_data(transition.target)
+
             # Warnings are collected across every instance before any write, so a bulk transition
             # gates once with one aggregate digest instead of once per instance. Authorization
             # errors are aggregated the same way the write loop below aggregates them, so a bad
             # object_id in the batch is reported the same way whether it fails here or later.
-            errors = {}
+            refused = False
             warnings_by_object_id = {}
             for oid, instance in id_instances:
                 try:
-                    transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
+                    checked_transition, resolved_user = self._check_transition_for_instance(
+                        instance, transition_code, request
+                    )
                 except VuedaValidationError as e:
-                    errors[oid] = e.detail
+                    _record_refusal(objects[oid], e)
+                    refused = True
                 else:
-                    warnings = instance.get_transition_warnings(transition, resolved_user)
+                    warnings = instance.get_transition_warnings(checked_transition, resolved_user)
                     if warnings:
                         warnings_by_object_id[oid] = warnings
-            if errors:
-                raise VuedaValidationError(errors)
-            gate_warnings(request, warnings_by_object_id)
+            if refused:
+                raise _BulkTransitionRefusedError({"target_state": target_state, "objects": objects})
+            gate_warnings(request, warnings_by_object_id, extra={"target_state": target_state, "objects": objects})
 
-            response_data = {}
+            # The results join the response only when every write succeeded. A refusal here rolls the
+            # whole batch back, so its 400 reports no new state for the objects written before it.
+            results = {}
             with transaction.atomic():
                 for oid, instance in id_instances:
                     try:
-                        response_data[oid] = self._apply_transition_to_instance(instance, transition_code, request)
+                        results[oid] = self._apply_transition_to_instance(instance, transition_code, request)
                     except VuedaValidationError as e:
-                        errors[oid] = e.detail
-            if errors:
-                raise VuedaValidationError(errors)
-            return Response(response_data)
+                        _record_refusal(objects[oid], e)
+                        refused = True
+            if refused:
+                raise _BulkTransitionRefusedError({"target_state": target_state, "objects": objects})
+            for oid, result in results.items():
+                objects[oid].update(result)
+            return Response({"target_state": target_state, "objects": objects})
 
     def _get_readable_object(self, model_class, object_id):
         """
@@ -328,6 +405,8 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
         """
         try:
             return instance.check_transition(transition_code, request.user)
+        except AlreadyInTargetStateError as e:
+            raise _AlreadyInTargetStateRefusalError(str(e)) from e
         except (PermissionDenied, InvalidTransitionError, Transition.DoesNotExist) as e:
             raise VuedaValidationError(str(e))
 
@@ -341,7 +420,7 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 .first()
             )
             if not locked_instance:
-                raise VuedaValidationError("This object cannot be updated right now. Please try again.")
+                raise _RowLockedRefusalError("This object cannot be updated right now. Please try again.")
             instance = locked_instance
 
         # The object's state may have changed since preflight. Recheck read and any additional

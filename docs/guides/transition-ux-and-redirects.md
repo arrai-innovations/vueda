@@ -86,9 +86,72 @@ Generic bulk model actions send their keys as `pks`. Client code that calls the 
 4. Outside a dry run, it locks the row with {@api ext:django:django.db.models.query.QuerySet.select_for_update} and `skip_locked=True`. When another request holds the lock, it returns `400` with "This object cannot be updated right now. Please try again."
 5. It repeats the object and transition checks on the locked row, writes the new state, and calls [`on_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.on_transition}.
 
-The response holds `new_state` and `new_transitions`, the transitions the user can take from the new state. A bulk request checks every object and gates warnings once for the whole batch before it writes any. Its warnings and its response are keyed by object id. [Permissions](../reference/permissions.md#status-codes) lists the status code for each refusal.
+The response holds `new_state` and `new_transitions`, the transitions the user can take from the new state. [Permissions](../reference/permissions.md#status-codes) lists the status code for each refusal.
+
+### Read a Bulk Response
+
+A bulk request checks every object and gates warnings once for the whole batch before it writes any. Its `200`, its `409`, and the `400` for a refused object all hold the same two keys:
+
+- `target_state` holds the `code` and `name` of the state that the transition moves each object to.
+- `objects` holds one entry for each object, keyed by object id. Each entry holds `state`, the object's state when the request arrived. The state is `null` for an object that has no state.
+
+The objects sit under `objects` rather than at the top level, so no primary key can collide with another key of the body.
+
+Each status adds its own detail:
+
+| Status | Detail beside `target_state` and `objects`                                                                                                                                  |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`  | Each entry also holds `new_state` and `new_transitions`.                                                                                                                    |
+| `400`  | Each refused object's entry also holds `errors`, the messages that explain why it cannot take the transition. No object reports a new state, because the batch rolled back. |
+| `409`  | `warnings` holds each warned object's warnings, keyed by object id, and `digest` holds the value to acknowledge.                                                            |
+
+```json
+{
+    "target_state": { "code": "packed", "name": "Packed" },
+    "objects": {
+        "1": { "state": { "code": "new", "name": "New" } },
+        "2": {
+            "state": { "code": "shipped", "name": "Shipped" },
+            "errors": ["Pack Order is not available from the Shipped state."]
+        },
+        "3": {
+            "state": { "code": "packed", "name": "Packed" },
+            "errors": ["Already in the Packed state."],
+            "already_in_target_state": true
+        }
+    }
+}
+```
+
+A refused object that is already in the target state also holds `already_in_target_state: true`. The server sets it only when it refuses the object, so a client can skip that object instead of reporting it as blocked. Do not compare each object's `state` with `target_state` instead. A transition that lists its own target as a source accepts an object in that state.
+
+Another request can hold an object's row lock while the server writes. The server then refuses that object, and its entry holds `locked: true`. Its message asks the user to try again. The same request can succeed once the lock is released, so a client should keep that object in the next attempt.
+
+A dry run returns the same bodies, so a confirmation page that runs one when it opens can name the target state, each object's current state, and each refused object's reason. A missing or unknown `transition_code`, or an `object_ids` value that is not a list, returns `400` with that field's errors instead.
+
+`executeTransition` rejects a bulk `400` with a `FormValidationError` whose errors are keyed by primary key. Its `responseData` keeps the whole body.
 
 A dry run skips the row lock. The server writes the transition, and the request's rollback discards it. `on_transition` receives `dry_run=True`, so skip external side effects there during a dry run.
+
+Any failure later in the same write rolls the whole write back, such as another object's refusal or a database deadlock. The rollback undoes database writes, but not an email or a call to an outside service that [`on_transition`]{@api py:function:vueda.workflow.models.WorkflowModelMethods.on_transition} already made. Defer such a call with {@api ext:django:django.db.transaction.on_commit}, so it runs only when the write commits. A deferred call also never runs during a dry run, because the dry run rolls back.
+
+Mail that a hook sends through `get_adapter().send_mail` is already deferred when `vueda.vdq` is installed. VDQ saves the message as a queue item and publishes it with `on_commit`, so a rollback discards it. Without VDQ, `send_mail` sends the message at once, so wrap that call in `on_commit` as well.
+
+```python
+from functools import partial
+
+from django.db import transaction
+
+
+class PurchaseOrder(VuedaModel):
+    class Vueda:
+        class Workflow:
+            enabled = True
+
+    def on_transition(self, transition, user=None, dry_run=False):
+        if transition.code == "submit":
+            transaction.on_commit(partial(send_submitted_email, self.pk))
+```
 
 ## Verification Checklist
 

@@ -238,6 +238,14 @@ describe("lib/shell/field/Field.vue", () => {
             expect(el.classes()).toContain("text-warning");
         });
 
+        scopedIt("uses role=status and text-info for info severity", () => {
+            const wrapper = mount(FieldMessage, { props: { messages: ["Already done"], severity: "info" } });
+            const el = wrapper.get('[data-slot="field-message"]');
+            expect(el.attributes("role")).toBe("status");
+            expect(el.attributes("data-severity")).toBe("info");
+            expect(el.classes()).toContain("text-info");
+        });
+
         scopedIt("merges custom class", () => {
             const wrapper = mount(FieldMessage, {
                 props: { class: "my-error", messages: ["x"] },

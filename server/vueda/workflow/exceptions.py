@@ -1,6 +1,7 @@
 """Exceptions raised by workflow configuration and state machine transitions."""
 
 __all__ = (
+    "AlreadyInTargetStateError",
     "InvalidTransitionError",
     "WorkflowNotConfiguredError",
 )
@@ -10,6 +11,14 @@ from django.core.exceptions import ImproperlyConfigured
 
 class InvalidTransitionError(Exception):
     pass
+
+
+class AlreadyInTargetStateError(InvalidTransitionError):
+    """A transition is refused, and the object is already in the state that the transition moves it to.
+
+    ``check_transition`` raises this subclass so that a caller can tell an object that needs no change apart from one
+    that cannot take the transition. A bulk execute-transition marks such an object with ``already_in_target_state``.
+    """
 
 
 class WorkflowNotConfiguredError(ImproperlyConfigured):

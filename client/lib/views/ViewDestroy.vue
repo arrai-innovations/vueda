@@ -8,7 +8,7 @@ import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { useViewDestroy } from "@vueda/use/useViewDestroy.js";
-import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
+import { getModelVerboseName } from "@vueda/utils/modelAction.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import ActionBanner from "@vueda/views/_ActionBanner.vue";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -99,11 +99,7 @@ const cascadeItems = computed(() =>
 
 const pkCount = computed(() => (Array.isArray(props.pk) ? props.pk.length : 1));
 const bulk = computed(() => pkCount.value > 1);
-const modelVerboseName = computed(() =>
-    bulk.value
-        ? modelConfig.info?.verboseNamePlural || getLowerTitle(getPluralizedTitle(props.model))
-        : modelConfig.info?.verboseName || getLowerTitle(props.model),
-);
+const modelVerboseName = computed(() => getModelVerboseName(modelConfig.info, props.model, bulk.value));
 const computedBannerTitle = computed(() => {
     if (props.bannerTitle) {
         return props.bannerTitle;

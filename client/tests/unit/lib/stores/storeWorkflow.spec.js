@@ -534,6 +534,67 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(error.messages).toEqual({ 9: { non_field_errors: ["This transition has consequences."] } });
     });
 
+    scopedIt("executeTransition keys a bulk 400's refusals by primary key and keeps the whole body", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", ["1", "2"], "pack").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const responseData = {
+            target_state: { code: "packed", name: "Packed" },
+            objects: {
+                1: { state: { code: "new", name: "New" } },
+                2: { state: { code: "shipped", name: "Shipped" }, errors: ["Not available from Shipped."] },
+            },
+            serverStack: "Traceback",
+        };
+
+        const error = errorResolver({ status: 400 }, responseData);
+
+        expect(error.name).toBe("FormValidationError");
+        expect(error.errors).toEqual({ 2: ["Not available from Shipped."] });
+        expect(error.serverStack).toBe("Traceback");
+        expect(error.responseData).toBe(responseData);
+    });
+
+    scopedIt("executeTransition leaves an object already in the target state out of a bulk 400's errors", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", ["1", "2"], "pack").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const responseData = {
+            target_state: { code: "packed", name: "Packed" },
+            objects: {
+                1: {
+                    state: { code: "packed", name: "Packed" },
+                    errors: ["Already in the Packed state."],
+                    already_in_target_state: true,
+                },
+                2: { state: { code: "shipped", name: "Shipped" }, errors: ["Not available from Shipped."] },
+            },
+        };
+
+        const error = errorResolver({ status: 400 }, responseData);
+
+        expect(error.errors).toEqual({ 2: ["Not available from Shipped."] });
+        expect(error.responseData).toBe(responseData);
+    });
+
+    scopedIt("executeTransition keeps a bulk 400 without objects keyed by field", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", ["1"], "missing").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const error = errorResolver({ status: 400 }, { transition_code: ["Transition 'missing' does not exist."] });
+
+        expect(error.errors).toEqual({ transition_code: ["Transition 'missing' does not exist."] });
+    });
+
     scopedIt("executeTransition still supports legacy nested state code mapping", async () => {
         mockedFetchHelper.mockResolvedValue({
             new_state: { state: { code: "closed" } },

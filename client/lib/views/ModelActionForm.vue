@@ -5,6 +5,7 @@ import LoadingSpinnerInline from "@vueda/display/loading/LoadingSpinnerInline.vu
 import FieldWarningsList from "@vueda/form/confirm/FieldWarningsList.vue";
 import TypedConfirmField from "@vueda/form/confirm/TypedConfirmField.vue";
 import FormField from "@vueda/form/form-model/FormField.vue";
+import FieldMessage from "@vueda/shell/field/FieldMessage.vue";
 import "@vueda/theme/vueda-tailwind/views/ModelActionForm.theme.js";
 import { useForm } from "@vueda/use/useForm.js";
 import { ICON_OVERRIDE_PROPS, useIcons } from "@vueda/use/useIcons.js";
@@ -187,6 +188,24 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    /**
+     * Primary keys of the selected objects that the confirm button leaves out, such as objects that cannot take a
+     * workflow transition. Each one stays in the selected list. The selected count and the confirm label count only
+     * the objects that the action runs on, and a message explains the skip. The confirm button is disabled when every
+     * selected object is skipped. The host's `run-action` decides which objects the request sends.
+     */
+    skippedPks: {
+        type: Array,
+        default: () => [],
+    },
+    /**
+     * Information messages keyed by primary key. Each message shows under its selected object, in the info color,
+     * for a fact that needs no action, such as an object that is already in a transition's target state.
+     */
+    pkNotices: {
+        type: Object,
+        default: () => ({}),
+    },
 });
 
 // The embedded ActionForm injects FormContextSymbol and useActionForm calls into it on
@@ -255,7 +274,35 @@ const objectsMap = computed(() =>
 );
 // The confirm button names the action it runs, in sentence case, so a reader who skips the prompt
 // still sees what pressing it does.
-const confirmLabel = computed(() => upperFirst(unref(modelAction.state.actionVerboseNameLowerCase)));
+// Only skipped keys that are still selected count, so a stale entry cannot push the counts below zero.
+const skippedCount = computed(() => {
+    const skipped = new Set(props.skippedPks.map(String));
+    return pksAsString.value.filter((pk) => skipped.has(pk)).length;
+});
+const runCount = computed(() => pkCount.value - skippedCount.value);
+// With objects skipped, the label adds how many of the selected objects the action runs on, so the
+// button never reads as acting on the whole selection.
+const confirmLabel = computed(() => {
+    const label = upperFirst(unref(modelAction.state.actionVerboseNameLowerCase));
+    return skippedCount.value > 0 ? `${label} (${runCount.value} of ${pkCount.value})` : label;
+});
+// With nothing left to run, the confirm button is disabled, so the message offers only Go Back.
+const skippedMessage = computed(() => {
+    const count = skippedCount.value;
+    const name = unref(modelVerboseName);
+    if (runCount.value === 0) {
+        const verb = unref(modelAction.state.actionVerboseNameLowerCase);
+        const subject = count === 1 ? `The selected ${name} is` : `All of the selected ${name} are`;
+        const message = `${subject} skipped, so there is nothing to ${verb}.`;
+        // A single primary key comes from a detail page, which has no selection to change.
+        return Array.isArray(props.pk) || count > 1 ? `${message} Go back to change your selection.` : message;
+    }
+    const pronoun = count === 1 ? "it" : "them";
+    return (
+        `${count} of the selected ${name} will be skipped. Go back to change your selection, ` +
+        `or click "${confirmLabel.value}" to continue without ${pronoun}.`
+    );
+});
 const defaultRunAction = modelAction.runAction;
 const theme = useTheme("ModelActionForm", props, reactive({ page: toRef(props, "page") }));
 const icon = useIcons("ModelActionForm", props);
@@ -271,7 +318,10 @@ watch(dryRunTarget, () => {
 const typedConfirmMatch = computed(() => typedConfirmInput.value === props.confirmText);
 const typedConfirmGateBlocking = computed(() => !!props.confirmText && !typedConfirmMatch.value);
 const confirmBlocked = computed(
-    () => typedConfirmGateBlocking.value || (!props.runAction && !actionRequestMethod.value),
+    () =>
+        typedConfirmGateBlocking.value ||
+        (!props.runAction && !actionRequestMethod.value) ||
+        (pkCount.value > 0 && runCount.value === 0),
 );
 
 /**
@@ -333,7 +383,7 @@ const resolveWarningGroups = (warnings, bulk) => {
             <slot :name="slot" v-bind="slotProps || {}" />
         </template>
         <template #confirm-button="slotProps">
-            <!-- @slot [confirm-button] Override the confirm button. Receives `ActionForm`'s `confirm-button` slot props, with `label` set to the action's name and `disabled` also true while the typed confirmation does not match or the action cannot run. `requestMethod` is the HTTP method that the default request sends, and it is `null` when the user may not run the action, so a host can hide the button instead of disabling it. With the `runAction` prop, the host decides whether the action can run. -->
+            <!-- @slot [confirm-button] Override the confirm button. Receives `ActionForm`'s `confirm-button` slot props, with `label` set to the action's name and `disabled` also true while the typed confirmation does not match, the action cannot run, or every selected object is skipped. When objects are skipped, `label` ends with the count of objects that the action runs on, such as "Approve (2 of 3)". `runCount` is the number of objects that the action runs on, `selectedCount` the number of selected objects, and `skippedCount` the number that `skippedPks` leaves out. `requestMethod` is the HTTP method that the default request sends, and it is `null` when the user may not run the action, so a host can hide the button instead of disabling it. With the `runAction` prop, the host decides whether the action can run. -->
             <slot
                 v-if="$slots['confirm-button']"
                 name="confirm-button"
@@ -342,6 +392,9 @@ const resolveWarningGroups = (warnings, bulk) => {
                     label: confirmLabel,
                     disabled: slotProps.disabled || confirmBlocked,
                     requestMethod: actionRequestMethod,
+                    runCount,
+                    selectedCount: pkCount,
+                    skippedCount,
                 }"
             />
             <Button
@@ -413,7 +466,7 @@ const resolveWarningGroups = (warnings, bulk) => {
                                     :class="theme('selectedHeadCount')"
                                     data-qa="action-form-selected-count"
                                 >
-                                    {{ pkCount }} of {{ pkCount }} selected
+                                    {{ runCount }} of {{ pkCount }} selected
                                 </span>
                             </div>
                             <div v-if="combinedLoading">
@@ -454,6 +507,12 @@ const resolveWarningGroups = (warnings, bulk) => {
                                     >
                                         {{ targetPk }}
                                     </span>
+                                    <field-message
+                                        v-if="pkNotices[targetPk]"
+                                        severity="info"
+                                        :messages="[pkNotices[targetPk]]"
+                                        data-qa="action-form-list-item-notice"
+                                    />
                                 </li>
                             </ul>
                         </slot>
@@ -465,9 +524,25 @@ const resolveWarningGroups = (warnings, bulk) => {
                                 {{ viewOnlyMessage }}
                             </p>
                         </slot>
-                        <!-- @slot [confirm-message] Override the confirmation prompt shown before submitting. -->
+                        <!-- @slot [confirm-message] Override the confirmation prompt shown before submitting. The default prompt is hidden when `skippedPks` leaves out every selected object, because the `skipped-message` text then replaces it. Content that a project puts in this slot always shows. -->
                         <slot v-else name="confirm-message">
-                            <p :class="theme('messageText')">{{ computedConfirmMessage }}</p>
+                            <p v-if="runCount > 0 || pkCount === 0" :class="theme('messageText')">
+                                {{ computedConfirmMessage }}
+                            </p>
+                        </slot>
+                        <!-- @slot [skipped-message] Override the message shown when `skippedPks` leaves selected objects out. Receives `message`, the default text, and `label`, `runCount`, `selectedCount`, and `skippedCount`, the values that the confirm button receives. -->
+                        <slot
+                            v-if="!viewOnly && skippedCount > 0"
+                            name="skipped-message"
+                            :message="skippedMessage"
+                            :label="confirmLabel"
+                            :run-count="runCount"
+                            :selected-count="pkCount"
+                            :skipped-count="skippedCount"
+                        >
+                            <p :class="theme('messageText')" data-qa="action-form-skipped-message">
+                                {{ skippedMessage }}
+                            </p>
                         </slot>
                     </div>
                     <!-- @slot [extra-fields] Additional FormField inputs rendered below the confirm prompt, inside the card body. -->
