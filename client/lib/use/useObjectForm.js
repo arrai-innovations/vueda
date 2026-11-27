@@ -10,6 +10,7 @@ import { useLeaveUnload } from "@vueda/use/useLeaveUnload.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
+import { comparableLookupValue } from "@vueda/utils/lookupValues.js";
 import isEmpty from "lodash-es/isEmpty.js";
 import omit from "lodash-es/omit.js";
 import pick from "lodash-es/pick.js";
@@ -24,7 +25,11 @@ import { useRouter } from "vue-router";
  * @property {'list'|'update'|'read'|null} redirectAfter - The view/route to redirect to after creating the object.
  * @property {string[]} [submitFields] - Field paths to send in the request body. A top-level name sends that
  *  field's whole value; a dotted path sends only that nested value. When omitted, every non-ignored form value
- *  is sent. An update body also carries the object's primary key, which names the object to save.
+ *  is sent.
+ * @property {string} [primaryKeyField] - The name of the model's primary key field.
+ * @property {string|number} [primaryKey] - The primary key of the object that the form edits. When the caller passes it
+ *  with `primaryKeyField`, an update body carries it under that name. The update request's URL carries the instance's
+ *  `pk`, the value that the route names.
  */
 
 /**
@@ -227,6 +232,16 @@ export const defaultOnSubmissionWarningsRequireConfirmation = async ({ error, fo
 /**
  * Default implementation for onSubmissionSuccess hook.
  *
+ * It shows a success toast, then goes to the view that `redirectAfter` names. An update with no `redirectAfter`
+ * stays on the page. When that update changed the object's lookup value, the hook replaces the current detail route
+ * with one that carries the saved lookup value. It does this only when the current route is the detail route of this
+ * form's app, model, and requested lookup value. A lookup value is the value of the model's lookup field
+ * (`lookupField` in model info).
+ *
+ * A view that takes its lookup value from the route receives the saved value through that route. A view that gets its
+ * lookup value from somewhere else, such as a parent component's prop, keeps the old value. That view must update its
+ * own `pk` after a save that changes the value. One way is to pass an `onSubmissionSuccess` hook that does so.
+ *
  * @param {object} options
  * @param {boolean} options.isUpdate - Whether it was a create or update submission.
  * @param {import("@arrai-innovations/vue-sonner").toast} options.toast - The toast service.
@@ -278,8 +293,31 @@ export const defaultOnSubmissionSuccess = async ({ isUpdate, state, toast, route
                 pk: state.object[state.pkKey],
             },
         });
+    } else if (isUpdate) {
+        // Stay on the same page. A save that changed the object's lookup field changed its lookup value, so the detail
+        // route of this form's object moves to the saved value. That route names the form's app, model, and old value.
+        // `comparableLookupValue` gives two spellings of one composite key the same form, so an unchanged composite key
+        // keeps its route.
+        const savedValue = state.object[state.pkKey];
+        const route = router.currentRoute.value;
+        if (
+            route.name === DETAIL_VIEW_CRUD_NAME &&
+            savedValue != null &&
+            savedValue !== "" &&
+            String(route.params.app) === String(state.app) &&
+            String(route.params.model) === String(state.model) &&
+            comparableLookupValue(route.params.pk) === comparableLookupValue(state.pk) &&
+            comparableLookupValue(savedValue) !== comparableLookupValue(state.pk)
+        ) {
+            // A named location lets the router percent-encode the value in the URL.
+            await router.replace({
+                name: route.name,
+                params: { ...route.params, pk: String(savedValue) },
+                query: route.query,
+                hash: route.hash,
+            });
+        }
     }
-    // else, stay on the same page.
 };
 
 /**
@@ -525,12 +563,15 @@ export function useObjectForm({ props, formContext, instanceObject }) {
             const formValues = props.submitFields
                 ? pick(formContext.state.submittingValues, props.submitFields)
                 : formContext.state.submittingValues;
-            const { pk, pkKey } = instanceObject.state;
-            // The update handler builds the request URL from the body's primary key. The instance's
-            // pk goes in last, so every save targets the object that this form edits.
-            const args = {
-                object: isUpdate ? { ...formValues, [pkKey]: pk } : { ...formValues },
-            };
+            const { pk } = instanceObject.state;
+            // The request URL carries the instance's `pk`, the lookup value that the route names. The body carries
+            // the form values and, when the caller passes it, the primary key, last, so the body names the object that
+            // this form edits. The lookup field keeps its form value, so an edit of that field saves the new value.
+            const primaryKeyEntry =
+                props.primaryKeyField && props.primaryKey != null ? { [props.primaryKeyField]: props.primaryKey } : {};
+            const args = isUpdate
+                ? { object: { ...formValues, ...primaryKeyEntry }, pk }
+                : { object: { ...formValues } };
             await performAndHandle(createOrUpdate, args, isUpdate, generation);
         } catch (e) {
             // errors here are outside the normal course for expected errors

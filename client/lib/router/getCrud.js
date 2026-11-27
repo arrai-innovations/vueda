@@ -10,9 +10,10 @@
  * @param {object} params - The parameters.
  * @param {string} params.app - The app name.
  * @param {string} params.model - The model name.
- * @param {string|string[]} [params.pk] - One primary key, which targets the detail route, or an array
- *     of keys, which targets the list route with one repeated `pk` query value per key. An empty array
- *     is no selection.
+ * @param {string|string[]} [params.pk] - One lookup value, which targets the detail route, or an array
+ *     of lookup values, which targets the list route with one repeated `pk` query value per value. A
+ *     lookup value is the value of the model's lookup field (`lookupField` in model info). An empty
+ *     array is no selection.
  * @param {string} params.view - The view name.
  * @param {object} [params.query] - Other query values for the target. Pass keys through `pk`; a
  *     `pk` entry here throws.

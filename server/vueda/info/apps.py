@@ -40,6 +40,7 @@ class InfoConfig(AppConfig):
         from vueda.info.checks import check_field_source_resolution
         from vueda.info.checks import check_filter_query_param_configuration
         from vueda.info.checks import check_formatted_name_configuration
+        from vueda.info.checks import check_lookup_field_configuration
         from vueda.info.checks import check_ordering_configuration
         from vueda.info.checks import check_search_queryset_configuration
 
@@ -51,6 +52,7 @@ class InfoConfig(AppConfig):
         register(check_column_totals_configuration)
         register(check_search_queryset_configuration)
         register(check_field_source_resolution)
+        register(check_lookup_field_configuration)
 
         # Patch Django built-in models with formatted_name support so they integrate
         # correctly with Vueda's formatted_name system without changes to core code.

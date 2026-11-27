@@ -357,6 +357,14 @@ An abstract model base for reference tables of codes and names, such as statuses
 - Described in: [Choice-Backed Fields and Lookup Models](../guides/choices-and-lookups.md#declare-a-lookup-model)
 - Upstream: [Django: abstract base classes]{@api ext:django:django.db.models.Options.abstract}
 
+## Lookup Value
+
+The value of a model's lookup field, which addresses one object in the model's detail URLs and in every client route. The lookup field is the `lookup_field` of the model's {@term Canonical Viewset}, or the primary key when the viewset keeps DRF's default. {@term Model Info} reports the field's name as `lookup_field`, and reports `null` when the lookup field is the primary key. Request bodies, such as bulk `pks` bodies, and workflow requests identify the object by its primary key.
+
+- Names: [`ModelInfo.lookupField`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.lookupField}; [`get_lookup_field`]{@api py:function:vueda.info.registration.get_lookup_field}; [`LookupInFilterSet`]{@api py:class:vueda.core.filters.LookupInFilterSet}
+- Described in: [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline.md#lookup-field-and-lookup-value)
+- Upstream: [DRF: `lookup_field`]{@api ext:drf:rest_framework.generics.GenericAPIView.lookup_field}
+
 ## Model Actions
 
 The `model_actions` list in {@term Model Info}: the actions the model's viewset offers the current user, with no object in view. Built-in actions appear when a {@term Model-Scope Check} passes; extra actions appear when `get_allowed_extra_actions` includes them. The list shapes client routes and buttons, and each endpoint still enforces its own permissions.
@@ -474,7 +482,7 @@ The transitions of a model's {@term Workflow} that the current user may execute,
 
 ## Pk Marker
 
-The `pk: true` flag that {@term Model Info} sets on the field whose name matches the model's primary key. The client reads it to find each object's identifier, and fails to load the model's metadata when no field carries it.
+The `pk: true` flag that {@term Model Info} sets on the serializer field that returns the model's primary key value. The client reads it to find each object's identifier, and fails to load the model's metadata when no field carries it.
 
 - Names: [`FieldInfo.pk`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#FieldInfo.pk}; [`ModelInfo.pk`]{@api js:property:@arrai-innovations/vueda/stores/storeModelInfo#ModelInfo.pk}; [`get_model_fields_data`]{@api py:function:vueda.info.serializers.ModelInfoSerializer.get_model_fields_data}
 - Described in: [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline.md#pk-authority-and-metadata-source)

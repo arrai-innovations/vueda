@@ -35,7 +35,10 @@ vi.mock("@vueda/use/useObjectForm.js", async () => {
 // useViewUpdate.js's own wiring — its two separate object instances — surfaces a submission failure.
 // Every other test in this file mocks useDetailView wholesale, so these never get called for them.
 vi.mock("@vueda/use/useLeaveUnload.js", () => ({ useLeaveUnload: vi.fn() }));
-vi.mock("vue-router", async () => ({ ...(await vi.importActual("vue-router")), useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("vue-router", async () => ({
+    ...(await vi.importActual("vue-router")),
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), currentRoute: { value: { name: "home", params: {} } } }),
+}));
 vi.mock("@arrai-innovations/vue-sonner", () => ({
     toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), loading: vi.fn(), message: vi.fn() },
 }));
@@ -770,8 +773,8 @@ describe("lib/use/useViewUpdate.js", () => {
             );
             vi.stubGlobal("fetch", fetchMock);
             try {
-                // The server returns an integer pk while the route pk is the string "42", so the body's
-                // "42" shows that the save takes its pk from the route, not from the retrieved object.
+                // The server returns an integer pk while the route value is the string "42". The URL takes the route
+                // value, and the body takes the integer primary key that the retrieved object holds.
                 const { result } = await buildSelectionViewUpdate({
                     config: orderConfig,
                     retrieved: { ...orderRetrieved, id: 42 },
@@ -786,7 +789,7 @@ describe("lib/use/useViewUpdate.js", () => {
                 const [url, options] = fetchMock.mock.calls[0];
                 expect(new URL(url, "http://domain.invalid").pathname).toBe("/routes/testapp/test_model/42/");
                 expect(options.method).toBe("PUT");
-                expect(JSON.parse(options.body)).toEqual({ quantity: 2, id: "42" });
+                expect(JSON.parse(options.body)).toEqual({ quantity: 2, id: 42 });
             } finally {
                 vi.unstubAllGlobals();
             }

@@ -34,7 +34,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key(s) of the object(s) to act on; pass an array for multi-object actions. */
+    /**
+     * Lookup value(s) of the object(s) to act on: the value of the model's lookup field (`lookupField` in model info).
+     * Pass an array for multi-object actions.
+     */
     pk: {
         type: [String, Number, Array],
         default: undefined,

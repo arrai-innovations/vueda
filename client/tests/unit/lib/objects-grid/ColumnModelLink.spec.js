@@ -14,10 +14,14 @@ const LinkModelViewStub = defineComponent({
     },
 });
 vi.mock("@vueda/navigation/link-model-view/LinkModelView.vue", () => ({ default: LinkModelViewStub }));
+// The related model's info. The default keeps the primary key as the lookup field.
+let targetInfo;
+vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => ({ info: targetInfo }) }));
 
 let ColumnModelLink;
 beforeEach(async () => {
     lmvProps = undefined;
+    targetInfo = { pk: "id", lookupField: null };
     ColumnModelLink = (await import("@vueda/objects-grid/ColumnModelLink.vue")).default;
 });
 
@@ -28,6 +32,29 @@ afterEach(() => {
 const link = (wrapper) => wrapper.find('[data-qa="lmv"]');
 
 describe("lib/objects-grid/ColumnModelLink.vue", () => {
+    describe("a related model with a custom lookup field", () => {
+        scopedIt("links an expanded object by its lookup value", () => {
+            targetInfo = { pk: "id", lookupField: "sage_id" };
+            const wrapper = mount(ColumnModelLink, {
+                props: {
+                    value: { id: 5, sage_id: "SAGE-5", formatted_name: "Widgets" },
+                    field: { appLabel: "catalog", model: "widgetcategory" },
+                },
+            });
+            expect(link(wrapper).exists()).toBe(true);
+            expect(lmvProps.pk).toBe("SAGE-5");
+        });
+
+        scopedIt("shows a scalar primary key as plain text", () => {
+            targetInfo = { pk: "id", lookupField: "sage_id" };
+            const wrapper = mount(ColumnModelLink, {
+                props: { value: 5, formatted: "Widgets", field: { appLabel: "catalog", model: "widgetcategory" } },
+            });
+            expect(link(wrapper).exists()).toBe(false);
+            expect(wrapper.text()).toBe("Widgets");
+        });
+    });
+
     describe("rendering a link", () => {
         scopedIt("links using the field's related-model identity and a scalar pk", () => {
             const wrapper = mount(ColumnModelLink, {

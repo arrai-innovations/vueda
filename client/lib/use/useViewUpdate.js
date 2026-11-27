@@ -33,6 +33,7 @@ import { useForm } from "@vueda/use/useForm.js";
 import { formModelExpand } from "@vueda/use/useFormModelProps.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { lookupFieldOf } from "@vueda/utils/lookupValues.js";
 import { omitUnexpandedReverseForeignKeys } from "@vueda/utils/reverseForeignKey.js";
 import { computed, reactive, toRef, unref } from "vue";
 
@@ -45,7 +46,8 @@ const VIEW_NAME = "update";
  * Required identification.
  * @property {string} app - Django app label that owns the model.
  * @property {string} model - Django model name.
- * @property {string} pk - Primary key of the instance to fetch and edit.
+ * @property {string} pk - Lookup value of the instance to fetch and edit: the value of the model's lookup field
+ *  (`lookupField` in model info).
  *
  * Optional data-fetching overrides.
  * @property {string[]} [fetchFields] - Field names to request from the API, on retrieval and in the update response;
@@ -158,14 +160,17 @@ export function useViewUpdate(options) {
             app: toRef(options, "app"),
             model: toRef(options, "model"),
         },
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        // The route's `pk` is the lookup value, so a save's URL carries it. The saved object carries its primary key
+        // and its lookup value, so a redirect after the save can name the object.
+        pkKey: computed(() => lookupFieldOf(modelConfig.info)),
         pk: toRef(options, "pk"),
         params: {
             [FIELDS_PARAM]: computed(() => {
                 const fields = [...(fetchFields.value ?? [])];
-                const pkKey = modelConfig.info?.pk ?? "id";
-                if (!fields.includes(pkKey)) {
-                    fields.push(pkKey);
+                for (const keyField of [modelConfig.info?.pk ?? "id", lookupFieldOf(modelConfig.info)]) {
+                    if (!fields.includes(keyField)) {
+                        fields.push(keyField);
+                    }
                 }
                 return fields;
             }),
@@ -205,6 +210,8 @@ export function useViewUpdate(options) {
         firstErrorField,
         redirectAfter: toRef(options, "redirectAfter"),
         submitFields,
+        primaryKeyField: computed(() => modelConfig.info?.pk ?? "id"),
+        primaryKey: computed(() => instanceObject.state.object?.[modelConfig.info?.pk ?? "id"]),
     });
 
     const objectForm = useObjectForm({

@@ -1,12 +1,17 @@
 <script setup>
 import LinkModelView from "@vueda/navigation/link-model-view/LinkModelView.vue";
+import { useModelConfig } from "@vueda/use/useModelConfig.js";
+import { relatedLookupValueOf } from "@vueda/utils/lookupValues.js";
 import { computed } from "vue";
 
 /**
  * Foreign-key list column adapter. Renders the related object as a link to its
- * detail view via {@link LinkModelView}. The label renders as plain text when
- * the link target or pk is unavailable, or when the viewer cannot open the
- * linked view. Collapses the hand-written FK-link
+ * detail view via {@link LinkModelView}. The link carries the related object's
+ * lookup value, the value of the related model's lookup field (`lookupField` in
+ * model info). An expanded object carries that value. A scalar value is a primary
+ * key, which is the lookup value only when the lookup field is the primary key
+ * field. The label renders as plain text when the link target or the lookup value
+ * is unavailable, or when the viewer cannot open the linked view. Collapses the hand-written FK-link
  * boilerplate (target/pk/label resolution + no-pk guard) that consuming list
  * views previously repeated per column.
  *
@@ -78,14 +83,13 @@ const props = defineProps({
 const targetApp = computed(() => props.field?.appLabel ?? props.app);
 const targetModel = computed(() => props.field?.model ?? props.model);
 
-// FK pk: an object value carries it as `id`/`pk`; a scalar value is the pk.
-const targetPk = computed(() => {
-    const value = props.value;
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-        return value.id ?? value.pk;
-    }
-    return value;
-});
+// The link carries the related object's lookup value. An expanded object carries it under the related model's
+// lookup field. A scalar value is a primary key, which is the lookup value only when the lookup field is the
+// primary key field.
+const targetModelConfig = useModelConfig(targetApp, targetModel, "list");
+const targetPk = computed(() =>
+    Array.isArray(props.value) ? undefined : relatedLookupValueOf(targetModelConfig.info, props.value),
+);
 
 const hasTarget = computed(() => !!(targetApp.value && targetModel.value));
 const hasPk = computed(() => targetPk.value != null && targetPk.value !== "" && !Array.isArray(props.value));

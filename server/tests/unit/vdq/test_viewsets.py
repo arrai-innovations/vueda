@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.test import APIRequestFactory
+from rest_framework.test import force_authenticate
 
 from tests.conftest import response_body
 from vueda import info
@@ -13,6 +15,8 @@ from vueda.vdq.models import QueueItem
 from vueda.vdq.models import SentItem
 from vueda.vdq.serializers import QueueItemSerializer
 from vueda.vdq.serializers import SentItemSerializer
+from vueda.vdq.viewsets import DefaultSendQueueViewSet
+from vueda.vdq.viewsets import DefaultSentItemViewSet
 from vueda.vdq.viewsets import SendQueueViewSet
 from vueda.vdq.viewsets import SentItemViewSet
 
@@ -371,3 +375,45 @@ def test_send_queue_viewset_returns_items_by_pk(api_client, sender, receiver):
     assert queued_response.data["id"] == queued.pk
     assert finished_response.status_code == HTTPStatus.OK, response_body(finished_response)
     assert finished_response.data["id"] == finished.pk
+
+
+@pytest.mark.django_db
+def test_send_queue_detail_shows_a_done_item_under_a_renamed_url_keyword(sender, receiver):
+    class RenamedKeywordSendQueueViewSet(DefaultSendQueueViewSet):
+        lookup_url_kwarg = "queue_item_id"
+
+    finished = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    finished.fast_transition("send")
+    finished.fast_transition("await")
+    finished.fast_transition("succeed")
+    user = get_user_model().objects.create_superuser(email="queue-keyword@domain.invalid", password="password123")
+    request = APIRequestFactory().get("/")
+    force_authenticate(request, user=user)
+
+    response = RenamedKeywordSendQueueViewSet.as_view({"get": "retrieve"})(request, queue_item_id=finished.pk)
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert response.data["id"] == finished.pk
+
+
+@pytest.mark.django_db
+def test_sent_item_resend_reads_a_renamed_url_keyword(monkeypatch, sender, receiver):
+    class RenamedKeywordSentItemViewSet(DefaultSentItemViewSet):
+        lookup_url_kwarg = "sent_item_id"
+
+    queue_item = QueueItem.objects.create(sender=sender, receiver=receiver, method="email")
+    queue_item.fast_transition("send")
+    queue_item.fast_transition("await")
+    queue_item.fast_transition("succeed")
+    user = get_user_model().objects.create_superuser(email="resend-keyword@domain.invalid", password="password123")
+    scheduled = []
+    monkeypatch.setattr("vueda.vdq.viewsets.schedule_queue_item", scheduled.append)
+    request = APIRequestFactory().post("/")
+    force_authenticate(request, user=user)
+
+    response = RenamedKeywordSentItemViewSet.as_view({"post": "resend"}, detail=True)(
+        request, sent_item_id=queue_item.pk
+    )
+
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+    assert len(scheduled) == 1

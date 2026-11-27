@@ -26,7 +26,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or array of primary keys identifying the instances to activate. */
+    /**
+     * Lookup value or array of lookup values naming the instances to activate: the value of the model's lookup field
+     * (`lookupField` in model info).
+     */
     pk: {
         type: [String, Array],
         required: true,

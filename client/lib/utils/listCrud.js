@@ -3,7 +3,7 @@
  * @description VUEDA-specific list CRUD adaptors for single-page, all-page, bulk-delete, and execute-action operations.
  */
 import { CancellablePromise, cancellableFetch, deepUnref, setListCrud } from "@arrai-innovations/reactive-helpers";
-import { COLUMN_TOTALS_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
+import { COLUMN_TOTALS_PARAM, LOOKUP_PARAM, PAGE_PARAM, SEARCH_PARAM } from "@vueda/utils/constants.js";
 import { FetchError, ListFilterError } from "@vueda/utils/errors.js";
 import { actionRequestHeaders, getJsonOrText, readActionResponse } from "@vueda/utils/fetchSupport.js";
 import { getDetailUrl, getListUrl } from "@vueda/utils/urls.js";
@@ -26,12 +26,25 @@ import pLimit from "p-limit";
 const NON_FILTER_PARAMS = [PAGE_PARAM, SEARCH_PARAM, COLUMN_TOTALS_PARAM];
 
 /**
+ * Returns whether a list request sends each element of the array param `key` under its own repeated key.
+ *
+ * The `lookup` filter's lookup values always repeat, because a lookup value can contain a comma. Any other key repeats
+ * when `repeatedParams` names it.
+ *
+ * @param {string} key - The param name.
+ * @param {string[]} repeatedParams - Further keys whose array elements repeat.
+ * @returns {boolean} Whether the param's array elements repeat.
+ */
+const isRepeatedParam = (key, repeatedParams) => key === LOOKUP_PARAM || repeatedParams.includes(key);
+
+/**
  * Make a search params string from the given search params object.
  *
  * An array value is sent as one comma-separated value, the form DRF's ordering, the expand and omit
  * parameters, and django-filter's CSV-based `in` filters read. A key listed in `repeatedParams` sends
  * each array element under its own repeated key instead, the form Django's `SelectMultiple` widget
- * reads, which keeps an element that contains a comma intact.
+ * reads, which keeps an element that contains a comma intact. The `lookup` filter's lookup values are
+ * always sent as repeated keys.
  *
  * @param {object} searchParams - The search params object.
  * @param {string[]} [repeatedParams] - Keys whose array elements are each sent as a repeated key.
@@ -46,7 +59,7 @@ export const makeSearchParamsString = (searchParams, repeatedParams = []) => {
     Object.entries(params).forEach(([key, value]) => {
         if (Array.isArray(value)) {
             const definedValues = value.filter((v) => v !== undefined);
-            if (repeatedParams.includes(key)) {
+            if (isRepeatedParam(key, repeatedParams)) {
                 definedValues.forEach((v) => usp.append(key, v));
             } else if (definedValues.length) {
                 usp.set(key, definedValues.join(","));
@@ -62,9 +75,9 @@ export const makeSearchParamsString = (searchParams, repeatedParams = []) => {
  * Encode a list's filter params for an object stream subscription, the way the list request encodes them.
  *
  * The server hands the values to the list's FilterSet, so each value takes the form that the list
- * request's query string gives it. An array is one comma-separated string, and a key listed in
- * `repeatedParams` stays an array of strings. Page, search, and column totals are not filters and
- * are left out.
+ * request's query string gives it. An array is one comma-separated string. The `lookup` filter's lookup values, and a
+ * key listed in `repeatedParams`, stay an array of strings. Page, search, and column totals are not filters and are
+ * left out.
  *
  * @param {object} params - The list params, without ordering, fields, expand, or page size.
  * @param {string[]} [repeatedParams] - Keys whose array elements the list request sends as repeated keys.
@@ -77,7 +90,7 @@ export const subscriptionFilters = (params, repeatedParams = []) => {
     /** @type {{ [key: string]: string|string[] }} */
     const filters = {};
     for (const key of new Set(query.keys())) {
-        filters[key] = repeatedParams.includes(key) ? query.getAll(key) : query.get(key);
+        filters[key] = isRepeatedParam(key, repeatedParams) ? query.getAll(key) : query.get(key);
     }
     return filters;
 };

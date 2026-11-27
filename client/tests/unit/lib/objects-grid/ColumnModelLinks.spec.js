@@ -17,9 +17,14 @@ vi.mock("@vueda/use/useLinkModelView.js", () => ({
     }),
 }));
 
+// The related model's info. The default keeps the primary key as the lookup field.
+let targetInfo;
+vi.mock("@vueda/use/useModelConfig.js", () => ({ useModelConfig: () => ({ info: targetInfo }) }));
+
 let ColumnModelLinks;
 beforeEach(async () => {
     openable = new Set();
+    targetInfo = { pk: "id", lookupField: null };
     ColumnModelLinks = (await import("@vueda/objects-grid/ColumnModelLinks.vue")).default;
 });
 
@@ -165,6 +170,23 @@ describe("lib/objects-grid/ColumnModelLinks.vue", () => {
 
     describe("labels and counts", () => {
         const [payload] = toManyPayloads;
+
+        scopedIt("links each object of a related model with a custom lookup field by its lookup value", () => {
+            targetInfo = { pk: "id", lookupField: "code" };
+            openable = new Set(["specialcare:SC-1"]);
+            const wrapper = mount(ColumnModelLinks, {
+                props: {
+                    value: [{ id: 1, code: "SC-1", formatted_name: "Fragile" }],
+                    field: { ...fieldOf(payload), model: "specialcare" },
+                    view: "read",
+                },
+            });
+
+            expect(links(wrapper).map((link) => link.attributes("href"))).toEqual([
+                `/${payload.model_info.app_label}/specialcare/SC-1`,
+            ]);
+            wrapper.unmount();
+        });
 
         scopedIt("names a single unexpanded object as 1 item", () => {
             const wrapper = mount(ColumnModelLinks, { props: { value: [3], field: fieldOf(payload) } });

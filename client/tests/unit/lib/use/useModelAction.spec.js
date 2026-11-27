@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
         fallbackList: null,
         instanceObject: null,
         useListInstanceCalls: vi.fn(),
+        useObjectInstanceCalls: vi.fn(),
     };
 });
 
@@ -35,7 +36,10 @@ vi.mock("@arrai-innovations/reactive-helpers", async () => {
             mocks.useListInstanceCalls(...args);
             return mocks.fallbackList;
         },
-        useObjectInstance: () => mocks.instanceObject,
+        useObjectInstance: (...args) => {
+            mocks.useObjectInstanceCalls(...args);
+            return mocks.instanceObject;
+        },
     };
 });
 
@@ -86,6 +90,7 @@ describe("lib/use/useModelAction.js", () => {
         mocks.fallbackList = createInstanceStub();
         mocks.instanceObject = createInstanceStub();
         mocks.useListInstanceCalls.mockClear();
+        mocks.useObjectInstanceCalls.mockClear();
         routerPush.mockClear();
         mocks.routeQuery = {};
     });
@@ -97,12 +102,12 @@ describe("lib/use/useModelAction.js", () => {
                     app: "app",
                     model: "person",
                     action: "archive",
-                    pk: ["fallback"],
+                    pk: ["4", "7"],
                     fetchState: createFetchState([{ id: 4 }, { id: 7 }]),
                 }),
             ),
         );
-        expect(fromFetchState.state.pks.value).toEqual([4, 7]);
+        expect(fromFetchState.state.pks.value).toEqual(["4", "7"]);
         expect(fromFetchState.state.pksAsString.value).toEqual(["4", "7"]);
         expect(fromFetchState.state.bulk.value).toBe(true);
         expect(fromFetchState.state.pkCount.value).toBe(2);
@@ -113,6 +118,229 @@ describe("lib/use/useModelAction.js", () => {
         expect(fromPk.state.pks.value).toEqual(["9"]);
         expect(fromPk.state.pksAsString.value).toEqual(["9"]);
         expect(fromPk.state.bulk.value).toBe(false);
+    });
+
+    describe("Model with a custom lookup field", () => {
+        beforeEach(() => {
+            // A primary key field that is not named `id` shows that the keys come from the model info.
+            modelConfig.info = { ...modelConfig.info, pk: "uuid", lookupField: "sage_id" };
+        });
+
+        /**
+         * @param {object[]} rows - The loaded rows.
+         * @param {boolean} [loading] - Whether the rows are still loading.
+         * @returns {object} A loaded fetch-state stand-in.
+         */
+        const loadedRows = (rows, loading = false) =>
+            reactive({
+                loading,
+                errored: false,
+                objectsInOrder: rows,
+                objectsMap: new Map(rows.map((row) => [String(row.uuid), row])),
+            });
+
+        scopedIt("targets one object through its lookup value", async () => {
+            await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: "SAGE-1",
+                        fetchState: loadedRows([{ uuid: "u-4", sage_id: "SAGE-1" }]),
+                    }),
+                ),
+            );
+
+            const objectProps = mocks.useObjectInstanceCalls.mock.calls[0][0].props;
+            expect(objectProps.pk).toBe("SAGE-1");
+            expect(objectProps.pkKey).toBe("sage_id");
+        });
+
+        scopedIt("sends the loaded rows' primary keys in a bulk request", async () => {
+            const instanceList = createInstanceStub();
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: ["SAGE-1", "SAGE,2"],
+                        instanceList,
+                        fetchState: loadedRows([
+                            { uuid: "u-4", sage_id: "SAGE-1" },
+                            { uuid: "u-7", sage_id: "SAGE,2" },
+                        ]),
+                    }),
+                ),
+            );
+
+            expect(modelAction.state.pks.value).toEqual(["u-4", "u-7"]);
+            await modelAction.runAction({});
+            expect(instanceList.executeAction).toHaveBeenCalledWith(expect.objectContaining({ pks: ["u-4", "u-7"] }));
+        });
+
+        scopedIt("names a route value that no loaded row holds and refuses to run", async () => {
+            const instanceList = createInstanceStub();
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: ["SAGE-1", "SAGE-9"],
+                        instanceList,
+                        fetchState: loadedRows([{ uuid: "u-4", sage_id: "SAGE-1" }]),
+                    }),
+                ),
+            );
+
+            expect(modelAction.state.missingLookupValues.value).toEqual(["SAGE-9"]);
+            expect(modelAction.state.missingMessage.value).toBe(
+                "SAGE-9 was not found. It may have been deleted or renamed, or you may not have access to it.",
+            );
+            expect(modelAction.state.readyToDryRun.value).toBe(false);
+            await expect(modelAction.runAction({})).rejects.toThrow("SAGE-9 was not found.");
+            expect(instanceList.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("waits for the rows before it can run a bulk action", async () => {
+            const instanceList = createInstanceStub();
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: ["SAGE-1", "SAGE-2"],
+                        instanceList,
+                        fetchState: loadedRows([], true),
+                    }),
+                ),
+            );
+
+            expect(modelAction.state.pks.value).toEqual([]);
+            expect(modelAction.state.missingLookupValues.value).toEqual([]);
+            await expect(modelAction.runAction({})).rejects.toThrow("The selected objects have not loaded.");
+            expect(instanceList.executeAction).not.toHaveBeenCalled();
+        });
+
+        scopedIt("sends only the rows that the route names", async () => {
+            const instanceList = createInstanceStub();
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: ["SAGE-1", "SAGE-2"],
+                        instanceList,
+                        fetchState: loadedRows([
+                            { uuid: "u-4", sage_id: "SAGE-1" },
+                            { uuid: "u-7", sage_id: "SAGE-2" },
+                            { uuid: "u-9", sage_id: "SAGE-3" },
+                        ]),
+                    }),
+                ),
+            );
+
+            await modelAction.runAction({});
+            expect(instanceList.executeAction).toHaveBeenCalledWith(expect.objectContaining({ pks: ["u-4", "u-7"] }));
+        });
+
+        scopedIt("reports a route value whose spelling no loaded row holds", async () => {
+            modelConfig.info = { ...modelConfig.info, lookupField: "order_number" };
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: ["1001.0", "1002"],
+                        instanceList: createInstanceStub(),
+                        fetchState: loadedRows([
+                            { uuid: "u-1", order_number: "1001" },
+                            { uuid: "u-2", order_number: "1002" },
+                        ]),
+                    }),
+                ),
+            );
+
+            expect(modelAction.state.missingLookupValues.value).toEqual(["1001.0"]);
+            expect(modelAction.state.pks.value).toEqual(["u-2"]);
+        });
+
+        scopedIt("stops reporting missing rows once a real run removes them", async () => {
+            const instanceList = createInstanceStub();
+            const fetchState = loadedRows([
+                { uuid: "u-4", sage_id: "SAGE-1" },
+                { uuid: "u-7", sage_id: "SAGE-2" },
+            ]);
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: ["SAGE-1", "SAGE-2"],
+                        instanceList,
+                        fetchState,
+                    }),
+                ),
+            );
+
+            await modelAction.runAction({});
+            // A successful bulk delete removes the rows from the list.
+            fetchState.objectsInOrder = [];
+            fetchState.objectsMap = new Map();
+
+            expect(modelAction.state.missingLookupValues.value).toEqual([]);
+            expect(modelAction.state.missingMessage.value).toBe("");
+        });
+
+        scopedIt("redirects to the detail route by the lookup value", async () => {
+            const modelAction = await withSetup(() =>
+                useModelAction(
+                    reactive({
+                        app: "billing",
+                        model: "invoice",
+                        action: "archive",
+                        pk: "SAGE-1",
+                        fetchState: loadedRows([{ uuid: "u-4", sage_id: "SAGE-1" }]),
+                    }),
+                ),
+            );
+
+            await modelAction.redirectTo("success");
+
+            expect(routerPush).toHaveBeenCalledWith(
+                expect.objectContaining({ params: expect.objectContaining({ pk: "SAGE-1" }) }),
+            );
+        });
+    });
+
+    scopedIt("matches a composite key route that spells the key differently from the row", async () => {
+        // Model info reports no lookup field when the lookup field is the primary key.
+        modelConfig.info = { ...modelConfig.info, pk: "pk", lookupField: null };
+        const modelAction = await withSetup(() =>
+            useModelAction(
+                reactive({
+                    app: "app",
+                    model: "orderline",
+                    action: "archive",
+                    pk: "[1, 42]",
+                    fetchState: reactive({
+                        loading: false,
+                        errored: false,
+                        objectsInOrder: [{ pk: ["1", "42"] }],
+                        objectsMap: new Map([["1,42", { pk: ["1", "42"] }]]),
+                    }),
+                }),
+            ),
+        );
+
+        expect(modelAction.state.missingLookupValues.value).toEqual([]);
+        expect(modelAction.state.pks.value).toEqual(["[1, 42]"]);
     });
 
     describe("Model naming", () => {
@@ -534,6 +762,7 @@ describe("lib/use/useModelAction.js", () => {
 
             expect(modelAction.state.dryRunTarget.value).toBe(JSON.stringify(["app", "person", "archive", ["4", "7"]]));
             fetchState.objectsInOrder = [{ id: 5 }];
+            fetchState.objectsMap = new Map([["5", { id: 5 }]]);
             expect(modelAction.state.dryRunTarget.value).toBe(JSON.stringify(["app", "person", "archive", ["5"]]));
         });
     });

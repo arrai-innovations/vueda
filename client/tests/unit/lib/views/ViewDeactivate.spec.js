@@ -269,7 +269,7 @@ describe("lib/views/ViewDeactivate.vue", () => {
             expect(form.props("pk")).toBe("1");
         });
 
-        scopedIt("passes scalar and array primary keys to the preview list params", () => {
+        scopedIt("passes scalar and array lookup values to the preview list params as id values", () => {
             mockedInject.mockReturnValueOnce({});
             mount(ViewDeactivate, { props: { app: "app", model: "model", pk: "1" } });
             expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1"]);

@@ -36,7 +36,7 @@ async function runAccessChecks(to, beforeEnter) {
  * well, so they also rerun for the one case `beforeEnter` misses: a navigation that changes the app,
  * model, or action but stays inside the *same* record, for example from an allowed model to a denied
  * one without leaving the list record. A navigation that stays in the same record and leaves the app,
- * model, and action unchanged, for example a query-only change or a primary key change on an
+ * model, and action unchanged, for example a query-only change or a lookup value change on an
  * otherwise identical action, skips the checks, since nothing about the checked metadata depends on
  * either.
  *
@@ -134,12 +134,13 @@ function selectedKeysFromQuery(value) {
  * watching for a change of authenticated user. When one happens while the application sits on one of
  * these routes, it reruns the same checks against that route and redirects if the new user may not
  * use it. Neither of those reruns the checks for a navigation that only changes the query string or
- * the primary key, since nothing about the checked metadata depends on either.
+ * the lookup value, since nothing about the checked metadata depends on either.
  *
  * The two records are `actionrouter.detailview` at `/:app/:model/:action/:pk`, for one object, and
  * `actionrouter.listview` at `/:app/:model/:action/`, for a model or several objects. The list route
- * reads `pk` from the query string instead, as one repeated value per primary key (`?pk=4&pk=7`),
- * which a bulk action targets. Each value is one whole key and is never split, so `?pk=4,7` names the
+ * reads `pk` from the query string instead, as one repeated value per object (`?pk=4&pk=7`), which a
+ * bulk action targets. Each `pk` value is a lookup value, the value of the model's lookup field
+ * (`lookupField` in model info). Each value is one whole key and is never split, so `?pk=4,7` names the
  * single key `4,7`. Both routes pass `app`, `model`, `action`, and `pk` to the component as props. Either
  * route may carry a `returnPath` query value, where an action view goes after it succeeds or is
  * cancelled.

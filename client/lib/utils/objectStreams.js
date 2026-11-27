@@ -247,8 +247,13 @@ export function watchObjectChanges({ target, pk }, onChange) {
  * The object `subscribe` handler that `setupObjectStreams()` installs.
  *
  * It subscribes to one record and fetches the record again through the REST API after each event,
- * with the same target, primary key, and params as the view's own retrieve. A delete event reports
+ * with the same target, key, and params as the view's own retrieve. A delete event reports
  * the record as deleted.
+ *
+ * A subscription names its record by primary key. A read or update view retrieves its record by its
+ * lookup value, the value of the model's lookup field (`lookupField` in model info). That view passes
+ * the loaded record's primary key as `target.recordPk`, and the handler subscribes by it. Without
+ * `target.recordPk`, the handler subscribes by `pk`.
  *
  * The returned promise resolves at once and never rejects. reactive-helpers counts a subscription as
  * loading until the promise settles, so waiting for the socket would hold the view in its loading
@@ -256,8 +261,9 @@ export function watchObjectChanges({ target, pk }, onChange) {
  * leaves the view as it was.
  *
  * @param {object} args - The subscribe arguments from reactive-helpers.
- * @param {{ app: string, model: string }} args.target - The app label and model name, as in the REST route.
- * @param {string} args.pk - The primary key of the record.
+ * @param {{ app: string, model: string, recordPk?: string|number }} args.target - The app label and model name, as
+ *  in the REST route, and the record's primary key when the view's retrieve key is another field.
+ * @param {string} args.pk - The key that the view's retrieve uses.
  * @param {object} args.params - The retrieve params, passed through to the refetch.
  * @param {(data: object, action: "update"|"delete") => void} args.callback - Receives the refetched record.
  * @param {Readonly<import('vue').Ref<boolean>>} [args.isCancelled] - True once the subscription is cancelled.
@@ -303,7 +309,7 @@ export function objectStreamSubscribe({ target, pk, params, callback, isCancelle
         );
     }
 
-    const unsubscribe = watchObjectChanges({ target, pk }, onMessage);
+    const unsubscribe = watchObjectChanges({ target, pk: target.recordPk ?? pk }, onMessage);
 
     return Object.assign(Promise.resolve(), {
         cancel: async () => {

@@ -168,6 +168,16 @@ describe("lib/views/ViewList.vue", () => {
             expect(wrapper.vm.list.listState.params[FIELDS_PARAM][0]).toBe("uuid");
         });
 
+        scopedIt("links each row by its lookup value and fetches both key fields", async () => {
+            modelConfig.info.lookupField = "sage_id";
+            instanceList.state.objectsInOrder = [
+                { id: 3, sage_id: "SAGE 3", reference: "PO-3", available_actions: ["retrieve"] },
+            ];
+            const { wrapper } = await mountList();
+            expect(wrapper.get("a").attributes("href")).toBe("/catalog/purchaseorder/SAGE%203/read");
+            expect(wrapper.vm.list.listState.params[FIELDS_PARAM].slice(0, 2)).toEqual(["id", "sage_id"]);
+        });
+
         scopedIt("retains type formatting and column props inside the link", async () => {
             const ColumnBoolean = (await import("@vueda/objects-grid/ColumnBoolean.vue")).default;
             modelConfig.config.fieldDetails.reference.typeSerializer = "BooleanField";

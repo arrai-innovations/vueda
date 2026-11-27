@@ -69,11 +69,17 @@ import { useObjectChangeNotice } from "@vueda/use/useObjectChangeNotice.js";
 import { getActionName } from "@vueda/utils/actionMap.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import {
+    comparableLookupValue,
+    hasCustomLookupField,
+    lookupFieldOf,
+    lookupValueOf,
+} from "@vueda/utils/lookupValues.js";
 import { objectStreamsEnabled } from "@vueda/utils/objectStreams.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import cloneDeep from "lodash-es/cloneDeep.js";
 import omit from "lodash-es/omit.js";
-import { computed, inject, reactive, ref, toRef, watch } from "vue";
+import { computed, inject, reactive, ref, shallowRef, toRef, watch } from "vue";
 
 /**
  * @typedef {object} DetailViewOptions
@@ -83,7 +89,8 @@ import { computed, inject, reactive, ref, toRef, watch } from "vue";
  * @property {string} model - Django model name.
  * @property {string} viewName - View identifier used to load model config and build the form ID (e.g. `"read"` or
  *  `"update"`).
- * @property {string} pk - Primary key of the instance to fetch.
+ * @property {string} pk - Lookup value of the instance to fetch: the value of the model's lookup field (`lookupField`
+ *  in model info).
  *
  * Optional data-fetching overrides.
  * @property {string[]} [fetchFields] - Field names to request from the API; overrides the model config default when
@@ -243,17 +250,38 @@ export function useDetailView(options, formInitialValue) {
         viewProps: () => pickViewFormModelProps(options),
     });
 
+    // An object subscription names its record by primary key. For a model with a custom lookup field, that key is the
+    // primary key of the held record once the record holds the route's lookup value. Lookup values are unique within a
+    // model, and the view clears its record when the app or model changes, so a held record with the route's lookup
+    // value is the route's record. Until that record loads, the key is undefined and the view does not subscribe. For
+    // any other model, the route value is the primary key.
+    /** @type {import('vue').ShallowRef<ReturnType<typeof useObject>|null>} */
+    const heldInstance = shallowRef(null);
+    const recordPrimaryKey = computed(() => {
+        const info = modelConfig.info;
+        if (!hasCustomLookupField(info)) {
+            return options.pk;
+        }
+        const object = heldInstance.value?.state.object;
+        const holdsRouteRecord =
+            comparableLookupValue(lookupValueOf(info, object)) === comparableLookupValue(options.pk);
+        return holdsRouteRecord ? object?.[info.pk ?? "id"] : undefined;
+    });
+
     const instanceObjectProps = reactive({
+        // `recordPk` reaches the object stream subscribe handler, which subscribes by it.
         target: {
             app: toRef(options, "app"),
             model: toRef(options, "model"),
+            recordPk: recordPrimaryKey,
         },
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        // The route's `pk` is the lookup value, so the object instance retrieves and saves through it.
+        pkKey: computed(() => lookupFieldOf(modelConfig.info)),
         pk: toRef(options, "pk"),
         params: {
             [FIELDS_PARAM]: computed(() =>
                 [
-                    modelConfig.info?.pk ?? "id",
+                    ...new Set([modelConfig.info?.pk ?? "id", lookupFieldOf(modelConfig.info)]),
                     fetchFields.value,
                     addsFormattedName.value ? "formatted_name" : null,
                     "available_actions",
@@ -264,13 +292,27 @@ export function useDetailView(options, formInitialValue) {
         },
         intendToRetrieve,
         intendToSubscribe: computed(
-            () => (!!options.subscribe || !!options.noticeChanges) && objectStreamsEnabled() && validAndActive.value,
+            () =>
+                (!!options.subscribe || !!options.noticeChanges) &&
+                objectStreamsEnabled() &&
+                validAndActive.value &&
+                recordPrimaryKey.value != null,
         ),
         relatedObjectRules: toRef(options, "relatedObjectRules"),
         calculatedObjectRules: toRef(options, "calculatedObjectRules"),
     });
 
     const instanceObject = useObject({ props: instanceObjectProps });
+    heldInstance.value = instanceObject;
+
+    // A held record belongs to one model. When the route moves to another app or model, the view clears the record, so
+    // the previous model's record never stands in for the next one while the next one loads.
+    watch(
+        () => [options.app, options.model],
+        () => {
+            instanceObject.clear();
+        },
+    );
 
     /**
      * The form values of a record. A formatted name fetched only for the header stays out, so the

@@ -75,6 +75,7 @@ describe("lib/use/useDetailView.js", () => {
                 calculatedObjects: {},
                 calculatedObject: {},
             }),
+            clear: vi.fn(),
         };
 
         mockFilteredActions = reactive({ actions: [] });
@@ -129,10 +130,10 @@ describe("lib/use/useDetailView.js", () => {
 
     describe("Live updates", () => {
         /** Mounts the view on the real useObject, with a subscribe handler that hands back its callback. */
-        async function mountWithSubscribe() {
+        async function mountWithSubscribe(record = (pk) => ({ id: pk, name: "Fetched" })) {
             const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
             const { default: flushPromises } = await import("flush-promises");
-            const retrieve = vi.fn(async ({ pk }) => ({ id: pk, name: "Fetched" }));
+            const retrieve = vi.fn(async ({ pk }) => record(pk));
             // A subscribe handler resolves once it has subscribed, and stays cancellable.
             const cancels = [];
             const subscribe = vi.fn(() => {
@@ -157,7 +158,301 @@ describe("lib/use/useDetailView.js", () => {
             expect(detail.instance.pageLoading).toBe(false);
             expect(formInitialValue).toEqual({ id: "42", name: "Fetched" });
             expect(subscribe).toHaveBeenCalledWith(
-                expect.objectContaining({ pk: "42", target: { app: "testApp", model: "testModel" } }),
+                expect.objectContaining({ pk: "42", target: { app: "testApp", model: "testModel", recordPk: "42" } }),
+            );
+        });
+
+        scopedIt("subscribes a custom-lookup record by the primary key that the loaded record carries", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            props.pk = "C-1";
+            mockModelConfig.info.lookupField = "code";
+            const ids = { "C-1": 9, "C-2": 10 };
+
+            const { subscribe, cancels, flushPromises } = await mountWithSubscribe((pk) => ({
+                id: ids[pk],
+                code: pk,
+                name: "Fetched",
+            }));
+
+            expect(subscribe).toHaveBeenCalledTimes(1);
+            expect(subscribe).toHaveBeenCalledWith(
+                expect.objectContaining({ pk: "C-1", target: expect.objectContaining({ recordPk: 9 }) }),
+            );
+
+            props.pk = "C-2";
+            await flushPromises();
+
+            expect(cancels[0]).toHaveBeenCalled();
+            expect(subscribe).toHaveBeenLastCalledWith(
+                expect.objectContaining({ pk: "C-2", target: expect.objectContaining({ recordPk: 10 }) }),
+            );
+            // No subscription names the previous record while the next one loads.
+            for (const [args] of subscribe.mock.calls) {
+                expect(ids[args.pk]).toBe(args.target.recordPk);
+            }
+        });
+
+        /**
+         * Mounts a custom-lookup view on `C-1`. A retrieve of a lookup value in `held` waits until the test calls
+         * `releases[value]()`. Each subscription is logged as it was at call time, and each cancel after it.
+         */
+        async function mountWithHeldLoads(ids, held) {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            props.pk = "C-1";
+            mockModelConfig.info.lookupField = "code";
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+            const { default: flushPromises } = await import("flush-promises");
+            const releases = {};
+            const retrieve = vi.fn(({ pk }) => {
+                const record = { id: ids[pk], code: pk, name: "Invoice" };
+                if (!held.includes(pk)) {
+                    return Promise.resolve(record);
+                }
+                return new Promise((resolve) => {
+                    releases[pk] = () => resolve(record);
+                });
+            });
+            const events = [];
+            const subscribe = vi.fn((args) => {
+                events.push(`subscribe ${args.pk} recordPk=${args.target.recordPk}`);
+                return Object.assign(Promise.resolve(), {
+                    cancel: vi.fn(async () => {
+                        events.push("cancel");
+                    }),
+                });
+            });
+            useObject.mockImplementationOnce((options) =>
+                realUseObject({ ...options, handlers: { retrieve, subscribe } }),
+            );
+            await withSetup(() => useDetailView(props, formInitialValue));
+            await flushPromises();
+            return { releases, events, flushPromises };
+        }
+
+        scopedIt("subscribes once a slow first load delivers the record", async () => {
+            const { releases, events, flushPromises } = await mountWithHeldLoads({ "C-1": 9 }, ["C-1"]);
+
+            expect(events).toEqual([]);
+
+            releases["C-1"]();
+            await flushPromises();
+
+            expect(events).toEqual(["subscribe C-1 recordPk=9"]);
+        });
+
+        scopedIt("waits for a slow load of the next object before it subscribes to that object", async () => {
+            const { releases, events, flushPromises } = await mountWithHeldLoads({ "C-1": 9, "C-2": 10 }, ["C-2"]);
+
+            props.pk = "C-2";
+            await flushPromises();
+
+            // The previous record is still on screen, so nothing subscribes until the next one arrives.
+            expect(events).toEqual(["subscribe C-1 recordPk=9", "cancel"]);
+
+            releases["C-2"]();
+            await flushPromises();
+
+            expect(events).toEqual(["subscribe C-1 recordPk=9", "cancel", "subscribe C-2 recordPk=10"]);
+        });
+
+        scopedIt("does not subscribe when the next object of the same model fails to load", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            props.pk = "C-1";
+            mockModelConfig.info.lookupField = "code";
+            const { subscribe, cancels, flushPromises } = await mountWithSubscribe((pk) => {
+                if (pk === "C-2") {
+                    throw new Error("Not found");
+                }
+                return { id: 9, code: pk, name: "Fetched" };
+            });
+
+            props.pk = "C-2";
+            await flushPromises();
+
+            // The previous record stays on screen, but it does not hold `C-2`, so it supplies no key.
+            expect(subscribe).toHaveBeenCalledTimes(1);
+            expect(cancels[0]).toHaveBeenCalled();
+        });
+
+        scopedIt("stops the subscription when the held record no longer holds the route's lookup value", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            props.pk = "C-1";
+            mockModelConfig.info.lookupField = "code";
+
+            const { subscribe, cancels, flushPromises } = await mountWithSubscribe((pk) => ({
+                id: 9,
+                code: pk,
+                name: "Fetched",
+            }));
+            subscribe.mock.calls[0][0].callback({ id: 9, code: "C-9", name: "Renamed" }, "update");
+            await flushPromises();
+
+            expect(subscribe).toHaveBeenCalledTimes(1);
+            expect(cancels[0]).toHaveBeenCalled();
+        });
+
+        /**
+         * Mounts a custom-lookup view whose `otherModel` retrieve waits for `release` and then runs `otherRecord`.
+         * `testModel` retrieves run `testRetrieve`. Each subscription is logged as it was at call time.
+         */
+        async function mountTwoModels(
+            otherRecord,
+            testRetrieve = (pk) => Promise.resolve({ id: 9, code: pk, name: "Invoice" }),
+        ) {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            props.pk = "C-1";
+            mockModelConfig.info.lookupField = "code";
+            const { useObject: realUseObject } = await vi.importActual("@arrai-innovations/reactive-helpers");
+            const { default: flushPromises } = await import("flush-promises");
+            let release;
+            const released = new Promise((resolve) => {
+                release = resolve;
+            });
+            const retrieve = vi.fn(({ target, pk }) =>
+                target.model === "otherModel" ? released.then(() => otherRecord(pk)) : testRetrieve(pk),
+            );
+            const subscriptions = [];
+            const subscribe = vi.fn((args) => {
+                subscriptions.push({ model: args.target.model, pk: args.pk, recordPk: args.target.recordPk });
+                return Object.assign(Promise.resolve(), { cancel: vi.fn(async () => {}) });
+            });
+            useObject.mockImplementationOnce((options) =>
+                realUseObject({ ...options, handlers: { retrieve, subscribe } }),
+            );
+            await withSetup(() => useDetailView(props, formInitialValue));
+            await flushPromises();
+            // A model change reloads the model config, which pauses and then restarts the retrieve.
+            const switchModel = async (model, pk = props.pk) => {
+                mockModelConfig.loading = true;
+                props.model = model;
+                props.pk = pk;
+                await flushPromises();
+                mockModelConfig.loading = false;
+                await flushPromises();
+            };
+            return { release, subscriptions, switchModel, flushPromises };
+        }
+
+        scopedIt("subscribes another model's record by its own key when the lookup value stays the same", async () => {
+            const { release, subscriptions, switchModel, flushPromises } = await mountTwoModels((pk) => ({
+                id: 20,
+                code: pk,
+                name: "Payment",
+            }));
+
+            await switchModel("otherModel");
+            release();
+            await flushPromises();
+
+            expect(subscriptions).toEqual([
+                { model: "testModel", pk: "C-1", recordPk: 9 },
+                { model: "otherModel", pk: "C-1", recordPk: 20 },
+            ]);
+        });
+
+        scopedIt("does not subscribe when the next route's record fails to load", async () => {
+            const { release, subscriptions, switchModel, flushPromises } = await mountTwoModels(() => {
+                throw new Error("Not found");
+            });
+
+            await switchModel("otherModel");
+            release();
+            await flushPromises();
+
+            expect(subscriptions).toEqual([{ model: "testModel", pk: "C-1", recordPk: 9 }]);
+        });
+
+        scopedIt("does not take the key from the previous record when a pending load is cancelled", async () => {
+            // Loading `C-2` stays pending until a model change cancels it.
+            const testRetrieve = (pk) => {
+                if (pk !== "C-2") {
+                    return Promise.resolve({ id: 9, code: pk, name: "Invoice" });
+                }
+                let rejectPending;
+                const pending = new Promise((_resolve, reject) => {
+                    rejectPending = reject;
+                });
+                return Object.assign(pending, {
+                    cancel: async (reason) => rejectPending(reason ?? new Error("Cancelled")),
+                });
+            };
+            const { release, subscriptions, switchModel, flushPromises } = await mountTwoModels(
+                (pk) => ({ id: 20, code: pk, name: "Payment" }),
+                testRetrieve,
+            );
+
+            props.pk = "C-2";
+            await flushPromises();
+            await switchModel("otherModel", "C-1");
+            release();
+            await flushPromises();
+
+            expect(subscriptions.filter(({ model }) => model === "otherModel")).toEqual([
+                { model: "otherModel", pk: "C-1", recordPk: 20 },
+            ]);
+        });
+
+        scopedIt("does not take the key from a previous load that finishes as the model changes", async () => {
+            // The first load resolves at once. The reload waits for `finishReload`.
+            let finishReload;
+            let loads = 0;
+            const testRetrieve = (pk) => {
+                loads += 1;
+                const record = { id: 9, code: pk, name: "Invoice" };
+                return loads === 1
+                    ? Promise.resolve(record)
+                    : new Promise((resolve) => {
+                          finishReload = () => resolve(record);
+                      });
+            };
+            const { release, subscriptions, flushPromises } = await mountTwoModels(
+                (pk) => ({ id: 20, code: pk, name: "Payment" }),
+                testRetrieve,
+            );
+            // A model config reload pauses and restarts the retrieve, so the same record loads again.
+            mockModelConfig.loading = true;
+            await flushPromises();
+            mockModelConfig.loading = false;
+            await flushPromises();
+
+            finishReload();
+            mockModelConfig.loading = true;
+            props.model = "otherModel";
+            await flushPromises();
+            mockModelConfig.loading = false;
+            await flushPromises();
+            release();
+            await flushPromises();
+
+            expect(subscriptions.filter(({ model }) => model === "otherModel")).toEqual([
+                { model: "otherModel", pk: "C-1", recordPk: 20 },
+            ]);
+        });
+
+        scopedIt("keeps the primary key when its own save moves the route to a new lookup value", async () => {
+            objectStreamsEnabled.mockReturnValue(true);
+            props.subscribe = true;
+            props.pk = "C-1";
+            mockModelConfig.info.lookupField = "code";
+            const { subscribe, flushPromises } = await mountWithSubscribe((pk) => ({
+                id: 9,
+                code: pk,
+                name: "Fetched",
+            }));
+
+            // The saved record arrives with its new lookup value, then the route follows it.
+            subscribe.mock.calls[0][0].callback({ id: 9, code: "C-2", name: "Fetched" }, "update");
+            await flushPromises();
+            props.pk = "C-2";
+            await flushPromises();
+
+            expect(subscribe).toHaveBeenLastCalledWith(
+                expect.objectContaining({ pk: "C-2", target: expect.objectContaining({ recordPk: 9 }) }),
             );
         });
 
@@ -645,6 +940,14 @@ describe("lib/use/useDetailView.js", () => {
                     }),
                 }),
             );
+        });
+
+        scopedIt("retrieves the record by the model's lookup field and requests both key fields", async () => {
+            mockModelConfig.info.lookupField = "invoice_sage_id";
+            await withSetup(() => useDetailView(props, formInitialValue));
+            const objectProps = useObject.mock.calls[0][0].props;
+            expect(objectProps.pkKey).toBe("invoice_sage_id");
+            expect(objectProps.params[FIELDS_PARAM].flat()).toEqual(expect.arrayContaining(["id", "invoice_sage_id"]));
         });
 
         scopedIt("pkKey falls back to 'id' when modelConfig.info.pk is missing", async () => {

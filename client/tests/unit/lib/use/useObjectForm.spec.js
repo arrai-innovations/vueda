@@ -1,4 +1,5 @@
 import { scopedIt, withSetup } from "@tests/unit/utils.js";
+import { DETAIL_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
 import { ConfirmationRequiredError, ServerFeedbackError } from "@vueda/utils/errors.js";
 import flushPromises from "flush-promises";
 import { reactive, ref } from "vue";
@@ -173,6 +174,119 @@ describe("lib/use/useObjectForm.js", () => {
         expect(routerPush).toHaveBeenCalled();
     });
 
+    describe("defaultOnSubmissionSuccess after an update that stays on the page", () => {
+        const runUpdateSuccess = async ({ requestedValue, savedValue, route, pkKey = "invoice_sage_id" }) => {
+            const state = reactive({
+                redirectAfter: null,
+                verboseName: "invoice",
+                app: "billing",
+                model: "invoice",
+                pkKey,
+                pk: requestedValue,
+                object: { id: 5, [pkKey]: savedValue },
+            });
+            const router = {
+                push: routerPush,
+                replace: vi.fn().mockResolvedValue(undefined),
+                currentRoute: ref(route),
+            };
+            await defaultOnSubmissionSuccess({ isUpdate: true, state, toast: toastMock, router });
+            return router;
+        };
+        const detailRoute = (pk) => ({
+            name: DETAIL_VIEW_CRUD_NAME,
+            params: { app: "billing", model: "invoice", action: "update", pk },
+            query: { tab: "lines" },
+        });
+
+        scopedIt("moves a detail route to the saved lookup value when the save changed it", async () => {
+            const router = await runUpdateSuccess({
+                requestedValue: "SAGE-1",
+                savedValue: "SAGE-2",
+                route: detailRoute("SAGE-1"),
+            });
+            expect(router.replace).toHaveBeenCalledWith({
+                name: DETAIL_VIEW_CRUD_NAME,
+                params: { ...detailRoute("SAGE-1").params, pk: "SAGE-2" },
+                query: { tab: "lines" },
+                hash: undefined,
+            });
+            expect(routerPush).not.toHaveBeenCalled();
+        });
+
+        scopedIt("percent-encodes a saved lookup value in the new URL", async () => {
+            const { createMemoryHistory, createRouter } = await vi.importActual("vue-router");
+            const router = createRouter({
+                history: createMemoryHistory(),
+                routes: [{ path: "/:app/:model/:action/:pk", name: DETAIL_VIEW_CRUD_NAME, component: {} }],
+            });
+            await router.push("/billing/invoice/update/SAGE-1?tab=lines#totals");
+            const state = reactive({
+                redirectAfter: null,
+                verboseName: "invoice",
+                app: "billing",
+                model: "invoice",
+                pkKey: "invoice_sage_id",
+                pk: "SAGE-1",
+                object: { id: 5, invoice_sage_id: "SAGE 2?#%" },
+            });
+
+            await defaultOnSubmissionSuccess({ isUpdate: true, state, toast: toastMock, router });
+
+            expect(router.currentRoute.value.fullPath).toBe(
+                "/billing/invoice/update/SAGE%202%3F%23%25?tab=lines#totals",
+            );
+            expect(router.currentRoute.value.params.pk).toBe("SAGE 2?#%");
+        });
+
+        scopedIt("keeps the route when the lookup value is unchanged", async () => {
+            const router = await runUpdateSuccess({
+                requestedValue: "SAGE-1",
+                savedValue: "SAGE-1",
+                route: detailRoute("SAGE-1"),
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps the route of a composite key that the row spells differently", async () => {
+            const router = await runUpdateSuccess({
+                requestedValue: "[1, 42]",
+                savedValue: '["1", "42"]',
+                route: detailRoute("[1, 42]"),
+                pkKey: "pk",
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps a route that names a different object", async () => {
+            const router = await runUpdateSuccess({
+                requestedValue: "SAGE-1",
+                savedValue: "SAGE-2",
+                route: detailRoute("SAGE-9"),
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps a detail route of another model that names the same lookup value", async () => {
+            const route = detailRoute("SAGE-1");
+            const router = await runUpdateSuccess({
+                requestedValue: "SAGE-1",
+                savedValue: "SAGE-2",
+                route: { ...route, params: { ...route.params, model: "payment" } },
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+
+        scopedIt("keeps a route that is not a detail route", async () => {
+            const router = await runUpdateSuccess({
+                requestedValue: "SAGE-1",
+                savedValue: "SAGE-2",
+                route: { name: "dashboard", params: {}, query: {} },
+            });
+            expect(router.replace).not.toHaveBeenCalled();
+        });
+    });
+
     scopedIt("submit calls create and success path", async () => {
         const props = reactive({
             app: "app",
@@ -217,19 +331,20 @@ describe("lib/use/useObjectForm.js", () => {
     });
 
     describe("submit body", () => {
-        const buildSubmit = (pk, submitFields = ["name"]) => {
+        const buildSubmit = (pk, submitFields = ["name"], { pkKey = "id", submittingValues, ...extraProps } = {}) => {
             const props = reactive({
                 app: "app",
                 model: "model",
                 verboseName: "model",
                 redirectAfter: null,
                 submitFields,
+                ...extraProps,
             });
             const formContext = {
                 state: reactive({
                     anyModified: true,
                     anyError: false,
-                    submittingValues: { id: "9", name: "test", notes: "packed" },
+                    submittingValues: submittingValues ?? { id: "9", name: "test", notes: "packed" },
                     errors: {},
                     anyIgnored: false,
                     ignored: {},
@@ -239,7 +354,7 @@ describe("lib/use/useObjectForm.js", () => {
             };
             const instanceObject = {
                 state: reactive({
-                    pkKey: "id",
+                    pkKey,
                     pk,
                     // A submit instance holds no object until its first save returns one.
                     object: {},
@@ -261,18 +376,51 @@ describe("lib/use/useObjectForm.js", () => {
             expect(instanceObject.create).toHaveBeenCalledWith({ object: { name: "test" } });
         });
 
-        scopedIt("adds the instance's primary key to an update body under pkKey", async () => {
-            const { instanceObject, submit } = buildSubmit("7");
+        scopedIt("adds the primary key to an update body under primaryKeyField", async () => {
+            const { instanceObject, submit } = buildSubmit("7", ["name"], { primaryKeyField: "id", primaryKey: 7 });
             await submit();
             await flushPromises();
-            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: "7" } });
+            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: 7 }, pk: "7" });
         });
 
-        scopedIt("keeps the instance's primary key when submitFields names a different form value", async () => {
-            const { instanceObject, submit } = buildSubmit("7", ["id", "name"]);
+        scopedIt("keeps the passed primary key when submitFields names a different form value", async () => {
+            const { instanceObject, submit } = buildSubmit("7", ["id", "name"], {
+                primaryKeyField: "id",
+                primaryKey: 7,
+            });
             await submit();
             await flushPromises();
-            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: "7" } });
+            expect(instanceObject.update).toHaveBeenCalledWith({ object: { name: "test", id: 7 }, pk: "7" });
+        });
+
+        scopedIt("sends only the form values when the caller passes no primary key", async () => {
+            const { instanceObject, submit } = buildSubmit("SAGE-1", ["sage_id", "name"], {
+                pkKey: "sage_id",
+                submittingValues: { sage_id: "SAGE-9", name: "test" },
+            });
+            await submit();
+            await flushPromises();
+            // The route value stays out of the body, so the edited lookup value is saved.
+            expect(instanceObject.update).toHaveBeenCalledWith({
+                object: { sage_id: "SAGE-9", name: "test" },
+                pk: "SAGE-1",
+            });
+        });
+
+        scopedIt("sends the route's lookup value as the URL value and the primary key in the body", async () => {
+            const { instanceObject, submit } = buildSubmit("SAGE-1", ["sage_id", "name"], {
+                pkKey: "sage_id",
+                primaryKeyField: "id",
+                primaryKey: 7,
+                submittingValues: { sage_id: "SAGE-9", name: "test" },
+            });
+            await submit();
+            await flushPromises();
+            // The edited lookup value stays in the body, so the save stores it.
+            expect(instanceObject.update).toHaveBeenCalledWith({
+                object: { sage_id: "SAGE-9", name: "test", id: 7 },
+                pk: "SAGE-1",
+            });
         });
     });
 

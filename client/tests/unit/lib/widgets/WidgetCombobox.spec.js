@@ -222,6 +222,7 @@ const makeSearchState = (overrides = {}) =>
         placeholder: "Select a thing",
         query: "",
         singleSelectedLabel: "\u00A0",
+        selectedLookupValue: undefined,
         emptyMessage: "Type to search for results.",
         isGrouped: false,
         groupByField: undefined,
@@ -413,6 +414,7 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
         scopedIt("renders LinkModelView in API readonly mode", async () => {
             const { nextTick } = await vi.importActual("vue");
             searchState.singleSelectedLabel = "Alpha";
+            searchState.selectedLookupValue = 1;
             const wrapper = mount(WidgetCombobox, { props: { ...apiProps, readonly: true } });
             widgetContext.state.combinedValue = 1;
             await nextTick();
@@ -420,6 +422,15 @@ describe("lib/widgets/WidgetCombobox.vue", () => {
             expect(link.exists()).toBe(true);
             expect(link.attributes("data-pk")).toBe("1");
             expect(link.text()).toContain("Alpha");
+        });
+
+        scopedIt("links by the selected object's lookup value, not by the stored primary key", async () => {
+            const { nextTick } = await vi.importActual("vue");
+            searchState.selectedLookupValue = "SAGE-1";
+            const wrapper = mount(WidgetCombobox, { props: { ...apiProps, readonly: true } });
+            widgetContext.state.combinedValue = 1;
+            await nextTick();
+            expect(wrapper.get("[data-stub='link-model-view']").attributes("data-pk")).toBe("SAGE-1");
         });
 
         scopedIt("links to update, then read, in API readonly mode", async () => {

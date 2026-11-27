@@ -2476,6 +2476,21 @@ describe("lib/views/ViewList.vue", () => {
             wrapper.unmount();
         });
 
+        scopedIt("selects a row by its lookup value, which a bulk action's route carries", async () => {
+            mockedInject.mockReturnValueOnce({});
+            configureBulkAction();
+            modelConfig.info = { pk: "id", lookupField: "sage_id" };
+            columnSlotProps.selected_ = { pk: 1, obj: { id: 1, sage_id: "SAGE-1" } };
+            const wrapper = mount(ViewList, { props: { app: "app", model: "model" } });
+            await vue.nextTick();
+            const checkbox = wrapper.findComponent(CheckboxStub);
+            await checkbox.trigger("change");
+            await vue.nextTick();
+            expect(wrapper.vm.actions.selectedObjects).toEqual(["SAGE-1"]);
+            expect(checkbox.props("modelValue")).toBe(true);
+            wrapper.unmount();
+        });
+
         // The grid hands every `field(<col>)` slot its whole cell context. The default checkbox
         // takes only its own props, so none of that context lands on its element as attributes.
         for (const isTableLayout of [true, false]) {

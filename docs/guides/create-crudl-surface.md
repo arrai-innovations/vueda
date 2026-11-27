@@ -258,6 +258,8 @@ Set a default sort order with the viewset's `ordering` attribute (or the model's
 
 The viewset provides all five standard CRUDL actions by default: `list`, `create`, `retrieve`, `update` (including `partial_update`), and `destroy`. The `destroy` action supports both single-object deletion (via `DELETE` to the `detail` endpoint with a PK in the URL) and bulk deletion (via `DELETE` to the `list` endpoint with a `{"pks": [...]}` payload). Bulk destroy validates that all requested PKs exist before deleting any of them, and supports an optional dry-run mode via the `Dry-Run` header.
 
+To address objects by a unique field other than the primary key, set DRF's `lookup_field` on the viewset, such as `lookup_field = "code"` for `/widget/W-001/`. List that field and the primary key in the serializer's `Meta.fields`, and give the viewset a `filterset_class` built on `VuedaFilterSet`. The client loads the rows that a route names through that filterset's `lookup` filter. Detail URLs and client routes then carry the field's value, the {@term Lookup Value}. Bulk requests and the workflow endpoints keep identifying objects by primary key. [Primary Key and Identifier Discipline](../core-concepts/pk-and-identifier-discipline.md#lookup-field-and-lookup-value) describes where each value travels.
+
 ::: warning
 `VuedaViewSet` does not wrap its own CRUDL handlers in `transaction.atomic` by default. If you need atomic write behavior, use `AtomicModelViewSetMixin` or manage transaction boundaries explicitly in your viewset. The web process's `ATOMIC_REQUESTS` setting provides request-level atomicity as a safety net, but explicit transaction control is appropriate when the viewset needs finer-grained boundaries.
 :::

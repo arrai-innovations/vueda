@@ -164,6 +164,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -989,6 +1001,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -1563,6 +1587,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -2262,6 +2298,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -2874,6 +2922,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -4085,6 +4145,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {
@@ -5173,6 +5245,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "CompositePrimaryKey",
+                    "type_model": "CompositePrimaryKey",
+                    "type_filter": "LookupValuesField",
+                },
                 "quantity": {
                     "error_messages": {"invalid": "Enter a number."},
                     "choices": False,
@@ -5830,6 +5914,18 @@ EXPECTED_RESULTS = [
                 },
             },
             "expected_filtering": {
+                "lookup": {
+                    "choices": False,
+                    "help_text": "Repeat the parameter once for each lookup value.",
+                    "hidden": True,
+                    "input_type": "hidden",
+                    "label": "Lookup value",
+                    "lookup_exprs": ["in"],
+                    "required": False,
+                    "type_db": "AutoField",
+                    "type_model": "AutoField",
+                    "type_filter": "LookupValuesField",
+                },
                 "id": {
                     "choices": False,
                     "error_messages": {

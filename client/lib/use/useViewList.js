@@ -147,6 +147,7 @@ import {
     singlePagePaginatedListCrudAdaptor,
     subscriptionFilters,
 } from "@vueda/utils/listCrud.js";
+import { lookupFieldOf } from "@vueda/utils/lookupValues.js";
 import { objectStreamsEnabled, subscribeToListChanges } from "@vueda/utils/objectStreams.js";
 import { resolveColumns } from "@vueda/utils/resolveColumnComponents.js";
 import { formatSortQuery, parseSortQuery, sanitizeSortFields } from "@vueda/utils/sortedFields.js";
@@ -285,9 +286,11 @@ const VIEW_NAME = "list";
  * @property {Set<string>} primaryActions - Targetless action names promoted to the filled hero CTA.
  * @property {{[actionName: string]: object}} buttonSlotProps - Ready-to-spread slot props for each action button; keyed
  *  by action name. Does not include a `class` property — shells supply their own.
- * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of selected primary keys (auto-unwrapped in
- *  templates).
- * @property {(pk: string|number) => void} toggleSelectedObject - Adds or removes a primary key from the selection.
+ * @property {import('vue').Ref<(string|number)[]>} selectedObjects - Array of the selected rows' lookup values
+ *  (auto-unwrapped in templates). A lookup value is the value of the model's lookup field (`lookupField` in model
+ *  info). A bulk action's route carries these values.
+ * @property {(lookupValue: string|number) => void} toggleSelectedObject - Adds or removes a row's lookup value from the
+ *  selection.
  */
 
 /**
@@ -517,9 +520,12 @@ export function useViewList(options) {
         } else if (modelConfig.config.fetchFields?.length) {
             fields = [...modelConfig.config.fetchFields];
         }
-        const unrefPKKey = unref(pkKey);
-        if (!fields.includes(unrefPKKey)) {
-            fields.unshift(unrefPKKey);
+        // Each row needs its primary key, which identifies it, and its lookup value, which the row's detail link and
+        // the selection's routes carry.
+        for (const keyField of [lookupFieldOf(modelConfig.info), unref(pkKey)]) {
+            if (!fields.includes(keyField)) {
+                fields.unshift(keyField);
+            }
         }
         if (modelConfig.config.detailLinkField && !fields.includes("available_actions")) {
             fields.push("available_actions");
@@ -1175,10 +1181,10 @@ export function useViewList(options) {
         listState.search = listSearch.value;
     };
 
-    const toggleSelectedObject = (pk) => {
-        const idx = selectedObjects.value.indexOf(pk);
+    const toggleSelectedObject = (lookupValue) => {
+        const idx = selectedObjects.value.indexOf(lookupValue);
         if (idx === -1) {
-            selectedObjects.value.push(pk);
+            selectedObjects.value.push(lookupValue);
         } else {
             selectedObjects.value.splice(idx, 1);
         }

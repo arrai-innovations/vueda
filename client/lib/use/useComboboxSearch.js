@@ -16,6 +16,12 @@ import {
     SEARCH_PARAM,
 } from "@vueda/utils/constants.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import {
+    comparableLookupValue,
+    lookupFieldOf,
+    lookupValueOf,
+    relatedLookupValueOf,
+} from "@vueda/utils/lookupValues.js";
 import debounce from "lodash-es/debounce.js";
 import get from "lodash-es/get.js";
 import IsEmpty from "lodash-es/isEmpty.js";
@@ -73,6 +79,11 @@ function groupByField(objects, groupKey) {
  * @property {import('vue').Ref<string>} query - Search term; bind to ComboboxInput v-model.
  * @property {import('vue').ComputedRef<string>} singleSelectedLabel - Display label for a single selected value (closed
  *  state).
+ * @property {import('vue').ComputedRef<unknown>} selectedLookupValue - The lookup value that a link to the selected
+ *  object's read view carries. A single value takes it from the lookup field of the loaded object whose primary key is
+ *  the value. A primary key is the lookup value when the model's lookup field is its primary key field. It is
+ *  `undefined` while the selected object loads on a model with another lookup field, after that load fails, and for an
+ *  array value on such a model.
  * @property {import('vue').ComputedRef<string>} emptyMessage - Text shown when no options match.
  * @property {import('vue').ComputedRef<boolean>} isGrouped - Whether options are returned as group buckets.
  * @property {import('vue').ComputedRef<string|undefined>} groupByField - The field used for grouping headings.
@@ -100,6 +111,7 @@ export function useComboboxSearch(props, widgetContext) {
 
     const modelConfig = useModelConfig(toRef(props, "app"), toRef(props, "model"), "list");
     const pkKey = computed(() => modelConfig.info?.pk ?? "id");
+    const lookupField = computed(() => lookupFieldOf(modelConfig.info));
     const defaultFields = computed(() => modelConfig.config?.fetchFields || []);
     const defaultExpand = computed(() => modelConfig.config?.expand || []);
 
@@ -107,7 +119,7 @@ export function useComboboxSearch(props, widgetContext) {
         const label = props.selectedOptionLabel ?? props.optionLabel;
         const group = props.grouped ? props.groupBy : undefined;
         const explicit = props.modelFields?.length ? props.modelFields : undefined;
-        const base = new Set([unref(pkKey), label, group].filter(Boolean));
+        const base = new Set([unref(pkKey), unref(lookupField), label, group].filter(Boolean));
         return Array.from(new Set([...(explicit || unref(defaultFields)), ...base]));
     });
 
@@ -238,6 +250,20 @@ export function useComboboxSearch(props, widgetContext) {
         return get(selectedLookup.object, props.selectedOptionLabel) ?? widgetContext.state.combinedValue ?? "\u00A0";
     });
 
+    const selectedLookupValue = computed(() => {
+        const value = widgetContext.state.combinedValue;
+        if (Array.isArray(value)) {
+            const lookupValues = value.map((pk) => relatedLookupValueOf(modelConfig.info, pk));
+            return lookupValues.every((lookupValue) => lookupValue != null) ? lookupValues : undefined;
+        }
+        const object = selectedLookup.object;
+        const objectIsSelected =
+            object?.[unref(pkKey)] != null &&
+            comparableLookupValue(object[unref(pkKey)]) === comparableLookupValue(value);
+        const objectLookupValue = objectIsSelected ? lookupValueOf(modelConfig.info, object) : undefined;
+        return objectLookupValue ?? relatedLookupValueOf(modelConfig.info, value);
+    });
+
     const emptyMessage = computed(() => {
         if (searchList.state.loading) {
             return "Loading...";
@@ -257,6 +283,7 @@ export function useComboboxSearch(props, widgetContext) {
         placeholder: computed(() => props.placeholder || `Select a ${props.model}`),
         query,
         singleSelectedLabel,
+        selectedLookupValue,
         emptyMessage,
         isGrouped: computed(() => !!(props.grouped && props.groupBy)),
         groupByField: computed(() => (props.grouped ? props.groupBy : undefined)),

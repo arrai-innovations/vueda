@@ -9,6 +9,7 @@ import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { usePageTitle } from "@vueda/use/usePageTitle.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { allPagePaginatedListCrudAdaptor } from "@vueda/utils/listCrud.js";
+import { lookupValuesListParams } from "@vueda/utils/lookupValues.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import ModelActionForm from "@vueda/views/ModelActionForm.vue";
 import isEmpty from "lodash-es/isEmpty.js";
@@ -36,7 +37,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key or array of primary keys identifying the instances to act on. */
+    /**
+     * Lookup value or array of lookup values naming the instances to act on: the value of the model's lookup field
+     * (`lookupField` in model info).
+     */
     pk: {
         type: [String, Array],
         required: true,
@@ -74,9 +78,9 @@ const instanceListProps = reactive({
         model: toRef(props, "model"),
     },
     pkKey: computed(() => modelConfig.info?.pk ?? "id"),
-    params: {
-        id: computed(() => (Array.isArray(props.pk) ? props.pk : [props.pk])),
-    },
+    // The route's `pk` holds lookup values. For a model with a custom lookup field, the loaded rows carry the primary
+    // keys that a bulk request sends.
+    params: computed(() => lookupValuesListParams(modelConfig.info, Array.isArray(props.pk) ? props.pk : [props.pk])),
     intendToList: validAndActive,
 });
 

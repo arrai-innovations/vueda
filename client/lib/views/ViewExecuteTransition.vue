@@ -41,7 +41,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key(s) of the object(s) to transition; pass an array for a bulk transition. */
+    /**
+     * Lookup value(s) of the object(s) to transition: the value of the model's lookup field (`lookupField` in model
+     * info). Pass an array for a bulk transition.
+     */
     pk: {
         type: [String, Number, Array],
         default: undefined,
@@ -110,15 +113,21 @@ const handleReturnClick = () => {
  * that `ActionForm` passes to every other model action. A transition code is not a model action,
  * so model info gives it no request method; `run-action` also tells the form not to require one.
  *
- * @param {{dryRun?: boolean, acknowledgeWarnings?: string}} [options] - Run options from `ActionForm`. `formValues`
- *  is not in this signature: this view submits no form values (see the component doc block above).
+ * The workflow endpoint identifies each object by its primary key. `ModelActionForm` passes the primary keys of the
+ * objects that the route names as `pks`. For a model with a custom lookup field, it reads them from the rows that it
+ * loads by the route's lookup values. For any other model, they are the route's values. One route value transitions
+ * one object, and several values send a bulk transition.
+ *
+ * @param {{dryRun?: boolean, acknowledgeWarnings?: string, pks?: unknown[]}} [options] - Run options from
+ *  `ModelActionForm`. `formValues` is not in this signature: this view submits no form values (see the component doc
+ *  block above).
  * @returns {Promise<any>} The transition execution result.
  */
-const runAction = ({ dryRun = false, acknowledgeWarnings } = {}) =>
+const runAction = ({ dryRun = false, acknowledgeWarnings, pks = [] } = {}) =>
     workflow.executeTransition(
         props.app,
         props.model,
-        props.pk,
+        Array.isArray(props.pk) && props.pk.length > 1 ? pks : pks[0],
         props.action,
         router,
         undefined,

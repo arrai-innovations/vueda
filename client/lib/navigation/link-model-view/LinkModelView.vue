@@ -35,7 +35,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the model instance to navigate to. */
+    /**
+     * Lookup value of the model instance to navigate to: the value of the model's lookup field (`lookupField` in model
+     * info).
+     */
     pk: {
         type: [String, Number, Array],
         default: undefined,

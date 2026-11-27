@@ -79,6 +79,13 @@ export const PAGE_SIZE_PARAM = "ps";
 export const COLUMN_TOTALS_PARAM = "ct";
 
 /**
+ * Query string param of the hidden filter that matches lookup values, the values of a model's lookup field.
+ * A list request repeats it once for each value, as in `?lookup=SAGE-0042&lookup=SAGE-0043`, so a value that contains
+ * a comma stays whole.
+ */
+export const LOOKUP_PARAM = "lookup";
+
+/**
  * Sentinel page-size value meaning "load every page at once" rather than a fixed
  * number of rows. Selected from the rows-per-page control; drives the all-pages
  * fetch path instead of sending a `ps` query param.

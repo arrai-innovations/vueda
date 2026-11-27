@@ -269,7 +269,7 @@ describe("lib/views/ViewActivate.vue", () => {
             expect(form.props("pk")).toBe("1");
         });
 
-        scopedIt("passes scalar and array primary keys to the preview list params", () => {
+        scopedIt("passes scalar and array lookup values to the preview list params as id values", () => {
             mockedInject.mockReturnValueOnce({});
             mount(ViewActivate, { props: { app: "app", model: "model", pk: "1" } });
             expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1"]);
@@ -277,6 +277,13 @@ describe("lib/views/ViewActivate.vue", () => {
             mockedInject.mockReturnValueOnce({});
             mount(ViewActivate, { props: { app: "app", model: "model", pk: ["1", "2"] } });
             expect(mockedUseList.mock.calls.at(-1)[0].props.params.id).toEqual(["1", "2"]);
+        });
+
+        scopedIt("passes the lookup values of a model with a custom lookup field as lookup values", () => {
+            modelConfig.info.lookupField = "sage_id";
+            mockedInject.mockReturnValueOnce({});
+            mount(ViewActivate, { props: { app: "app", model: "model", pk: ["SAGE-1", "SAGE-2"] } });
+            expect(mockedUseList.mock.calls.at(-1)[0].props.params).toEqual({ lookup: ["SAGE-1", "SAGE-2"] });
         });
     });
 });

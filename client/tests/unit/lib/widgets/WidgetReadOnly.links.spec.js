@@ -95,6 +95,17 @@ describe("lib/widgets/WidgetReadOnly.vue with the real LinkModelView", () => {
         expect(valueText(wrapper)).toContain("Thirteen");
     });
 
+    scopedIt("links an object of a model with a custom lookup field by its lookup value", async () => {
+        state.modelConfig.info = { pk: "id", lookupField: "sage_id" };
+        state.widgetState.combinedValue = 13;
+        const wrapper = mount(WidgetReadOnly, {
+            props: { app: "hr", model: "employee", foreignKeyObj: { id: 13, sage_id: "SAGE-13", formatted_name: "X" } },
+            global: { provide: { [FieldContextSymbol]: { state: { fieldId: "f" } } } },
+        });
+        await flushPromises();
+        expect(wrapper.get('[data-qa="link"]').attributes("href")).toBe("/hr/employee/SAGE-13/read");
+    });
+
     scopedIt("links a foreign-key value by the same rule", async () => {
         state.widgetState.combinedValue = 13;
         // the foreign-key object resolves through the lookup context

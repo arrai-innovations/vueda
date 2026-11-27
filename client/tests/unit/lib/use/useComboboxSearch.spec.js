@@ -304,6 +304,75 @@ describe("lib/use/useComboboxSearch.js", () => {
         });
     });
 
+    describe("selectedLookupValue", () => {
+        scopedIt("is the stored primary key when the lookup field is the primary key field", async () => {
+            widgetContext.state.combinedValue = 1;
+            lookup.object = {};
+            lookup.loading = true;
+            const search = useComboboxSearch(props, widgetContext);
+            expect(search.selectedLookupValue).toBe(1);
+        });
+
+        scopedIt("is the loaded object's lookup value when the model has a custom lookup field", async () => {
+            modelConfig.info = { pk: "id", lookupField: "sage_id" };
+            widgetContext.state.combinedValue = 1;
+            lookup.object = { id: 1, sage_id: "SAGE-1", formatted_name: "Object One" };
+            const search = useComboboxSearch(props, widgetContext);
+            expect(search.selectedLookupValue).toBe("SAGE-1");
+        });
+
+        scopedIt("is undefined while the object loads on a model with a custom lookup field", async () => {
+            modelConfig.info = { pk: "id", lookupField: "sage_id" };
+            widgetContext.state.combinedValue = 1;
+            lookup.object = {};
+            lookup.loading = true;
+            const search = useComboboxSearch(props, widgetContext);
+            expect(search.selectedLookupValue).toBeUndefined();
+        });
+
+        scopedIt("ignores a loaded object whose primary key is not the selected value", async () => {
+            modelConfig.info = { pk: "id", lookupField: "sage_id" };
+            widgetContext.state.combinedValue = 2;
+            lookup.object = { id: 1, sage_id: "SAGE-1" };
+            const search = useComboboxSearch(props, widgetContext);
+            expect(search.selectedLookupValue).toBeUndefined();
+        });
+
+        scopedIt(
+            "uses the selected value over an earlier object when the lookup field is the primary key",
+            async () => {
+                widgetContext.state.combinedValue = 2;
+                lookup.object = { id: 1 };
+                const search = useComboboxSearch(props, widgetContext);
+                expect(search.selectedLookupValue).toBe(2);
+            },
+        );
+
+        scopedIt(
+            "is the stored primary keys of an array value when the lookup field is the primary key field",
+            async () => {
+                widgetContext.state.combinedValue = [1, 2];
+                const search = useComboboxSearch(props, widgetContext);
+                expect(search.selectedLookupValue).toEqual([1, 2]);
+            },
+        );
+
+        scopedIt("is undefined for an array value on a model with a custom lookup field", async () => {
+            modelConfig.info = { pk: "id", lookupField: "sage_id" };
+            widgetContext.state.combinedValue = [1, 2];
+            const search = useComboboxSearch(props, widgetContext);
+            expect(search.selectedLookupValue).toBeUndefined();
+        });
+
+        scopedIt("requests the lookup field with the selected object", async () => {
+            const { useResolvedLookupObject } = await import("@vueda/use/useResolvedLookupObject.js");
+            modelConfig.info = { pk: "id", lookupField: "sage_id" };
+            useComboboxSearch(props, widgetContext);
+            const fields = useResolvedLookupObject.mock.calls.at(-1)[3];
+            expect(fields.value).toEqual(expect.arrayContaining(["id", "sage_id"]));
+        });
+    });
+
     describe("Grouping", () => {
         scopedIt("isGrouped is false when grouped prop is false", async () => {
             const search = useComboboxSearch(props, widgetContext);

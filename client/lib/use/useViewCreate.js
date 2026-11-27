@@ -70,6 +70,7 @@ import { useModelInitialValues } from "@vueda/use/useModelInitialValues.js";
 import { useObjectForm } from "@vueda/use/useObjectForm.js";
 import { memoizedStartCase } from "@vueda/utils/case.js";
 import { EXPAND_PARAM, FIELDS_PARAM } from "@vueda/utils/constants.js";
+import { lookupFieldOf } from "@vueda/utils/lookupValues.js";
 import { omitUnexpandedReverseForeignKeys } from "@vueda/utils/reverseForeignKey.js";
 import { LookupContextSymbol } from "@vueda/utils/symbols.js";
 import { computed, inject, reactive, toRef, unref } from "vue";
@@ -206,13 +207,15 @@ export function useViewCreate(options) {
             model: toRef(options, "model"),
         },
         pk: null,
-        pkKey: computed(() => modelConfig.info?.pk ?? "id"),
+        // A redirect after the save names the created object by its lookup value.
+        pkKey: computed(() => lookupFieldOf(modelConfig.info)),
         params: {
             [FIELDS_PARAM]: computed(() => {
                 const fields = [...(fetchFields.value ?? [])];
-                const pkKey = modelConfig.info?.pk ?? "id";
-                if (!fields.includes(pkKey)) {
-                    fields.push(pkKey);
+                for (const keyField of [modelConfig.info?.pk ?? "id", lookupFieldOf(modelConfig.info)]) {
+                    if (!fields.includes(keyField)) {
+                        fields.push(keyField);
+                    }
                 }
                 return fields;
             }),

@@ -18,9 +18,18 @@ from rest_framework.settings import api_settings
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
+from tests.store import serializers as store_serializers
+from tests.store.viewsets import CustomerOrderViewSet
+from vueda import info
 from vueda.history.revision import object_revision
 from vueda.workflow.models import State
 from vueda.workflow.models import WorkflowPermission
+
+
+class CustomerOrderByOrderNumberViewSet(CustomerOrderViewSet):
+    """A customer order viewset whose detail URLs carry the order number instead of the primary key."""
+
+    lookup_field = "order_number"
 
 
 @pytest.mark.django_db(databases=("default", "db_logging"))
@@ -506,6 +515,34 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert customer_order.workflow_state.code == "new"
         assert another_order.workflow_state.code == "new"
         lock_spy.assert_not_called()
+
+    @pytest.fixture
+    def orders_looked_up_by_order_number(self):
+        """Register a canonical customer order viewset that addresses each order by its unique ``order_number``."""
+        info.registration.get_empty_registry()
+        info.register(store_serializers.CustomerOrderSerializer, CustomerOrderByOrderNumberViewSet)
+        yield
+        info.registration.get_empty_registry()
+
+    @pytest.mark.usefixtures("orders_looked_up_by_order_number")
+    def test_object_state_identifies_the_object_by_primary_key_for_a_custom_lookup(
+        self, api_client, workflow_reader, customer_order
+    ):
+        api_client.force_authenticate(workflow_reader)
+
+        def object_state(object_id):
+            url = reverse(
+                "workflow.workflow-object-state",
+                kwargs={"app_label": "store", "model": "customerorder", "object_id": object_id},
+            )
+            return api_client.get(url, format="json")
+
+        by_primary_key = object_state(customer_order.pk)
+        by_lookup_value = object_state(str(customer_order.order_number))
+
+        assert by_primary_key.status_code == status.HTTP_200_OK, response_body(by_primary_key)
+        assert by_primary_key.data["state"] == {"code": "new", "name": "New"}
+        assert by_lookup_value.status_code == status.HTTP_404_NOT_FOUND, response_body(by_lookup_value)
 
     def test_execute_transition_detail_commits_and_locks_without_dry_run(
         self, api_client, workflow_user, customer_order, assert_matches_documented_response

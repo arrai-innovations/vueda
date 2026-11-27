@@ -45,7 +45,10 @@ const props = defineProps({
         type: String,
         required: true,
     },
-    /** Primary key of the object instance to fetch and render. */
+    /**
+     * Lookup value of the object instance to fetch and render: the value of the model's lookup field (`lookupField` in
+     * model info).
+     */
     pk: {
         type: String,
         required: true,
