@@ -23,6 +23,7 @@ const makeDeferred = () => {
 };
 
 let forceSyncRetrieveError = false;
+let fetchModelInfoResult;
 
 beforeEach(async () => {
     vi.useFakeTimers();
@@ -36,10 +37,11 @@ beforeEach(async () => {
     retrieveSpies = [];
     listState = null;
     useListMock = null;
+    fetchModelInfoResult = () => Promise.resolve({ pk: "id" });
 
     vi.doMock("@vueda/stores/storeModelInfo.js", () => ({
         storeModelInfo: () => ({
-            fetchModelInfo: () => Promise.resolve({ pk: "id" }),
+            fetchModelInfo: (...args) => fetchModelInfoResult(...args),
         }),
     }));
 
@@ -541,6 +543,37 @@ describe("lib/use/useLookupContext.js", () => {
                 await expect(p).rejects.toThrow("sync boom");
             } finally {
                 forceSyncRetrieveError = false;
+                process.off("unhandledRejection", handler);
+            }
+        });
+
+        scopedIt("rejects each consumer when the model info of the looked-up model is refused", async () => {
+            const handler = (err) => {
+                if (err?.message === "model info refused") {
+                    return;
+                }
+                throw err;
+            };
+            process.on("unhandledRejection", handler);
+            const err = new Error("model info refused");
+            fetchModelInfoResult = () => Promise.reject(err);
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+            try {
+                const lookup = await withSetup(() => useLookupContext());
+
+                const p = lookup.requestObject("app", "model", "1", [], []);
+                let settled = false;
+                p.then(
+                    () => (settled = true),
+                    () => (settled = true),
+                );
+                await vi.advanceTimersByTimeAsync(2000);
+                await flushPromises();
+
+                expect(settled).toBe(true);
+                await expect(p).rejects.toBe(err);
+            } finally {
+                errorSpy.mockRestore();
                 process.off("unhandledRejection", handler);
             }
         });

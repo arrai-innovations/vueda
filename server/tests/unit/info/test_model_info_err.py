@@ -22,7 +22,6 @@ from vueda.workflow.exceptions import WorkflowNotConfiguredError
 class VuedaTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Customer": [
-            ("contenttypes", "ContentType", "read"),
             ("erring", "RelatedObjectsAreMissingData", "read"),
             ("erring", "NoNameField", "list"),
         ]
@@ -143,7 +142,6 @@ class TestModelInfoInvalidChoices:
 class VuedaWorkflowTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Customer": [
-            ("contenttypes", "ContentType", "read"),
             ("erring", "EnabledWithWorkflow", "read"),
             ("erring", "EnabledWithoutWorkflow", "read"),
             ("erring", "NotEnabledWithWorkflow", "read"),
@@ -323,7 +321,6 @@ class TestFormattedName:
 class VuedaExcludeFieldsTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Customer": [
-            ("contenttypes", "ContentType", "read"),
             ("erring", "NoExpandableFieldsData", "read"),
         ]
     }
@@ -470,7 +467,6 @@ class TestModelInfoExcludeFieldsSerializerOnlyRegistration:
 class VuedaFieldSourceResolutionTestData(BaseTestUserMixin, BaseTestGroupMixin):
     groups_to_create: ClassVar[dict] = {
         "Customer": [
-            ("contenttypes", "ContentType", "read"),
             ("erring", "SourceResolution", "read"),
             ("erring", "UnresolvableLookupExpression", "read"),
         ]
