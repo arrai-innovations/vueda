@@ -3,14 +3,12 @@ import contextlib
 import hashlib
 import importlib
 import io
-import time
 from collections.abc import Iterable
 from http import HTTPStatus
 from pprint import pformat
 from typing import ClassVar
 
 import pytest
-from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from django import db
 from django.apps import apps
 from django.conf import settings
@@ -22,6 +20,7 @@ from django.core.cache import cache
 from django.core.management import call_command
 from django.db import models
 from django.db.models import Q
+from django.test import RequestFactory
 from django.test import TransactionTestCase
 from django.urls import reverse
 from psycopg import connect
@@ -57,11 +56,33 @@ def response_body(response):
         return response.content
 
 
-def record_authentication_methods(client, *methods):
-    """Write one fresh allauth authentication record per ``method`` into the client's session."""
-    session = client.session
-    session[AUTHENTICATION_METHODS_SESSION_KEY] = [{"method": method, "at": time.time()} for method in methods]
-    session.save()
+TOTP_SECRET = "JBSWY3DPEHPK3PXP"
+"""The authenticator secret that test TOTP devices share, so a test can compute their current code."""
+
+
+def sign_in(client, user, password="test-pass"):
+    """Sign ``user`` in through the login endpoint, which also starts the two-factor stage for an MFA user."""
+    return client.post(reverse("login2"), {"email": user.email, "password": password}, format="json")
+
+
+def session_request(client, user):
+    """A request for ``user`` that carries the session that ``client`` holds."""
+    request = RequestFactory().get("/")
+    request.user = user
+    request.session = client.session
+    return request
+
+
+def reauthenticate_with_password(client, password="test-pass"):
+    """Confirm the signed-in user's password through the reauthentication endpoint."""
+    response = client.post(reverse("reauthenticate"), {"password": password}, format="json")
+    assert response.status_code == HTTPStatus.OK, response_body(response)
+
+
+def reauthenticate_with_second_factor(client, code):
+    """Confirm the signed-in user's second factor with ``code`` through the two-factor reauthentication endpoint."""
+    response = client.post(reverse("mfa_reauthenticate"), {"code": code}, format="json")
+    assert response.status_code == HTTPStatus.OK, response_body(response)
 
 
 @pytest.fixture

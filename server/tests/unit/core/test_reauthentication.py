@@ -1,16 +1,20 @@
-import time
+from http import HTTPStatus
 
 import pytest
-from allauth.account import app_settings as account_settings
-from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from allauth.headless.constants import Flow
-from allauth.mfa.models import Authenticator
+from allauth.mfa.totp.internal.auth import TOTP
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
 
+from tests.conftest import TOTP_SECRET
+from tests.conftest import reauthenticate_with_password
+from tests.conftest import reauthenticate_with_second_factor
+from tests.conftest import response_body
+from tests.conftest import session_request
+from tests.conftest import sign_in
 from vueda.core.reauthentication import did_recently_authenticate
 from vueda.core.reauthentication import required_flow
+from vueda.user.utils import get_current_totp_code
 
 
 @pytest.fixture
@@ -24,7 +28,7 @@ def password_user(db):
 
 @pytest.fixture
 def mfa_user(password_user):
-    Authenticator.objects.create(user=password_user, type=Authenticator.Type.TOTP, data={})
+    TOTP.activate(password_user, TOTP_SECRET)
     return password_user
 
 
@@ -40,22 +44,6 @@ def no_credentials_user(db):
     return user
 
 
-def _request(user, *records):
-    """A request for ``user`` whose session holds one authentication record per ``(method, seconds_ago)``."""
-    request = RequestFactory().get("/")
-    request.user = user
-    now = time.time()
-    request.session = {
-        AUTHENTICATION_METHODS_SESSION_KEY: [
-            {"method": method, "at": now - seconds_ago} for method, seconds_ago in records
-        ]
-    }
-    return request
-
-
-STALE = account_settings.REAUTHENTICATION_TIMEOUT + 1
-
-
 class TestRequiredFlow:
     def test_password_only_user_confirms_password(self, password_user):
         assert required_flow(password_user) == Flow.REAUTHENTICATE
@@ -63,7 +51,7 @@ class TestRequiredFlow:
     def test_user_with_authenticator_confirms_second_factor(self, mfa_user):
         assert required_flow(mfa_user) == Flow.MFA_REAUTHENTICATE
 
-    def test_user_with_neither_has_nothing_to_confirm(self, no_credentials_user):
+    def test_user_with_neither_has_no_flow(self, no_credentials_user):
         assert required_flow(no_credentials_user) is None
 
     def test_anonymous_has_no_flow(self, db):
@@ -71,29 +59,35 @@ class TestRequiredFlow:
 
 
 class TestDidRecentlyAuthenticate:
-    def test_anonymous_is_never_recent(self, db):
-        assert did_recently_authenticate(_request(AnonymousUser(), ("password", 0))) is False
+    def test_anonymous_is_never_recent(self, api_client, db):
+        assert did_recently_authenticate(session_request(api_client, AnonymousUser())) is False
 
-    def test_password_user_without_records_is_not_recent(self, password_user):
-        assert did_recently_authenticate(_request(password_user)) is False
+    def test_sign_in_alone_is_not_recent(self, api_client, password_user):
+        response = sign_in(api_client, password_user)
+        assert response.status_code == HTTPStatus.OK, response_body(response)
 
-    def test_password_user_with_fresh_password_record_is_recent(self, password_user):
-        assert did_recently_authenticate(_request(password_user, ("password", 0))) is True
+        assert did_recently_authenticate(session_request(api_client, password_user)) is False
 
-    def test_password_user_with_stale_password_record_is_not_recent(self, password_user):
-        assert did_recently_authenticate(_request(password_user, ("password", STALE))) is False
+    def test_password_reauthentication_is_recent(self, api_client, password_user):
+        api_client.force_login(password_user)
+        reauthenticate_with_password(api_client)
 
-    def test_mfa_user_with_only_a_password_record_is_not_recent(self, mfa_user):
-        assert did_recently_authenticate(_request(mfa_user, ("password", 0))) is False
+        assert did_recently_authenticate(session_request(api_client, password_user)) is True
 
-    def test_mfa_user_with_fresh_mfa_record_is_recent(self, mfa_user):
-        assert did_recently_authenticate(_request(mfa_user, ("password", 5), ("mfa", 0))) is True
+    def test_reauthentication_older_than_the_timeout_is_not_recent(self, api_client, password_user, settings):
+        api_client.force_login(password_user)
+        reauthenticate_with_password(api_client)
+        settings.ACCOUNT_REAUTHENTICATION_TIMEOUT = 0
 
-    def test_mfa_user_fresh_mfa_record_counts_when_a_newer_password_record_follows(self, mfa_user):
-        assert did_recently_authenticate(_request(mfa_user, ("mfa", 10), ("password", 0))) is True
+        assert did_recently_authenticate(session_request(api_client, password_user)) is False
 
-    def test_mfa_user_with_stale_mfa_and_fresh_password_is_not_recent(self, mfa_user):
-        assert did_recently_authenticate(_request(mfa_user, ("mfa", STALE), ("password", 0))) is False
+    def test_second_factor_reauthentication_is_recent(self, api_client, mfa_user):
+        api_client.force_login(mfa_user)
+        reauthenticate_with_second_factor(api_client, get_current_totp_code(TOTP_SECRET))
 
-    def test_user_with_nothing_to_confirm_is_always_recent(self, no_credentials_user):
-        assert did_recently_authenticate(_request(no_credentials_user)) is True
+        assert did_recently_authenticate(session_request(api_client, mfa_user)) is True
+
+    def test_user_with_no_way_to_reauthenticate_is_never_recent(self, api_client, no_credentials_user):
+        api_client.force_login(no_credentials_user)
+
+        assert did_recently_authenticate(session_request(api_client, no_credentials_user)) is False

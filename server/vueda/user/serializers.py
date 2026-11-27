@@ -73,10 +73,12 @@ class WhoIsSerializer(VuedaSerializer):
     These fields give the user information about themselves, after they login or when they return to the site.
 
     ``auth_pending_flow`` names the reauthentication flow the session owes: ``mfa_reauthenticate`` for a user
-    with an MFA authenticator, ``reauthenticate`` for a user with only a password, or ``None`` when the session
-    completed that flow within ``ACCOUNT_REAUTHENTICATION_TIMEOUT`` or the account has nothing to confirm. It
-    comes from ``vueda.core.reauthentication``, the same policy ``recent_auth_required`` enforces, so the client
-    shows the form the server will accept.
+    with an MFA authenticator, and ``reauthenticate`` for a user with only a password. A sign-in does not count
+    as a reauthentication, so a user who has just signed in owes their flow. The value is ``None`` when the user
+    reauthenticated within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``. It is also ``None`` for a user with neither a
+    usable password nor an MFA authenticator; that user has no flow to complete, and ``recent_auth_required``
+    refuses them. The value comes from ``vueda.core.reauthentication``, the same policy that
+    ``recent_auth_required`` enforces, so the client shows the form that the server accepts.
     """
 
     groups = serializers.SlugRelatedField(many=True, queryset=Group.objects.all(), slug_field="name")

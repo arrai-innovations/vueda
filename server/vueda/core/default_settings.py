@@ -309,6 +309,8 @@ def get_defaults(env: EnvLike, *, use_mailers: bool = False, use_streams: bool =
         "HEADLESS_CLIENTS": ("browser",),
         "ACCOUNT_USER_MODEL_USERNAME_FIELD": None,
         "ACCOUNT_REAUTHENTICATION_TIMEOUT": env.int("ACCOUNT_REAUTHENTICATION_TIMEOUT", default=300),
+        # The reauthentication methods that VUEDA's client and reauthentication views support.
+        "ACCOUNT_REAUTHENTICATION_METHODS": ["password", "mfa"],
         "ACCOUNT_EMAIL_VERIFICATION": "none",
         "ACCOUNT_LOGIN_METHODS": {"email"},
         "ACCOUNT_SIGNUP_FIELDS": ["email*", "password1*", "password2*"],

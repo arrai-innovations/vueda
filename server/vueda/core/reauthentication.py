@@ -1,30 +1,26 @@
-"""Reauthentication policy: which flow a user must complete, and whether their session completed it recently."""
+"""Reauthentication policy: which flow a user must complete, and whether their session completed one recently."""
 
 __all__ = (
-    "RECORD_METHOD_BY_FLOW",
     "did_recently_authenticate",
     "required_flow",
 )
 
-import time
-
-from allauth.account import app_settings as account_settings
-from allauth.account.authentication import get_authentication_records
+from allauth.account.decorators import reauthentication_required
+from allauth.core.exceptions import ReauthenticationRequired
 from allauth.headless.constants import Flow
 from allauth.mfa.utils import is_mfa_enabled
 
 
-RECORD_METHOD_BY_FLOW = {Flow.REAUTHENTICATE: "password", Flow.MFA_REAUTHENTICATE: "mfa"}
-"""The ``method`` allauth writes into a session authentication record when each flow completes."""
-
-
 def required_flow(user):
     """
-    Return the allauth ``Flow`` the user must complete to count as recently authenticated.
+    Return the allauth ``Flow`` the user must complete to reauthenticate.
 
     A user with an MFA authenticator confirms a second factor (``Flow.MFA_REAUTHENTICATE``). A user with only
-    a usable password confirms the password (``Flow.REAUTHENTICATE``). A user with neither has nothing to
-    confirm, so the result is ``None`` and the session always counts as recent.
+    a usable password confirms the password (``Flow.REAUTHENTICATE``). The result is ``None`` for an anonymous
+    user and for a user with neither, because they have no way to reauthenticate.
+
+    The password reauthentication view accepts only a user whose flow is ``Flow.REAUTHENTICATE``, so the session
+    records a password reauthentication only while the user has no MFA authenticator.
     """
     if not user.is_authenticated:
         return None
@@ -35,25 +31,20 @@ def required_flow(user):
     return None
 
 
+@reauthentication_required
+def _pass_recent_reauthentication(request):
+    return True
+
+
 def did_recently_authenticate(request):
     """
-    Return whether the session holds an authentication record for the user's required flow that is newer
-    than ``ACCOUNT_REAUTHENTICATION_TIMEOUT``.
+    Return whether the signed-in user reauthenticated within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``.
 
-    Login and reauthentication both write records, so a fresh login satisfies the check as well as a
-    reauthentication does. Only records of the required method count: confirming the password does not
-    refresh the session of a user who must confirm a second factor.
+    allauth's ``reauthentication_required`` decides, so VUEDA applies the same rule as the allauth flows that it
+    calls. A sign-in does not count; only an explicit reauthentication does. The result is ``False`` for an
+    anonymous user, and for a user with no way to reauthenticate.
     """
-    if request.user.is_anonymous:
+    try:
+        return _pass_recent_reauthentication(request)
+    except ReauthenticationRequired:
         return False
-    flow = required_flow(request.user)
-    if flow is None:
-        return True
-    method = RECORD_METHOD_BY_FLOW[flow]
-    authenticated_at = max(
-        (record["at"] for record in get_authentication_records(request) if record.get("method") == method),
-        default=None,
-    )
-    if authenticated_at is None:
-        return False
-    return time.time() - authenticated_at < account_settings.REAUTHENTICATION_TIMEOUT

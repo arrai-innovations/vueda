@@ -27,10 +27,11 @@ from allauth.account.stages import LoginStageController
 from allauth.core.exceptions import ReauthenticationRequired
 from allauth.headless.account.views import LoginView
 from allauth.headless.account.views import ReauthenticateView
+from allauth.headless.base.response import ForbiddenResponse
+from allauth.headless.constants import Flow
 from allauth.headless.mfa.views import AuthenticateView
 from allauth.headless.mfa.views import ManageRecoveryCodesView
 from allauth.headless.mfa.views import ReauthenticateView as MFAReauthenticateView
-from allauth.mfa.internal.constants import LoginStageKey
 from allauth.mfa.utils import decrypt
 from dj_rest_auth.views import PasswordChangeView
 from django.conf import settings
@@ -83,6 +84,7 @@ from vueda.core.open_api import conditional_inline_serializer
 from vueda.core.open_api import conditional_open_api_types
 from vueda.core.permissions import ObjectPermissions
 from vueda.core.reauthentication import did_recently_authenticate
+from vueda.core.reauthentication import required_flow
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.history.revision import annotate_object_revision
 from vueda.user.adapters import get_adapter
@@ -738,12 +740,17 @@ class AllAuthTwoFactorAuthView(AllAuthAdapterDispatchMixin, AuthenticateView, Vu
 )
 class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView, VuedaAllAuthViewAdapter):
     """
-    Confirm the signed-in user's password and record a ``password`` authentication in the session.
+    Confirm the signed-in user's password and record a ``password`` reauthentication in the session.
 
-    This satisfies ``recent_auth_required`` for a user whose required flow is ``reauthenticate``. A user with
-    an MFA authenticator must use ``AllAuthMFAReauthenticateView`` instead; this view still accepts their
-    password, but the record it writes does not count for them.
+    The view accepts only a user whose required flow is ``reauthenticate``, a user with only a password. It
+    answers ``403`` for a user with an MFA authenticator, who confirms a second factor through
+    ``AllAuthMFAReauthenticateView`` instead, and records nothing.
     """
+
+    def handle(self, request, *args, **kwargs):
+        if required_flow(request.user) != Flow.REAUTHENTICATE:
+            return ForbiddenResponse(request)
+        return super().handle(request, *args, **kwargs)
 
 
 @conditional_extend_schema_decorator(
@@ -751,10 +758,10 @@ class AllAuthReauthenticateView(AllAuthAdapterDispatchMixin, ReauthenticateView,
 )
 class AllAuthMFAReauthenticateView(AllAuthAdapterDispatchMixin, MFAReauthenticateView, VuedaAllAuthViewAdapter):
     """
-    Confirm a TOTP or recovery ``code`` for the signed-in user and record an ``mfa`` authentication in the
+    Confirm a TOTP or recovery ``code`` for the signed-in user and record an ``mfa`` reauthentication in the
     session.
 
-    This satisfies ``recent_auth_required`` for a user whose required flow is ``mfa_reauthenticate``.
+    This satisfies ``recent_auth_required`` for a user with an MFA authenticator.
     """
 
 
@@ -762,10 +769,9 @@ class AllAuthRecoveryCodesView(AllAuthAdapterDispatchMixin, ManageRecoveryCodesV
     """
     View (GET) or regenerate (POST) the signed-in user's recovery codes, after the reauthentication VUEDA requires.
 
-    The session must hold a recent record of the user's required flow, the same check ``recent_auth_required``
-    applies, so a user with an MFA authenticator must have confirmed a second factor. Otherwise the view returns
-    allauth's 401 reauthentication response, which lists the available flows. Every other response keeps
-    allauth's format.
+    The user must have reauthenticated within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``, the check that
+    ``recent_auth_required`` applies. Otherwise the view returns allauth's 401 reauthentication response, which
+    lists the available flows. Every other response keeps allauth's format.
     """
 
     def handle(self, request, *args, **kwargs):
@@ -796,7 +802,7 @@ def totp_code(request):
     pending, which is the case while they reauthenticate with a second factor. GET returns the methods of
     the user's TOTP devices. POST sends a current code by the requested ``method``, email or sms.
     """
-    stage = LoginStageController.enter(request, LoginStageKey.MFA_AUTHENTICATE.value)
+    stage = LoginStageController.enter(request, Flow.MFA_AUTHENTICATE.value)
     user = stage.login.user if stage is not None else request.user
     devices = user.totp_devices
     if not devices.exists():

@@ -300,7 +300,7 @@ Rename `widgetComponents` entries, `mergeDefaultFieldMappings` registrations, an
 ### Update Auth and Store Code
 
 - `storeUser.pendingFlow` is now `authPendingFlow`, a string. Replace `recentlyLoggedIn` with `loggedIn && !authPendingFlow`. Replace `init()` with `waitForCurrentUser(pinia)`. `initialized` and `initializingPromise` are removed.
-- `AuthForm` sends a user with a pending reauthentication to the `reauthenticate` route as soon as the form opens. Set `requireRecentAuth` to `false` on an `AuthForm` whose action does not need a recent sign-in.
+- `AuthForm` sends a user with a pending reauthentication to the `reauthenticate` route as soon as the form opens. Set `requireRecentAuth` to `false` on an `AuthForm` whose action does not need a recent reauthentication.
 - Users with a two-factor device reauthenticate with a code. Mount `ViewReauthenticate` at the `reauthenticate` route. [Build a Re-Authentication View](build-auth-views.md#build-a-re-authentication-view) covers it.
 - `setUsingVuedaWorkFlow` and `getUsingVuedaWorkFlow` are now `setUsingVuedaWorkflow` and `getUsingVuedaWorkflow`.
 - `storeWorkflow` drops `fetchObjectState`, `fetchObjectTransitions`, `fetchModelStates`, and `initializeObjectTransitions`, and the `objectStates`, `objectTransitions`, and `modelStates` caches. Read an object's state from its `workflow_state_code` and `workflow_state_name` fields, and its transitions from `valid_transitions`. A transition response carries the new state. Nothing replaces the list of a model's states.

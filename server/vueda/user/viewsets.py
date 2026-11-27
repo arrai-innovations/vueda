@@ -167,6 +167,9 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
         The code is checked against the setup secret. The first device creates the user's TOTP authenticator with
         that secret. An authenticator app added to an existing authenticator replaces its secret with the setup
         secret. An email or SMS device joins the existing authenticator and leaves its secret unchanged.
+
+        The confirmed code counts as a second-factor reauthentication, so the session stays recent for
+        ``ACCOUNT_REAUTHENTICATION_TIMEOUT`` after the device is added.
         """
         authenticator = self._get_authenticator_with_lock()
         code = request.data.get("code")
@@ -206,9 +209,9 @@ class TOTPDeviceViewSet(ReadOnlyModelViewSet, DestroyModelMixin):
             )
         else:
             TOTPDevice.objects.create(authenticator=authenticator, method=device_type, user=request.user)
-        # The code just validated proves possession of the authenticator, so it counts as a second-factor
-        # authentication. Without this record the first activation would leave the session stale at once,
-        # since the account now requires a second factor and has only confirmed a password.
+        # allauth has no public way to record a reauthentication. Its second-factor reauthentication checks a code
+        # against the authenticator's stored secret, and an email or SMS device that joins an existing authenticator
+        # confirms a code from the setup secret instead.
         record_authentication(
             request, request.user, "mfa", id=authenticator.pk, type=authenticator.type, reauthenticated=True
         )

@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from typing import ClassVar
 
 import pytest
-from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from allauth.mfa.totp.internal.auth import TOTP
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -15,9 +14,11 @@ from django.urls import reverse
 from hashids import Hashids
 from rest_framework.test import APIRequestFactory
 
+from tests.conftest import TOTP_SECRET
 from tests.conftest import BaseTestGroupMixin
 from tests.conftest import BaseTestUserMixin
-from tests.conftest import record_authentication_methods
+from tests.conftest import reauthenticate_with_password
+from tests.conftest import reauthenticate_with_second_factor
 from tests.conftest import response_body
 from vueda.core.tokens import Sha3PasswordResetTokenGenerator
 from vueda.user.models import GroupChange
@@ -292,7 +293,6 @@ class TestVuedaResetPasswordView:
         assert user.check_password("old-password")
 
 
-TOTP_SECRET = "JBSWY3DPEHPK3PXP"
 # The default ``totp_send_user`` and ``totp_send_destination`` rates allow this many codes an hour.
 CODE_SEND_LIMIT = 5
 
@@ -338,11 +338,10 @@ def test_who_is_names_the_pending_flow_while_a_sign_in_waits_for_a_second_factor
 @pytest.mark.django_db
 def test_who_is_asks_an_mfa_user_for_a_second_factor_until_they_confirm_one(api_client, totp_device):
     api_client.force_login(totp_device.user)
-
-    record_authentication_methods(api_client, "password")
     assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "mfa_reauthenticate"
 
-    record_authentication_methods(api_client, "password", "mfa")
+    reauthenticate_with_second_factor(api_client, get_current_totp_code(TOTP_SECRET))
+
     assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
 
 
@@ -351,12 +350,39 @@ def test_who_is_asks_a_password_only_user_for_the_password_until_they_confirm_it
     api_client.force_login(reauth_user)
     assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "reauthenticate"
 
-    record_authentication_methods(api_client, "password")
+    reauthenticate_with_password(api_client)
+
     assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
 
 
 @pytest.mark.django_db
-def test_who_is_has_no_pending_flow_for_an_account_with_nothing_to_confirm(api_client, reauth_user):
+def test_who_is_names_the_reauthentication_flow_right_after_a_sign_in(api_client, reauth_user):
+    login = api_client.post(reverse("login2"), {"email": reauth_user.email, "password": "test-pass"}, format="json")
+    assert login.status_code == HTTPStatus.OK, response_body(login)
+
+    response = api_client.get(reverse("who-is"), format="json")
+
+    assert response.data["id"] == reauth_user.pk
+    assert response.data["auth_pending_flow"] == "reauthenticate"
+
+
+@pytest.mark.django_db
+def test_who_is_names_the_second_factor_flow_right_after_a_two_factor_sign_in(api_client, totp_device):
+    login = api_client.post(
+        reverse("login2"), {"email": totp_device.user.email, "password": "test-pass"}, format="json"
+    )
+    assert login.status_code == HTTPStatus.UNAUTHORIZED, response_body(login)
+    confirmed = api_client.post(reverse("authenticate"), {"code": get_current_totp_code(TOTP_SECRET)}, format="json")
+    assert confirmed.status_code == HTTPStatus.OK, response_body(confirmed)
+
+    response = api_client.get(reverse("who-is"), format="json")
+
+    assert response.data["id"] == totp_device.user.pk
+    assert response.data["auth_pending_flow"] == "mfa_reauthenticate"
+
+
+@pytest.mark.django_db
+def test_who_is_has_no_pending_flow_for_an_account_with_no_way_to_reauthenticate(api_client, reauth_user):
     reauth_user.set_unusable_password()
     reauth_user.save()
     api_client.force_login(reauth_user)
@@ -365,38 +391,52 @@ def test_who_is_has_no_pending_flow_for_an_account_with_nothing_to_confirm(api_c
 
 
 @pytest.mark.django_db
-class TestAllAuthMFAReauthenticateView:
-    def test_valid_code_records_a_second_factor_authentication(self, api_client, totp_device):
+class TestAllAuthReauthenticateView:
+    def test_password_user_reauthenticates_with_the_password(self, api_client, reauth_user):
+        api_client.force_login(reauth_user)
+
+        response = api_client.post(reverse("reauthenticate"), {"password": "test-pass"}, format="json")
+
+        assert response.status_code == HTTPStatus.OK, response_body(response)
+        assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
+
+    def test_wrong_password_is_rejected(self, api_client, reauth_user):
+        api_client.force_login(reauth_user)
+
+        response = api_client.post(reverse("reauthenticate"), {"password": "wrong-pass"}, format="json")
+
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
+        assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "reauthenticate"
+
+    def test_mfa_user_is_refused_and_still_owes_a_second_factor(self, api_client, totp_device):
         api_client.force_login(totp_device.user)
-        record_authentication_methods(api_client, "password")
+
+        response = api_client.post(reverse("reauthenticate"), {"password": "test-pass"}, format="json")
+
+        assert response.status_code == HTTPStatus.FORBIDDEN, response_body(response)
+        assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "mfa_reauthenticate"
+
+
+@pytest.mark.django_db
+class TestAllAuthMFAReauthenticateView:
+    def test_valid_code_reauthenticates_the_user(self, api_client, totp_device):
+        api_client.force_login(totp_device.user)
 
         response = api_client.post(
             reverse("mfa_reauthenticate"), {"code": get_current_totp_code(TOTP_SECRET)}, format="json"
         )
 
         assert response.status_code == HTTPStatus.OK, response_body(response)
-        methods = [record["method"] for record in api_client.session[AUTHENTICATION_METHODS_SESSION_KEY]]
-        assert methods == ["password", "mfa"]
-        who_is = api_client.get(reverse("who-is"), format="json")
-        assert who_is.data["auth_pending_flow"] is None
+        assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] is None
 
-    def test_invalid_code_is_rejected_without_a_record(self, api_client, totp_device):
+    def test_invalid_code_is_rejected(self, api_client, totp_device):
         api_client.force_login(totp_device.user)
 
         response = api_client.post(reverse("mfa_reauthenticate"), {"code": "000000"}, format="json")
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         assert response.data["non_field_errors"] == ["Incorrect code."]
-        assert AUTHENTICATION_METHODS_SESSION_KEY not in api_client.session
-
-    def test_password_confirmation_does_not_count_for_an_mfa_user(self, api_client, totp_device):
-        api_client.force_login(totp_device.user)
-
-        response = api_client.post(reverse("reauthenticate"), {"password": "test-pass"}, format="json")
-
-        assert response.status_code == HTTPStatus.OK, response_body(response)
-        who_is = api_client.get(reverse("who-is"), format="json")
-        assert who_is.data["auth_pending_flow"] == "mfa_reauthenticate"
+        assert api_client.get(reverse("who-is"), format="json").data["auth_pending_flow"] == "mfa_reauthenticate"
 
 
 @pytest.mark.django_db

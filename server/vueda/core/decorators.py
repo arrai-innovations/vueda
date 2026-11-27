@@ -82,14 +82,15 @@ def action(methods=None, detail=None, bulk=False, confirm=False, url_path=None, 
 
 def recent_auth_required(func):
     """
-    Wrap a viewset action so it returns 401 with ``Reauthentication required`` unless the user recently
-    completed the reauthentication flow their account requires.
+    Wrap a viewset action so it returns 401 with ``Reauthentication required`` unless the user reauthenticated
+    within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``.
 
-    ``vueda.core.reauthentication.did_recently_authenticate`` decides: a user with an MFA authenticator
-    must have confirmed a second factor within ``ACCOUNT_REAUTHENTICATION_TIMEOUT``, and a password-only
-    user must have confirmed their password. ``WhoIsSerializer`` reports the flow this check would ask for
-    as ``auth_pending_flow``, so the client can send the user to reauthenticate before it calls a guarded
-    action. The TOTP viewset applies this decorator to device setup, activation, and deletion.
+    ``vueda.core.reauthentication.did_recently_authenticate`` decides. A sign-in does not count, and a user with
+    neither a usable password nor an MFA authenticator is always refused. A user with an MFA authenticator can
+    reauthenticate only with a second factor, and a user with only a password reauthenticates with the
+    password. ``WhoIsSerializer`` reports the flow that the user owes as ``auth_pending_flow``, so the client
+    can send the user to reauthenticate before it calls a guarded action. The TOTP viewset applies this
+    decorator to device setup, activation, and deletion.
     """
 
     @wraps(func)
