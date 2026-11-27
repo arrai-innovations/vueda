@@ -121,6 +121,22 @@ def workflow_identity(workflow_event):
     }
 
 
+def permission_identity(permission_row_event):
+    """Name the permission of a workflow, state, or transition permission row the way a change does.
+
+    The name is the codename and content type that the row recorded when it was written. The row
+    records them on every save, so they survive the permission being renamed or deleted later. The
+    content type is the permission's own, which can belong to a model other than the workflow's model.
+    """
+    return {
+        "codename": permission_row_event.historical_permission_codename,
+        "content_type_id": {
+            "app_label": permission_row_event.historical_permission_content_type_app_label,
+            "model": permission_row_event.historical_permission_content_type_model_name,
+        },
+    }
+
+
 #############################################################################
 # Functions used by the management command.
 # These are added here for easy testing.
@@ -879,24 +895,18 @@ class WorkflowChangeTool(MigrationTool):
                     old = workflow_identity(hist_workflow)
 
             case "permission_id":
+                # Name the permission from the codename and content type that each write recorded.
+                # Those survive a later rename or delete of the permission. The content type is the
+                # permission's own, which can differ from the workflow's model.
                 if change.new:
-                    new = {
-                        "codename": history_diff.new_record.permission.codename,
-                        "content_type_id": {
-                            "app_label": history_diff.new_record.permission.content_type.app_label,
-                            "model": history_diff.new_record.permission.content_type.model,
-                        },
-                    }
+                    new = permission_identity(history_diff.new_record)
 
                 if change.old:
-                    old = {
-                        "codename": history_diff.old_record.historical_permission_codename,
-                        "content_type_id": {"app_label": ct.app_label, "model": ct.model},
-                    }
+                    old = permission_identity(history_diff.old_record)
 
             case "group_id":
-                # Name the group as each write recorded it, not by its current name. A group that was
-                # renamed or deleted since then would otherwise name a group the write never saw.
+                # Name the group from the name that each write recorded.
+                # That name survives a later rename or delete of the group.
                 if change.new:
                     new = {"name": history_diff.new_record.historical_group_name}
 
