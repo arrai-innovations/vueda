@@ -24,6 +24,7 @@ import inspect
 from collections.abc import Mapping
 from contextlib import contextmanager
 from functools import partial
+from types import SimpleNamespace
 from typing import ClassVar
 
 import drf_writable_nested
@@ -40,6 +41,7 @@ from django.db import transaction
 from django.db.models import CompositePrimaryKey
 from django.db.models import FileField as ModelFileField
 from django.db.models import ImageField as ModelImageField
+from django.db.models import RestrictedError
 from django.http import Http404
 from rest_flex_fields2.config import WILDCARD_VALUES
 from rest_flex_fields2.utils import split_levels
@@ -531,6 +533,9 @@ class FlexFieldsWriteableNestedSerializerMixin(
 
         ``_make_expanded_field_serializer`` locks each expand that the write may not set.
 
+        A single-object relation that can be empty accepts ``null``. See
+        ``_allow_null_when_relation_can_be_empty``.
+
         Only the first level of each name changes how the body is read. Below it, and wherever ``e`` holds
         a wildcard, ``e`` shapes only the response. ``e=*`` swaps nothing, ``e=customer,*`` swaps
         ``customer``, and ``e=customer.*`` and ``e=customer.user`` swap ``customer`` but none of its own
@@ -550,12 +555,75 @@ class FlexFieldsWriteableNestedSerializerMixin(
             permitted = frozenset(self.context["permitted_expands"])
             names = tuple(name for name in names if name in permitted)
 
+        # The loop replaces entries of `fields`, so the null rule reads the plain fields from a copy taken first.
+        plain_fields = dict(fields.items())
         for name in _first_level_names(names):
             if name in self._expandable_fields:
                 # A swapped relation gets no expands of its own. drf-writable-nested saves each nested row through
                 # a new serializer, which receives none of the levels below, so a deeper nested object could pass
                 # validation here and then fail when the row is saved.
-                fields[name] = self._make_expanded_field_serializer(name, {}, {}, {})
+                field = self._make_expanded_field_serializer(name, {}, {}, {})
+                if not field.read_only:
+                    self._allow_null_when_relation_can_be_empty(name, field, plain_fields)
+                fields[name] = field
+
+    def _allow_null_when_relation_can_be_empty(self, name, field, fields):
+        """
+        Let the expanded serializer ``field`` accept ``null`` when the single relation ``name`` can be empty.
+
+        A reverse one-to-one relation can always be empty. ``null`` deletes the saved child. When the child's
+        one-to-one field uses ``SET_NULL`` or ``SET_DEFAULT``, ``null`` sets that field to null or its default
+        instead, and the child stays. When another row holds the child with ``PROTECT`` or ``RESTRICT``, the
+        delete fails and the response is a ``400``. A forward foreign key or one-to-one relation can be empty
+        when its model field has ``null=True``. ``null`` then clears the link and keeps the related row.
+
+        Without this rule, the nested serializer rejects ``null`` with "This field may not be null.", so a
+        client could not remove a single related object through the expand that it edits the object with.
+
+        A writable plain field in ``fields`` that writes the same relation can change the result. ``fields``
+        holds the serializer's bound fields, before any expand replaces them. A ``HiddenField`` does not count,
+        because a client does not send it. For a forward relation, the
+        plain field's ``allow_null`` decides. DRF builds that field from the model field's ``null`` and
+        ``Meta.extra_kwargs``, and a field that the serializer declares sets its own ``allow_null``. For a
+        reverse relation, only a field that the serializer declares decides, because DRF builds every reverse
+        relation's plain field with ``allow_null=False``. A read-only plain field, such as one that
+        ``Meta.read_only_fields`` lists, does not count. An ``allow_null`` option in ``Meta.expandable_fields``
+        wins over all of these. A collection (``"many": True``) is left as it is, because an empty list removes
+        its rows.
+
+        Only ``_expand_fields_for_write`` applies the rule, so it covers the relations that the view's
+        serializer expands. drf-writable-nested saves each nested row through a new serializer that has none
+        of that row's expands, so a deeper level, such as ``profile`` in ``e=items.profile``, could not save
+        the ``null``. Its expanded serializer keeps rejecting ``null``.
+        """
+        if isinstance(field, serializers.ListSerializer) or not isinstance(field, serializers.BaseSerializer):
+            return
+        _field_serializer, expand_options = unwrap_expandable_field(self._expandable_fields[name])
+        if "allow_null" in expand_options:
+            return
+        source = expand_options.get("source") or name
+        # `field` is not bound yet, so drf-writable-nested's lookup gets the source on a stand-in object.
+        try:
+            related_field, direct = self._get_related_field(SimpleNamespace(source=source))
+        except (AttributeError, FieldDoesNotExist):
+            return
+        plain = next(
+            (
+                plain_field
+                for plain_name, plain_field in fields.items()
+                if plain_field.source == source
+                and not plain_field.read_only
+                and not isinstance(plain_field, (serializers.BaseSerializer, serializers.HiddenField))
+                and (direct or plain_name in self._declared_fields)
+            ),
+            None,
+        )
+        if plain is not None:
+            field.allow_null = plain.allow_null
+        elif direct:
+            field.allow_null = bool(getattr(related_field, "null", False)) and not related_field.many_to_many
+        else:
+            field.allow_null = related_field.one_to_one
 
     def excluded_fields_for_action(self):
         """
@@ -647,6 +715,24 @@ class FlexFieldsWriteableNestedSerializerMixin(
         if any(errors):
             raise serializers.ValidationError({field_name: errors})
         getattr(instance, field_source).add(*instances)
+
+    def perform_nested_delete_or_update(self, pks_to_delete, model_class, instance, related_field, field_source):
+        """
+        Remove the rows that a nested update leaves out, and report a restricted delete as a validation error.
+
+        drf-writable-nested turns a ``ProtectedError`` into a ``400``. A row that another model references with
+        ``on_delete=RESTRICT`` raises ``RestrictedError`` instead, which the library does not catch, so the request
+        would fail with a ``500``. It gets the same ``400`` as a protected row.
+        """
+        try:
+            return super().perform_nested_delete_or_update(
+                pks_to_delete, model_class, instance, related_field, field_source
+            )
+        except RestrictedError as exc:
+            self.fail(
+                "cannot_delete_protected",
+                instances=", ".join(sorted(str(restricted) for restricted in exc.restricted_objects)),
+            )
 
     def _get_reverse_relation_lookup(self, instance, related_field):
         """Return the filter that selects the rows of ``related_field`` that belong to ``instance``."""

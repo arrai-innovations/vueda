@@ -7,4 +7,5 @@ urlpatterns = [
     path("store/", include("tests.store.routers")),
     path("confirmation/", include("tests.confirmation.routers")),
     path("bulk_actions/", include("tests.bulk_actions.routers")),
+    path("inline/", include("tests.inline.routers")),
 ]

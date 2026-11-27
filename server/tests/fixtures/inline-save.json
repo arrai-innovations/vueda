@@ -1,0 +1,662 @@
+{
+    "parent_pk": 9000,
+    "scenarios": [
+        {
+            "name": "reverse foreign key: add a row (create)",
+            "relation": "lines",
+            "kind": "reverse foreign key",
+            "inline": "many",
+            "view": "create",
+            "action": "add a row",
+            "saved": null,
+            "request": {
+                "e": ["lines"],
+                "f": ["name", "lines", "id"],
+                "body": {
+                    "name": "New parent",
+                    "lines": [
+                        {
+                            "name": "Added"
+                        }
+                    ]
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": ["Added"],
+                "rows": ["Added"]
+            }
+        },
+        {
+            "name": "reverse foreign key: add a row (update)",
+            "relation": "lines",
+            "kind": "reverse foreign key",
+            "inline": "many",
+            "view": "update",
+            "action": "add a row",
+            "saved": {
+                "name": "Parent",
+                "lines": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["lines"],
+                "f": ["name", "lines", "id"],
+                "body": {
+                    "name": "Parent",
+                    "lines": [
+                        {
+                            "id": 9101,
+                            "name": "Saved"
+                        },
+                        {
+                            "name": "Added"
+                        }
+                    ],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Added", "Saved"],
+                "rows": ["Added", "Saved"]
+            }
+        },
+        {
+            "name": "reverse foreign key: edit a saved row (update)",
+            "relation": "lines",
+            "kind": "reverse foreign key",
+            "inline": "many",
+            "view": "update",
+            "action": "edit a saved row",
+            "saved": {
+                "name": "Parent",
+                "lines": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["lines"],
+                "f": ["name", "lines", "id"],
+                "body": {
+                    "name": "Parent",
+                    "lines": [
+                        {
+                            "id": 9101,
+                            "name": "Edited"
+                        }
+                    ],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Edited"],
+                "rows": ["Edited"]
+            }
+        },
+        {
+            "name": "reverse foreign key: delete an unsaved row (update)",
+            "relation": "lines",
+            "kind": "reverse foreign key",
+            "inline": "many",
+            "view": "update",
+            "action": "delete an unsaved row",
+            "saved": {
+                "name": "Parent",
+                "lines": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["lines"],
+                "f": ["name", "lines", "id"],
+                "body": {
+                    "name": "Renamed",
+                    "lines": [
+                        {
+                            "id": 9101,
+                            "name": "Saved"
+                        }
+                    ],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Renamed",
+                "linked": ["Saved"],
+                "rows": ["Saved"]
+            }
+        },
+        {
+            "name": "reverse foreign key: mark a saved row for removal (update)",
+            "relation": "lines",
+            "kind": "reverse foreign key",
+            "inline": "many",
+            "view": "update",
+            "action": "mark a saved row for removal",
+            "saved": {
+                "name": "Parent",
+                "lines": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["lines"],
+                "f": ["name", "lines", "id"],
+                "body": {
+                    "name": "Parent",
+                    "lines": [],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": [],
+                "rows": []
+            }
+        },
+        {
+            "name": "many-to-many: add a row (create)",
+            "relation": "tags",
+            "kind": "many-to-many",
+            "inline": "many",
+            "view": "create",
+            "action": "add a row",
+            "saved": null,
+            "request": {
+                "e": ["tags"],
+                "f": ["name", "tags", "id"],
+                "body": {
+                    "name": "New parent",
+                    "tags": [
+                        {
+                            "name": "Added"
+                        }
+                    ]
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": ["Added"],
+                "rows": ["Added"]
+            }
+        },
+        {
+            "name": "many-to-many: add a row (update)",
+            "relation": "tags",
+            "kind": "many-to-many",
+            "inline": "many",
+            "view": "update",
+            "action": "add a row",
+            "saved": {
+                "name": "Parent",
+                "tags": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["tags"],
+                "f": ["name", "tags", "id"],
+                "body": {
+                    "name": "Parent",
+                    "tags": [
+                        {
+                            "id": 9101,
+                            "name": "Saved"
+                        },
+                        {
+                            "name": "Added"
+                        }
+                    ],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Added", "Saved"],
+                "rows": ["Added", "Saved"]
+            }
+        },
+        {
+            "name": "many-to-many: edit a saved row (update)",
+            "relation": "tags",
+            "kind": "many-to-many",
+            "inline": "many",
+            "view": "update",
+            "action": "edit a saved row",
+            "saved": {
+                "name": "Parent",
+                "tags": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["tags"],
+                "f": ["name", "tags", "id"],
+                "body": {
+                    "name": "Parent",
+                    "tags": [
+                        {
+                            "id": 9101,
+                            "name": "Edited"
+                        }
+                    ],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Edited"],
+                "rows": ["Edited"]
+            }
+        },
+        {
+            "name": "many-to-many: delete an unsaved row (update)",
+            "relation": "tags",
+            "kind": "many-to-many",
+            "inline": "many",
+            "view": "update",
+            "action": "delete an unsaved row",
+            "saved": {
+                "name": "Parent",
+                "tags": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["tags"],
+                "f": ["name", "tags", "id"],
+                "body": {
+                    "name": "Renamed",
+                    "tags": [
+                        {
+                            "id": 9101,
+                            "name": "Saved"
+                        }
+                    ],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Renamed",
+                "linked": ["Saved"],
+                "rows": ["Saved"]
+            }
+        },
+        {
+            "name": "many-to-many: mark a saved row for removal (update)",
+            "relation": "tags",
+            "kind": "many-to-many",
+            "inline": "many",
+            "view": "update",
+            "action": "mark a saved row for removal",
+            "saved": {
+                "name": "Parent",
+                "tags": [
+                    {
+                        "id": 9101,
+                        "name": "Saved"
+                    }
+                ]
+            },
+            "request": {
+                "e": ["tags"],
+                "f": ["name", "tags", "id"],
+                "body": {
+                    "name": "Parent",
+                    "tags": [],
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": [],
+                "rows": ["Saved"]
+            }
+        },
+        {
+            "name": "reverse one-to-one: create the object (create)",
+            "relation": "note",
+            "kind": "reverse one-to-one",
+            "inline": "singular",
+            "view": "create",
+            "action": "create the object",
+            "saved": null,
+            "request": {
+                "e": ["note"],
+                "f": ["name", "note", "id"],
+                "body": {
+                    "name": "New parent",
+                    "note": {
+                        "name": "Added"
+                    }
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": ["Added"],
+                "rows": ["Added"]
+            }
+        },
+        {
+            "name": "reverse one-to-one: delete an unsaved row (create)",
+            "relation": "note",
+            "kind": "reverse one-to-one",
+            "inline": "singular",
+            "view": "create",
+            "action": "delete an unsaved row",
+            "saved": null,
+            "request": {
+                "e": [],
+                "f": ["name", "note", "id"],
+                "body": {
+                    "name": "New parent",
+                    "note": null
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": [],
+                "rows": []
+            }
+        },
+        {
+            "name": "reverse one-to-one: edit the saved object (update)",
+            "relation": "note",
+            "kind": "reverse one-to-one",
+            "inline": "singular",
+            "view": "update",
+            "action": "edit the saved object",
+            "saved": {
+                "name": "Parent",
+                "note": {
+                    "id": 9101,
+                    "name": "Saved"
+                }
+            },
+            "request": {
+                "e": ["note"],
+                "f": ["name", "note", "id"],
+                "body": {
+                    "name": "Parent",
+                    "note": {
+                        "id": 9101,
+                        "name": "Edited"
+                    },
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Edited"],
+                "rows": ["Edited"]
+            }
+        },
+        {
+            "name": "reverse one-to-one: mark a saved row for removal (update)",
+            "relation": "note",
+            "kind": "reverse one-to-one",
+            "inline": "singular",
+            "view": "update",
+            "action": "mark a saved row for removal",
+            "saved": {
+                "name": "Parent",
+                "note": {
+                    "id": 9101,
+                    "name": "Saved"
+                }
+            },
+            "request": {
+                "e": ["note"],
+                "f": ["name", "note", "id"],
+                "body": {
+                    "name": "Parent",
+                    "note": null,
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": [],
+                "rows": []
+            }
+        },
+        {
+            "name": "forward foreign key: create the object (create)",
+            "relation": "contact",
+            "kind": "forward foreign key",
+            "inline": "singular",
+            "view": "create",
+            "action": "create the object",
+            "saved": null,
+            "request": {
+                "e": ["contact"],
+                "f": ["name", "contact", "id"],
+                "body": {
+                    "name": "New parent",
+                    "contact": {
+                        "name": "Added"
+                    }
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": ["Added"],
+                "rows": ["Added"]
+            }
+        },
+        {
+            "name": "forward foreign key: delete an unsaved row (create)",
+            "relation": "contact",
+            "kind": "forward foreign key",
+            "inline": "singular",
+            "view": "create",
+            "action": "delete an unsaved row",
+            "saved": null,
+            "request": {
+                "e": [],
+                "f": ["name", "contact", "id"],
+                "body": {
+                    "name": "New parent",
+                    "contact": null
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": [],
+                "rows": []
+            }
+        },
+        {
+            "name": "forward foreign key: edit the saved object (update)",
+            "relation": "contact",
+            "kind": "forward foreign key",
+            "inline": "singular",
+            "view": "update",
+            "action": "edit the saved object",
+            "saved": {
+                "name": "Parent",
+                "contact": {
+                    "id": 9101,
+                    "name": "Saved"
+                }
+            },
+            "request": {
+                "e": ["contact"],
+                "f": ["name", "contact", "id"],
+                "body": {
+                    "name": "Parent",
+                    "contact": {
+                        "id": 9101,
+                        "name": "Edited"
+                    },
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Edited"],
+                "rows": ["Edited"]
+            }
+        },
+        {
+            "name": "forward foreign key: mark a saved row for removal (update)",
+            "relation": "contact",
+            "kind": "forward foreign key",
+            "inline": "singular",
+            "view": "update",
+            "action": "mark a saved row for removal",
+            "saved": {
+                "name": "Parent",
+                "contact": {
+                    "id": 9101,
+                    "name": "Saved"
+                }
+            },
+            "request": {
+                "e": ["contact"],
+                "f": ["name", "contact", "id"],
+                "body": {
+                    "name": "Parent",
+                    "contact": null,
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": [],
+                "rows": ["Saved"]
+            }
+        },
+        {
+            "name": "forward one-to-one: create the object (create)",
+            "relation": "address",
+            "kind": "forward one-to-one",
+            "inline": "singular",
+            "view": "create",
+            "action": "create the object",
+            "saved": null,
+            "request": {
+                "e": ["address"],
+                "f": ["name", "address", "id"],
+                "body": {
+                    "name": "New parent",
+                    "address": {
+                        "name": "Added"
+                    }
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": ["Added"],
+                "rows": ["Added"]
+            }
+        },
+        {
+            "name": "forward one-to-one: delete an unsaved row (create)",
+            "relation": "address",
+            "kind": "forward one-to-one",
+            "inline": "singular",
+            "view": "create",
+            "action": "delete an unsaved row",
+            "saved": null,
+            "request": {
+                "e": [],
+                "f": ["name", "address", "id"],
+                "body": {
+                    "name": "New parent",
+                    "address": null
+                }
+            },
+            "result": {
+                "name": "New parent",
+                "linked": [],
+                "rows": []
+            }
+        },
+        {
+            "name": "forward one-to-one: edit the saved object (update)",
+            "relation": "address",
+            "kind": "forward one-to-one",
+            "inline": "singular",
+            "view": "update",
+            "action": "edit the saved object",
+            "saved": {
+                "name": "Parent",
+                "address": {
+                    "id": 9101,
+                    "name": "Saved"
+                }
+            },
+            "request": {
+                "e": ["address"],
+                "f": ["name", "address", "id"],
+                "body": {
+                    "name": "Parent",
+                    "address": {
+                        "id": 9101,
+                        "name": "Edited"
+                    },
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": ["Edited"],
+                "rows": ["Edited"]
+            }
+        },
+        {
+            "name": "forward one-to-one: mark a saved row for removal (update)",
+            "relation": "address",
+            "kind": "forward one-to-one",
+            "inline": "singular",
+            "view": "update",
+            "action": "mark a saved row for removal",
+            "saved": {
+                "name": "Parent",
+                "address": {
+                    "id": 9101,
+                    "name": "Saved"
+                }
+            },
+            "request": {
+                "e": ["address"],
+                "f": ["name", "address", "id"],
+                "body": {
+                    "name": "Parent",
+                    "address": null,
+                    "id": "9000"
+                }
+            },
+            "result": {
+                "name": "Parent",
+                "linked": [],
+                "rows": ["Saved"]
+            }
+        }
+    ]
+}
