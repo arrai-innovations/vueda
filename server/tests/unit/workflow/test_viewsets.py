@@ -499,8 +499,8 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                 HTTP_DRY_RUN="true",
             )
         assert response.status_code == status.HTTP_200_OK, response_body(response)
-        assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
-        assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data["objects"][str(customer_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data["objects"][str(another_order.pk)]["new_state"]["code"] == "packed"
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
@@ -627,8 +627,10 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert another_order.workflow_state.code == "packed"
         called_times = 2
         assert lock_spy.call_count == called_times
-        assert response.data[str(customer_order.pk)]["new_state"]["code"] == "packed"
-        assert response.data[str(another_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data["target_state"] == {"code": "packed", "name": "Packed"}
+        assert response.data["objects"][str(customer_order.pk)]["state"] == {"code": "new", "name": "New"}
+        assert response.data["objects"][str(customer_order.pk)]["new_state"]["code"] == "packed"
+        assert response.data["objects"][str(another_order.pk)]["new_state"]["code"] == "packed"
         assert_matches_documented_response(
             response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/", "patch"
         )
@@ -654,11 +656,11 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
         message = "This object cannot be updated right now. Please try again."
 
-        def get_errors(object_id):
-            return response.data.get(object_id) or response.data.get(str(object_id))
-
-        assert [str(err) for err in get_errors(customer_order.pk)] == [message]
-        assert [str(err) for err in get_errors(another_order.pk)] == [message]
+        objects = response.data["objects"]
+        assert [str(err) for err in objects[str(customer_order.pk)]["errors"]] == [message]
+        assert [str(err) for err in objects[str(another_order.pk)]["errors"]] == [message]
+        # The batch rolled back, so no object reports the state it was written to before the refusal.
+        assert all("new_state" not in entry for entry in objects.values())
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
@@ -719,7 +721,9 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
-        assert set(response.data) - {"serverStack"} == {str(customer_order.pk), str(another_order.pk)}
+        assert response.data["transition_code"] == [
+            "Transition 'no_such_transition' does not exist for workflow 'order_fulfillment'."
+        ]
 
     def test_execute_transition_single_is_gated_then_applies_on_acknowledgement(
         self, api_client, workflow_user, express_order
@@ -805,6 +809,11 @@ class TestWorkflowViewSet(BaseTestUserMixin):
                     "double-check."
                 ]
             },
+        }
+        assert gated.data["target_state"] == {"code": "packed", "name": "Packed"}
+        assert gated.data["objects"] == {
+            str(express_order.pk): {"state": {"code": "new", "name": "New"}},
+            str(another_express_order.pk): {"state": {"code": "new", "name": "New"}},
         }
         express_order.refresh_from_db()
         another_express_order.refresh_from_db()
@@ -928,9 +937,86 @@ class TestWorkflowViewSet(BaseTestUserMixin):
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
         message = "Transition 'pack_order' not available from state 'shipped'"
-        assert response.data[str(customer_order.pk)] == [message]
-        assert response.data[str(another_order.pk)] == [message]
+        assert response.data["objects"][str(customer_order.pk)]["errors"] == [message]
+        assert response.data["objects"][str(another_order.pk)]["errors"] == [message]
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "shipped"
         assert another_order.workflow_state.code == "shipped"
+
+    def test_execute_transition_bulk_reports_each_state_and_refusal_in_one_response(
+        self, api_client, workflow_user, customer_order, another_order, assert_matches_documented_response
+    ):
+        # A confirmation page reads the target state, every object's current state, and the refused
+        # objects' reasons from the dry run that it runs when it opens.
+        api_client.force_authenticate(workflow_user)
+        shipped_state = State.objects.get(code="shipped", workflow__code="order_fulfillment")
+        object_state = another_order.object_state
+        object_state.state = shipped_state
+        object_state.save()
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [customer_order.pk, another_order.pk]},
+            format="json",
+            HTTP_DRY_RUN="true",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        assert response.data["target_state"] == {"code": "packed", "name": "Packed"}
+        assert response.data["objects"] == {
+            str(customer_order.pk): {"state": {"code": "new", "name": "New"}},
+            str(another_order.pk): {
+                "state": {"code": "shipped", "name": "Shipped"},
+                "errors": ["Transition 'pack_order' not available from state 'shipped'"],
+            },
+        }
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/", "patch"
+        )
+        customer_order.refresh_from_db()
+        assert customer_order.workflow_state.code == "new"
+
+    def test_execute_transition_bulk_reports_the_allow_transition_message(
+        self, api_client, workflow_user, customer_order
+    ):
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        with patch.object(store_models.CustomerOrder, "allow_transition", return_value="Payment has not cleared."):
+            response = api_client.patch(
+                bulk_url,
+                {"transition_code": "pack_order", "object_ids": [customer_order.pk]},
+                format="json",
+                HTTP_DRY_RUN="true",
+            )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        assert response.data["objects"][str(customer_order.pk)]["errors"] == ["Payment has not cleared."]
+
+    def test_execute_transition_bulk_reports_a_missing_workflow_permission_for_each_object(
+        self, api_client, workflow_reader, customer_order, another_order
+    ):
+        # The reader holds fulfill_orders but not the workflow's configured permissions. The run
+        # reports that refusal under each object, beside the object's state.
+        api_client.force_authenticate(workflow_reader)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [customer_order.pk, another_order.pk]},
+            format="json",
+            HTTP_DRY_RUN="true",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        for entry in response.data["objects"].values():
+            assert entry["state"] == {"code": "new", "name": "New"}
+            assert "does not have permission for workflow 'order_fulfillment'" in str(entry["errors"][0])

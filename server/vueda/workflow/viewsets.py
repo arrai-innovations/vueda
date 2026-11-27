@@ -35,6 +35,25 @@ from vueda.workflow.serializers import TransitionSerializer
 from vueda.workflow.serializers import WorkflowSerializer
 
 
+def _state_data(state):
+    """Return the ``code`` and ``name`` of ``state``. ``None`` stays ``None``."""
+    return state and {"code": state.code, "name": state.name}
+
+
+class _BulkTransitionRefusedError(VuedaValidationError):
+    """
+    The 400 of a bulk transition, whose body keeps the shape of the run's 200 response.
+
+    The body holds ``target_state`` and ``objects``. A refused object's entry holds ``errors``.
+    The body is kept as built, because the validation error's usual conversion would turn every
+    value into a string, including a state that is ``None``.
+    """
+
+    def __init__(self, data):
+        super().__init__()
+        self.detail = data
+
+
 @conditional_extend_schema_view_decorator(
     list=conditional_extend_schema_func(
         responses={
@@ -262,7 +281,19 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
             if not isinstance(object_ids, list):
                 raise VuedaValidationError({"object_ids": ["Must be a list of primary keys."]})
 
-            model_class = self.get_workflow().content_type.model_class()
+            workflow = self.get_workflow()
+            transition = (
+                Transition.objects.filter(workflow=workflow, code=transition_code).select_related("target").first()
+            )
+            if transition is None:
+                raise VuedaValidationError(
+                    {
+                        "transition_code": [
+                            f"Transition {transition_code!r} does not exist for workflow {workflow.code!r}."
+                        ]
+                    }
+                )
+            model_class = workflow.content_type.model_class()
             # Key every dict below off the resolved instance's own pk (cast to str), not the raw
             # request value. object_ids is client-supplied JSON, which may mix numeric and string
             # types (or the same ids typed differently across a gate/retry round trip); either of
@@ -276,35 +307,49 @@ class WorkflowViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets
                 for instance in (self._get_readable_object(model_class, object_id) for object_id in object_ids)
             ]
 
+            # Every response of a bulk run, and its 400 and 409, carries the transition's target state
+            # and each object's state when the request arrived. The objects sit under "objects" rather
+            # than at the root, so no primary key can collide with another key of the body.
+            objects = {oid: {"state": _state_data(instance.workflow_state)} for oid, instance in id_instances}
+            target_state = _state_data(transition.target)
+
             # Warnings are collected across every instance before any write, so a bulk transition
             # gates once with one aggregate digest instead of once per instance. Authorization
             # errors are aggregated the same way the write loop below aggregates them, so a bad
             # object_id in the batch is reported the same way whether it fails here or later.
-            errors = {}
+            refused = False
             warnings_by_object_id = {}
             for oid, instance in id_instances:
                 try:
-                    transition, resolved_user = self._check_transition_for_instance(instance, transition_code, request)
+                    checked_transition, resolved_user = self._check_transition_for_instance(
+                        instance, transition_code, request
+                    )
                 except VuedaValidationError as e:
-                    errors[oid] = e.detail
+                    objects[oid]["errors"] = e.detail
+                    refused = True
                 else:
-                    warnings = instance.get_transition_warnings(transition, resolved_user)
+                    warnings = instance.get_transition_warnings(checked_transition, resolved_user)
                     if warnings:
                         warnings_by_object_id[oid] = warnings
-            if errors:
-                raise VuedaValidationError(errors)
-            gate_warnings(request, warnings_by_object_id)
+            if refused:
+                raise _BulkTransitionRefusedError({"target_state": target_state, "objects": objects})
+            gate_warnings(request, warnings_by_object_id, extra={"target_state": target_state, "objects": objects})
 
-            response_data = {}
+            # The results join the response only when every write succeeded. A refusal here rolls the
+            # whole batch back, so its 400 reports no new state for the objects written before it.
+            results = {}
             with transaction.atomic():
                 for oid, instance in id_instances:
                     try:
-                        response_data[oid] = self._apply_transition_to_instance(instance, transition_code, request)
+                        results[oid] = self._apply_transition_to_instance(instance, transition_code, request)
                     except VuedaValidationError as e:
-                        errors[oid] = e.detail
-            if errors:
-                raise VuedaValidationError(errors)
-            return Response(response_data)
+                        objects[oid]["errors"] = e.detail
+                        refused = True
+            if refused:
+                raise _BulkTransitionRefusedError({"target_state": target_state, "objects": objects})
+            for oid, result in results.items():
+                objects[oid].update(result)
+            return Response({"target_state": target_state, "objects": objects})
 
     def _get_readable_object(self, model_class, object_id):
         """

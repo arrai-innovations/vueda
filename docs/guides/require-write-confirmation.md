@@ -92,7 +92,7 @@ class Order(VuedaModel):
         return {}
 ```
 
-[`execute_transition`]{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition} calls the hook after it checks permission and availability, and before it writes. A bulk request collects warnings from every object and gates the batch once, keyed by object id.
+[`execute_transition`]{@api py:function:vueda.workflow.viewsets.WorkflowViewSet.execute_transition} calls the hook after it checks permission and availability, and before it writes. A bulk request collects warnings from every object and gates the batch once, with the warnings keyed by object id. Its `409` also holds the transition's `target_state` and each object's `state` under `objects`, which [Read a Bulk Response](./transition-ux-and-redirects.md#read-a-bulk-response) describes.
 
 ## Warn in a Custom Action
 
@@ -123,6 +123,7 @@ class InvoiceViewSet(VuedaViewSet):
 - Pass `{field: [messages]}` when the request identifies one object in its URL or identifies no object.
 - Pass `{object_id: {field: [messages]}}`, keyed by `str(pk)`, when a {@term Bulk Action} request goes to the list URL. The client sends a request for one selected object to its detail URL, so a bulk action body checks whether `pk` is set.
 - An empty mapping passes the gate.
+- Pass `extra` to add more keys to the `409` body, such as context that the confirmation page shows beside the warnings. The digest covers only the warnings. An extra key cannot replace `confirmation_required`, `digest`, or `warnings`.
 
 A 409 rolls back the request's database transaction, as [Request Transactions](../core-concepts/configuration-surface-and-defaults.md#request-transactions) describes. Work outside the database, such as an email or a call to another service, does not roll back, so call the gate before that work. [Action Contract and Availability](../core-concepts/action-contract-and-availability.md#warning-confirmation-gating) describes the gate order in actions and how gating relates to a {@term Dry Run}.
 

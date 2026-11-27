@@ -17,6 +17,7 @@ from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.transport import Transport
 
 from vueda.core.exceptions import ConfirmationRequired
+from vueda.core.exceptions import compute_warnings_digest
 from vueda.core.exceptions import gate_warnings
 
 
@@ -36,6 +37,19 @@ class WriteThenGateView(APIView):
     def post(self, request):
         Group.objects.create(name="written-before-gate")
         gate_warnings(request, {"non_field_errors": ["Are you sure?"]})
+        return Response(status=HTTPStatus.CREATED)
+
+
+class GateWithExtraView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        gate_warnings(
+            request,
+            {"non_field_errors": ["Are you sure?"]},
+            extra={"target_state": {"code": "packed"}, "digest": "replaced", "warnings": {}},
+        )
         return Response(status=HTTPStatus.CREATED)
 
 
@@ -63,6 +77,7 @@ def raising_view(build_exception):
 urlpatterns = [
     path("write-then-raise/", WriteThenRaiseView.as_view()),
     path("write-then-gate/", WriteThenGateView.as_view()),
+    path("gate-with-extra/", GateWithExtraView.as_view()),
     path("reject-input/", RejectInputView.as_view()),
     path("raise-runtime-error/", raising_view(lambda: RuntimeError("view failure"))),
     path("raise-improperly-configured/", raising_view(lambda: ImproperlyConfigured("bad configuration"))),
@@ -91,6 +106,25 @@ class TestExceptionHandlerRollback:
 
         assert response.status_code == HTTPStatus.CONFLICT
         assert not Group.objects.filter(name="written-before-gate").exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.urls(__name__)
+class TestGateWarningsExtra:
+    def test_the_409_carries_extra_keys_without_replacing_its_own(self, client):
+        response = client.post("/gate-with-extra/")
+
+        assert response.status_code == HTTPStatus.CONFLICT
+        body = response.json()
+        assert body["target_state"] == {"code": "packed"}
+        assert body["warnings"] == {"non_field_errors": ["Are you sure?"]}
+        assert body["digest"] != "replaced"
+        assert body["confirmation_required"] is True
+
+    def test_the_digest_covers_only_the_warnings(self, client):
+        response = client.post("/gate-with-extra/")
+
+        assert response.json()["digest"] == compute_warnings_digest({"non_field_errors": ["Are you sure?"]})
 
 
 class RecordingTransport(Transport):

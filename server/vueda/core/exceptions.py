@@ -69,8 +69,9 @@ def debug_stack_exception_handler(exc, context):
         # An expected control-flow response, not an error: the request is valid but carries
         # unacknowledged advisory warnings. Return it directly so it skips the logging and the
         # serverStack augmentation below.
+        # The gate's own keys come last, so an extra key cannot replace them.
         return Response(
-            {"confirmation_required": True, "digest": exc.digest, "warnings": exc.warnings},
+            {**exc.extra, "confirmation_required": True, "digest": exc.digest, "warnings": exc.warnings},
             status=exc.status_code,
         )
 
@@ -151,13 +152,14 @@ class ConfirmationRequired(APIException):
     default_detail = "This change has warnings that require confirmation."
     default_code = "confirmation_required"
 
-    def __init__(self, warnings, digest, detail=None, code=None):
+    def __init__(self, warnings, digest, detail=None, code=None, extra=None):
         super().__init__(detail=detail, code=code)
         self.warnings = warnings
         self.digest = digest
+        self.extra = extra or {}
 
 
-def gate_warnings(request, warnings):
+def gate_warnings(request, warnings, extra=None):
     """
     Withhold a write behind an explicit confirmation when ``warnings`` is non-empty.
 
@@ -180,6 +182,10 @@ def gate_warnings(request, warnings):
     with the warnings and digest), and the client re-submits with the digest once the user
     confirms.
 
+    ``extra`` holds more keys for the 409 body, such as the context that a confirmation page shows
+    beside the warnings. The digest covers only ``warnings``. An extra key cannot replace
+    ``confirmation_required``, ``digest``, or ``warnings``.
+
     Call this from a custom action body after ``serializer.is_valid(raise_exception=True)`` (so
     blocking validation errors surface as a 400 before the 409) and before any write or side
     effect. ``WarningConfirmationMixin`` and the ``@action(confirm=True)`` mode route through this
@@ -189,7 +195,7 @@ def gate_warnings(request, warnings):
         return
     digest = compute_warnings_digest(warnings)
     if request.headers.get(ACKNOWLEDGE_WARNINGS_HEADER, "") != digest:
-        raise ConfirmationRequired(warnings, digest)
+        raise ConfirmationRequired(warnings, digest, extra=extra)
 
 
 def page_not_found(request, exception, *args, **kwargs):
