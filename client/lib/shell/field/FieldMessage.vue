@@ -4,7 +4,7 @@ import { THEME_OVERRIDE_PROPS, useTheme } from "@vueda/use/useTheme.js";
 import { computed, reactive, toRef } from "vue";
 
 /**
- * Displays field messages (errors or warnings) from a slot or an array of
+ * Displays field messages (errors, warnings, or information) from a slot or an array of
  * strings, arrays of strings (e.g. multiple server messages under one error
  * code), or objects with a `message` property, deduplicating and rendering
  * a list when multiple messages are present.
@@ -23,11 +23,14 @@ const props = defineProps({
      * field.
      */
     messages: { type: Array, default: undefined },
-    /** Controls color and ARIA role. */
+    /**
+     * Controls color and ARIA role. `"error"` marks a problem to fix, `"warning"` a problem to review, and `"info"` a
+     * fact that needs no action.
+     */
     severity: {
         type: String,
         default: "error",
-        validator: (value) => ["error", "warning"].includes(value),
+        validator: (value) => ["error", "warning", "info"].includes(value),
     },
 });
 

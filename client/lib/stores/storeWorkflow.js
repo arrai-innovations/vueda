@@ -214,8 +214,10 @@ const executeTransitionUrl = (result) => {
  *
  * The body holds `target_state` and `objects`, and each refused object's entry holds `errors`. A
  * confirmation page names a form field after each selected primary key, so keying the errors by
- * primary key puts each refusal under its object. A body without `objects`, such as an unknown
- * `transition_code`, is returned unchanged.
+ * primary key puts each refusal under its object. An object marked `already_in_target_state` needs
+ * no change, so its message is not an error and stays only in the body. An object marked `locked`
+ * keeps its message as an error, because it asks the user to try again. A body without `objects`,
+ * such as an unknown `transition_code`, is returned unchanged.
  *
  * @param {object} data - The 400 response body.
  * @returns {object} The errors keyed by primary key, with `serverStack` kept when present.
@@ -227,7 +229,7 @@ const refusalsByPk = (data) => {
     }
     const byPk = {};
     for (const [pk, entry] of Object.entries(data.objects)) {
-        if (entry?.errors) {
+        if (entry?.errors && !entry.already_in_target_state) {
             byPk[pk] = entry.errors;
         }
     }
@@ -576,8 +578,11 @@ export const storeWorkflow = defineStore("workflow", {
          *         target_state: WorkflowState,
          *         objects: {[objectPk: string]: {
          *             state: WorkflowState|null,
-         *             new_state: WorkflowState,
-         *             new_transitions: WorkflowTransition[],
+         *             new_state?: WorkflowState,
+         *             new_transitions?: WorkflowTransition[],
+         *             errors?: string[],
+         *             already_in_target_state?: boolean,
+         *             locked?: boolean,
          *         }},
          *     }|
          *     Array
@@ -585,8 +590,9 @@ export const storeWorkflow = defineStore("workflow", {
          *  and to each object's state before the run and its result, under `objects`, keyed by primary
          *  key. It resolves to an empty array when workflow is off. It rejects with `FormValidationError`
          *  on a 400, `ConfirmationRequiredError` on a 409, and `WorkflowError` for other failures. A bulk
-         *  run's `FormValidationError` keys each refused object's errors by primary key. Its
-         *  `responseData` keeps the whole body, which holds `target_state` and `objects`.
+         *  run's `FormValidationError` keys each refused object's errors by primary key. It leaves out an
+         *  object marked `already_in_target_state`, whose message is not an error. Its `responseData` keeps
+         *  the whole body, which holds `target_state` and `objects`.
          */
         executeTransition(
             app,

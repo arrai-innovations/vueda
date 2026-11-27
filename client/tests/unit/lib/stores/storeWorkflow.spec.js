@@ -558,6 +558,31 @@ describe("lib/stores/storeWorkflow.js", () => {
         expect(error.responseData).toBe(responseData);
     });
 
+    scopedIt("executeTransition leaves an object already in the target state out of a bulk 400's errors", async () => {
+        mockedFetchHelper.mockRejectedValue(new Error("boom"));
+        const store = storeWorkflow();
+
+        await store.executeTransition("app", "model", ["1", "2"], "pack").catch(() => {});
+
+        const errorResolver = mockedFetchHelper.mock.calls[0][6];
+        const responseData = {
+            target_state: { code: "packed", name: "Packed" },
+            objects: {
+                1: {
+                    state: { code: "packed", name: "Packed" },
+                    errors: ["Already in the Packed state."],
+                    already_in_target_state: true,
+                },
+                2: { state: { code: "shipped", name: "Shipped" }, errors: ["Not available from Shipped."] },
+            },
+        };
+
+        const error = errorResolver({ status: 400 }, responseData);
+
+        expect(error.errors).toEqual({ 2: ["Not available from Shipped."] });
+        expect(error.responseData).toBe(responseData);
+    });
+
     scopedIt("executeTransition keeps a bulk 400 without objects keyed by field", async () => {
         mockedFetchHelper.mockRejectedValue(new Error("boom"));
         const store = storeWorkflow();

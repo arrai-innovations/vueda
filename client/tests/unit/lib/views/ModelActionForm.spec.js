@@ -684,6 +684,135 @@ describe("lib/views/ModelActionForm.vue", () => {
         });
     });
 
+    describe("Skipped objects", () => {
+        const threeObjects = { objectsInOrder: [{ id: 1 }, { id: 2 }, { id: 3 }] };
+
+        scopedIt("counts and labels the whole selection when nothing is skipped", () => {
+            const { wrapper } = mountModelActionForm({ fetchState: threeObjects });
+
+            expect(wrapper.get('[data-qa="action-form-selected-count"]').text()).toBe("3 of 3 selected");
+            expect(wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]').text()).toBe(
+                "Activate",
+            );
+            expect(wrapper.find('[data-qa="action-form-skipped-message"]').exists()).toBe(false);
+        });
+
+        scopedIt("counts only the objects that the action runs on, in the heading and the button label", () => {
+            const { wrapper } = mountModelActionForm({ fetchState: threeObjects, props: { skippedPks: ["2"] } });
+
+            expect(wrapper.get('[data-qa="action-form-selected-count"]').text()).toBe("2 of 3 selected");
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.text()).toBe("Activate (2 of 3)");
+            expect(button.attributes("disabled")).toBeUndefined();
+        });
+
+        scopedIt("explains the skip with the button's own label", () => {
+            const { wrapper } = mountModelActionForm({ fetchState: threeObjects, props: { skippedPks: ["2"] } });
+
+            expect(wrapper.get('[data-qa="action-form-skipped-message"]').text()).toBe(
+                '1 of the selected People will be skipped. Go back to change your selection, or click "Activate (2 of 3)" ' +
+                    "to continue without it.",
+            );
+        });
+
+        scopedIt("ignores a skipped key that is not selected", () => {
+            const { wrapper } = mountModelActionForm({ fetchState: threeObjects, props: { skippedPks: ["9"] } });
+
+            expect(wrapper.get('[data-qa="action-form-selected-count"]').text()).toBe("3 of 3 selected");
+            expect(wrapper.find('[data-qa="action-form-skipped-message"]').exists()).toBe(false);
+        });
+
+        scopedIt("disables the confirm button when every selected object is skipped", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: threeObjects,
+                props: { skippedPks: ["1", "2", "3"] },
+            });
+
+            const button = wrapper.get('[data-qa="action-form-stub-confirm-slot"] [data-qa="button-stub"]');
+            expect(button.text()).toBe("Activate (0 of 3)");
+            expect(button.attributes("disabled")).toBeDefined();
+            expect(wrapper.get('[data-qa="action-form-skipped-message"]').text()).toBe(
+                "All of the selected People are skipped, so there is nothing to activate. Go back to change your " +
+                    "selection.",
+            );
+            expect(wrapper.get('[data-qa="action-form-message"]').text()).not.toContain("Are you sure");
+        });
+
+        scopedIt("does not offer Go Back for one skipped record, which may have no selection", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: { objectsInOrder: [{ id: 1 }] },
+                props: { skippedPks: ["1"] },
+            });
+
+            expect(wrapper.get('[data-qa="action-form-skipped-message"]').text()).toBe(
+                "The selected Person is skipped, so there is nothing to activate.",
+            );
+        });
+
+        scopedIt("offers Go Back for one skipped record that came from a list selection", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: { objectsInOrder: [{ id: 1 }] },
+                props: { pk: ["1"], skippedPks: ["1"] },
+            });
+
+            expect(wrapper.get('[data-qa="action-form-skipped-message"]').text()).toBe(
+                "The selected Person is skipped, so there is nothing to activate. Go back to change your selection.",
+            );
+        });
+
+        scopedIt("keeps a project's confirm-message content when every record is skipped", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: threeObjects,
+                props: { skippedPks: ["1", "2", "3"] },
+                slots: { "confirm-message": '<p data-qa="custom-message">Read the policy first.</p>' },
+            });
+
+            expect(wrapper.get('[data-qa="custom-message"]').text()).toBe("Read the policy first.");
+        });
+
+        scopedIt("gives a confirm-button slot the counts", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: threeObjects,
+                props: { skippedPks: ["2", "3"] },
+                slots: {
+                    "confirm-button": `<template #confirm-button="{ runCount, selectedCount, skippedCount }">
+                        <button data-qa="custom-confirm">{{ runCount }}/{{ selectedCount }}/{{ skippedCount }}</button>
+                    </template>`,
+                },
+            });
+
+            expect(wrapper.get('[data-qa="custom-confirm"]').text()).toBe("1/3/2");
+        });
+
+        scopedIt("lets a skipped-message slot replace the default text", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: threeObjects,
+                props: { skippedPks: ["2"] },
+                slots: {
+                    "skipped-message": `<template #skipped-message="{ label, skippedCount }">
+                        <p data-qa="custom-skipped">{{ skippedCount }} left out by {{ label }}</p>
+                    </template>`,
+                },
+            });
+
+            expect(wrapper.get('[data-qa="custom-skipped"]').text()).toBe("1 left out by Activate (2 of 3)");
+            expect(wrapper.find('[data-qa="action-form-skipped-message"]').exists()).toBe(false);
+        });
+
+        scopedIt("shows a notice under its object in the info severity", () => {
+            const { wrapper } = mountModelActionForm({
+                fetchState: threeObjects,
+                props: { skippedPks: ["2"], pkNotices: { 2: "Already in the Active state." } },
+            });
+
+            const items = wrapper.findAll('[data-qa="action-form-list-item"]');
+            expect(items[0].find('[data-qa="action-form-list-item-notice"]').exists()).toBe(false);
+            const notice = items[1].get('[data-qa="action-form-list-item-notice"]');
+            expect(notice.text()).toBe("Already in the Active state.");
+            expect(notice.attributes("data-severity")).toBe("info");
+        });
+    });
+
     describe("Warning confirmation dialog", () => {
         scopedIt(
             "renders one group per warned object for bulk warnings, each with a WidgetReadOnly label and its own FieldWarningsList",

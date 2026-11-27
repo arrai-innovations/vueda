@@ -13,13 +13,13 @@ patchTheme({
      */
     FieldMessage: {
         /**
-         * The validation or warning message attached to a field. It maps error severity to destructive text and all
-         * other severities to warning text.
+         * The validation, warning, or information message attached to a field. It maps error severity to destructive
+         * text, info severity to info text, and warning severity to warning text.
          */
         root: ({ severity }) => ({
             class: [
                 "text-[length:var(--vueda-text-supporting)] leading-[1.4] font-medium",
-                severity === "error" ? "text-destructive" : "text-warning",
+                { error: "text-destructive", info: "text-info" }[severity] ?? "text-warning",
             ],
         }),
         /**

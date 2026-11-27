@@ -5,8 +5,9 @@
 import { useListInstance, useObjectInstance } from "@arrai-innovations/reactive-helpers";
 import { useModelConfig } from "@vueda/use/useModelConfig.js";
 import { getActionRequestMethod } from "@vueda/utils/actionMap.js";
-import { getLowerTitle, getPluralizedTitle } from "@vueda/utils/case.js";
+import { getLowerTitle } from "@vueda/utils/case.js";
 import { DETAIL_VIEW_CRUD_NAME, LIST_VIEW_CRUD_NAME } from "@vueda/utils/constants.js";
+import { getModelVerboseName, normalizePks } from "@vueda/utils/modelAction.js";
 import startCase from "lodash-es/startCase.js";
 import { computed, reactive, ref, toRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -96,22 +97,6 @@ import { useRoute, useRouter } from "vue-router";
  */
 
 /**
- * Normalizes a scalar, array, or empty primary key value into an array.
- *
- * @param {unknown|unknown[]} value - Raw primary key input.
- * @returns {unknown[]} Normalized primary keys.
- */
-function normalizePks(value) {
-    if (Array.isArray(value)) {
-        return value.filter((pk) => pk !== undefined && pk !== null && pk !== "");
-    }
-    if (value === undefined || value === null || value === "") {
-        return [];
-    }
-    return [value];
-}
-
-/**
  * Provides target, execution, copy, dry-run, and redirect plumbing for model actions.
  * It does not create or consume a form context; form shells layer `useActionForm`
  * or `ActionForm` on top when they need submit UI and validation summaries.
@@ -164,11 +149,7 @@ export function useModelAction(props) {
     );
     const viewOnly = computed(() => modelConfig.loading === false && !props.runAction && !requestMethod.value);
 
-    const modelVerboseName = computed(() =>
-        bulk.value
-            ? modelConfig.info?.verboseNamePlural || getLowerTitle(getPluralizedTitle(props.model))
-            : modelConfig.info?.verboseName || getLowerTitle(props.model),
-    );
+    const modelVerboseName = computed(() => getModelVerboseName(modelConfig.info, props.model, bulk.value));
 
     const actionVerboseNameLowerCase = computed(() =>
         props.actionVerboseName?.length > 0 ? props.actionVerboseName : getLowerTitle(props.action),
