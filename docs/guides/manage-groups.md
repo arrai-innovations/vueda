@@ -7,7 +7,7 @@ status: draft
 
 # Manage Groups and Generate Group Migrations
 
-Use the {@term Group Management Page} to add groups to permissions, rename groups, and remove permissions from groups. VUEDA records each change. Then run [`makegroupmigrations`]{@api py:class:vueda.user.management.commands.makegroupmigrations.Command} to write a {@term Group Permission Migration}, which applies the same changes in your other environments.
+Use the {@term Group Management Page} to add groups to permissions, rename groups, and remove permissions from groups. VUEDA records each change. Then run [`makevuedamigrations`]{@api py:class:vueda.user.management.commands.makevuedamigrations.Command} to write a {@term Group Permission Migration}, which applies the same changes in your other environments. The same command writes {@term Workflow Migration}s, in the order that you made the group and workflow changes.
 
 A group's permissions feed each member's {@term Baseline Permission}. To audit which groups hold each permission without editing anything, use the {@term Permissions and Workflow Overview}, described in [Use the Permissions and Workflow Overview](./permissions-workflow-overview.md).
 
@@ -67,39 +67,47 @@ The group management page has no action that deletes a group; [#423](https://git
 
 ## Generating Group Migrations
 
-1. Write the migration:
+1. Apply your other migrations with `python manage.py migrate`, so that none is left unapplied. Step 3 explains why.
+
+2. Write the migrations:
 
     ```console
-    python manage.py makegroupmigrations
+    python manage.py makevuedamigrations
     ```
 
-    The command writes the migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations_2026_04_21`. When there is nothing new to write, it prints `No group changes detected.`
+    The command writes each group migration into the app of {@api ext:django:setting:AUTH_USER_MODEL}, with a name like `0005_group_permission_migrations_3f9a2c71`. The name ends in a random suffix of 8 hex characters. When you also changed workflows, it writes their workflow migrations in the same run. When there is nothing new to write, it prints `No changes detected.`
 
-2. Fake the migration in your own database, which already has the changes. The command prints a note that tells you to fake it.
+3. Fake the new migrations in your own database, which already has the changes. The command prints a note that tells you to fake them.
 
     ```console
-    python manage.py migrate myapp 0005_group_permission_migrations_2026_04_21 --fake
+    python manage.py migrate myapp 0005_group_permission_migrations_3f9a2c71 --fake
     ```
 
-3. Ship the migration with your code. Other environments apply it with `python manage.py migrate`.
+    When the run wrote several migrations, faking the last one fakes the ones that it depends on too. A new migration depends on the latest migration of every app in your project, so faking it would also mark an unapplied migration of another app as applied, and that migration would never run. The command warns when your database has such a migration.
 
-To preview the migration name without writing a file, add `--dry-run`. The command passes `--dry-run` to Django's `makemigrations`, and still prints the note to fake the migration.
+4. Ship the migrations with your code. Other environments apply them with `python manage.py migrate`.
+
+To preview the migrations without writing a file, add `--dry-run`. The command prints the name of each migration that it would write.
 
 ```console
-python manage.py makegroupmigrations --dry-run
+python manage.py makevuedamigrations --dry-run
 ```
+
+### Group and Workflow Changes in One Run
+
+A workflow migration can name a group that a group migration creates or renames. `makevuedamigrations` therefore writes the changes in the order that you made them. It starts a new migration each time your changes switch between group changes and workflow changes, or from one app's workflow to another app's. Each migration depends on the ones before it. [Group Changes and Workflow Migrations](manage-workflows.md#group-changes-and-workflow-migrations) in the workflow guide shows an example.
 
 ### Which Changes a Migration Includes
 
-VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makegroupmigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them.
+VUEDA stores each recorded change as a [`GroupChange`]{@api py:class:vueda.user.models.GroupChange} row. `makevuedamigrations` skips the rows that an existing group migration in the same app already holds. It writes the rest in the order that VUEDA recorded them. VUEDA takes each change's time from the database's clock, as it does for workflow changes, so the command can order group and workflow changes against each other.
 
 A change names its group by name and its permission by codename, app label, and model name. It holds no primary keys, because keys differ between databases.
 
-When a group migration runs forward, it adds a `GroupChange` row for each of its changes that has none. A later `makegroupmigrations` run in that environment then skips those changes.
+When a group migration runs forward, it adds a `GroupChange` row for each of its changes that has none. A later `makevuedamigrations` run in that environment then skips those changes.
 
 ### Change Types
 
-Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.management.commands.makegroupmigrations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
+Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:vueda.user.migration_generation.operations.GroupChangeTypes}. Rolling back a migration applies its changes in reverse order, each with the backward effect below.
 
 | Type           | Recorded when                                                | Forward                                                    | Backward                                                   |
 | -------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------- |
@@ -111,19 +119,19 @@ Each change has one of five types, listed in [`GroupChangeTypes`]{@api py:class:
 
 No change type deletes a group, in either direction.
 
-Each group migration carries its own copy of the code that applies these changes. A group migration generated by an earlier VUEDA release still deletes a group when it replays a `deleted` change or rolls back an `added` change. Review those migrations before you run them in another environment. The `updategroupmigrations` command, described in [Updating Existing Group Migrations](#updating-existing-group-migrations), replaces their copy with the current code.
+Each group migration carries its own copy of the code that applies these changes. A group migration generated by an earlier VUEDA release still deletes a group when it replays a `deleted` change or rolls back an `added` change. Review those migrations before you run them in another environment. The `updatevuedamigrations` command, described in [Updating Existing Group Migrations](#updating-existing-group-migrations), replaces their copy with the current code.
 
 ### What the Migration File Contains
 
-A group migration is a standard Django migration. `makegroupmigrations` adds:
+A group migration is a standard Django migration. `makevuedamigrations` adds:
 
 - `changed_data`, the list of changes that the migration applies. [How `changed_data` Is Formatted](#how-changed-data-is-formatted) describes its layout.
-- Copies of [`migrate_step`]{@api py:function:vueda.user.management.commands.makegroupmigrations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.management.commands.makegroupmigrations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.management.commands.makegroupmigrations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
-- A comment near the top that marks the file as a group migration. VUEDA's group migration commands find group migrations by this comment, so keep it.
+- Copies of [`migrate_step`]{@api py:function:vueda.user.migration_generation.operations.migrate_step}, [`forwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.operations.forwards_migrate_groups}, [`backwards_migrate_groups`]{@api py:function:vueda.user.migration_generation.operations.backwards_migrate_groups}, [`make_sure_permissions_exist`]{@api py:function:vueda.user.migration_generation.operations.make_sure_permissions_exist}, `GroupChangeTypes`, and their helpers. The migration runs `make_sure_permissions_exist` first, so every permission it names exists.
+- A comment near the top that marks the file as a group migration. VUEDA's commands find group migrations by this comment, so keep it. The comment names `makevuedamigrations`. VUEDA still recognizes the comment that `makegroupmigrations` wrote in older migrations.
 
 ### How `changed_data` Is Formatted
 
-`makegroupmigrations` formats `changed_data` with the Python formatter that your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. Projects usually install these as development dependencies. `makeworkflowmigrations` and `updateworkflowmigrations` format their `changed_data` the same way, as [How `changed_data` Is Formatted](manage-workflows.md#how-changed-data-is-formatted) in the workflow guide describes.
+`makevuedamigrations` formats the `changed_data` of a group migration with the Python formatter that your project uses, [black](https://black.readthedocs.io/) or [ruff](https://docs.astral.sh/ruff/), when one is installed. Projects usually install these as development dependencies. It formats a workflow migration's `changed_data` the same way, and so does `updatevuedamigrations`, as [How `changed_data` Is Formatted](manage-workflows.md#how-changed-data-is-formatted) in the workflow guide describes.
 
 The command uses the first formatter in this list that applies:
 
@@ -150,26 +158,37 @@ The command formats only `changed_data` this way. It writes the rest of the migr
 python manage.py sync_group_changes
 ```
 
+### Squashing Generated Migrations
+
+Django's `squashmigrations` does not keep the `changed_data` of a generated group migration. After a squash replaces the generated migrations, `makevuedamigrations` no longer reads their changes, so it treats them as pending and writes them again. `sync_group_changes` and `updatevuedamigrations` cannot find them either.
+
+Until VUEDA squashes generated migrations itself, end each squash range before the first generated migration in the user app. [#734](https://github.com/arrai-innovations/vueda/issues/734) plans that work: a command that suggests which apps to squash, in what order and over which ranges, and a squash that combines generated migrations.
+
 ## Updating Existing Group Migrations
 
-A group migration runs without updates, because it carries its own copy of the code. Run [`updategroupmigrations`]{@api py:class:vueda.user.management.commands.updategroupmigrations.Command} when a VUEDA release changes that code and you want existing group migrations to use the new version.
+A group migration runs without updates, because it carries its own copy of the code. Run [`updatevuedamigrations`]{@api py:class:vueda.user.management.commands.updatevuedamigrations.Command} when a VUEDA release changes that code and you want existing group migrations to use the new version. The same run refreshes your workflow migrations.
 
 ```console
-python manage.py updategroupmigrations
+python manage.py updatevuedamigrations
 ```
 
 Add `--dry-run` to list the files that the command would update without writing them.
 
 ```console
-python manage.py updategroupmigrations --dry-run
+python manage.py updatevuedamigrations --dry-run
 ```
 
-The command finds group migrations in every installed app by their marker comment. In each file it:
+The command finds group migrations in every app by their marker comment, including the marker that `makegroupmigrations` wrote. It never rewrites an app installed as a package. In each group migration it:
 
 - Replaces each copied function, and `GroupChangeTypes`, with the current version, matched by name. It adds any that the file lacks.
 - Updates the import lines that it recognizes, and leaves other imports in place.
+- Removes an import of a function that it now copies into the file, such as `create_group_change` or `get_matching_record`. The copy replaces the import.
+- Removes an import of a VUEDA module or name that no longer exists when nothing in the file uses it. When the file still uses such a name, the command reports the file and leaves it unchanged.
+- Removes imports that earlier versions wrote and the current version does not, such as `settings`, when nothing else in the file uses them.
 - Keeps `changed_data` and the `Migration` class. In the class's `operations` list, it renames references to functions that earlier releases named differently.
+
+For each migration, it prints `Updating:` when it rewrote the file, or `Already up to date:` when nothing needed to change, and it writes only the files that changed. [Updating Existing Workflow Migrations](manage-workflows.md#updating-existing-workflow-migrations) in the workflow guide describes the rest of what the command does, including which apps count as installed packages.
 
 Code outside the copied functions stays as it is. The command overwrites edits inside a copied function the next time it runs. To add behavior to a group migration, write a separate function and add it to the `operations` list.
 
-An environment that already applied a migration does not run it again. An update affects only rollbacks and environments that have not applied the migration. Running the command when nothing has changed rewrites the same code.
+An environment that already applied a migration does not run it again. An update affects only rollbacks and environments that have not applied the migration.

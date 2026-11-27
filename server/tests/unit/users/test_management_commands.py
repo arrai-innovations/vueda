@@ -1,8 +1,7 @@
-import ast
 import datetime
 import io
-import os
 import re
+from pathlib import Path
 from pprint import pformat
 
 import pytest
@@ -12,369 +11,16 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.db.migrations.recorder import MigrationRecorder
 
 from tests.conftest import BaseTestCallCommand
 from tests.utils import BaseTestMigrations
-from tests.utils import append_installed_apps
-from tests.utils import clear_info_registry_before_test
-from tests.utils import find_one_migration_generated_today_or_fail
-from vueda.user.management.commands.makegroupmigrations import migrate_step
 from vueda.user.management.commands.utils import format_changed_data
 from vueda.user.management.commands.utils import update_operation_function_names
+from vueda.user.migration_generation import operations as group_operations
+from vueda.user.migration_generation.operations import migrate_step
+from vueda.user.migration_generation.tools import GROUP_MIGRATION_KIND
 from vueda.user.models import GroupChange
-
-
-class BaseAddedGroup:
-    def assert_added_group_migration_round_trips(self, migration_dir, results):
-        # Reload 0003, because we rewrote it after it would have imported it.
-        assert results, "No results were captured when makegroupmigrations was called."
-        self.reload_module(results, migration_dir)
-
-        results_set = frozenset([line.strip() for line in results if line.strip()])
-        assert "Creating empty migration for group permission changes." in results_set
-        migration_name = find_one_migration_generated_today_or_fail(migration_dir, "group_permission_migrations")
-        assert any(migration_name in r for r in results_set)
-
-        # GroupAddedWorkers should not exist before running the generated migration.
-        assert not Group.objects.filter(name="GroupAddedWorkers").exists()
-
-        # Delete the GroupChange objects.  Running the migration should create them.
-        GroupChange.objects.all().delete()
-
-        # Run the generated migration forwards.
-        succeeded, results = self.call_command_capturing_output("migrate", "group_added", "0003")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        group = Group.objects.filter(name="GroupAddedWorkers").first()
-        assert group is not None, "'GroupAddedWorkers' was not created."
-
-        assert group.permissions.filter(
-            codename="read_groupaddeduser",
-            content_type__app_label="group_added",
-            content_type__model="groupaddeduser",
-        ).exists(), "'read_groupaddeduser' not associated with 'GroupAddedWorkers'."
-
-        assert group.permissions.filter(
-            codename="list_groupaddeduser",
-            content_type__app_label="group_added",
-            content_type__model="groupaddeduser",
-        ).exists(), "'list_groupaddeduser' not associated with 'GroupAddedWorkers'."
-
-        # Verify the GroupChange objects got recreated.
-        assert GroupChange.objects.count() == 2  # noqa: PLR2004
-
-        assert GroupChange.objects.filter(
-            group_name="GroupAddedWorkers",
-            change_type="added",
-            historical_permission_codename="list_groupaddeduser",
-            historical_permission_content_type_app_label="group_added",
-            historical_permission_content_type_model_name="groupaddeduser",
-        ).exists(), (
-            f"GroupChange object wasn't created while running the group migration: {GroupChange.objects.values()}"
-        )
-
-        assert GroupChange.objects.filter(
-            group_name="GroupAddedWorkers",
-            change_type="associated",
-            historical_permission_codename="read_groupaddeduser",
-            historical_permission_content_type_app_label="group_added",
-            historical_permission_content_type_model_name="groupaddeduser",
-        ).exists(), (
-            f"GroupChange object wasn't created while running the group migration: {GroupChange.objects.values()}"
-        )
-
-        # Run the generated migration backwards.
-        succeeded, results = self.call_command_capturing_output("migrate", "group_added", "0002")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        # Rolling back removes the permissions and keeps the group, whose memberships a migration
-        # cannot restore.
-        group = Group.objects.filter(name="GroupAddedWorkers").first()
-        assert group is not None, "'GroupAddedWorkers' was deleted by rolling back."
-        assert not group.permissions.exists(), "'GroupAddedWorkers' kept a permission after rolling back."
-
-
-class TestManagementCommandGroupTests(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_comment_removed(self, settings):
-        """
-        This test doesn't use --import-instead, so we can verify that
-        the noqa comments are stripped from the generated migration.
-        """
-        settings.MIGRATION_MODULES = {
-            "group_added": "tests.group_added",
-        }
-        settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
-        append_installed_apps(settings, "tests.group_added")
-
-        with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
-            # Migrate forwards.
-            succeeded, results = self.call_command_capturing_output("migrate", "group_added")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # Create the generated migration 0003.
-            succeeded, results = self.call_command_capturing_output("makegroupmigrations")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # Verify that the noqa comments are gone.
-            migration_filepath = os.path.join(
-                migration_dir,
-                find_one_migration_generated_today_or_fail(migration_dir, "0003_group_permission_migrations"),
-            )
-
-            with open(migration_filepath, encoding="utf-8") as f:
-                migration_content = f.read()
-
-            assert "    forwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
-            assert "    backwards_migrate_groups(apps, copy.deepcopy(changed_data))\n" in migration_content
-
-            self.assert_added_group_migration_round_trips(migration_dir, results)
-
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_changed_data_follows_the_migrations_project_settings(self, settings):
-        """The formatter reads the settings that apply to the migration's own path.
-
-        Only the changed_data assignment is checked, so the rest of the file cannot match. A formatter keeps the
-        trailing comma after the last change, which pformat never writes. With the formatter shown to have run,
-        single quotes show it read the migration's settings, since neither ruff nor black defaults to them.
-        """
-        settings.MIGRATION_MODULES = {
-            "group_added": "tests.group_added",
-        }
-        settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
-        append_installed_apps(settings, "tests.group_added")
-
-        with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
-            with open(os.path.join(os.path.dirname(migration_dir), "pyproject.toml"), "w", encoding="utf-8") as f:
-                f.write('[tool.ruff.format]\nquote-style = "single"\n')
-
-            succeeded, results = self.call_command_capturing_output("migrate", "group_added")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            succeeded, results = self.call_command_capturing_output("makegroupmigrations")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            migration_filepath = os.path.join(
-                migration_dir, f"0003_group_permission_migrations_{datetime.date.today().strftime('%Y_%m_%d')}.py"
-            )
-            with open(migration_filepath, encoding="utf-8") as f:
-                migration_content = f.read()
-
-            assignment = next(
-                node
-                for node in ast.parse(migration_content).body
-                if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "changed_data"
-            )
-            changed_data_source = ast.get_source_segment(migration_content, assignment)
-            assert re.search(r",\s*\]$", changed_data_source)
-            assert "'group_name'" in changed_data_source
-
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_dry_run_no_changes(self):
-        succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--dry-run")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        assert "No group changes detected.\n" in results
-
-
-class TestManagementCommandGroupAdded(BaseAddedGroup, BaseTestMigrations, BaseTestCallCommand):
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_added(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_added": "tests.group_added",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_added.GroupAddedUser"
-        append_installed_apps(settings, "tests.group_added")
-
-        with self.temporary_migration_module(settings, app_label="group_added") as migration_dir:
-            # No migrations should have run yet.
-            assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 0
-
-            # Migrate forwards.
-            succeeded, results = self.call_command_capturing_output("migrate", "group_added")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # We should have run migration 0001 and 0002.
-            assert MigrationRecorder.Migration.objects.filter(app="group_added").count() == 2  # noqa: PLR2004
-
-            # Create the generated migration 0003.
-            succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--import-instead")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            self.assert_added_group_migration_round_trips(migration_dir, results)
-
-
-class TestManagementCommandGroupChanged(BaseTestMigrations, BaseTestCallCommand):
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_changed(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_changed": "tests.group_changed",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_changed.GroupChangedUser"
-        append_installed_apps(settings, "tests.group_changed")
-
-        with self.temporary_migration_module(settings, app_label="group_changed") as migration_dir:
-            assert MigrationRecorder.Migration.objects.filter(app="group_changed").count() == 0
-
-            succeeded, results = self.call_command_capturing_output("migrate", "group_changed")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert MigrationRecorder.Migration.objects.filter(app="group_changed").count() == 3  # noqa: PLR2004
-
-            # Verify the initial state: old name exists, new name does not.
-            assert Group.objects.filter(name="GroupChangedWorkers").exists()
-            assert not Group.objects.filter(name="GroupChangedSeniorWorkers").exists()
-
-            # Verify the number of GroupChange objects.
-            assert GroupChange.objects.count() == 3  # noqa: PLR2004
-
-            succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--import-instead")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert results, "No results were captured when makegroupmigrations was called."
-            self.reload_module(results, migration_dir)
-
-            results_set = frozenset([line.strip() for line in results if line.strip()])
-            assert "Creating empty migration for group permission changes." in results_set
-            migration_name = find_one_migration_generated_today_or_fail(migration_dir, "group_permission_migrations")
-            assert any(migration_name in r for r in results_set)
-
-            # Run the generated migration forwards.
-            succeeded, results = self.call_command_capturing_output("migrate", "group_changed", "0004")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert not Group.objects.filter(name="GroupChangedWorkers").exists(), (
-                "'GroupChangedWorkers' still exists after rename."
-            )
-            group = Group.objects.filter(name="GroupChangedSeniorWorkers").first()
-            assert group is not None, "'GroupChangedSeniorWorkers' was not created."
-
-            assert group.permissions.filter(
-                codename="list_groupchangeduser",
-                content_type__app_label="group_changed",
-                content_type__model="groupchangeduser",
-            ).exists(), "'list_groupchangeduser' not associated with 'GroupChangedSeniorWorkers'."
-
-            # Verify the number of GroupChange objects hasn't changed.
-            assert GroupChange.objects.count() == 3  # noqa: PLR2004
-
-            # Run the generated migration backwards.
-            succeeded, results = self.call_command_capturing_output("migrate", "group_changed", "0003")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert not Group.objects.filter(name="GroupChangedSeniorWorkers").exists(), (
-                "'GroupChangedSeniorWorkers' still exists after rolling back."
-            )
-            group = Group.objects.filter(name="GroupChangedWorkers").first()
-            assert group is not None, "'GroupChangedWorkers' was not restored after rolling back."
-
-            assert group.permissions.filter(
-                codename="list_groupchangeduser",
-                content_type__app_label="group_changed",
-                content_type__model="groupchangeduser",
-            ).exists(), "'list_groupchangeduser' not associated with 'GroupChangedWorkers' after rolling back."
-
-
-class TestManagementCommandGroupDeleted(BaseTestMigrations, BaseTestCallCommand):
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_deleted(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_deleted": "tests.group_deleted",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_deleted.GroupDeletedUser"
-        append_installed_apps(settings, "tests.group_deleted")
-
-        with self.temporary_migration_module(settings, app_label="group_deleted") as migration_dir:
-            assert MigrationRecorder.Migration.objects.filter(app="group_deleted").count() == 0
-
-            succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0003")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert MigrationRecorder.Migration.objects.filter(app="group_deleted").count() == 3  # noqa: PLR2004
-
-            # Verify the initial state: group exists with its permission.
-            group = Group.objects.filter(name="GroupDeletedWorkers").first()
-            assert group is not None, "'GroupDeletedWorkers' should exist before deletion test."
-            assert group.permissions.filter(
-                codename="list_groupdeleteduser",
-                content_type__app_label="group_deleted",
-                content_type__model="groupdeleteduser",
-            ).exists(), "'list_groupdeleteduser' should be associated before deletion test."
-            assert group.permissions.filter(
-                codename="read_groupdeleteduser",
-                content_type__app_label="group_deleted",
-                content_type__model="groupdeleteduser",
-            ).exists(), "'read_groupdeleteduser' should be associated before deletion test."
-
-            succeeded, results = self.call_command_capturing_output("makegroupmigrations", "--import-instead")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert results, "No results were captured when makegroupmigrations was called."
-            self.reload_module(results, migration_dir)
-
-            results_set = frozenset([line.strip() for line in results if line.strip()])
-            assert "Creating empty migration for group permission changes." in results_set
-            migration_name = find_one_migration_generated_today_or_fail(migration_dir, "group_permission_migrations")
-            assert any(migration_name in r for r in results_set)
-
-            # Run the generated migration forwards.
-            succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0004")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            # A `deleted` change removes the last permission and keeps the group.
-            group = Group.objects.filter(name="GroupDeletedWorkers").first()
-            assert group is not None, "'GroupDeletedWorkers' was deleted by replaying a `deleted` change."
-            assert not group.permissions.exists(), "'GroupDeletedWorkers' kept a permission after the migration."
-
-            # Run the generated migration backwards.
-            succeeded, results = self.call_command_capturing_output("migrate", "group_deleted", "0003")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert Group.objects.filter(name="GroupDeletedWorkers").exists()
-
-            group = Group.objects.get(name="GroupDeletedWorkers")
-            assert group.permissions.filter(
-                codename="list_groupdeleteduser",
-                content_type__app_label="group_deleted",
-                content_type__model="groupdeleteduser",
-            ).exists(), "'list_groupdeleteduser' not restored after rolling back."
-            assert group.permissions.filter(
-                codename="read_groupdeleteduser",
-                content_type__app_label="group_deleted",
-                content_type__model="groupdeleteduser",
-            ).exists(), "'read_groupdeleteduser' not restored after rolling back."
+from vueda.workflow.migration_generation.tools import WORKFLOW_MIGRATION_KIND
 
 
 @pytest.mark.django_db
@@ -413,363 +59,74 @@ class TestCreateUserCommand:
         assert user.groups.filter(name="TestGroup").exists()
 
 
-class TestManagementCommandGroupUpdating(BaseTestMigrations, BaseTestCallCommand):
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_updating(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_updating": "tests.group_updating",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_updating.GroupUpdatingUser"
-        append_installed_apps(settings, "tests.group_updating")
+# A generated group migration with two recorded changes, as makevuedamigrations writes one.
+GROUP_MIGRATION_WITH_TWO_CHANGES = """# Generated by Django 6.1 on 2026-06-29 15:30
+{marker}
+import datetime
 
-        with self.temporary_migration_module(settings, app_label="group_updating") as migration_dir:
-            migration_filepath = os.path.join(migration_dir, "0002_group_permission_migrations_2026_06_29.py")
+from django.db import migrations
 
-            with open(migration_filepath, encoding="utf-8") as f:
-                migration_content = f.read()
 
-            # Untouched
-            assert "changed_data = [" in migration_content
-            assert "# Stray comment for testing." in migration_content
-            assert "# Stray import 1 for testing." in migration_content
-            assert "# Stray import 2 for testing." in migration_content
-            assert "import os" in migration_content
-            assert "import sys" in migration_content
+changed_data = [
+    {{
+        "change_type": "added",
+        "group_name": "Synced Members",
+        "group_name_old": "",
+        "historical_permission_codename": "read_contenttype",
+        "historical_permission_content_type_app_label": "contenttypes",
+        "historical_permission_content_type_model_name": "contenttype",
+        "historical_permission_name": "Can read content type",
+        "when": datetime.datetime(2026, 6, 29, 15, 30, 36, 252716, tzinfo=datetime.timezone.utc),
+    }},
+    {{
+        "change_type": "associated",
+        "group_name": "Synced Members",
+        "group_name_old": "",
+        "historical_permission_codename": "list_permission",
+        "historical_permission_content_type_app_label": "auth",
+        "historical_permission_content_type_model_name": "permission",
+        "historical_permission_name": "Can list permissions",
+        "when": datetime.datetime(2026, 6, 29, 20, 49, 37, 102038, tzinfo=datetime.timezone.utc),
+    }},
+]
 
-            # Original
-            assert "def forwards_migrate_groups(apps, schema_editor):" in migration_content
-            assert "def backwards_migrate_groups(apps, schema_editor):" in migration_content
-            assert "            forwards_migrate_groups," in migration_content
-            assert "            backwards_migrate_groups," in migration_content
 
-            # Unchanged
-            assert "def create_group_change(change, group_change_model):" in migration_content
-            assert "class GroupChangeTypes(enum.Enum):" in migration_content
-            assert "def get_matching_record(change, group_change_model):" in migration_content
-            assert (
-                """def migrate_step(
-    content_types,
-    groups,
-    permissions,
-    group_name,
-    group_name_old,
-    change_type,
-    historical_permission_codename,
-    historical_permission_content_type_app_label,
-    historical_permission_content_type_model_name,
-    historical_permission_name,
-):"""
-                in migration_content
+class Migration(migrations.Migration):
+    dependencies = [
+        ("employee", "0001_initial"),
+    ]
+
+    operations = []
+"""
+
+
+@pytest.mark.django_db
+class TestSyncGroupChanges(BaseTestMigrations, BaseTestCallCommand):
+    def test_each_change_in_the_migrations_module_that_settings_name_gets_a_row(self, settings):
+        """The migration exists only in the module that MIGRATION_MODULES names, not in the app's own folder."""
+        with self.temporary_migration_module(settings, app_label="employee") as employee_dir:
+            (Path(employee_dir) / "0002_group_permission_migrations_2026_06_29.py").write_text(
+                GROUP_MIGRATION_WITH_TWO_CHANGES.format(marker=group_operations.MIGRATION_MODIFIED_COMMENT.strip())
             )
-            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
-            assert "code=make_sure_permissions_exist," in migration_content
-
-            # New
-            assert (
-                "def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                not in migration_content
-            )
-            assert (
-                "def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                not in migration_content
-            )
-            assert "def forwards_migrate_groups(apps, changed_items):" not in migration_content
-            assert "def backwards_migrate_groups(apps, changed_items):" not in migration_content
-            assert "            forwards_migrate_groups_through_imports," not in migration_content
-            assert "            backwards_migrate_groups_through_imports," not in migration_content
-
-            succeeded, results = self.call_command_capturing_output("updategroupmigrations")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            with open(migration_filepath, encoding="utf-8") as f:
-                migration_content = f.read()
-
-            # Untouched
-            assert "# Stray comment for testing." in migration_content
-            assert "# Stray import 1 for testing." in migration_content
-            assert "# Stray import 2 for testing." in migration_content
-            assert "changed_data = [" in migration_content
-            assert "import os" in migration_content
-            assert "import sys" in migration_content
-
-            # Removed Original
-            assert "def forwards_migrate_groups(apps, schema_editor):" not in migration_content
-            assert "def backwards_migrate_groups(apps, schema_editor):" not in migration_content
-            assert "            forwards_migrate_groups," not in migration_content
-            assert "            backwards_migrate_groups," not in migration_content
-
-            # Unchanged
-            assert "def create_group_change(change, group_change_model):" in migration_content
-            assert "class GroupChangeTypes(enum.Enum):" in migration_content
-            assert "def get_matching_record(change, group_change_model):" in migration_content
-            assert (
-                """def migrate_step(
-    content_types,
-    groups,
-    permissions,
-    group_name,
-    group_name_old,
-    change_type,
-    historical_permission_codename,
-    historical_permission_content_type_app_label,
-    historical_permission_content_type_model_name,
-    historical_permission_name,
-):"""
-                in migration_content
-            )
-            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
-            assert "code=make_sure_permissions_exist," in migration_content
-
-            # Added New
-            assert (
-                "def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                in migration_content
-            )
-            assert (
-                "def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                in migration_content
-            )
-            assert "def forwards_migrate_groups(apps, changed_items):" in migration_content
-            assert "def backwards_migrate_groups(apps, changed_items):" in migration_content
-            assert "            forwards_migrate_groups_through_imports," in migration_content
-            assert "            backwards_migrate_groups_through_imports," in migration_content
-
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_updating_direct_runpython_import(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_updating": "tests.group_updating",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_updating.GroupUpdatingUser"
-        append_installed_apps(settings, "tests.group_updating")
-
-        with self.temporary_migration_module(settings, app_label="group_updating") as migration_dir:
-            migration_filepath = os.path.join(migration_dir, "0003_group_permission_migrations_2026_06_30.py")
-
-            with open(migration_filepath, encoding="utf-8") as f:
-                migration_content = f.read()
-
-            # Untouched
-            assert "changed_data = [" in migration_content
-
-            # Original
-            assert "def forwards_migrate_groups(apps, schema_editor):" in migration_content
-            assert "def backwards_migrate_groups(apps, schema_editor):" in migration_content
-            assert "code=forwards_migrate_groups," in migration_content
-            assert "reverse_code=backwards_migrate_groups," in migration_content
-
-            # Unchanged
-            assert "def create_group_change(change, group_change_model):" in migration_content
-            assert "class GroupChangeTypes(enum.Enum):" in migration_content
-            assert "def get_matching_record(change, group_change_model):" in migration_content
-            assert (
-                """def migrate_step(
-    content_types,
-    groups,
-    permissions,
-    group_name,
-    group_name_old,
-    change_type,
-    historical_permission_codename,
-    historical_permission_content_type_app_label,
-    historical_permission_content_type_model_name,
-    historical_permission_name,
-):"""
-                in migration_content
-            )
-            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
-            assert "code=make_sure_permissions_exist," in migration_content
-
-            # New
-            assert (
-                "def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                not in migration_content
-            )
-            assert (
-                "def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                not in migration_content
-            )
-            assert "def forwards_migrate_groups(apps, changed_items):" not in migration_content
-            assert "def backwards_migrate_groups(apps, changed_items):" not in migration_content
-            assert "code=forwards_migrate_groups_through_imports," not in migration_content
-            assert "reverse_code=backwards_migrate_groups_through_imports," not in migration_content
-
-            succeeded, results = self.call_command_capturing_output("updategroupmigrations")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            with open(migration_filepath, encoding="utf-8") as f:
-                migration_content = f.read()
-
-            # Untouched
-            assert "changed_data = [" in migration_content
-
-            # Removed Original
-            assert "def forwards_migrate_groups(apps, schema_editor):" not in migration_content
-            assert "def backwards_migrate_groups(apps, schema_editor):" not in migration_content
-            assert "code=forwards_migrate_groups," not in migration_content
-            assert "reverse_code=backwards_migrate_groups," not in migration_content
-
-            # Unchanged
-            assert "def create_group_change(change, group_change_model):" in migration_content
-            assert "class GroupChangeTypes(enum.Enum):" in migration_content
-            assert "def get_matching_record(change, group_change_model):" in migration_content
-            assert (
-                """def migrate_step(
-    content_types,
-    groups,
-    permissions,
-    group_name,
-    group_name_old,
-    change_type,
-    historical_permission_codename,
-    historical_permission_content_type_app_label,
-    historical_permission_content_type_model_name,
-    historical_permission_name,
-):"""
-                in migration_content
-            )
-            assert "def make_sure_permissions_exist(apps, schema_editor):" in migration_content
-            assert "code=make_sure_permissions_exist," in migration_content
-
-            # Added New
-            assert (
-                "def forwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                in migration_content
-            )
-            assert (
-                "def backwards_migrate_groups_through_imports(apps, schema_editor):  # pragma: no cover"
-                in migration_content
-            )
-            assert "def forwards_migrate_groups(apps, changed_items):" in migration_content
-            assert "def backwards_migrate_groups(apps, changed_items):" in migration_content
-            assert "code=forwards_migrate_groups_through_imports," in migration_content
-            assert "reverse_code=backwards_migrate_groups_through_imports," in migration_content
-
-            # Run update again.  There should be no renames.
-            succeeded, results = self.call_command_capturing_output("updategroupmigrations")
-            if not succeeded:
-                pytest.fail("".join(results))
-
-            assert f"  Nothing to rename found in {migration_filepath}.\n" in results
-
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_updating_bad_migrations(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_updating_bad_migrations": "tests.group_updating_bad_migrations",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_updating_bad_migrations.GroupUpdatingBadMigrationsUser"
-        append_installed_apps(settings, "tests.group_updating_bad_migrations")
-
-        err = io.StringIO()
-        out = io.StringIO()
-
-        with self.temporary_migration_module(settings, app_label="group_updating_bad_migrations") as migration_dir:
-            with pytest.raises(SystemExit):
-                self.call_command_capturing_output("updategroupmigrations", stdout=out, stderr=err)
-
-            err.seek(0)
-            results = err.read()
-
-            assert (
-                f"  Could not parse required sections in {migration_dir}"
-                "/0002_group_permission_migrations_2026_06_29.py, skipping.\n"
-            ) in results
-            assert (
-                f"  Unable to parse migration at {migration_dir}/0003_group_permission_migrations_2026_06_29.py"
-                " due to syntax error '[' was never closed"
-            ) in results
-
-            out.seek(0)
-            results = out.read()
-
-            assert "Failed updating 2 group migration(s).\n" in results
-
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_updating_no_migrations(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_updating_no_migrations": None,
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_updating_no_migrations.GroupUpdatingNoMigrationsUser"
-        append_installed_apps(settings, "tests.group_updating_no_migrations")
-
-        succeeded, results = self.call_command_capturing_output("updategroupmigrations")
-        if not succeeded:
-            pytest.fail("".join(results))
-
-        assert "No group migrations found to update.\n" in results
-
-    @clear_info_registry_before_test()
-    @pytest.mark.xdist_group(name="management_command_tests")
-    @pytest.mark.django_db
-    def test_group_changes_syncing(self, settings):
-        settings.MIGRATION_MODULES = {
-            "group_changes_syncing": "tests.group_changes_syncing",
-            "no_migrations": None,
-        }
-        settings.AUTH_USER_MODEL = "group_changes_syncing.GroupChangesSyncingUser"
-        append_installed_apps(settings, "tests.group_changes_syncing")
-
-        with self.temporary_migration_module(settings, app_label="group_changes_syncing"):
-            assert GroupChange.objects.count() == 0
+            assert not GroupChange.objects.filter(group_name="Synced Members").exists()
 
             succeeded, results = self.call_command_capturing_output("sync_group_changes")
             if not succeeded:
                 pytest.fail("".join(results))
 
-            assert GroupChange.objects.count() == 2, GroupChange.objects.values()  # noqa: PLR2004
-            assert dict(
-                *GroupChange.objects.filter(historical_permission_codename="read_contenttype").values(
-                    "group_name",
-                    "group_name_old",
-                    "change_type",
-                    "historical_permission_codename",
-                    "historical_permission_content_type_app_label",
-                    "historical_permission_content_type_model_name",
+            assert sorted(
+                GroupChange.objects.filter(group_name="Synced Members").values_list(
+                    "change_type", "historical_permission_codename", "historical_permission_content_type_app_label"
                 )
-            ) == {
-                "group_name": "Member",
-                "group_name_old": "",
-                "change_type": "added",
-                "historical_permission_codename": "read_contenttype",
-                "historical_permission_content_type_app_label": "contenttypes",
-                "historical_permission_content_type_model_name": "contenttype",
-            }
-            assert dict(
-                *GroupChange.objects.filter(historical_permission_codename="list_permission").values(
-                    "group_name",
-                    "group_name_old",
-                    "change_type",
-                    "historical_permission_codename",
-                    "historical_permission_content_type_app_label",
-                    "historical_permission_content_type_model_name",
-                )
-            ) == {
-                "group_name": "Member",
-                "group_name_old": "",
-                "change_type": "associated",
-                "historical_permission_codename": "list_permission",
-                "historical_permission_content_type_app_label": "auth",
-                "historical_permission_content_type_model_name": "permission",
-            }
+            ) == [("added", "read_contenttype", "contenttypes"), ("associated", "list_permission", "auth")]
+
+            succeeded, results = self.call_command_capturing_output("sync_group_changes")
+            assert succeeded, results
+            assert GroupChange.objects.filter(group_name="Synced Members").count() == 2  # noqa: PLR2004
 
 
 class TestManagementCommandUtils:
     def test_group_update_operation_function_name_with_conflicting_dependency_names(self):
-        from vueda.user.management.commands.updategroupmigrations import OPERATION_FUNCTION_RENAMES
-
         results = update_operation_function_names(
             """
 class Migration(migrations.Migration):
@@ -790,7 +147,7 @@ class Migration(migrations.Migration):
         ),
     ]
 """,
-            OPERATION_FUNCTION_RENAMES,
+            GROUP_MIGRATION_KIND.renames,
         )
 
         assert "code=make_sure_permissions_exist," in results
@@ -799,6 +156,35 @@ class Migration(migrations.Migration):
         assert '("test", "0001_make_sure_permissions_exist"),' in results
         assert '("test", "0002_forwards_migrate_groups"),' in results
         assert '("test", "0003_backwards_migrate_groups"),' in results
+
+    def test_workflow_update_operation_function_name_with_conflicting_dependency_names(self):
+        results = update_operation_function_names(
+            """
+class Migration(migrations.Migration):
+    dependencies = [
+        ("test", "0001_make_sure_permissions_exist"),
+        ("test", "0002_forwards_migrate_workflow"),
+    ]
+
+    operations = [
+        migrations.RunPython(
+            code=make_sure_permissions_exist,
+            reverse_code=migrations.RunPython.noop,
+        ),
+        migrations.RunPython(
+            code=forwards_migrate_workflow,
+            reverse_code=backwards_migrate_workflow,
+        ),
+    ]
+""",
+            WORKFLOW_MIGRATION_KIND.renames,
+        )
+
+        assert "code=make_sure_permissions_exist_through_imports," in results
+        assert "code=forwards_migrate_workflow_through_imports," in results
+        assert "reverse_code=backwards_migrate_workflow_through_imports," in results
+        assert '("test", "0001_make_sure_permissions_exist"),' in results
+        assert '("test", "0002_forwards_migrate_workflow"),' in results
 
     # Each format_changed_data test writes its pyproject.toml into its own tmp_path. black caches a parsed
     # pyproject.toml and a found project root by path for the life of the process, so a test that rewrote a

@@ -9,7 +9,8 @@
 -   **Coverage**: `just coverage-server` (accepts extra pytest args). Example: `just coverage-server --cov-report=html`
 -   **Django**: `uv run --no-sync python manage.py test`, `uv run --no-sync python manage.py makemigrations`, `uv run --no-sync python manage.py migrate`
 -   **API docs**: `uv run --no-sync python manage.py spectacular --color --file schema.yml`
--   **Workflow migrations**: `uv run --no-sync python manage.py makeworkflowmigrations` (after workflow changes)
+-   **Group and workflow migrations**: `uv run --no-sync python manage.py makevuedamigrations` (after group or workflow changes)
+    A migration written into a VUEDA app, such as `vueda_vdq`, ships in the package. It depends on the user model through `swappable_dependency` and on VUEDA's own apps only. Such a migration cannot depend on a test app's migration. When a test app's migration comes just before it in the same run, the command adds a `run_before` naming it to the test app's migration instead, so Django still applies them in the order made.
 
 ## Architecture
 

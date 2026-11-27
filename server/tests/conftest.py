@@ -30,6 +30,7 @@ from psycopg import sql
 from rest_framework.test import APIClient
 
 from tests.utils import object_revision_of
+from vueda.user.management.commands.makevuedamigrations import Command as MakeVuedaMigrationsCommand
 
 
 # Django colors command output only when it writes to a terminal. Tests that read command output would then pass in
@@ -158,6 +159,16 @@ pytest_plugins = ["celery.contrib.pytest"]
 # Avoid truncating the test database between after each transactional tests, we'll handle it ourselves in
 # suffix_each_test.
 TransactionTestCase._fixture_teardown = lambda self: None
+
+
+@pytest.fixture(autouse=True, scope="session")
+def import_instead_of_copying():
+    """Make ``makevuedamigrations`` write migrations that import VUEDA's functions instead of copying them in.
+
+    The coverage report then counts the code that those migrations run. The setting lasts until the test run ends.
+    A test that needs copied functions sets ``_import_instead`` back to ``False`` with ``monkeypatch``.
+    """
+    MakeVuedaMigrationsCommand._import_instead = True
 
 
 @pytest.fixture

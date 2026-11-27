@@ -28,7 +28,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 from tests.store import models as store_models
-from vueda.workflow.management.commands.makeworkflowmigrations import backwards_migrate_workflow
+from vueda.workflow.migration_generation.operations import backwards_migrate_workflow
 from vueda.workflow.models import Workflow
 
 
