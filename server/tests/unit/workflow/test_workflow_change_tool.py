@@ -359,8 +359,7 @@ def state_debug_sections(earlier_migration):
     Each section is its heading and the set of the test's state codes that it lists, in printed order.
     """
     output = io.StringIO()
-    # Without no_color, Django colors the headings whenever the test runs in a terminal.
-    tool = WorkflowChangeTool(BaseCommand(stdout=output, no_color=True))
+    tool = WorkflowChangeTool(BaseCommand(stdout=output))
     tool.configure(
         {
             "dry_run": True,
