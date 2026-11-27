@@ -131,6 +131,14 @@ class DefaultUserAdapter:
         attachments=None,
         template_prefix=None,
     ) -> None:
+        """
+        Render the email that ``code`` names and send it to ``to_email``.
+
+        With ``vueda.vdq`` installed, the message becomes a VDQ queue item. VDQ publishes the item with
+        ``transaction.on_commit``, so a transaction that rolls back sends nothing. Without VDQ, the message is sent
+        at once, even inside a transaction that later rolls back. A caller inside a transaction that can roll back,
+        such as an ``on_transition`` hook, should then wrap this call in ``transaction.on_commit``.
+        """
         ctx = {
             "email": to_email,
             "site_name": settings.SITE_NAME,

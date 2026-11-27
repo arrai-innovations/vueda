@@ -45,6 +45,7 @@ from vueda.core.utils import get_system_user
 from vueda.history.apps import track_model
 from vueda.history.revision import object_revision
 from vueda.history.snapshots import last_recorded
+from vueda.workflow.exceptions import AlreadyInTargetStateError
 from vueda.workflow.exceptions import InvalidTransitionError
 from vueda.workflow.exceptions import WorkflowNotConfiguredError
 
@@ -1022,6 +1023,9 @@ class WorkflowModelMethods:
         acting user the history middleware records on the action, then the system user, exactly as
         ``apply_transition`` does). Callers that need to gate a transition on warnings (see ``get_transition_warnings``)
         before writing should call this first, then ``apply_checked_transition``.
+
+        A refusal raises ``InvalidTransitionError``. When the object is already in the transition's target state, the
+        refusal raises its subclass ``AlreadyInTargetStateError``.
         """
         # One cache per call, so the second check under the row lock re-reads the state the lock protects.
         with self.cached_workflow_state():
@@ -1043,9 +1047,14 @@ class WorkflowModelMethods:
             if not allowed_or_denied_or_denied_with_message or isinstance(
                 allowed_or_denied_or_denied_with_message, str
             ):
+                # A refused object that already sits in the target state needs no change, so it raises the
+                # subclass that lets a caller skip it instead of reporting it as blocked.
+                denial_message = allowed_or_denied_or_denied_with_message or None
+                current_state = self.workflow_state
+                if current_state.pk == transition.target_id:
+                    raise AlreadyInTargetStateError(denial_message or f"Already in the {current_state.name} state.")
                 raise InvalidTransitionError(
-                    allowed_or_denied_or_denied_with_message
-                    or f"Transition {transition.code!r} not available from state {self.workflow_state.code!r}"
+                    denial_message or f"{transition.name} is not available from the {current_state.name} state."
                 )
             return transition, user
 

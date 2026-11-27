@@ -73,6 +73,20 @@ class BulkTransitionObjectSerializer(serializers.Serializer):
         required=False,
         help_text="Why the object cannot take the transition. Present only for a refused object in a 400 response.",
     )
+    already_in_target_state = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "True when the object was refused because it is already in the target state. Present only for such an "
+            "object in a 400 response."
+        ),
+    )
+    locked = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "True when another request held the object's row lock, so the same request can succeed later. Present "
+            "only for such an object in a 400 response."
+        ),
+    )
 
 
 class BulkTransitionResultSerializer(serializers.Serializer):
@@ -351,7 +365,7 @@ BULK_EXECUTE_TRANSITION_EXAMPLES = [
 BULK_EXECUTE_TRANSITION_400_EXAMPLES = [
     conditional_open_api_example(
         "ExecuteTransitionBulkRefusedExample",
-        summary="An object cannot take the transition",
+        summary="Objects that cannot take the transition",
         description="uri: /routes"
         + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/",
         value={
@@ -360,7 +374,29 @@ BULK_EXECUTE_TRANSITION_400_EXAMPLES = [
                 "1": {"state": {"code": "new", "name": "New"}},
                 "2": {
                     "state": {"code": "shipped", "name": "Shipped"},
-                    "errors": ["Transition 'pack_order' not available from state 'shipped'"],
+                    "errors": ["Pack Order is not available from the Shipped state."],
+                },
+                "3": {
+                    "state": {"code": "packed", "name": "Packed"},
+                    "errors": ["Already in the Packed state."],
+                    "already_in_target_state": True,
+                },
+            },
+        },
+    ),
+    conditional_open_api_example(
+        "ExecuteTransitionBulkLockedExample",
+        summary="Another request held an object's row lock",
+        description="uri: /routes"
+        + "/vueda.workflow/workflows&ZeroWidthSpace;/store/customerorder/execute-transition/",
+        value={
+            "target_state": {"code": "packed", "name": "Packed"},
+            "objects": {
+                "1": {"state": {"code": "new", "name": "New"}},
+                "2": {
+                    "state": {"code": "new", "name": "New"},
+                    "errors": ["This object cannot be updated right now. Please try again."],
+                    "locked": True,
                 },
             },
         },

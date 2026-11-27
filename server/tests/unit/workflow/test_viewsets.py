@@ -18,7 +18,9 @@ from rest_framework.settings import api_settings
 from tests.conftest import BaseTestUserMixin
 from tests.conftest import response_body
 from tests.store import models as store_models
+from vueda.core.exceptions import VuedaValidationError
 from vueda.history.revision import object_revision
+from vueda.workflow.models import ObjectState
 from vueda.workflow.models import State
 from vueda.workflow.models import WorkflowPermission
 
@@ -636,7 +638,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         )
 
     def test_execute_transition_bulk_returns_validation_error_when_locked(
-        self, api_client, workflow_user, customer_order, another_order
+        self, api_client, workflow_user, customer_order, another_order, assert_matches_documented_response
     ):
         api_client.force_authenticate(workflow_user)
         bulk_url = reverse(
@@ -659,12 +661,43 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         objects = response.data["objects"]
         assert [str(err) for err in objects[str(customer_order.pk)]["errors"]] == [message]
         assert [str(err) for err in objects[str(another_order.pk)]["errors"]] == [message]
+        # A held lock is temporary, so the client keeps the object in the next attempt instead of skipping it.
+        assert objects[str(customer_order.pk)]["locked"] is True
+        assert objects[str(another_order.pk)]["locked"] is True
+        assert "already_in_target_state" not in objects[str(customer_order.pk)]
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/", "patch"
+        )
         # The batch rolled back, so no object reports the state it was written to before the refusal.
         assert all("new_state" not in entry for entry in objects.values())
         customer_order.refresh_from_db()
         another_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
         assert another_order.workflow_state.code == "new"
+
+    def test_execute_transition_bulk_marks_no_lock_for_a_project_error_with_a_locked_code(
+        self, api_client, workflow_user, customer_order
+    ):
+        # Only the row-lock miss is retryable. A project's own error is a refusal, whatever code it carries.
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        def refuse(instance, transition, user=None, dry_run=False):
+            raise VuedaValidationError("The period is locked.", code="locked")
+
+        with patch.object(store_models.CustomerOrder, "on_transition", refuse):
+            response = api_client.patch(
+                bulk_url,
+                {"transition_code": "pack_order", "object_ids": [customer_order.pk]},
+                format="json",
+            )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        entry = response.data["objects"][str(customer_order.pk)]
+        assert [str(err) for err in entry["errors"]] == ["The period is locked."]
+        assert "locked" not in entry
 
     def test_execute_transition_bulk_returns_validation_error_when_object_ids_not_a_list(
         self, api_client, workflow_user
@@ -936,7 +969,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST, response_body(response)
-        message = "Transition 'pack_order' not available from state 'shipped'"
+        message = "Pack Order is not available from the Shipped state."
         assert response.data["objects"][str(customer_order.pk)]["errors"] == [message]
         assert response.data["objects"][str(another_order.pk)]["errors"] == [message]
         customer_order.refresh_from_db()
@@ -971,7 +1004,7 @@ class TestWorkflowViewSet(BaseTestUserMixin):
             str(customer_order.pk): {"state": {"code": "new", "name": "New"}},
             str(another_order.pk): {
                 "state": {"code": "shipped", "name": "Shipped"},
-                "errors": ["Transition 'pack_order' not available from state 'shipped'"],
+                "errors": ["Pack Order is not available from the Shipped state."],
             },
         }
         assert_matches_documented_response(
@@ -979,6 +1012,74 @@ class TestWorkflowViewSet(BaseTestUserMixin):
         )
         customer_order.refresh_from_db()
         assert customer_order.workflow_state.code == "new"
+
+    def test_execute_transition_bulk_marks_an_object_already_in_the_target_state(
+        self, api_client, workflow_user, customer_order, another_order, assert_matches_documented_response
+    ):
+        # A confirmation page skips an object that already sits in the target state, and reports every
+        # other refused object as blocked. Only the server's marker tells the two apart.
+        api_client.force_authenticate(workflow_user)
+        for order, state_code in ((customer_order, "packed"), (another_order, "shipped")):
+            object_state = order.object_state
+            object_state.state = State.objects.get(code=state_code, workflow__code="order_fulfillment")
+            object_state.save()
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+
+        response = api_client.patch(
+            bulk_url,
+            {"transition_code": "pack_order", "object_ids": [customer_order.pk, another_order.pk]},
+            format="json",
+            HTTP_DRY_RUN="true",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        assert response.data["objects"] == {
+            str(customer_order.pk): {
+                "state": {"code": "packed", "name": "Packed"},
+                "errors": ["Already in the Packed state."],
+                "already_in_target_state": True,
+            },
+            str(another_order.pk): {
+                "state": {"code": "shipped", "name": "Shipped"},
+                "errors": ["Pack Order is not available from the Shipped state."],
+            },
+        }
+        assert_matches_documented_response(
+            response, "/vueda.workflow/workflows/{app_label}/{model}/execute-transition/", "patch"
+        )
+
+    def test_execute_transition_bulk_marks_an_object_that_reached_the_target_state_before_its_lock(
+        self, api_client, workflow_user, customer_order
+    ):
+        # The write loop checks each object again under its row lock. An object that another request
+        # moved to the target state in between gets the same marker as one refused before the write.
+        api_client.force_authenticate(workflow_user)
+        bulk_url = reverse(
+            "workflow.workflow-execute-transition", kwargs={"app_label": "store", "model": "customerorder"}
+        )
+        check_transition = store_models.CustomerOrder.check_transition
+        packed_state = State.objects.get(code="packed", workflow__code="order_fulfillment")
+        calls = []
+
+        def move_to_target_after_first_check(instance, transition_code, user=None):
+            if calls:
+                ObjectState.objects.filter(pk=instance.object_state.pk).update(state=packed_state)
+            calls.append(transition_code)
+            return check_transition(instance, transition_code, user)
+
+        with patch.object(store_models.CustomerOrder, "check_transition", move_to_target_after_first_check):
+            response = api_client.patch(
+                bulk_url,
+                {"transition_code": "pack_order", "object_ids": [customer_order.pk]},
+                format="json",
+            )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response_body(response)
+        entry = response.data["objects"][str(customer_order.pk)]
+        assert entry["errors"] == ["Already in the Packed state."]
+        assert entry["already_in_target_state"] is True
 
     def test_execute_transition_bulk_reports_the_allow_transition_message(
         self, api_client, workflow_user, customer_order
