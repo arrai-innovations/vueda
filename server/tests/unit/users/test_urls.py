@@ -1,15 +1,16 @@
-import time
 from http import HTTPStatus
 
 import pytest
-from allauth.account.internal.flows.login import AUTHENTICATION_METHODS_SESSION_KEY
 from allauth.mfa import app_settings as mfa_settings
-from allauth.mfa.models import Authenticator
 from allauth.mfa.recovery_codes.internal.auth import RecoveryCodes
+from allauth.mfa.totp.internal.auth import TOTP
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+from tests.conftest import TOTP_SECRET
+from tests.conftest import reauthenticate_with_second_factor
 from tests.conftest import response_body
+from vueda.user.utils import get_current_totp_code
 
 
 ALLAUTH_PREFIX = "/routes/vueda.user/_allauth/browser/v1/"
@@ -48,7 +49,7 @@ def mfa_user(db):
         password="test-pass",
         name="Recovery Codes User",
     )
-    Authenticator.objects.create(user=user, type=Authenticator.Type.TOTP, data={})
+    TOTP.activate(user, TOTP_SECRET)
     RecoveryCodes.activate(user)
     return user
 
@@ -60,9 +61,7 @@ def test_recovery_codes_are_served_from_vueda_url():
 @pytest.mark.django_db
 def test_recovery_codes_are_served_to_a_recently_authenticated_user(api_client, mfa_user):
     api_client.force_login(mfa_user)
-    session = api_client.session
-    session[AUTHENTICATION_METHODS_SESSION_KEY] = [{"method": "mfa", "at": time.time()}]
-    session.save()
+    reauthenticate_with_second_factor(api_client, get_current_totp_code(TOTP_SECRET))
 
     response = api_client.get(reverse("recovery_codes"))
 

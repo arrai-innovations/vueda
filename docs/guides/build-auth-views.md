@@ -243,13 +243,13 @@ On success, `twoFactorAuthenticate` reloads the current user, which sets `logged
 
 ## Build a Re-Authentication View
 
-The server requires a recent sign-in for sensitive requests, such as setting up a two-factor device. The proof that it accepts depends on the account. The who-is response names the flow that the session owes as `auth_pending_flow`, and the store copies it into `authPendingFlow`:
+The server requires a recent reauthentication for sensitive requests, such as setting up a two-factor device. The proof that it accepts depends on the account. The who-is response names the flow that the session owes as `auth_pending_flow`, and the store copies it into `authPendingFlow`:
 
-- `mfa_reauthenticate`: the user has a two-factor device, so they must confirm a code. Their password alone does not count. [`twoFactorReauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.twoFactorReauthenticate} completes it.
+- `mfa_reauthenticate`: the user has a two-factor device, so they must confirm a code. The server refuses their password. [`twoFactorReauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.twoFactorReauthenticate} completes it.
 - `reauthenticate`: the user has only a password, so they confirm the password. [`reauthenticate`]{@api js:method:@arrai-innovations/vueda/stores/storeUser#storeUser.reauthenticate} completes it.
-- `null`: the session is recent, or the user has neither a password nor a device, so nothing is pending.
+- `null`: the user reauthenticated recently, so nothing is pending. The value is also `null` for a user with neither a password nor a device. That user has no way to reauthenticate, and the server refuses their sensitive requests.
 
-A session counts as recent for `ACCOUNT_REAUTHENTICATION_TIMEOUT` seconds after the user completes the flow that their account requires, at sign-in or by reauthenticating. The default is 300. [`vueda.core.reauthentication`]{@api py:module:vueda.core.reauthentication} decides which flow an account requires.
+A session counts as recent for `ACCOUNT_REAUTHENTICATION_TIMEOUT` seconds after the user reauthenticates. The default is 300. A sign-in does not count, so a user who has just signed in owes their flow and confirms once before their first sensitive request. [`vueda.core.reauthentication`]{@api py:module:vueda.core.reauthentication} decides which flow an account requires.
 
 The user reaches the `reauthenticate` route in one of two ways:
 
@@ -291,7 +291,7 @@ Route this component as `reauthenticate` in place of `@vueda/views/ViewReauthent
 
 A custom view must handle both flows. Build it on `AuthorizingForm` with `requireRecentLogin`, so that it waits until `authPendingFlow` is empty before it returns to the `redirect` path. Submit the password through `reauthenticate` and a code through `twoFactorReauthenticate`. Each call reloads the current user, which clears `authPendingFlow` once the server accepts the proof.
 
-A form that only asks for the password leaves a user with a two-factor device stuck. The server accepts the password, but the session still owes `mfa_reauthenticate`.
+A form that only asks for the password leaves a user with a two-factor device stuck. The server refuses their password with `403`, and the session still owes `mfa_reauthenticate`.
 
 ## Build a Form for a Signed-In Operation
 
@@ -389,7 +389,7 @@ Writing through the `form-object` ref fails, because the form state is readonly.
 - Invalid credentials show the server's message on the form.
 - Opening a protected route while signed out goes to `sign-in` with `?redirect=/original-path`, and signing in returns to that path.
 - For an account with two-factor authentication, sign-in opens `2fa`, and a valid code completes it. Reloading the page during that step keeps the user on it.
-- A request that needs a recent sign-in opens `reauthenticate`. An account with a two-factor device gets the code form, and an account without one gets the password form. Confirming returns to the original page.
+- A request that needs a recent reauthentication opens `reauthenticate`. An account with a two-factor device gets the code form, and an account without one gets the password form. Confirming returns to the original page.
 - A forgot password request shows "Check Your Email", and a second request for the same address within a minute is refused.
 - The emailed link opens `reset-password`, and a password that the validators reject shows an error on the password field.
 - The change-password form shows server errors on its fields, such as "This password is too common."
@@ -404,7 +404,7 @@ Writing through the `form-object` ref fails, because the form state is readonly.
 
 **Form values do not reach the server.** Check that each field's `name` matches the key that the endpoint expects.
 
-**The re-authentication view redirects at once.** The session is already recent, so `authPendingFlow` is empty on mount. The server accepts the recent sign-in, so no confirmation is needed.
+**The re-authentication view redirects at once.** The user reauthenticated recently, so `authPendingFlow` is empty on mount and no confirmation is needed.
 
 **A password confirmation succeeds, but the guarded request still returns `401`.** The user has a two-factor device, so the session owes `mfa_reauthenticate`, and only a code makes it recent. The server accepts the password but does not count it. Render the code form for that flow, as `ViewReauthenticate` does.
 
